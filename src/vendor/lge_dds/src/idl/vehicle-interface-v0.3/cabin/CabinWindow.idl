@@ -1,10 +1,3 @@
-struct CabinLeftWindowControl {
-	// type: actuator
-	// command : 0 = CLOSE, 1 = OPEN
-
-	long command;
-};
-
 struct CabinLeftWindowStatus {
 	// type: sensor
 	// command : 0 = CLOSE, 1 = OPEN
@@ -16,13 +9,6 @@ struct CabinLeftWindowStatus {
 	long status;
 	long progress;
 	long uistatus;
-};
-
-struct CabinRightWindowControl {
-	// type: actuator
-	// command : 0 = CLOSE, 1 = OPEN
-
-	long command;
 };
 
 struct CabinRightWindowStatus {

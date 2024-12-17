@@ -42,57 +42,10 @@ impl MetricConnection for GrpcMetricServer {
         let node_name = container_list.node_name.clone();
         let etcd_key = format!("metric/container/{node_name}");
         let new_container_list = NewContainerList::from(container_list);
-
-        // fake metric - start
-        let mut vec_new_container_info: Vec<NewContainerInfo> = new_container_list
-            .containers
-            .into_iter()
-            .filter(|container| {
-                container
-                    .annotation
-                    .contains_key("io.piccolo.annotations.package-name")
-            })
-            .collect();
-
-        let mut vec_fake_container_info: Vec<NewContainerInfo> = if node_name == "HPC" {
-            vec![
-                NewContainerInfo::make_dummy("DIMS", 1),
-                NewContainerInfo::make_dummy("LKA", 2),
-                NewContainerInfo::make_dummy("HUD", 3),
-                NewContainerInfo::make_dummy("ChildLock", 4),
-                NewContainerInfo::make_dummy("ADAS", 5),
-                NewContainerInfo::make_dummy("MRNavi", 6),
-                NewContainerInfo::make_dummy("ABS", 7),
-            ]
-        } else {
-            vec![
-                NewContainerInfo::make_dummy("SmartCruise", 8),
-                NewContainerInfo::make_dummy("AutoHold", 9),
-                NewContainerInfo::make_dummy("V2X Comm.", 10),
-                NewContainerInfo::make_dummy("VisionRoof", 11),
-                NewContainerInfo::make_dummy("ISG", 12),
-            ]
-        };
-
-        vec_new_container_info.append(&mut vec_fake_container_info);
-        let renew_container_list = NewContainerList {
-            containers: vec_new_container_info,
-        };
-        // fake metric - end
-
-        //overwrite names with package-type
-        /*
-        for container in &mut renew_container_list.containers {
-            let package_type = container.annotation.get("io.piccolo.annotations.package-type").unwrap();
-            container.names = vec![package_type.clone()];
-        }
-        */
-
-        // TODO : renew -> new
-        let j = serde_json::to_string(&renew_container_list).unwrap();
+        let json_string = serde_json::to_string(&new_container_list).unwrap();
         //println!("container\n{:#?}", j);
 
-        let _ = common::etcd::put(&etcd_key, &j).await;
+        let _ = common::etcd::put(&etcd_key, &json_string).await;
 
         Ok(tonic::Response::new(Response {
             resp: true.to_string(),
@@ -173,38 +126,6 @@ impl From<ContainerInfo> for NewContainerInfo {
         }
     }
 }
-
-// fake metric - start
-impl NewContainerInfo {
-    fn make_dummy(name: &str, index: i32) -> Self {
-        let dummy_str = format!("dummy{index}");
-        let dummy_node = if index > 7 {
-            String::from("ZONE")
-        } else {
-            String::from("HPC")
-        };
-        let dummy_anno = HashMap::<String, String>::from([
-            (
-                String::from("io.piccolo.annotations.package-name"),
-                String::from("dummy"),
-            ),
-            (
-                String::from("io.piccolo.annotations.package-type"),
-                String::from(name),
-            ),
-        ]);
-
-        NewContainerInfo {
-            id: dummy_str.clone(),
-            names: vec![String::from(name)],
-            image: dummy_str.clone(),
-            state: HashMap::<String, String>::from([(dummy_str.clone(), dummy_str.clone())]),
-            config: HashMap::<String, String>::from([(String::from("Hostname"), dummy_node)]),
-            annotation: dummy_anno,
-        }
-    }
-}
-// fake metric - end
 
 #[derive(Deserialize, Serialize, Default)]
 pub struct NewPodList {

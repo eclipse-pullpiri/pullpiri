@@ -6,6 +6,7 @@ use axum::{
     routing::{delete, get, post},
     Json, Router,
 };
+use std::collections::HashMap;
 
 pub fn get_route() -> Router {
     Router::new()
@@ -18,9 +19,53 @@ pub fn get_route() -> Router {
         .route("/scenario/reset", get(reset_all))
 }
 
-async fn list_scenario() -> Json<Vec<String>> {
-    // TODO - /metric/scenario will be moved here
-    let scenarios = vec![String::new(), String::new()];
+async fn list_scenario() -> Json<Vec<ScenarioInfo>> {
+    use std::collections::HashSet;
+
+    let kvs = common::etcd::get_all_with_prefix("scenario")
+        .await
+        .unwrap_or_default();
+    let mut scenarios: Vec<ScenarioInfo> = Vec::new();
+
+    let mut exist: HashSet<&str> = HashSet::new();
+    for kv in kvs.iter() {
+        let split: Vec<&str> = kv.key.split('/').collect();
+        let name = match split.get(1) {
+            Some(&item) => item,
+            None => continue,
+        };
+        if !exist.insert(name) {
+            continue;
+        }
+
+        let status = common::etcd::get(&format!("scenario/{name}/status"))
+            .await
+            .unwrap_or_default();
+
+        let mut metric_condition = HashMap::new();
+        let condition_str = common::etcd::get(&format!("scenario/{name}/conditions"))
+            .await
+            .unwrap_or_default();
+        if let Ok(condition) =
+            serde_yaml::from_str::<common::spec::scenario::Condition>(&condition_str)
+        {
+            metric_condition.insert(
+                condition.get_operand_name(),
+                capitalize_first_letter(&condition.get_value()),
+            );
+        }
+
+        let action = common::etcd::get(&format!("scenario/{name}/targets"))
+            .await
+            .unwrap_or_default();
+
+        scenarios.push(ScenarioInfo {
+            name: String::from(name),
+            status,
+            condition: metric_condition,
+            action,
+        });
+    }
     Json(scenarios)
 }
 
@@ -144,4 +189,20 @@ async fn reset_all() -> Response {
     // } else {
     //     super::status_ok()
     // }
+}
+
+fn capitalize_first_letter(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+        None => String::new(),
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Default)]
+struct ScenarioInfo {
+    name: String,
+    status: String,
+    condition: HashMap<String, String>,
+    action: String,
 }

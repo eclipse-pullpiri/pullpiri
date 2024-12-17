@@ -50,7 +50,6 @@ async fn make_action_for_scenario(key: &str) -> Result<String, Box<dyn Error>> {
     let target_name = target.get_name();
 
     let key_models = format!("package/{}/models", &target_name);
-    //let (_, value_model) = common::etcd::get_all_with_prefix(&key_models).await?;
     let kvs_model = common::etcd::get_all_with_prefix(&key_models).await?;
 
     for kv in kvs_model {

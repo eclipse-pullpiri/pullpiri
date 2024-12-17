@@ -29,7 +29,5 @@ impl Connection for GrpcServer {
                 "cannot send condition",
             )),
         }
-
-        //Ok(tonic::Response::new(Response { resp: true.to_string() }))
     }
 }

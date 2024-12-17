@@ -44,38 +44,33 @@ impl Filter {
     pub async fn check(&mut self, data: DdsData) -> bool {
         println!("{:?}", self);
 
-        if data.name.eq(&self.topic) {
-            match self.express.as_str() {
-                "lt" => {
-                    let target_v = f32::from_str(&self.target_value).unwrap();
-                    let current_v = f32::from_str(&data.value).unwrap();
-                    target_v < current_v
-                }
-                "le" => {
-                    let target_v = f32::from_str(&self.target_value).unwrap();
-                    let current_v = f32::from_str(&data.value).unwrap();
-                    target_v <= current_v
-                }
-                //"eq" => self.target_value.eq(&data.value),
-                "eq" => {
-                    let target = self.target_value.clone();
-                    let data = data.value.clone();
-                    target.to_lowercase() == data.to_lowercase()
-                }
-                "ge" => {
-                    let target_v = f32::from_str(&self.target_value).unwrap();
-                    let current_v = f32::from_str(&data.value).unwrap();
-                    target_v >= current_v
-                }
-                "gt" => {
-                    let target_v = f32::from_str(&self.target_value).unwrap();
-                    let current_v = f32::from_str(&data.value).unwrap();
-                    target_v > current_v
-                }
-                _ => false,
+        if !data.name.eq(&self.topic) {
+            return false;
+        }
+
+        match self.express.as_str() {
+            "eq" => self.target_value.to_lowercase() == data.value.to_lowercase(),
+            "lt" => {
+                let target_v = f32::from_str(&self.target_value).unwrap();
+                let current_v = f32::from_str(&data.value).unwrap();
+                target_v < current_v
             }
-        } else {
-            false
+            "le" => {
+                let target_v = f32::from_str(&self.target_value).unwrap();
+                let current_v = f32::from_str(&data.value).unwrap();
+                target_v <= current_v
+            }
+            "ge" => {
+                let target_v = f32::from_str(&self.target_value).unwrap();
+                let current_v = f32::from_str(&data.value).unwrap();
+                target_v >= current_v
+            }
+            "gt" => {
+                let target_v = f32::from_str(&self.target_value).unwrap();
+                let current_v = f32::from_str(&data.value).unwrap();
+                target_v > current_v
+            }
+            _ => false,
         }
     }
 }

@@ -27,46 +27,17 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    /*#[tokio::test]
-    async fn test_parsing() {
-        let result =
-            crate::grpc_server::make_action_for_scenario("scenario/version-display/action").await;
-        println!("{:?}", result);
-        assert!(result.is_ok());
-    }*/
-
-    /*#[test]
-    fn test_ssh2() {
-        use ssh2::Session;
-        use std::net::TcpStream;
-
-        let tcp = TcpStream::connect("10.157.19.234:22").unwrap();
-        let mut session = Session::new().unwrap();
-        session.set_tcp_stream(tcp);
-        session.handshake().unwrap();
-        session.userauth_password("sdv", "lge123").unwrap();
-        assert!(session.authenticated());
-
-        let mut channel = session.channel_session().unwrap();
-
-        //channel.exec("sudo ln -s /root/piccolo_yaml/test.yaml /home/sdv/Music/2.yaml").unwrap();
-        channel.exec("sudo rm -rf /home/sdv/Music/2.yaml").unwrap();
-        //channel.send_eof().unwrap();
-        channel.wait_eof().unwrap();
-        channel.wait_close().unwrap();
-    }*/
-
     use ssh2::Session;
     use std::path::Path;
     use std::{fs, io};
 
     #[test]
     fn test_ssh2_copy_foler() -> Result<(), Box<dyn std::error::Error>> {
-        let tcp = std::net::TcpStream::connect("10.157.19.221:47022")?;
+        let tcp = std::net::TcpStream::connect("192.168.10.11:22")?;
         let mut session = Session::new()?;
         session.set_tcp_stream(tcp);
         session.handshake().unwrap();
-        session.userauth_password("root", "lge123").unwrap();
+        session.userauth_password("id", "pw").unwrap();
         assert!(session.authenticated());
 
         let local_folder = Path::new("/root/demo/");

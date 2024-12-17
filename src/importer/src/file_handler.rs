@@ -79,8 +79,8 @@ pub fn perform(
 }
 
 pub async fn download(url: &str, path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let username = "admin";
-    let password = Some("admin123".to_string());
+    let username = "id";
+    let password = Some("pw".to_string());
     let client = reqwest::Client::new();
     let response = client
         .get(url)

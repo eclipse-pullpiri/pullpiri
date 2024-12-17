@@ -1,10 +1,3 @@
-struct PowertrainBatteryChargingChargePortFlapControl {
-	// type: actuator
-	// command : 0 = CLOSE, 1 = OPEN
-
-	long command;
-};
-
 struct PowertrainBatteryChargingChargePortFlapStatus {
 	// type: sensor
 	// command : 0 = CLOSE, 1 = OPEN
@@ -17,26 +10,3 @@ struct PowertrainBatteryChargingChargePortFlapStatus {
 	long progress;
 	long uistatus;
 };
-
-struct PowertrainBatteryStateOfChargeCurrent {
-	// type: sensor
-	// unit: percent
-	// datatype: float
-	// min: 0
-	// max: 100.00
-	// description: Physical state of charge of the high voltage battery, relative to net capacity.
-	//              This is not necessarily the state of charge being displayed to the customer.
-
-	float value;
-};
-
-struct PowertrainBatteryRange {
-	// datatype: uint32
-	// type: sensor
-	// unit: m
-	// description: Remaining range in meters using only battery.
-
-	long value;
-};
-
-

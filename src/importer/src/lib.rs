@@ -81,14 +81,10 @@ mod tests {
             let file_name = entry.file_name();
             let remote_file_path = format!("{}/{}", path, file_name.to_string_lossy());
             println!("{:?}\n{:?}\n", entry_path, remote_file_path);
-            //let rfp = Path::new(&remote_file_path);
             if entry_path.is_dir() {
-                //println!("[E] {:?}\n", entry_path);
                 recursive_call(&remote_file_path)?;
             } else {
-                //let mut remote_file = session.sftp()?.create(rfp)?;
                 let local_file = std::fs::File::open(&entry_path)?;
-                //io::copy(&mut local_file, &mut remote_file)?;
                 println!("[F] {:?}", local_file);
             }
         }
@@ -96,8 +92,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn read_dir() {
-        let path = "/root/work/bms-test/apps";
+    async fn read_dir_recursively() {
+        let path = "/usr/local";
         let result = recursive_call(path);
         assert!(result.is_ok());
     }
@@ -105,8 +101,8 @@ mod tests {
     #[tokio::test]
     async fn downloading() {
         use crate::file_handler;
-        let url = "http://sdv.lge.com:9001/piccolo/resources/packages/version-cli-1.tar";
-        let path = "/root/Music/test.tar";
+        let url = "http://localhost:41234/packages/bms-eco-mode.tar";
+        let path = "/root/bms-eco-mode.tar";
         let result = file_handler::download(url, path).await;
         println!("{:?}", result);
         assert!(result.is_ok());

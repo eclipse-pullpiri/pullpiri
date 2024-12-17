@@ -84,7 +84,7 @@ mod tests {
     pub fn get_contents_string(src: &Path) -> String {
         let idl_src = fs::read_to_string(src).unwrap();
         let result = dust_dds_gen::compile_idl(&idl_src).unwrap();
-        //println!("{}", result);
+        println!("{result}");
         result
     }
 }

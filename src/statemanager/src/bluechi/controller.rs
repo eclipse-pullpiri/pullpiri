@@ -3,14 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use dbus::blocking::Connection;
+use dbus::blocking::{Connection, Proxy};
 use dbus::Path;
 use std::error::Error;
 use std::time::Duration;
 
-fn list_nodes() -> Result<String, Box<dyn Error>> {
-    let conn = Connection::new_system()?;
-    let proxy = conn.with_proxy(super::DEST, super::PATH, Duration::from_millis(5000));
+fn list_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String, Box<dyn Error>> {
     let (nodes,): (Vec<(String, dbus::Path, String)>,) =
         proxy.method_call(super::DEST_CONTROLLER, "ListNodes", ())?;
 
@@ -21,12 +19,11 @@ fn list_nodes() -> Result<String, Box<dyn Error>> {
     Ok(result)
 }
 
-fn reload_all_nodes() -> Result<String, Box<dyn Error>> {
-    let conn = Connection::new_system()?;
-    let proxy = conn.with_proxy(super::DEST, super::PATH, Duration::from_millis(5000));
+fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String, Box<dyn Error>> {
     let (nodes,): (Vec<(String, dbus::Path, String)>,) =
         proxy.method_call(super::DEST_CONTROLLER, "ListNodes", ())?;
 
+    let conn = Connection::new_system()?;
     let mut result = String::new();
     for (node_name, _, _) in nodes {
         let (node,): (Path,) =
@@ -40,10 +37,13 @@ fn reload_all_nodes() -> Result<String, Box<dyn Error>> {
     Ok(result)
 }
 
-pub fn handle_cmd(c: Vec<&str>) -> Result<String, Box<dyn Error>> {
-    match c[0] {
-        "LIST_NODE" => list_nodes(),
-        "RELOAD_ALL_NODES" => reload_all_nodes(),
+pub fn handle(
+    bc_cmd: super::Command,
+    proxy: &Proxy<'_, &Connection>,
+) -> Result<String, Box<dyn Error>> {
+    match bc_cmd {
+        super::Command::ControllerListNode => list_nodes(proxy),
+        super::Command::ControllerReloadAllNodes => reload_all_nodes(proxy),
         _ => Err("cannot find command".into()),
     }
 }

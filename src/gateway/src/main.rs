@@ -16,9 +16,7 @@ async fn launch_grpc(tx: Sender<Condition>) {
     use common::gateway::connection_server::ConnectionServer;
     use tonic::transport::Server;
 
-    let server = crate::grpc::receiver::GrpcServer {
-        grpc_msg_tx: tx.clone(),
-    };
+    let server = crate::grpc::receiver::GrpcServer { grpc_msg_tx: tx };
     let addr = common::gateway::open_server()
         .parse()
         .expect("gateway address parsing error");

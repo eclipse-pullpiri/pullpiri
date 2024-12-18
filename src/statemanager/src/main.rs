@@ -8,14 +8,14 @@ mod grpc_server;
 
 use crate::grpc_server::StateManagerGrpcServer;
 use common::statemanager::connection_server::ConnectionServer;
+use tokio::sync::mpsc::{channel, Sender};
 use tonic::transport::Server;
 
-#[tokio::main]
-async fn main() {
+async fn launch_grpc(tx: Sender<bluechi::BluechiCmd>) {
     let addr = common::statemanager::open_server()
         .parse()
         .expect("statemanager address parsing error");
-    let statemanager_grpc_server = StateManagerGrpcServer::default();
+    let statemanager_grpc_server = StateManagerGrpcServer { tx };
 
     println!("Piccolod statemanager listening on {}", addr);
 
@@ -23,6 +23,15 @@ async fn main() {
         .add_service(ConnectionServer::new(statemanager_grpc_server))
         .serve(addr)
         .await;
+}
+
+#[tokio::main]
+async fn main() {
+    let (tx, rx) = channel::<bluechi::BluechiCmd>(100);
+    let f_grpc = launch_grpc(tx);
+    let f_manage = bluechi::handle_bluechi_cmd(rx);
+
+    tokio::join!(f_grpc, f_manage);
 }
 
 #[cfg(test)]

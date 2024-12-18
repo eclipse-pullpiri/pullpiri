@@ -8,13 +8,10 @@ use dbus::Path;
 use std::error::Error;
 use std::time::Duration;
 
-fn list_node_units(node_name: &str) -> Result<String, Box<dyn Error>> {
+fn node_list_units(node_name: &str) -> Result<String, Box<dyn Error>> {
     let conn = Connection::new_system()?;
-
     let proxy = conn.with_proxy(super::DEST, super::PATH, Duration::from_millis(5000));
-
     let (node,): (Path,) = proxy.method_call(super::DEST_CONTROLLER, "GetNode", (node_name,))?;
-
     let node_proxy = conn.with_proxy(super::DEST, node, Duration::from_millis(5000));
 
     // we are only interested in the first two response values - unit name and description
@@ -29,15 +26,12 @@ fn list_node_units(node_name: &str) -> Result<String, Box<dyn Error>> {
     Ok(result)
 }
 
-#[allow(dead_code)]
 fn node_daemon_reload(node_name: &str) -> Result<String, Box<dyn Error>> {
     let conn = Connection::new_system()?;
-
     let proxy = conn.with_proxy(super::DEST, super::PATH, Duration::from_millis(5000));
-
     let (node,): (Path,) = proxy.method_call(super::DEST_CONTROLLER, "GetNode", (node_name,))?;
-
     let node_proxy = conn.with_proxy(super::DEST, node, Duration::from_millis(5000));
+
     node_proxy.method_call(super::DEST_NODE, "Reload", ())?;
 
     Ok(format!("reload node '{}'\n", node_name))
@@ -45,8 +39,8 @@ fn node_daemon_reload(node_name: &str) -> Result<String, Box<dyn Error>> {
 
 pub fn handle_cmd(c: Vec<&str>) -> Result<String, Box<dyn Error>> {
     match c[0] {
-        "LIST_UNIT" => list_node_units(c[1]),
-        //"daemon-reload" => node_daemon_reload(c[1]),
+        "LIST_UNIT" => node_list_units(c[1]),
+        "RELOAD_NODE" => node_daemon_reload(c[1]),
         _ => Err("cannot find command".into()),
     }
 }

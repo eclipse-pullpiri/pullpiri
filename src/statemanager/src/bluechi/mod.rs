@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-pub mod method_controller;
-pub mod method_node;
-pub mod method_unit;
+pub mod controller;
+pub mod node;
+pub mod unit;
 
 const DEST: &str = "org.eclipse.bluechi";
 const PATH: &str = "/org/eclipse/bluechi";
@@ -16,9 +16,9 @@ pub async fn send_dbus(cmd: Vec<&str>) -> Result<String, Box<dyn std::error::Err
     println!("recv msg: {:?}\n", cmd);
 
     match cmd.len() {
-        1 => method_controller::handle_cmd(cmd),
-        2 => method_node::handle_cmd(cmd),
-        3 => method_unit::handle_cmd(cmd),
+        1 => controller::handle_cmd(cmd),
+        2 => node::handle_cmd(cmd),
+        3 => unit::handle_cmd(cmd),
         _ => Err("support only 1 ~ 3 parameters".into()),
     }
 }

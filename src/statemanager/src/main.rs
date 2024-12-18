@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+mod bluechi;
 mod grpc_server;
-mod method_bluechi;
 
 use crate::grpc_server::StateManagerGrpcServer;
 use common::statemanager::connection_server::ConnectionServer;
@@ -15,12 +15,12 @@ async fn main() {
     let addr = common::statemanager::open_server()
         .parse()
         .expect("statemanager address parsing error");
-    let state_manager_grpc_server = StateManagerGrpcServer::default();
+    let statemanager_grpc_server = StateManagerGrpcServer::default();
 
     println!("Piccolod statemanager listening on {}", addr);
 
     let _ = Server::builder()
-        .add_service(ConnectionServer::new(state_manager_grpc_server))
+        .add_service(ConnectionServer::new(statemanager_grpc_server))
         .serve(addr)
         .await;
 }

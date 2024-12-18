@@ -14,11 +14,8 @@ fn unit_lifecycle(
     unit_name: &str,
 ) -> Result<String, Box<dyn Error>> {
     let conn = Connection::new_system()?;
-
     let proxy = conn.with_proxy(super::DEST, super::PATH, Duration::from_millis(5000));
-
     let (node,): (Path,) = proxy.method_call(super::DEST_CONTROLLER, "GetNode", (node_name,))?;
-
     let node_proxy = conn.with_proxy(super::DEST, node, Duration::from_millis(5000));
 
     let (job_path,): (Path,) =
@@ -29,16 +26,13 @@ fn unit_lifecycle(
     ))
 }
 
-fn enable_unit(node_name: &str, unit_name: &str) -> Result<String, Box<dyn Error>> {
-    let unit_vector = vec![unit_name.to_owned()];
+fn unit_enable(node_name: &str, unit_name: &str) -> Result<String, Box<dyn Error>> {
     let conn = Connection::new_system()?;
-
     let proxy = conn.with_proxy(super::DEST, super::PATH, Duration::from_millis(5000));
-
     let (node,): (Path,) = proxy.method_call(super::DEST_CONTROLLER, "GetNode", (node_name,))?;
-
     let node_proxy = conn.with_proxy(super::DEST, node, Duration::from_millis(5000));
 
+    let unit_vector = vec![unit_name.to_owned()];
     let (carries_install_info, changes): (bool, Vec<(String, String, String)>) = node_proxy
         .method_call(
             super::DEST_NODE,
@@ -62,16 +56,13 @@ fn enable_unit(node_name: &str, unit_name: &str) -> Result<String, Box<dyn Error
     Ok(result)
 }
 
-fn disable_unit(node_name: &str, unit_name: &str) -> Result<String, Box<dyn Error>> {
-    let unit_vector = vec![unit_name.to_owned()];
+fn unit_disable(node_name: &str, unit_name: &str) -> Result<String, Box<dyn Error>> {
     let conn = Connection::new_system()?;
-
     let proxy = conn.with_proxy(super::DEST, super::PATH, Duration::from_millis(5000));
-
     let (node,): (Path,) = proxy.method_call(super::DEST_CONTROLLER, "GetNode", (node_name,))?;
-
     let node_proxy = conn.with_proxy(super::DEST, node, Duration::from_millis(5000));
 
+    let unit_vector = vec![unit_name.to_owned()];
     let (changes,): (Vec<(String, String, String)>,) =
         node_proxy.method_call(super::DEST_NODE, "DisableUnitFiles", (unit_vector, false))?;
 
@@ -92,8 +83,8 @@ pub fn handle_cmd(c: Vec<&str>) -> Result<String, Box<dyn Error>> {
         "STOP" => unit_lifecycle("StopUnit", c[1], c[2]),
         "RESTART" => unit_lifecycle("RestartUnit", c[1], c[2]),
         "RELOAD" => unit_lifecycle("ReloadUnit", c[1], c[2]),
-        "ENABLE" => enable_unit(c[1], c[2]),
-        "DISABLE" => disable_unit(c[1], c[2]),
+        "ENABLE" => unit_enable(c[1], c[2]),
+        "DISABLE" => unit_disable(c[1], c[2]),
         _ => Err("cannot find command".into()),
     }
 }

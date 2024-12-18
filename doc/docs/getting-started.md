@@ -18,29 +18,33 @@ Also, [Rust](https://www.rust-lang.org) is required to test without using a cont
 
 ### Piccolo Configuration
 
-There is a [piccolo.ini](/piccolo.ini) for configuration. Modify this to suit your system.
+There is a [settings.yaml](/src/settings.yaml) for configuration. Modify this to suit your system.
 
-```ini
-HOST_IP=0.0.0.0
-;if you fix YAML_STORAGE, to fix Makefile is also needed. (make install)
-YAML_STORAGE=/root/piccolo_yaml
-HOST_NODE=master
-;not used yet
-;GUEST_NODE=worker1
-DOC_REGISTRY=http://mod.lge.com/hub/piccolo/piccolo-bluechi/-/raw/main/examples/res
-;more items will be added
+```yaml
+yaml_storage: /root/piccolo_yaml
+doc_registry: http://0.0.0.0:41234
+host:
+  name: HPC
+  ip: 0.0.0.0
+guest:
+#  - name: ZONE
+#    ip: 192.168.10.11
+#    ssh_port: 22
+#    id: root
+#    pw: rootpassword
 ```
 
-- HOST_IP : Each modules use this IP address for gRPC communications.
-- YAML_STORAGE : For making systemd service with podman, we need `.kube` and `.yaml` files. Lib `importer` makes these files in this directory.
-- HOST_NAME : To deliver systemd command with `bluechi`, we need node name.
-- DOC_REGISTRY : The repository address saving `Packages` and `scenarios`.
+- yaml_storage : For making systemd service with podman, we need `.kube` and `.yaml` files. Lib `importer` makes these files in this directory.
+- doc_registry : The repository address saving `Packages` and `scenarios`.
+- host.name : To deliver systemd command with `bluechi`, we need node name.
+- guest : Bluechi agent node information. ID/PW is required for `.kube`, `.yaml` files transfers.
 
 ### Piccolo modules
 
 Piccolo consists of many modules.
 For each modules, refer to [Structure](/doc/docs/developments.md#structure).  
-And the [example](/examples/version-display/README.md) would be helpful.
+~~And the [example](/examples/version-display/README.md) would be helpful.~~
+Examples will be updated.
 
 ## Limitations
 
@@ -86,13 +90,13 @@ If you have errors during `apt update`, then check dns nameserver.
 For starting,
 
 ```sh
-make install
+make pre install
 ```
 
 For stoping,
 
 ```sh
-make uninstall
+make uninstall post
 ```
 
 You can see container list via `podman ps`.

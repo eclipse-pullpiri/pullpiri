@@ -109,7 +109,7 @@ statemanager: 47003
 REST
 api-server : 47099
 
-etcd : 2379
+etcd : 2379, 2380
 ```
 
 ## Documentation

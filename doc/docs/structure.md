@@ -15,8 +15,9 @@ height="75%"
 ├── doc
 │   ├── docs
 │   └── images
-├── etcd-data       # dummy folder for etcd DB
 ├── examples
+│   ├── nginx       # (optional) file server
+│   └── resources   # package and scenario files
 ├── LICENSES
 └── src
     ├── api         # gRPC proto files
@@ -24,11 +25,9 @@ height="75%"
     ├── common      # common library
     ├── gateway
     ├── importer
-    ├── metric-notifier
     ├── statemanager
-    └── tools
-        ├── dds-idl-gen
-        └── workloadconverter
+    └── vendor
+        └── lge_dds # DDS receiver for gateway
 ```
 
 ## api-server
@@ -63,7 +62,7 @@ In addition to the API calls, the complexity increases for reconcile tasks, etc.
 The etcd stores data that is commonly used by each Piccolo module.
 Writes are made only from the api-server, and the gateway and statemanager read them to perform the necessary actions.
 
-## others (under construction)
+## others (will be updated)
 
 - metric-notifier : We will provide a dashboard to monitor the status of each package and scenario.
 - tools - dds-idl-gen : Vehicle messages sent via DDS use the IDL file format. This is a tool that converts IDL into a struct used in Rust modules.

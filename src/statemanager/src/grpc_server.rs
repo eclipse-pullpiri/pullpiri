@@ -42,31 +42,24 @@ impl Connection for StateManagerGrpcServer {
 
 impl StateManagerGrpcServer {
     async fn make_action_for_scenario(&self, key: &str) -> Result<String, Box<dyn Error>> {
-        let key_action = format!("scenario/{key}/actions");
-        let key_target = format!("scenario/{key}/targets");
-        let value_action = etcd::get(&key_action).await?;
-        let value_target = etcd::get(&key_target).await?;
-        let action: common::spec::scenario::Action = serde_yaml::from_str(&value_action)?;
-        let target: common::spec::scenario::Target = serde_yaml::from_str(&value_target)?;
+        let key_action = format!("scenario/{key}/action");
+        let key_target = format!("scenario/{key}/target");
+        let action = etcd::get(&key_action).await?;
+        let target = etcd::get(&key_target).await?;
 
-        let operation = &*action.get_operation();
-        let target_name = target.get_name();
-
-        let key_models = format!("package/{}/models", &target_name);
+        let key_models = format!("package/{}/models", target);
         let kvs_model = common::etcd::get_all_with_prefix(&key_models).await?;
 
         for kv in kvs_model {
-            let model: common::spec::package::model::Model = serde_yaml::from_str(&kv.value)?;
-            let model_name = model.get_name();
-            let node =
-                common::etcd::get(&format!("package/{target_name}/nodes/{model_name}")).await?;
+            let model_name = &kv.value;
+            let node = common::etcd::get(&format!("package/{target}/nodes/{model_name}")).await?;
 
-            println!("model : {model_name}\noperation : {operation}\nnode : {node}\n");
-            self.handle_operation(operation, &model_name, &target_name, &node)
+            println!("model : {model_name}\noperation : {action}\nnode : {node}\n");
+            self.handle_operation(&action, model_name, &target, &node)
                 .await?;
         }
 
-        Ok(format!("Done : {}\n", operation))
+        Ok(format!("Done : {}\n", action))
     }
 
     async fn handle_operation(

@@ -4,15 +4,14 @@ use std::fs::File;
 use std::io::prelude::*;
 
 #[derive(Debug)]
-pub struct Scenario {
+pub struct ScenarioEtcd {
     pub name: String,
-    pub conditions: String,
-    pub actions: String,
-    pub targets: String,
-    pub scene: String,
+    pub condition: String,
+    pub action: String,
+    pub target: String,
 }
 
-pub fn parse_from_yaml_path(path: &str) -> Result<Scenario, Box<dyn std::error::Error>> {
+pub fn parse_from_yaml_path(path: &str) -> Result<ScenarioEtcd, Box<dyn std::error::Error>> {
     let mut f = File::open(path)?;
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
@@ -20,18 +19,17 @@ pub fn parse_from_yaml_path(path: &str) -> Result<Scenario, Box<dyn std::error::
     parse_from_yaml_string(&contents)
 }
 
-pub fn parse_from_yaml_string(yaml: &str) -> Result<Scenario, Box<dyn std::error::Error>> {
+pub fn parse_from_yaml_string(yaml: &str) -> Result<ScenarioEtcd, Box<dyn std::error::Error>> {
     let scene: common::spec::scenario::Scenario = serde_yaml::from_str(yaml)?;
-    let name: String = scene.get_name();
-    let conditions: &Option<common::spec::scenario::Condition> = &scene.get_conditions();
-    let actions: &common::spec::scenario::Action = &scene.get_actions()[0];
-    let targets: &common::spec::scenario::Target = &scene.get_targets()[0];
+    let name = scene.get_name();
+    let condition = scene.get_conditions();
+    let action = scene.get_actions();
+    let target = scene.get_targets();
 
-    Ok(Scenario {
+    Ok(ScenarioEtcd {
         name,
-        conditions: serde_yaml::to_string(conditions)?,
-        actions: serde_yaml::to_string(actions)?,
-        targets: serde_yaml::to_string(targets)?,
-        scene: serde_yaml::to_string(&scene)?,
+        condition: serde_yaml::to_string(&condition)?,
+        action,
+        target,
     })
 }

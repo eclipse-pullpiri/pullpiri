@@ -21,23 +21,23 @@ impl Scenario {
     }
 
     pub fn get_conditions(&self) -> Option<Condition> {
-        self.spec.conditions.clone()
+        self.spec.condition.clone()
     }
 
-    pub fn get_actions(&self) -> Vec<Action> {
-        self.spec.actions.clone()
+    pub fn get_actions(&self) -> String {
+        self.spec.action.clone()
     }
 
-    pub fn get_targets(&self) -> Vec<Target> {
-        self.spec.targets.clone()
+    pub fn get_targets(&self) -> String {
+        self.spec.target.clone()
     }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 struct ScenarioSpec {
-    conditions: Option<Condition>,
-    actions: Vec<Action>,
-    targets: Vec<Target>,
+    condition: Option<Condition>,
+    action: String,
+    target: String,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -79,30 +79,8 @@ impl Condition {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
-pub struct Action {
-    operation: String,
-}
-
-impl Action {
-    pub fn get_operation(&self) -> String {
-        self.operation.clone()
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 struct Operand {
     r#type: String,
     name: String,
     value: String,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
-pub struct Target {
-    package: String,
-}
-
-impl Target {
-    pub fn get_name(&self) -> String {
-        self.package.clone()
-    }
 }

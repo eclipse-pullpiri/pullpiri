@@ -15,7 +15,7 @@ pub struct Filter {
 impl Filter {
     pub async fn new(name: &str) -> Self {
         let action_key = name.to_string();
-        let conditions = common::etcd::get(&format!("scenario/{name}/conditions"))
+        let conditions = common::etcd::get(&format!("scenario/{name}/condition"))
             .await
             .unwrap();
 

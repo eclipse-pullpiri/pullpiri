@@ -6,6 +6,7 @@ use axum::{
     routing::{delete, get, post},
     Json, Router,
 };
+use importer::parser::package::PackageEtcd;
 
 pub fn get_route() -> Router {
     Router::new()
@@ -51,31 +52,15 @@ async fn delete_package(Path(name): Path<String>) -> Response {
     super::status_ok()
 }
 
-use importer::parser::package::Package;
-
-async fn write_package_info_to_etcd(p: Package) -> Result<(), Box<dyn std::error::Error>> {
+async fn write_package_info_to_etcd(p: PackageEtcd) -> Result<(), Box<dyn std::error::Error>> {
     let key_origin = format!("package/{}", p.name);
 
     for i in 0..p.model_names.len() {
         let model_name = p.model_names.get(i).unwrap();
-        common::etcd::put(
-            &format!("{key_origin}/models/{}", model_name),
-            p.models.get(i).unwrap(),
-        )
-        .await?;
+        common::etcd::put(&format!("{key_origin}/models/{}", model_name), model_name).await?;
         common::etcd::put(
             &format!("{key_origin}/nodes/{}", model_name),
             p.nodes.get(i).unwrap(),
-        )
-        .await?;
-        common::etcd::put(
-            &format!("{key_origin}/networks/{}", model_name),
-            p.networks.get(i).unwrap(),
-        )
-        .await?;
-        common::etcd::put(
-            &format!("{key_origin}/volumes/{}", model_name),
-            p.volumes.get(i).unwrap(),
         )
         .await?;
     }

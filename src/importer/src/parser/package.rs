@@ -8,16 +8,13 @@ use std::fs::File;
 use std::io::prelude::*;
 
 #[derive(Debug)]
-pub struct Package {
+pub struct PackageEtcd {
     pub name: String,
     pub model_names: Vec<String>,
-    pub models: Vec<String>,
     pub nodes: Vec<String>,
-    pub networks: Vec<String>,
-    pub volumes: Vec<String>,
 }
 
-pub fn parse(path: &str) -> Result<Package, Box<dyn std::error::Error>> {
+pub fn parse(path: &str) -> Result<PackageEtcd, Box<dyn std::error::Error>> {
     file_handler::create_exist_folder(path)?;
 
     let package_yaml = format!("{}/package.yaml", path);
@@ -63,13 +60,10 @@ pub fn parse(path: &str) -> Result<Package, Box<dyn std::error::Error>> {
         println!("[E] cannot copy package files to remote node: {:?}", e);
     }
 
-    Ok(Package {
+    Ok(PackageEtcd {
         name,
         model_names,
-        models,
         nodes,
-        networks,
-        volumes,
     })
 }
 

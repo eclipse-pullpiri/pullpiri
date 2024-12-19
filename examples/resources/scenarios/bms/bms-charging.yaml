@@ -7,14 +7,12 @@ kind: Scenario
 metadata:
   name: bms
 spec:
-  conditions:
+  condition:
     express: eq
     value: "BulkCharging"
     operands:
       type: DDS
       name: charging_status
       value: "/rt/piccolo/Charging_Status"
-  actions:
-    - operation: update
-  targets:
-    - package: "bms-algorithm-charging"
+  action: update
+  target: bms-algorithm-charging

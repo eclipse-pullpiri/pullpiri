@@ -7,14 +7,12 @@ kind: Scenario
 metadata:
   name: bms
 spec:
-  conditions:
+  condition:
     express: eq
     value: P
     operands:
       type: DDS
       name: gear
       value: PowertrainTransmissionCurrentGear
-  actions:
-    - operation: update
-  targets:
-    - package: bms-algorithm-eco
+  action: update
+  target: bms-algorithm-eco

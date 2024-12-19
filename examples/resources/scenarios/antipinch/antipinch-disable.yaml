@@ -7,8 +7,6 @@ kind: Scenario
 metadata:
   name: antipinch
 spec:
-  conditions:
-  actions:
-    - operation: update
-  targets:
-    - package: antipinch-disable
+  condition:
+  action: update
+  target: antipinch-disable

@@ -43,7 +43,7 @@ async fn list_scenario() -> Json<Vec<ScenarioInfo>> {
             .unwrap_or_default();
 
         let mut metric_condition = HashMap::new();
-        let condition_str = common::etcd::get(&format!("scenario/{name}/conditions"))
+        let condition_str = common::etcd::get(&format!("scenario/{name}/condition"))
             .await
             .unwrap_or_default();
         if let Ok(condition) =
@@ -55,7 +55,7 @@ async fn list_scenario() -> Json<Vec<ScenarioInfo>> {
             );
         }
 
-        let action = common::etcd::get(&format!("scenario/{name}/targets"))
+        let action = common::etcd::get(&format!("scenario/{name}/target"))
             .await
             .unwrap_or_default();
 
@@ -69,15 +69,9 @@ async fn list_scenario() -> Json<Vec<ScenarioInfo>> {
     Json(scenarios)
 }
 
-async fn inspect_scenario(Path((scenario_name, file_name)): Path<(String, String)>) -> Response {
-    let key = format!("scenario/{scenario_name}/file");
-    let v = common::etcd::get(&key).await.unwrap_or_default();
-
-    if file_name == v {
-        super::status_ok()
-    } else {
-        super::status_err("file does not exist in etcd")
-    }
+async fn inspect_scenario(Path((_scenario_name, _file_name)): Path<(String, String)>) -> Response {
+    // TODO
+    super::status_ok()
 }
 
 async fn handle_post_path(body: String) -> Response {
@@ -114,7 +108,7 @@ async fn import_scenario_from_yaml(yaml: String) -> Result<(), Box<dyn std::erro
 }
 
 async fn internal_import_scenario(
-    s: &importer::parser::scenario::Scenario,
+    s: &importer::parser::scenario::ScenarioEtcd,
     file_name: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     write_scenario_info_in_etcd(s, file_name).await?;
@@ -151,17 +145,16 @@ async fn delete_scenario(file_name: &str) -> Result<(), Box<dyn std::error::Erro
 }
 
 async fn write_scenario_info_in_etcd(
-    s: &importer::parser::scenario::Scenario,
+    s: &importer::parser::scenario::ScenarioEtcd,
     file_name: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     //let key_origin = format!("scenario/{}", s.name);
     let key_origin = format!("scenario/{}", file_name);
     //common::etcd::put(&format!("{key_origin}/file"), file_name).await?;
-    common::etcd::put(&format!("{key_origin}/actions"), &s.actions).await?;
-    common::etcd::put(&format!("{key_origin}/conditions"), &s.conditions).await?;
+    common::etcd::put(&format!("{key_origin}/action"), &s.action).await?;
+    common::etcd::put(&format!("{key_origin}/condition"), &s.condition).await?;
     common::etcd::put(&format!("{key_origin}/status"), "inactive").await?;
-    common::etcd::put(&format!("{key_origin}/targets"), &s.targets).await?;
-    common::etcd::put(&format!("{key_origin}/full"), &s.scene).await?;
+    common::etcd::put(&format!("{key_origin}/target"), &s.target).await?;
 
     Ok(())
 }

@@ -16,7 +16,7 @@ use std::{error::Error, path::Path};
  * - Parsing
  * - return to api-server
  */
-pub async fn parse_package(package_name: &str) -> Result<package::Package, Box<dyn Error>> {
+pub async fn parse_package(package_name: &str) -> Result<package::PackageEtcd, Box<dyn Error>> {
     //url path
     let full_url: String = format!(
         "{}/packages/{}.tar",
@@ -50,7 +50,7 @@ pub async fn parse_package(package_name: &str) -> Result<package::Package, Box<d
 
 pub async fn get_scenario_from_file(
     scenario_path: &str,
-) -> Result<scenario::Scenario, Box<dyn Error>> {
+) -> Result<scenario::ScenarioEtcd, Box<dyn Error>> {
     let full_url = format!(
         "{}/scenarios/{}.yaml",
         common::get_config().doc_registry,
@@ -68,7 +68,9 @@ pub async fn get_scenario_from_file(
     scenario::parse_from_yaml_path(&full_save_path)
 }
 
-pub async fn get_scenario_from_yaml(yaml_str: &str) -> Result<scenario::Scenario, Box<dyn Error>> {
+pub async fn get_scenario_from_yaml(
+    yaml_str: &str,
+) -> Result<scenario::ScenarioEtcd, Box<dyn Error>> {
     scenario::parse_from_yaml_string(yaml_str)
 }
 

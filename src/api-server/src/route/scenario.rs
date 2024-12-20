@@ -6,6 +6,8 @@ use axum::{
     routing::{delete, get, post},
     Json, Router,
 };
+use common::Result;
+use importer::parser::scenario::ScenarioEtcd;
 use std::collections::HashMap;
 
 pub fn get_route() -> Router {
@@ -96,21 +98,18 @@ async fn handle_post_yaml(body: String) -> Response {
     }
 }
 
-async fn import_scenario_from_path(path: String) -> Result<(), Box<dyn std::error::Error>> {
+async fn import_scenario_from_path(path: String) -> Result<()> {
     let scenario = importer::get_scenario_from_file(&path).await?;
     let scenario_file = path.split('/').collect::<Vec<&str>>()[1];
     internal_import_scenario(&scenario, scenario_file).await
 }
 
-async fn import_scenario_from_yaml(yaml: String) -> Result<(), Box<dyn std::error::Error>> {
+async fn import_scenario_from_yaml(yaml: String) -> Result<()> {
     let scenario = importer::get_scenario_from_yaml(&yaml).await?;
     internal_import_scenario(&scenario, &scenario.name).await
 }
 
-async fn internal_import_scenario(
-    s: &importer::parser::scenario::ScenarioEtcd,
-    file_name: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn internal_import_scenario(s: &ScenarioEtcd, file_name: &str) -> Result<()> {
     write_scenario_info_in_etcd(s, file_name).await?;
     let condition = common::gateway::Condition {
         crud: String::from("CREATE"),
@@ -132,7 +131,7 @@ async fn handle_delete(Path(file_name): Path<String>) -> Response {
     }
 }
 
-async fn delete_scenario(file_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn delete_scenario(file_name: &str) -> Result<()> {
     delete_scenario_info_in_etcd(file_name).await?;
 
     let condition = common::gateway::Condition {
@@ -144,10 +143,7 @@ async fn delete_scenario(file_name: &str) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
-async fn write_scenario_info_in_etcd(
-    s: &importer::parser::scenario::ScenarioEtcd,
-    file_name: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn write_scenario_info_in_etcd(s: &ScenarioEtcd, file_name: &str) -> Result<()> {
     //let key_origin = format!("scenario/{}", s.name);
     let key_origin = format!("scenario/{}", file_name);
     //common::etcd::put(&format!("{key_origin}/file"), file_name).await?;
@@ -159,7 +155,7 @@ async fn write_scenario_info_in_etcd(
     Ok(())
 }
 
-async fn delete_scenario_info_in_etcd(name: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn delete_scenario_info_in_etcd(name: &str) -> Result<()> {
     let key_prefix = format!("scenario/{}", name);
     common::etcd::delete_all_with_prefix(&key_prefix).await?;
 

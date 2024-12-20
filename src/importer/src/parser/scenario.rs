@@ -11,7 +11,7 @@ pub struct ScenarioEtcd {
     pub target: String,
 }
 
-pub fn parse_from_yaml_path(path: &str) -> Result<ScenarioEtcd, Box<dyn std::error::Error>> {
+pub fn parse_from_yaml_path(path: &str) -> common::Result<ScenarioEtcd> {
     let mut f = File::open(path)?;
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
@@ -19,7 +19,7 @@ pub fn parse_from_yaml_path(path: &str) -> Result<ScenarioEtcd, Box<dyn std::err
     parse_from_yaml_string(&contents)
 }
 
-pub fn parse_from_yaml_string(yaml: &str) -> Result<ScenarioEtcd, Box<dyn std::error::Error>> {
+pub fn parse_from_yaml_string(yaml: &str) -> common::Result<ScenarioEtcd> {
     let scene: common::spec::scenario::Scenario = serde_yaml::from_str(yaml)?;
     let name = scene.get_name();
     let condition = scene.get_conditions();

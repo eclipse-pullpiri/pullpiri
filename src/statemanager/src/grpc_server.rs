@@ -159,23 +159,23 @@ impl StateManagerGrpcServer {
 
     async fn make_symlink_and_reload(
         &self,
-        node_name: &str,
-        model_name: &str,
-        target_name: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+        node: &str,
+        model: &str,
+        target: &str,
+    ) -> common::Result<()> {
         let original = format!(
             "{0}/packages/{1}/{2}/{2}.kube",
             common::get_config().yaml_storage,
-            target_name,
-            model_name
+            target,
+            model
         );
-        let link = format!("{}{}.kube", SYSTEMD_PATH, model_name);
+        let link = format!("{}{}.kube", SYSTEMD_PATH, model);
 
-        if node_name == common::get_config().host.name {
+        if node == common::get_config().host.name {
             std::os::unix::fs::symlink(original, link)?;
         } else if let Some(guests) = &common::get_config().guest {
             for guest in guests {
-                if node_name != guest.name {
+                if node != guest.name {
                     continue;
                 }
                 let guest_ssh_ip = format!("{}:{}", guest.ip, guest.ssh_port);
@@ -205,7 +205,7 @@ impl StateManagerGrpcServer {
         Ok(())
     }
 
-    async fn reload_all_node(&self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn reload_all_node(&self) -> common::Result<()> {
         let cmd = crate::bluechi::BluechiCmd {
             command: Command::ControllerReloadAllNodes,
             node: None,
@@ -217,16 +217,11 @@ impl StateManagerGrpcServer {
         Ok(())
     }
 
-    async fn try_service(
-        &self,
-        node_name: &str,
-        model_name: &str,
-        act: Command,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    async fn try_service(&self, node: &str, model: &str, act: Command) -> common::Result<()> {
         let cmd = crate::bluechi::BluechiCmd {
             command: act,
-            node: Some(node_name.to_string()),
-            unit: Some(format!("{}.service", model_name)),
+            node: Some(node.to_string()),
+            unit: Some(format!("{}.service", model)),
         };
         self.tx.send(cmd).await?;
         thread::sleep(Duration::from_millis(100));

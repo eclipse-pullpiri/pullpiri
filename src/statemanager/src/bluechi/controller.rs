@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use common::Result;
 use dbus::blocking::{Connection, Proxy};
 use dbus::Path;
-use std::error::Error;
 use std::time::Duration;
 
-fn list_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String, Box<dyn Error>> {
+fn list_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> {
     let (nodes,): (Vec<(String, dbus::Path, String)>,) =
         proxy.method_call(super::DEST_CONTROLLER, "ListNodes", ())?;
 
@@ -19,7 +19,7 @@ fn list_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String, Box<dyn Error>> 
     Ok(result)
 }
 
-fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String, Box<dyn Error>> {
+fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> {
     let (nodes,): (Vec<(String, dbus::Path, String)>,) =
         proxy.method_call(super::DEST_CONTROLLER, "ListNodes", ())?;
 
@@ -37,13 +37,10 @@ fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String, Box<dyn Er
     Ok(result)
 }
 
-pub fn handle(
-    bc_cmd: super::Command,
-    proxy: &Proxy<'_, &Connection>,
-) -> Result<String, Box<dyn Error>> {
-    match bc_cmd {
-        super::Command::ControllerListNode => list_nodes(proxy),
-        super::Command::ControllerReloadAllNodes => reload_all_nodes(proxy),
+pub fn handle(cmd: super::Command, bluechi: &Proxy<'_, &Connection>) -> Result<String> {
+    match cmd {
+        super::Command::ControllerListNode => list_nodes(bluechi),
+        super::Command::ControllerReloadAllNodes => reload_all_nodes(bluechi),
         _ => Err("cannot find command".into()),
     }
 }

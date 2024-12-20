@@ -78,7 +78,7 @@ pub fn perform(
     Ok(())
 }
 
-pub async fn download(url: &str, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn download(url: &str, path: &str) -> common::Result<()> {
     let username = "id";
     let password = Some("pw".to_string());
     let client = reqwest::Client::new();
@@ -110,14 +110,14 @@ pub fn extract(path: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn create_exist_folder(path: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn create_exist_folder(path: &str) -> common::Result<()> {
     if !Path::new(path).exists() {
         fs::create_dir_all(path)?;
     }
     Ok(())
 }
 
-pub fn copy_to_remote_node(path: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn copy_to_remote_node(path: &str) -> common::Result<()> {
     if let Some(guests) = &common::get_config().guest {
         for guest in guests {
             let guest_ssh_ip = format!("{}:{}", guest.ip, guest.ssh_port);

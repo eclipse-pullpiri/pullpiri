@@ -48,7 +48,7 @@ async fn deploy_exist_package() {
     let _ = internal_deploy_exist_package().await;
 }
 
-async fn internal_deploy_exist_package() -> Result<(), Box<dyn std::error::Error>> {
+async fn internal_deploy_exist_package() -> common::Result<()> {
     std::thread::sleep(std::time::Duration::from_millis(3000));
 
     let package_path = format!("{}/packages", common::get_config().yaml_storage);

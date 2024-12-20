@@ -41,7 +41,7 @@ mod tests {
     use std::{fs, io};
 
     #[test]
-    fn test_ssh2_copy_foler() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_ssh2_copy_foler() -> common::Result<()> {
         let tcp = std::net::TcpStream::connect("192.168.10.11:22")?;
         let mut session = Session::new()?;
         session.set_tcp_stream(tcp);

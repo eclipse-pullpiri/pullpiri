@@ -14,7 +14,7 @@ pub struct PackageEtcd {
     pub nodes: Vec<String>,
 }
 
-pub fn parse(path: &str) -> Result<PackageEtcd, Box<dyn std::error::Error>> {
+pub fn parse(path: &str) -> common::Result<PackageEtcd> {
     file_handler::create_exist_folder(path)?;
 
     let package_yaml = format!("{}/package.yaml", path);

@@ -39,7 +39,7 @@ pub async fn handle_post(body: String) -> Response {
     }
 }
 
-async fn import_package(body: String) -> Result<(), Box<dyn std::error::Error>> {
+async fn import_package(body: String) -> common::Result<()> {
     let package = importer::parse_package(&body).await?;
     write_package_info_to_etcd(package).await?;
 
@@ -52,7 +52,7 @@ async fn delete_package(Path(name): Path<String>) -> Response {
     super::status_ok()
 }
 
-async fn write_package_info_to_etcd(p: PackageEtcd) -> Result<(), Box<dyn std::error::Error>> {
+async fn write_package_info_to_etcd(p: PackageEtcd) -> common::Result<()> {
     let key_origin = format!("package/{}", p.name);
 
     for i in 0..p.model_names.len() {

@@ -4,6 +4,7 @@
  */
 
 pub mod apiserver;
+pub mod error;
 pub mod etcd;
 pub mod gateway;
 pub mod spec;
@@ -11,6 +12,7 @@ pub mod statemanager;
 pub mod constants {
     pub use api::proto::constants::*;
 }
+pub use crate::error::Result;
 
 use std::sync::OnceLock;
 static SETTINGS: OnceLock<Settings> = OnceLock::new();

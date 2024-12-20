@@ -6,7 +6,7 @@ mod file_handler;
 pub mod parser;
 
 use parser::{package, scenario};
-use std::{error::Error, path::Path};
+use std::path::Path;
 
 /*
  * Parsing scenario & package
@@ -16,7 +16,7 @@ use std::{error::Error, path::Path};
  * - Parsing
  * - return to api-server
  */
-pub async fn parse_package(package_name: &str) -> Result<package::PackageEtcd, Box<dyn Error>> {
+pub async fn parse_package(package_name: &str) -> common::Result<package::PackageEtcd> {
     //url path
     let full_url: String = format!(
         "{}/packages/{}.tar",
@@ -48,9 +48,7 @@ pub async fn parse_package(package_name: &str) -> Result<package::PackageEtcd, B
     package::parse(&parsing_path)
 }
 
-pub async fn get_scenario_from_file(
-    scenario_path: &str,
-) -> Result<scenario::ScenarioEtcd, Box<dyn Error>> {
+pub async fn get_scenario_from_file(scenario_path: &str) -> common::Result<scenario::ScenarioEtcd> {
     let full_url = format!(
         "{}/scenarios/{}.yaml",
         common::get_config().doc_registry,
@@ -68,9 +66,7 @@ pub async fn get_scenario_from_file(
     scenario::parse_from_yaml_path(&full_save_path)
 }
 
-pub async fn get_scenario_from_yaml(
-    yaml_str: &str,
-) -> Result<scenario::ScenarioEtcd, Box<dyn Error>> {
+pub async fn get_scenario_from_yaml(yaml_str: &str) -> common::Result<scenario::ScenarioEtcd> {
     scenario::parse_from_yaml_string(yaml_str)
 }
 

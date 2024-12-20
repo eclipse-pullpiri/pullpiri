@@ -19,11 +19,11 @@ const DEST_NODE: &str = "org.eclipse.bluechi.Node";
 
 pub async fn handle_bluechi_cmd(mut rx: Receiver<BluechiCmd>) {
     let conn = Connection::new_system().unwrap();
-    let proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
+    let bluechi = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
 
     let mut map_node_proxy: HashMap<String, Proxy<'_, &Connection>> = HashMap::new();
     // host node proxy
-    let (node,): (Path,) = proxy
+    let (node,): (Path,) = bluechi
         .method_call(
             DEST_CONTROLLER,
             "GetNode",
@@ -37,7 +37,7 @@ pub async fn handle_bluechi_cmd(mut rx: Receiver<BluechiCmd>) {
     // guest node proxy
     if let Some(guests) = &common::get_config().guest {
         for guest in guests {
-            let (node,): (Path,) = proxy
+            let (node,): (Path,) = bluechi
                 .method_call(DEST_CONTROLLER, "GetNode", (&guest.name,))
                 .unwrap();
             map_node_proxy.insert(
@@ -50,7 +50,7 @@ pub async fn handle_bluechi_cmd(mut rx: Receiver<BluechiCmd>) {
     while let Some(bluechi_cmd) = rx.recv().await {
         match bluechi_cmd.command {
             Command::ControllerListNode | Command::ControllerReloadAllNodes => {
-                let _ = controller::handle(bluechi_cmd.command, &proxy);
+                let _ = controller::handle(bluechi_cmd.command, &bluechi);
             }
             Command::NodeListUnit | Command::NodeReload => {
                 let node_proxy = map_node_proxy.get(&bluechi_cmd.node.unwrap()).unwrap();

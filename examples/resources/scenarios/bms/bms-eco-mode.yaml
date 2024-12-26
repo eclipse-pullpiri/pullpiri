@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: bms
+spec:
+  condition:
+    express: eq
+    value: P
+    operands:
+      type: DDS
+      name: gear
+      value: PowertrainTransmissionCurrentGear
+  action: update
+  target: bms-algorithm-eco

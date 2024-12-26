@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: antipinch
+spec:
+  condition:
+  action: update
+  target: antipinch-enable

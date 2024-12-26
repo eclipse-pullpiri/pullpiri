@@ -15,7 +15,7 @@ clean:
 
 .PHONY: image
 image:
-	podman build -t localhost/piccolo:1.0 -f containers/Dockerfile .
+	podman build -t localhost/pullpiri:0.1.0 -f containers/Dockerfile .
 
 .PHONY: pre
 pre:

@@ -11,7 +11,7 @@ spec:
   hostPid: true
   containers:
   - name: api-server
-    image: localhost/piccolo:1.0
+    image: ghcr.io/eclipse-pullpiri/pullpiri:0.1.0
     command: ["/piccolo/api-server"]
     volumeMounts:
     - name: piccolo-yaml
@@ -19,7 +19,7 @@ spec:
     - name: config-path
       mountPath: /piccolo/settings.yaml
   - name: statemanager
-    image: localhost/piccolo:1.0
+    image: ghcr.io/eclipse-pullpiri/pullpiri:0.1.0
     command: ["/piccolo/statemanager"]
     volumeMounts:
     - name: piccolo-yaml
@@ -38,7 +38,7 @@ spec:
     - name: etcd-data
       mountPath: /etcd-data
   - name: gateway
-    image: localhost/piccolo:1.0
+    image: ghcr.io/eclipse-pullpiri/pullpiri:0.1.0
     command: ["/piccolo/gateway"]
     env:
     - name: RUST_BACKTRACE

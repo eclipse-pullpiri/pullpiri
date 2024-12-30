@@ -68,4 +68,4 @@ Writes are made only from the api-server, and the gateway and statemanager read 
 - tools - dds-idl-gen : Vehicle messages sent via DDS use the IDL file format. This is a tool that converts IDL into a struct used in Rust modules.
 - tools - workloadconverter : A tool to convert resources used in other orchestrators such as k8s to Piccolo resources. However, it is currently deprecated.
 
-<!-- markdownlint-disable-file MD033 -->
+<!-- markdownlint-disable-file MD033 no-inline-html -->

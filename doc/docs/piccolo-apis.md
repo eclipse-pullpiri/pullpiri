@@ -185,4 +185,4 @@ JSON
 ]
 ```
 
-<!-- markdownlint-disable-file MD024 -->
+<!-- markdownlint-disable-file MD024 no-duplicate-heading -->

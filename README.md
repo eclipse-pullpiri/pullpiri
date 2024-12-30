@@ -54,5 +54,5 @@ Piccolo itself uses the [Apache-2.0](/LICENSES/Apache-2.0.txt) license.
 
 For detail, refer to [license-readme](/LICENSES/README.md).
 
-<!-- markdownlint-disable-file MD033 -->
-<!-- markdownlint-disable-file MD041 -->
+<!-- markdownlint-disable-file MD033 no-inline-html -->
+<!-- markdownlint-disable-file MD041 first-line-heading -->

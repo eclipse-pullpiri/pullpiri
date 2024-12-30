@@ -119,4 +119,4 @@ Files for documentation of this project are located in the [doc](/doc/) director
 - [Examples](/examples/version-display/): directory containing all files and guides for performing example
 - [piccolo.drawio](/doc/images/piccolo.drawio) file containing all diagrams used for Piccolo
 
-<!-- markdownlint-disable-file MD033 -->
+<!-- markdownlint-disable-file MD033 no-inline-html -->

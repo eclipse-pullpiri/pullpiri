@@ -6,8 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 
 <div align="center">
     <img alt="Shows Pullpiri logo" src="doc/images/Pullpiri.svg"
-        width="25%"
-        height="25%"
+        width="50%"
+        height="50%"
     />
 </div>
 <br>

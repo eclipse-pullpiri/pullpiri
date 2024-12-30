@@ -3,11 +3,12 @@ SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 
 SPDX-License-Identifier: Apache-2.0
 -->
-
-<img alt="Shows Pullpiri logo" src="doc/images/Pullpiri.png"
-width="50%"
-height="50%"
-/>
+<div style="text-align:center;background-color:#808080;padding:20px">
+<img alt="Shows Pullpiri logo" src="doc/images/Pullpiri.svg"
+width="25%"
+height="25%"/>
+</div>
+<br>
 
 # PULLPIRI
 

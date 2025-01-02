@@ -14,7 +14,17 @@ SPDX-License-Identifier: Apache-2.0
 
 # PULLPIRI
 
-The main goal of PULLPIRI project is to develop an efficient vehicle service orchestrator framework to realize the potential benefits of cloud native technologies for in-vehicle services and applications. In this direction, PULLPIRI shall ensure the activation of pre-defined use case scenarios or policies in a well-organized and streamlined fashion depending upon the various contexts of vehicle status, environment, connected devices and service requirements. PULLPIRI shall enable the deployment of vehicle scenarios and policies in short development cycle by reducing the development lead time. In addition, it provides necessary management framework for the deployment of micro services as per the requirements of vehicle applications and thus saving the integration costs, time, and efforts.
+The main goal of PULLPIRI project is to develop an efficient vehicle service
+orchestrator framework to realize the potential benefits of cloud native
+technologies for in-vehicle services and applications. In this direction,
+PULLPIRI shall ensure the activation of pre-defined use case scenarios or
+policies in a well-organized and streamlined fashion depending upon the various
+contexts of vehicle status, environment, connected devices and service
+requirements. PULLPIRI shall enable the deployment of vehicle scenarios and
+policies in short development cycle by reducing the development lead time. In
+addition, it provides necessary management framework for the deployment of
+micro services as per the requirements of vehicle applications and thus saving
+the integration costs, time, and efforts.
 
 ## Features
 
@@ -30,7 +40,11 @@ The main goal of PULLPIRI project is to develop an efficient vehicle service orc
 
 ## Out of Scope
 
-The PULLPIRI project does not cover several features, including implementations for basic controlling services like launch, stop, create, or delete, deployment or retrieval of workloads from a cloud registry, management of non-containerized services, and functional areas supported by general container runtime and systemd.
+The PULLPIRI project does not cover several features, including implementations
+for basic controlling services like launch, stop, create, or delete, deployment
+or retrieval of workloads from a cloud registry, management of
+non-containerized services, and functional areas supported by general container
+runtime and systemd.
 
 ## Based Projects
 
@@ -49,7 +63,8 @@ Refer to [Development](/doc/docs/developments.md).
 
 ## License
 
-The [LICENSES](/LICENSES) directory contains all the licenses used by the PULLPIRI Project.  
+The [LICENSES](/LICENSES) directory contains all the licenses used by the
+PULLPIRI Project.  
 Piccolo itself uses the [Apache-2.0](/LICENSES/Apache-2.0.txt) license.
 
 For detail, refer to [license-readme](/LICENSES/README.md).

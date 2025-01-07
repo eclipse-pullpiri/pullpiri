@@ -7,5 +7,6 @@ resolver = "2"
 
 members = [
     "ppr",
-    "idl2rs"
+    "idl2rs",
+    "yamlvalidator"
 ]

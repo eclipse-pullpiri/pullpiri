@@ -43,3 +43,7 @@ post:
 	-rm -rf /etc/containers/systemd/*
 	-podman-compose -f examples/nginx/docker-compose.yaml down
 	systemctl daemon-reload
+
+.PHONY: tools
+tools:
+	cargo build --manifest-path=src/tools/Cargo.toml --release

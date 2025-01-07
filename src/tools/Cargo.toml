@@ -6,15 +6,5 @@
 resolver = "2"
 
 members = [
-    "api-server",
-    "statemanager",
-    "api",
-    "common",
-    "importer",
-    "gateway",
-    "vendor/lge_dds"
-]
-
-exclude = [
-    "tools"
+    "ppr",
 ]

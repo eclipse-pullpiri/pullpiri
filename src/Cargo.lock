@@ -455,16 +455,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dust_dds_gen"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5c4218bce243cfa7c272d0ef8775b09b75c9a918d9a031434263385047b369c"
-dependencies = [
- "pest",
- "pest_derive",
-]
-
-[[package]]
 name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1080,7 +1070,6 @@ name = "lge_dds"
 version = "0.1.0"
 dependencies = [
  "dust_dds",
- "dust_dds_gen",
  "tokio",
 ]
 

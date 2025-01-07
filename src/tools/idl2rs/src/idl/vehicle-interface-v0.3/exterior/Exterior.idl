@@ -1,0 +1,11 @@
+struct ExteriorLightIntensity {
+	// datatype: float
+	// type: sensor
+	// unit: percent
+	// min: 0
+	// max: 100
+	// description: Light intensity outside the vehicle.
+	//              0 = No light detected, 100 = Fully lit.
+
+	float value;
+};

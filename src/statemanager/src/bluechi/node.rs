@@ -20,7 +20,7 @@ fn node_list_units(node_proxy: &Proxy<'_, &Connection>) -> Result<String> {
 }
 
 fn node_daemon_reload(node_proxy: &Proxy<'_, &Connection>) -> Result<String> {
-    node_proxy.method_call(super::DEST_NODE, "Reload", ())?;
+    node_proxy.method_call::<(), _, _, _>(super::DEST_NODE, "Reload", ())?;
 
     Ok(String::from("reload node\n"))
 }

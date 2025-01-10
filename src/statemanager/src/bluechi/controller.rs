@@ -30,7 +30,7 @@ fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> {
             proxy.method_call(super::DEST_CONTROLLER, "GetNode", (&node_name,))?;
 
         let node_proxy = conn.with_proxy(super::DEST, node, Duration::from_millis(5000));
-        node_proxy.method_call(super::DEST_NODE, "Reload", ())?;
+        node_proxy.method_call::<(), _, _, _>(super::DEST_NODE, "Reload", ())?;
 
         result.push_str(&format!("Node - {} is reloaded.\n", &node_name));
     }

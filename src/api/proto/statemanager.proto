@@ -1,0 +1,22 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+
+package statemanager;
+
+import "constants.proto";
+
+service Connection {
+  rpc SendAction (Action) returns (Response);
+}
+
+message Action {
+  string action = 1;
+}
+
+message Response {
+  string resp = 1;
+}

@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bms-rdv
+  annotations:
+    io.piccolo.annotations.package-type: rdv
+    io.piccolo.annotations.package-name: bms
+    io.piccolo.annotations.package-network: default
+  labels:
+    app: bms-rdv
+spec:
+  hostNetwork: true
+  containers:
+    - name: rdv
+      image: localhost/rdv:1.0
+  terminationGracePeriodSeconds: 0

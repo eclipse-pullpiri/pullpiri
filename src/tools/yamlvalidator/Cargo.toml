@@ -1,0 +1,9 @@
+[package]
+name = "yamlvalidator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common = { path = "../../common" }
+serde = { version = "1.0.214", features = ["derive"] }
+serde_yaml = "0.9"

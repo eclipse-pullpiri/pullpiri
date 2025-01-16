@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: Network
+metadata:
+  label: null
+  name: antipinch-netowrk
+spec: null

@@ -1,0 +1,12 @@
+struct PowertrainBatteryChargingChargePortFlapStatus {
+	// type: sensor
+	// command : 0 = CLOSE, 1 = OPEN
+	// status  : 0 = IDLE, 1 = START, 2 = ACTING, 3 = END
+	// progress: 0 ~ 100
+	// uistatus: 0 = IS_ACTING, 1 = CHARGING_PORT_IS_CLOSED, 2 = CHARGING_PORT_IS_OPENED
+
+	long command;
+	long status;
+	long progress;
+	long uistatus;
+};

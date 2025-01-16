@@ -1,0 +1,7 @@
+struct PowertrainTransmissionCurrentGear {
+	// datatype: int8
+	// type: sensor
+	// description: The current gear. 0=Neutral, 1/2/..=Forward, -1/-2/..=Reverse, 126: Parking, 127: Drive
+
+	long value;
+};

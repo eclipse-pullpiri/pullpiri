@@ -13,7 +13,7 @@ async fn launch_grpc() {
 
     let addr = common::apiserver::open_server()
         .parse()
-        .expect("api-server address parsing error");
+        .expect("apiserver address parsing error");
     let metric_server = GrpcMetricServer::default();
 
     println!("grpc listening on {}", addr);

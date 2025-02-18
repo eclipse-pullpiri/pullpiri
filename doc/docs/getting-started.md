@@ -106,7 +106,7 @@ You can see container list via `podman ps`.
 CONTAINER ID  IMAGE                                    COMMAND               CREATED         STATUS         PORTS       NAMES
 a89293d15b18  localhost/podman-pause:5.1.2-1720678294                        20 seconds ago  Up 21 seconds              a13f3aa439f3-service
 ebce43e479be  localhost/podman-pause:5.1.2-1720678294                        20 seconds ago  Up 21 seconds              55f9dda92972-infra
-53b9a1631df9  localhost/piccolo:1.0                                          20 seconds ago  Up 20 seconds              piccolo-api-server
+53b9a1631df9  localhost/piccolo:1.0                                          20 seconds ago  Up 20 seconds              piccolo-apiserver
 cd0683bb5675  localhost/piccolo:1.0                                          20 seconds ago  Up 21 seconds              piccolo-statemanager
 eb8f60534077  gcr.io/etcd-development/etcd:v3.5.11     --data-dir=/etcd-...  20 seconds ago  Up 21 seconds              piccolo-etcd
 9771320d5fee  localhost/piccolo-gateway:1.0                                  20 seconds ago  Up 21 seconds              piccolo-gateway

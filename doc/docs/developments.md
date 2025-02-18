@@ -102,12 +102,12 @@ Refer to [Getting Started](/doc/docs/getting-started.md).
 
 ```Text
 gRPC
-api-server : 47001
+apiserver : 47001
 gateway : 47002
 statemanager: 47003
 
 REST
-api-server : 47099
+apiserver : 47099
 
 etcd : 2379, 2380
 ```

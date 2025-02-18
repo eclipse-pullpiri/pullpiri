@@ -17,7 +17,7 @@ impl Connection for GrpcServer {
         &self,
         request: tonic::Request<Condition>,
     ) -> Result<tonic::Response<Response>, tonic::Status> {
-        println!("Got a request from api-server");
+        println!("Got a request from apiserver");
         let req: Condition = request.into_inner();
         //println!("req msg : {:#?}", req);
         match self.grpc_msg_tx.send(req).await {

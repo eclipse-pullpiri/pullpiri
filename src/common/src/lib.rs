@@ -10,7 +10,7 @@ pub mod gateway;
 pub mod spec;
 pub mod statemanager;
 pub mod constants {
-    pub use api::proto::constants::*;
+    tonic::include_proto!("constants");
 }
 pub use crate::error::Result;
 

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-pub use api::proto::gateway::*;
+tonic::include_proto!("gateway");
 
 pub fn open_server() -> String {
     format!("{}:47002", crate::get_config().host.ip)

@@ -7,7 +7,7 @@ WORKDIR /piccolo
 COPY ./src/Cargo.lock \
      ./src/Cargo.toml /piccolo/
 COPY ./src/api /piccolo/api
-COPY ./src/api-server/ /piccolo/api-server
+COPY ./src/apiserver/ /piccolo/apiserver
 COPY ./src/common/ /piccolo/common
 COPY ./src/gateway/ /piccolo/gateway
 COPY ./src/importer/ /piccolo/importer
@@ -26,7 +26,7 @@ WORKDIR /piccolo
 COPY ./src/settings.yaml .
 
 COPY --from=builder \
-    /piccolo/target/release/api-server \
+    /piccolo/target/release/apiserver \
     /piccolo/target/release/gateway \
     /piccolo/target/release/statemanager ./
 

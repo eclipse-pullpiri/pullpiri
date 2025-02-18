@@ -15,7 +15,7 @@ This tool makes it easy to convert IDL files to rust `.rs` files.
 
 ## ppr
 
-This is a CLI tool that provides access to the Pullpiri api-server.
+This is a CLI tool that provides access to the Pullpiri apiserver.
 
 ## yamlvalidator
 

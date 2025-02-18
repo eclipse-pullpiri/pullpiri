@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[workspace]
+resolver = "2"
+
+members = [
+    "gateway",
+    "statemanager"
+]
+
+[workspace.dependencies]
+common = { path = "../common" }

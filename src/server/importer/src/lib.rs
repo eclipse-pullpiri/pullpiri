@@ -14,7 +14,7 @@ use std::path::Path;
  * - Download if file does not exist in local path
  * - (Package only) Extract TAR archive
  * - Parsing
- * - return to api-server
+ * - return to apiserver
  */
 pub async fn parse_package(package_name: &str) -> common::Result<package::PackageEtcd> {
     //url path

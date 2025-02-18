@@ -7,7 +7,6 @@ resolver = "2"
 
 members = [
     "apiserver",
-    "importer",
 ]
 
 [workspace.dependencies]

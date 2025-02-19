@@ -7,6 +7,8 @@ resolver = "2"
 
 members = [
     "apiserver",
+    "policymanager",
+    "monitoringserver",
 ]
 
 [workspace.dependencies]

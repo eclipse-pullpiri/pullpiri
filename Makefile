@@ -3,15 +3,27 @@
 
 .PHONY: default build
 build:
-	cargo build --manifest-path=src/Cargo.toml
+	cargo build --manifest-path=src/common/Cargo.toml
+	cargo build --manifest-path=src/observer/Cargo.toml
+	cargo build --manifest-path=src/player/Cargo.toml
+	cargo build --manifest-path=src/server/Cargo.toml
+	cargo build --manifest-path=src/tools/Cargo.toml
 
 .PHONY: release
 release:
-	cargo build --manifest-path=src/Cargo.toml --release
+	cargo build --manifest-path=src/common/Cargo.toml --release
+	cargo build --manifest-path=src/observer/Cargo.toml --release
+	cargo build --manifest-path=src/player/Cargo.toml --release
+	cargo build --manifest-path=src/server/Cargo.toml --release
+	cargo build --manifest-path=src/tools/Cargo.toml --release
 
 .PHONY: clean
 clean:
-	cargo clean --manifest-path=src/Cargo.toml
+	cargo clean --manifest-path=src/common/Cargo.toml
+	cargo clean --manifest-path=src/observer/Cargo.toml
+	cargo clean --manifest-path=src/player/Cargo.toml
+	cargo clean --manifest-path=src/server/Cargo.toml
+	cargo clean --manifest-path=src/tools/Cargo.toml
 
 .PHONY: image
 image:

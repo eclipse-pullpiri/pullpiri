@@ -5,8 +5,10 @@
 [workspace]
 resolver = "2"
 
-members = [
-    "gateway",
+members = [ 
+    "actioncontroller",
+    "filtergateway",
+    "nodeagent",
     "statemanager"
 ]
 

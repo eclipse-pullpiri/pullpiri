@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::filter::Filter;
-use common::gateway::Condition;
+use common::filtergateway::Condition;
 use lge_dds::DdsData;
 use std::sync::Arc;
 use tokio::sync::mpsc::{channel, Receiver, Sender};

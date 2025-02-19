@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use common::gateway::{connect_server, connection_client::ConnectionClient, Condition, Response};
+use common::filtergateway::{connect_server, connection_client::ConnectionClient, Condition, Response};
 use tonic::{Request, Status};
 
 pub async fn send(condition: Condition) -> Result<tonic::Response<Response>, Status> {

@@ -111,11 +111,11 @@ async fn import_scenario_from_yaml(yaml: String) -> Result<()> {
 
 async fn internal_import_scenario(s: &ScenarioEtcd, file_name: &str) -> Result<()> {
     write_scenario_info_in_etcd(s, file_name).await?;
-    let condition = common::gateway::Condition {
+    let condition = common::filtergateway::Condition {
         crud: String::from("CREATE"),
         name: file_name.to_string(),
     };
-    crate::grpc::sender::gateway::send(condition).await?;
+    crate::grpc::sender::filtergateway::send(condition).await?;
 
     Ok(())
 }
@@ -134,11 +134,11 @@ async fn handle_delete(Path(file_name): Path<String>) -> Response {
 async fn delete_scenario(file_name: &str) -> Result<()> {
     delete_scenario_info_in_etcd(file_name).await?;
 
-    let condition = common::gateway::Condition {
+    let condition = common::filtergateway::Condition {
         crud: "DELETE".to_string(),
         name: file_name.to_string(),
     };
-    crate::grpc::sender::gateway::send(condition).await?;
+    crate::grpc::sender::filtergateway::send(condition).await?;
 
     Ok(())
 }

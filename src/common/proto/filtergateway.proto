@@ -5,7 +5,7 @@
 
 syntax = "proto3";
 
-package gateway;
+package filtergateway;
 
 service Connection {
   rpc SendCondition (Condition) returns (Response);

@@ -8,7 +8,7 @@ syntax = "proto3";
 package constants;
 
 enum PiccoloModuleName {
-  gateway = 0;
+  filtergateway = 0;
   apiserver = 1;
   statemanager = 2;
 }

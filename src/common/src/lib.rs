@@ -6,7 +6,7 @@
 pub mod apiserver;
 pub mod error;
 pub mod etcd;
-pub mod gateway;
+pub mod filtergateway;
 pub mod spec;
 pub mod statemanager;
 pub mod constants {

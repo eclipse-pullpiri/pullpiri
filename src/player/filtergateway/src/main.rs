@@ -4,7 +4,7 @@ mod filter;
 mod grpc;
 mod manager;
 
-use common::gateway::Condition;
+use common::filtergateway::Condition;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 async fn launch_manager(rx: Receiver<Condition>) {
@@ -13,15 +13,15 @@ async fn launch_manager(rx: Receiver<Condition>) {
 }
 
 async fn launch_grpc(tx: Sender<Condition>) {
-    use common::gateway::connection_server::ConnectionServer;
+    use common::filtergateway::connection_server::ConnectionServer;
     use tonic::transport::Server;
 
     let server = crate::grpc::receiver::GrpcServer { grpc_msg_tx: tx };
-    let addr = common::gateway::open_server()
+    let addr = common::filtergateway::open_server()
         .parse()
-        .expect("gateway address parsing error");
+        .expect("filtergateway address parsing error");
 
-    println!("Piccolod gateway listening on {}", addr);
+    println!("Piccolo filtergateway listening on {}", addr);
 
     let _ = Server::builder()
         .add_service(ConnectionServer::new(server))

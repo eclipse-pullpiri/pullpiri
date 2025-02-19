@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use common::gateway::connection_server::Connection;
-use common::gateway::{Condition, Response};
+use common::filtergateway::connection_server::Connection;
+use common::filtergateway::{Condition, Response};
 use tokio::sync::mpsc;
 
 pub struct GrpcServer {

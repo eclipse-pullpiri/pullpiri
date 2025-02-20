@@ -9,9 +9,7 @@ pub mod etcd;
 pub mod filtergateway;
 pub mod spec;
 pub mod statemanager;
-pub mod constants {
-    tonic::include_proto!("constants");
-}
+
 pub use crate::error::Result;
 
 use std::sync::OnceLock;

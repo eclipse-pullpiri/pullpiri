@@ -6,10 +6,10 @@
 use std::collections::HashMap;
 
 use common::apiserver::metric_connection_server::MetricConnection;
-use common::apiserver::metric_notifier::{
+use common::apiserver::Response;
+use common::apiserver::{
     ContainerInfo, ContainerList, ImageList, PodContainerInfo, PodInfo, PodList,
 };
-use common::apiserver::Response;
 use tonic::Request;
 
 type GrpcResult = Result<tonic::Response<Response>, tonic::Status>;

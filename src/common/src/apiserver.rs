@@ -5,10 +5,6 @@
 
 tonic::include_proto!("apiserver");
 
-pub mod metric_notifier {
-    tonic::include_proto!("apiserver.metric_notifier");
-}
-
 pub fn open_server() -> String {
     format!("{}:47001", crate::get_config().host.ip)
 }

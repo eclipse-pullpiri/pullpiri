@@ -1,0 +1,43 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+
+package actioncontroller;
+
+service ActionControllerConnection {
+  rpc TriggerAction(TriggerActionRequest) returns (TriggerActionResponse);
+  rpc Reconcile(ReconcileRequest) returns (ReconcileResponse);
+}
+
+message TriggerActionRequest {
+  string scenario_name = 1;
+}
+
+message TriggerActionResponse {
+  int32 status = 1;
+  string desc = 2;
+}
+
+message ReconcileRequest {
+  string scenario_name = 1;
+  Status current = 2;
+  Status desired = 3;
+}
+
+message ReconcileResponse {
+  int32 status = 1;
+  string desc = 2;
+}
+
+enum Status {
+  STATUS_NONE = 0;
+  STATUS_INIT = 1;
+  STATUS_READY = 2;
+  STATUS_RUNNING = 3;
+  STATUS_DONE = 4;
+  STATUS_FAILED = 5;
+  STATUS_UNKNOWN = 6;
+}

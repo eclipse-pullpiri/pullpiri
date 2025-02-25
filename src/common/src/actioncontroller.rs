@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-tonic::include_proto!("statemanager");
+tonic::include_proto!("actioncontroller");
 
 pub fn open_server() -> String {
-    format!("{}:47006", crate::get_config().host.ip)
+    format!("{}:47001", crate::get_config().host.ip)
 }
 
 pub fn connect_server() -> String {
-    format!("http://{}:47006", crate::get_config().host.ip)
+    format!("http://{}:47001", crate::get_config().host.ip)
 }

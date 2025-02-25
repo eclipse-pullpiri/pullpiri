@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// TBD
+
 syntax = "proto3";
 
 package statemanager;
 
-service Connection {
+service StateManagerConnection {
   rpc SendAction (Action) returns (Response);
 }
 

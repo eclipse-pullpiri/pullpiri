@@ -3,10 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+pub mod actioncontroller;
 pub mod apiserver;
 pub mod error;
 pub mod etcd;
 pub mod filtergateway;
+pub mod monitoringclient;
+pub mod nodeagent;
+pub mod policymanager;
 pub mod spec;
 pub mod statemanager;
 

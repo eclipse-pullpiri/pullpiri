@@ -1,0 +1,21 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+
+package policymanager;
+
+service PolicyManagerConnection {
+  rpc CheckPolicy(CheckPolicyRequest) returns (CheckPolicyResponse);
+}
+
+message CheckPolicyRequest {
+  string scenario_name = 1;
+}
+
+message CheckPolicyResponse {
+  int32 status = 1;
+  string desc = 2;
+}

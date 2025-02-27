@@ -3,31 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use common::filtergateway::connection_server::Connection;
-use common::filtergateway::{Condition, Response};
-use tokio::sync::mpsc;
+use common::filtergateway::filter_gateway_connection_server::FilterGatewayConnection;
+use common::filtergateway::{RegisterConditionRequest, RegisterConditionResponse};
 
-pub struct GrpcServer {
-    pub grpc_msg_tx: mpsc::Sender<Condition>,
-}
+pub struct FilterGatewayGrpcServer {}
 
 #[tonic::async_trait]
-impl Connection for GrpcServer {
-    async fn send_condition(
+impl FilterGatewayConnection for FilterGatewayGrpcServer {
+    async fn register_condition(
         &self,
-        request: tonic::Request<Condition>,
-    ) -> Result<tonic::Response<Response>, tonic::Status> {
-        println!("Got a request from apiserver");
-        let req: Condition = request.into_inner();
-        //println!("req msg : {:#?}", req);
-        match self.grpc_msg_tx.send(req).await {
-            Ok(_) => Ok(tonic::Response::new(Response {
-                resp: true.to_string(),
-            })),
-            Err(_) => Err(tonic::Status::new(
-                tonic::Code::Unavailable,
-                "cannot send condition",
-            )),
-        }
+        request: tonic::Request<RegisterConditionRequest>,
+    ) -> Result<tonic::Response<RegisterConditionResponse>, tonic::Status> {
+        let req = request.into_inner();
+        let command = req.scenario_name;
+
+        Err(tonic::Status::new(tonic::Code::Unavailable, command))
     }
 }

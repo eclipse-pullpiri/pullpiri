@@ -8,14 +8,14 @@ syntax = "proto3";
 package filtergateway;
 
 service FilterGatewayConnection {
-  rpc RegisterCondition(RegisterConditionRequest) returns (RegisterConditionResponse);
+  rpc RegisterScenario(RegisterScenarioRequest) returns (RegisterScenarioResponse);
 }
 
-message RegisterConditionRequest {
+message RegisterScenarioRequest {
   string scenario_name = 1;
 }
 
-message RegisterConditionResponse {
+message RegisterScenarioResponse {
   bool status = 1;
   string desc = 2;
 }

@@ -6,23 +6,6 @@
 mod grpc;
 mod route;
 
-async fn launch_grpc() {
-    use common::apiserver::metric_connection_server::MetricConnectionServer;
-    use grpc::receiver::metric_notifier::GrpcMetricServer;
-    use tonic::transport::Server;
-
-    let addr = common::apiserver::open_server()
-        .parse()
-        .expect("apiserver address parsing error");
-    let metric_server = GrpcMetricServer::default();
-
-    println!("grpc listening on {}", addr);
-    let _ = Server::builder()
-        .add_service(MetricConnectionServer::new(metric_server))
-        .serve(addr)
-        .await;
-}
-
 async fn launch_rest() {
     use axum::Router;
     use tokio::net::TcpListener;
@@ -37,7 +20,6 @@ async fn launch_rest() {
     let app = Router::new()
         .merge(route::package::get_route())
         .merge(route::scenario::get_route())
-        .merge(route::metric::get_route())
         .layer(cors);
 
     println!("http api listening on {}", listener.local_addr().unwrap());
@@ -74,5 +56,5 @@ async fn internal_deploy_exist_package() -> common::Result<()> {
 
 #[tokio::main]
 async fn main() {
-    tokio::join!(launch_grpc(), launch_rest(), deploy_exist_package());
+    tokio::join!(launch_rest(), deploy_exist_package());
 }

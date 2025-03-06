@@ -4,11 +4,16 @@
  */
 
 use common::filtergateway::{
-    connect_server, connection_client::ConnectionClient, Condition, Response,
+    connect_server, filter_gateway_connection_client::FilterGatewayConnectionClient,
+    RegisterScenarioRequest, RegisterScenarioResponse,
 };
-use tonic::{Request, Status};
+use tonic::{Request, Response, Status};
 
-pub async fn send(condition: Condition) -> Result<tonic::Response<Response>, Status> {
-    let mut client = ConnectionClient::connect(connect_server()).await.unwrap();
-    client.send_condition(Request::new(condition)).await
+pub async fn send(
+    condition: RegisterScenarioRequest,
+) -> Result<Response<RegisterScenarioResponse>, Status> {
+    let mut client = FilterGatewayConnectionClient::connect(connect_server())
+        .await
+        .unwrap();
+    client.register_scenario(Request::new(condition)).await
 }

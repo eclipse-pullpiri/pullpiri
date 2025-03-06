@@ -8,3 +8,6 @@ resolver = "2"
 members = [
     "monitoringclient"
 ]
+
+[workspace.dependencies]
+common = { path = "../common" }

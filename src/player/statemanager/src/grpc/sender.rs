@@ -5,15 +5,13 @@
 
 use common::actioncontroller::{
     action_controller_connection_client::ActionControllerConnectionClient, connect_server,
-    TriggerActionRequest, TriggerActionResponse,
+    ReconcileRequest, ReconcileResponse,
 };
 use tonic::{Request, Response, Status};
 
-pub async fn _send(
-    condition: TriggerActionRequest,
-) -> Result<Response<TriggerActionResponse>, Status> {
+pub async fn _send(condition: ReconcileRequest) -> Result<Response<ReconcileResponse>, Status> {
     let mut client = ActionControllerConnectionClient::connect(connect_server())
         .await
         .unwrap();
-    client.trigger_action(Request::new(condition)).await
+    client.reconcile(Request::new(condition)).await
 }

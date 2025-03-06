@@ -112,6 +112,7 @@ async fn import_scenario_from_yaml(yaml: String) -> Result<()> {
 async fn internal_import_scenario(s: &ScenarioEtcd, file_name: &str) -> Result<()> {
     write_scenario_info_in_etcd(s, file_name).await?;
     let condition = common::filtergateway::RegisterScenarioRequest {
+        action: common::filtergateway::Action::Apply.into(),
         scenario_name: file_name.to_string(),
     };
     crate::grpc::sender::filtergateway::send(condition).await?;
@@ -134,6 +135,7 @@ async fn delete_scenario(file_name: &str) -> Result<()> {
     delete_scenario_info_in_etcd(file_name).await?;
 
     let condition = common::filtergateway::RegisterScenarioRequest {
+        action: common::filtergateway::Action::Withdraw.into(),
         scenario_name: file_name.to_string(),
     };
     crate::grpc::sender::filtergateway::send(condition).await?;

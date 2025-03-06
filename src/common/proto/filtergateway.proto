@@ -12,10 +12,16 @@ service FilterGatewayConnection {
 }
 
 message RegisterScenarioRequest {
-  string scenario_name = 1;
+  Action action = 1;
+  string scenario_name = 2;
 }
 
 message RegisterScenarioResponse {
   bool status = 1;
   string desc = 2;
+}
+
+enum Action {
+  ACTION_APPLY = 0;
+  ACTION_WITHDRAW = 1;
 }

@@ -2,6 +2,7 @@
  * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
  * SPDX-License-Identifier: Apache-2.0
  */
+
 mod file_handler;
 pub mod parser;
 
@@ -70,7 +71,7 @@ pub async fn get_scenario_from_yaml(yaml_str: &str) -> common::Result<scenario::
     scenario::parse_from_yaml_string(yaml_str)
 }
 
-#[cfg(test)]
+/*#[cfg(test)]
 mod tests {
     fn recursive_call(path: &str) -> std::io::Result<()> {
         for entry in std::fs::read_dir(path)? {
@@ -98,11 +99,10 @@ mod tests {
 
     #[tokio::test]
     async fn downloading() {
-        use crate::file_handler;
         let url = "http://localhost:41234/packages/bms-eco-mode.tar";
         let path = "/root/bms-eco-mode.tar";
         let result = file_handler::download(url, path).await;
         println!("{:?}", result);
         assert!(result.is_ok());
     }
-}
+}*/

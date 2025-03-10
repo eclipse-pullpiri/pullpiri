@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::importer::parser::package::PackageEtcd;
 use axum::{
     extract::Path,
     response::Response,
     routing::{delete, get, post},
     Json, Router,
 };
-use importer::parser::package::PackageEtcd;
 
 pub fn get_route() -> Router {
     Router::new()
@@ -40,7 +40,7 @@ pub async fn handle_post(body: String) -> Response {
 }
 
 async fn import_package(body: String) -> common::Result<()> {
-    let package = importer::parse_package(&body).await?;
+    let package = crate::importer::parse_package(&body).await?;
     write_package_info_to_etcd(package).await?;
 
     Ok(())

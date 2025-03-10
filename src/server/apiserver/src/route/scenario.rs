@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::importer::parser::scenario::ScenarioEtcd;
 use axum::{
     extract::Path,
     response::Response,
@@ -7,7 +8,6 @@ use axum::{
     Json, Router,
 };
 use common::Result;
-use importer::parser::scenario::ScenarioEtcd;
 use std::collections::HashMap;
 
 pub fn get_route() -> Router {
@@ -99,13 +99,13 @@ async fn handle_post_yaml(body: String) -> Response {
 }
 
 async fn import_scenario_from_path(path: String) -> Result<()> {
-    let scenario = importer::get_scenario_from_file(&path).await?;
+    let scenario = crate::importer::get_scenario_from_file(&path).await?;
     let scenario_file = path.split('/').collect::<Vec<&str>>()[1];
     internal_import_scenario(&scenario, scenario_file).await
 }
 
 async fn import_scenario_from_yaml(yaml: String) -> Result<()> {
-    let scenario = importer::get_scenario_from_yaml(&yaml).await?;
+    let scenario = crate::importer::get_scenario_from_yaml(&yaml).await?;
     internal_import_scenario(&scenario, &scenario.name).await
 }
 

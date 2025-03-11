@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+FROM pullpiribuilder:latest AS builder
+
+WORKDIR /piccolo
+COPY ./src/common/ /piccolo/common
+COPY ./src/player/ /piccolo/player
+
+WORKDIR /piccolo/player
+RUN cargo build --release
+
+
+FROM releasealpine:latest
+WORKDIR /piccolo
+
+COPY ./src/settings.yaml .
+
+COPY --from=builder \
+    /piccolo/player/target/release/actioncontroller \
+    /piccolo/player/target/release/filtergateway \
+    /piccolo/player/target/release/nodeagent \
+    /piccolo/player/target/release/statemanager \
+    ./
+
+CMD sh

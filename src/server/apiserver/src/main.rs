@@ -7,26 +7,6 @@ mod grpc;
 mod importer;
 mod route;
 
-async fn launch_rest() {
-    use axum::Router;
-    use tokio::net::TcpListener;
-    use tower_http::cors::{Any, CorsLayer};
-
-    let addr = common::apiserver::open_rest_server();
-    let listener = TcpListener::bind(addr).await.unwrap();
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
-    let app = Router::new()
-        .merge(route::package::get_route())
-        .merge(route::scenario::get_route())
-        .layer(cors);
-
-    println!("http api listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
-}
-
 async fn deploy_exist_package() {
     let _ = internal_deploy_exist_package().await;
 }
@@ -44,8 +24,7 @@ async fn internal_deploy_exist_package() -> common::Result<()> {
             if let Some(extension) = path.extension() {
                 if extension == "tar" {
                     if let Some(file_name) = path.file_stem() {
-                        let name = file_name.to_string_lossy().to_string();
-                        crate::route::package::handle_post(name).await;
+                        let _name = file_name.to_string_lossy().to_string();
                     }
                 }
             }
@@ -57,7 +36,7 @@ async fn internal_deploy_exist_package() -> common::Result<()> {
 
 #[tokio::main]
 async fn main() {
-    tokio::join!(launch_rest(), deploy_exist_package());
+    tokio::join!(route::launch_tcp_listener(), deploy_exist_package());
 }
 
 #[cfg(test)]

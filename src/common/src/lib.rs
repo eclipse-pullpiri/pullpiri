@@ -22,7 +22,7 @@ static SETTINGS: OnceLock<Settings> = OnceLock::new();
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub yaml_storage: String,
-    pub doc_registry: String,
+    pub piccolo_cloud: String,
     pub host: HostSettings,
     pub guest: Option<Vec<GuestSettings>>,
 }
@@ -45,7 +45,7 @@ pub struct GuestSettings {
 fn parse_settings_yaml() -> Settings {
     let s: Settings = Settings {
         yaml_storage: String::from("/root/piccolo_yaml"),
-        doc_registry: String::from("http://0.0.0.0:41234"),
+        piccolo_cloud: String::from("http://0.0.0.0:41234"),
         host: HostSettings {
             name: String::from("HPC"),
             ip: String::from("0.0.0.0"),

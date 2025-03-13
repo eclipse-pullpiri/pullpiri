@@ -21,7 +21,7 @@ pub async fn parse_package(package_name: &str) -> common::Result<package::Packag
     //url path
     let full_url: String = format!(
         "{}/packages/{}.tar",
-        common::get_config().doc_registry,
+        common::get_config().piccolo_cloud,
         package_name
     );
     println!("full url : {}", full_url);
@@ -52,7 +52,7 @@ pub async fn parse_package(package_name: &str) -> common::Result<package::Packag
 pub async fn get_scenario_from_file(scenario_path: &str) -> common::Result<scenario::ScenarioEtcd> {
     let full_url = format!(
         "{}/scenarios/{}.yaml",
-        common::get_config().doc_registry,
+        common::get_config().piccolo_cloud,
         scenario_path
     );
     let full_save_path = format!(

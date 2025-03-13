@@ -6,7 +6,7 @@ use axum::{
     Router,
 };
 
-pub fn get_route() -> Router {
+pub fn router() -> Router {
     Router::new()
         .route("/api/notify", get(notify))
         .route("/api/artifact", post(apply_artifact))
@@ -17,7 +17,8 @@ pub fn get_route() -> Router {
 ///
 /// # parametets
 /// * `artifact_name` - name of the newly released artifact
-async fn notify(_artifact_name: String) -> Response {
+async fn notify(artifact_name: String) -> Response {
+    println!("{}", artifact_name.len());
     super::status_ok()
 }
 
@@ -25,7 +26,8 @@ async fn notify(_artifact_name: String) -> Response {
 ///
 /// # parameters
 /// * `body` - the string in yaml format
-async fn apply_artifact(_body: String) -> Response {
+async fn apply_artifact(body: String) -> Response {
+    println!("{}", body.len());
     super::status_ok()
 }
 
@@ -33,6 +35,7 @@ async fn apply_artifact(_body: String) -> Response {
 ///
 /// # parameters
 /// * `artifact_name` - name of the artifact to be deleted
-async fn withdraw_artifact(_artifact_name: String) -> Response {
+async fn withdraw_artifact(artifact_name: String) -> Response {
+    println!("{}", artifact_name.len());
     super::status_err("Not implemented")
 }

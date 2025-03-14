@@ -26,3 +26,11 @@ fmt:
 	cd player && cargo fmt
 	cd server && cargo fmt
 	cd tools && cargo fmt
+
+.PHONY: clippy
+clippy:
+	cd common && cargo clippy
+	cd observer && cargo clippy
+	cd player && cargo clippy
+	cd server && cargo clippy
+	cd tools && cargo clippy

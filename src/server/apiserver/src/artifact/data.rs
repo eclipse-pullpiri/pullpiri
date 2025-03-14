@@ -3,22 +3,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/// Read yaml string of artifact from etcd
+/// Read yaml string of artifacts from etcd
 ///
-/// # parametets
-/// * `artifact_name` - name of the newly released artifact
-fn read_artifact_data(artifact_name: String) -> String {
-    println!("{}", artifact_name.len());
+/// # parameters
+/// * `artifact_name: &str` - name of the newly released artifact
+/// # return
+/// * `Result<(String)>` - `Ok()` contains yaml string if success
+async fn read_from_etcd(artifact_name: &str) -> common::Result<String> {
+    let raw = common::etcd::get(artifact_name).await?;
+    Ok(raw)
 }
 
-fn write_artifact_data() {
-
+/// Write yaml string of artifacts to etcd
+///
+/// # parameters
+/// * `artifact_name: &str` - name of the newly released artifact
+/// # return
+/// * `Result<()>` - `Ok` if success, `Err` otherwise
+async fn write_to_etcd(artifact_str: &str) -> common::Result<()> {
+    common::etcd::put("key", artifact_str).await?;
+    Ok(())
 }
 
-fn export_artifact_data() {
+// TODO
+// yaml to struct
+// struct to yaml
 
-}
+/*fn export_artifact_data() {
 
-fn reload_artifact_data() {
+}*/
 
-}
+pub async fn reload() {}

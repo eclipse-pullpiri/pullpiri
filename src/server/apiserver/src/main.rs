@@ -7,36 +7,13 @@ mod grpc;
 //mod importer;
 mod route;
 
-async fn deploy_exist_package() {
-    let _ = internal_deploy_exist_package().await;
-}
-
-async fn internal_deploy_exist_package() -> common::Result<()> {
-    std::thread::sleep(std::time::Duration::from_millis(3000));
-
-    let package_path = format!("{}/packages", common::get_config().yaml_storage);
-    let entries = std::fs::read_dir(package_path)?;
-
-    for entry in entries {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_file() {
-            if let Some(extension) = path.extension() {
-                if extension == "tar" {
-                    if let Some(file_name) = path.file_stem() {
-                        let _name = file_name.to_string_lossy().to_string();
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(())
+async fn initialize() {
+    tokio::join!(route::launch_tcp_listener(), artifact::data::reload());
 }
 
 #[tokio::main]
 async fn main() {
-    tokio::join!(route::launch_tcp_listener(), deploy_exist_package());
+    initialize().await
 }
 
 #[cfg(test)]

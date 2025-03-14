@@ -23,6 +23,8 @@ pub async fn launch_tcp_listener() {
     axum::serve(listener, app).await.unwrap();
 }
 
+pub async fn send_download_request() {}
+
 #[derive(serde::Serialize)]
 pub struct ResponseData {
     message: String,

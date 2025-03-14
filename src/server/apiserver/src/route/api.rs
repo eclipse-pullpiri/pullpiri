@@ -27,8 +27,13 @@ async fn notify(artifact_name: String) -> Response {
 /// # parameters
 /// * `body` - the string in yaml format
 async fn apply_artifact(body: String) -> Response {
-    println!("{}", body.len());
-    super::status_ok()
+    let result = crate::artifact::apply_artifact(body).await;
+
+    if let Err(msg) = result {
+        super::status_err(&msg.to_string())
+    } else {
+        super::status_ok()
+    }
 }
 
 /// Withdraw the applied scenario
@@ -36,6 +41,11 @@ async fn apply_artifact(body: String) -> Response {
 /// # parameters
 /// * `artifact_name` - name of the artifact to be deleted
 async fn withdraw_artifact(artifact_name: String) -> Response {
-    println!("{}", artifact_name.len());
-    super::status_err("Not implemented")
+    let result = crate::artifact::withdraw_artifact(artifact_name).await;
+
+    if let Err(msg) = result {
+        super::status_err(&msg.to_string())
+    } else {
+        super::status_ok()
+    }
 }

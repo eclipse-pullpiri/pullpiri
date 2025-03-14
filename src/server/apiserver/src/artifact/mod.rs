@@ -3,4 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-mod data;
+pub mod data;
+
+pub async fn apply_artifact(body: String) -> common::Result<()> {
+    Ok(())
+}
+
+pub async fn withdraw_artifact(artifact_name: String) -> common::Result<()> {
+    Ok(())
+}

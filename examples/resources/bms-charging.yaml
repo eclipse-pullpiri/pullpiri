@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Scenario
 metadata:
-  name: bms
+  name: bms-charging
 spec:
   condition:
     express: eq

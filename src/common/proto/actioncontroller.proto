@@ -33,11 +33,11 @@ message ReconcileResponse {
 }
 
 enum Status {
-  STATUS_NONE = 0;
-  STATUS_INIT = 1;
-  STATUS_READY = 2;
-  STATUS_RUNNING = 3;
-  STATUS_DONE = 4;
-  STATUS_FAILED = 5;
-  STATUS_UNKNOWN = 6;
+  NONE = 0;
+  INIT = 1;
+  READY = 2;
+  RUNNING = 3;
+  DONE = 4;
+  FAILED = 5;
+  UNKNOWN = 6;
 }

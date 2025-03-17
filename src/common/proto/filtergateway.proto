@@ -8,20 +8,20 @@ syntax = "proto3";
 package filtergateway;
 
 service FilterGatewayConnection {
-  rpc RegisterScenario(RegisterScenarioRequest) returns (RegisterScenarioResponse);
+  rpc HandleScenario(HandleScenarioRequest) returns (HandleScenarioResponse);
 }
 
-message RegisterScenarioRequest {
+message HandleScenarioRequest {
   Action action = 1;
   string scenario_name = 2;
 }
 
-message RegisterScenarioResponse {
+message HandleScenarioResponse {
   bool status = 1;
   string desc = 2;
 }
 
 enum Action {
-  ACTION_APPLY = 0;
-  ACTION_WITHDRAW = 1;
+  APPLY = 0;
+  WITHDRAW = 1;
 }

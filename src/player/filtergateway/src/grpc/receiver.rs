@@ -4,16 +4,16 @@
  */
 
 use common::filtergateway::filter_gateway_connection_server::FilterGatewayConnection;
-use common::filtergateway::{RegisterScenarioRequest, RegisterScenarioResponse};
+use common::filtergateway::{HandleScenarioRequest, HandleScenarioResponse};
 
 pub struct FilterGatewayGrpcServer {}
 
 #[tonic::async_trait]
 impl FilterGatewayConnection for FilterGatewayGrpcServer {
-    async fn register_scenario(
+    async fn handle_scenario(
         &self,
-        request: tonic::Request<RegisterScenarioRequest>,
-    ) -> Result<tonic::Response<RegisterScenarioResponse>, tonic::Status> {
+        request: tonic::Request<HandleScenarioRequest>,
+    ) -> Result<tonic::Response<HandleScenarioResponse>, tonic::Status> {
         let req = request.into_inner();
         let command = req.scenario_name;
 

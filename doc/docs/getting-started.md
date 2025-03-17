@@ -21,8 +21,8 @@ Also, [Rust](https://www.rust-lang.org) is required to test without using a cont
 There is a [settings.yaml](/src/settings.yaml) for configuration. Modify this to suit your system.
 
 ```yaml
-yaml_storage: /root/piccolo_yaml
-doc_registry: http://0.0.0.0:41234
+yaml_storage: /etc/piccolo
+piccolo_cloud: http://0.0.0.0:41234
 host:
   name: HPC
   ip: 0.0.0.0
@@ -35,7 +35,7 @@ guest:
 ```
 
 - yaml_storage : For making systemd service with podman, we need `.kube` and `.yaml` files. Lib `importer` makes these files in this directory.
-- doc_registry : The repository address saving `Packages` and `scenarios`.
+- piccolo_cloud : The repository address saving `Packages` and `scenarios`.
 - host.name : To deliver systemd command with `bluechi`, we need node name.
 - guest : Bluechi agent node information. ID/PW is required for `.kube`, `.yaml` files transfers.
 

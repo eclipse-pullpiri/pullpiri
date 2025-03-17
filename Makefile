@@ -25,9 +25,18 @@ clean:
 	cargo clean --manifest-path=src/server/Cargo.toml
 	cargo clean --manifest-path=src/tools/Cargo.toml
 
+.PHONY: builder
+builder:
+	podman build -t localhost/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
+	podman build -t localhost/releasealpine:latest -f containers/builder/Dockerfile-releasealpine .
+
 .PHONY: image
 image:
-	podman build -t localhost/pullpiri:0.1.0 -f containers/Dockerfile .
+	podman build -t localhost/pullpiri-observer:latest -f containers/Dockerfile-observer .
+	podman build -t localhost/pullpiri-player:latest -f containers/Dockerfile-player .
+	podman build -t localhost/pullpiri-server:latest -f containers/Dockerfile-server .
+
+# command for dev
 
 .PHONY: pre
 pre:

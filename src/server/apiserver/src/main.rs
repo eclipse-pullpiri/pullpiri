@@ -18,11 +18,12 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    use common::spec::package::model::Model;
-    use common::spec::package::network::Network;
-    use common::spec::package::volume::Volume;
-    use common::spec::package::Package;
-    use common::spec::scenario::Scenario;
+    use common::spec::artifact::Artifact;
+    use common::spec::artifact::Model;
+    use common::spec::artifact::Network;
+    use common::spec::artifact::Volume;
+    use common::spec::artifact::Package;
+    use common::spec::artifact::Scenario;
 
     enum Document {
         Scenario(Scenario),

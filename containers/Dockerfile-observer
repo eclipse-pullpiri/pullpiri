@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-FROM pullpiribuilder:latest AS builder
-
+FROM ghcr.io/eclipse-pullpiri/pullpiribuilder:latest AS builder
 WORKDIR /piccolo
+
 COPY ./src/common/ /piccolo/common
 COPY ./src/observer/ /piccolo/observer
 
@@ -11,12 +11,11 @@ WORKDIR /piccolo/observer
 RUN cargo build --release
 
 
-FROM releasealpine:latest
+FROM ghcr.io/eclipse-pullpiri/pullpirirelease:latest
 WORKDIR /piccolo
 
 COPY ./src/settings.yaml .
-
 COPY --from=builder \
     /piccolo/observer/target/release/monitoringclient ./
 
-CMD sh
+CMD [ "sh" ]

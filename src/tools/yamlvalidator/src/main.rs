@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use common::spec;
+use common::spec::artifact::Scenario;
 
 const S: &str = r#"apiVersion: v1
 kind: Scenario
@@ -22,7 +22,7 @@ status:
 fn main() {
     println!("{}\n", S);
 
-    let result = serde_yaml::from_str::<spec::scenario::Scenario>(S).unwrap();
+    let result = serde_yaml::from_str::<Scenario>(S).unwrap();
     println!("{:#?}\n", result);
 
     let recover = serde_yaml::to_string(&result).unwrap();

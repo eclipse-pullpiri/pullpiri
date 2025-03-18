@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# DO NOT USE this file if you can see this comment.
+
 apiVersion: v1
 kind: Pod
 metadata:

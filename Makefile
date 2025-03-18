@@ -25,11 +25,6 @@ clean:
 	cargo clean --manifest-path=src/server/Cargo.toml
 	cargo clean --manifest-path=src/tools/Cargo.toml
 
-.PHONY: builder
-builder:
-	podman build -t localhost/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
-	podman build -t localhost/releasealpine:latest -f containers/builder/Dockerfile-releasealpine .
-
 .PHONY: image
 image:
 	podman build -t localhost/pullpiri-observer:latest -f containers/Dockerfile-observer .
@@ -37,6 +32,19 @@ image:
 	podman build -t localhost/pullpiri-server:latest -f containers/Dockerfile-server .
 
 # command for dev
+
+.PHONY: builder
+builder:
+	podman run --privileged --rm tonistiigi/binfmt --install all
+	podman buildx build --platform linux/amd64,linux/arm64 -t localhost/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
+	podman buildx build --platform linux/amd64,linux/arm64 -t localhost/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
+
+.PHONY: pushbuilder
+pushbuilder:
+	docker buildx create --name container-builder --driver docker-container --bootstrap --use
+	docker run --privileged --rm tonistiigi/binfmt --install all
+	docker buildx build --push --platform linux/amd64,linux/arm64 -t ghcr.io/eclipse-pullpiri/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
+	docker buildx build --push --platform linux/amd64,linux/arm64 -t ghcr.io/eclipse-pullpiri/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
 
 .PHONY: pre
 pre:

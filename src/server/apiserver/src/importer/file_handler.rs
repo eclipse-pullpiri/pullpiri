@@ -66,7 +66,7 @@ pub fn perform(
 ) -> Result<(), Box<dyn Error>> {
     let directory = format!(
         "{}/packages/{}/{}",
-        common::get_config().yaml_storage,
+        common::setting::get_config().yaml_storage,
         package_name,
         model_name
     );
@@ -118,7 +118,7 @@ pub fn create_exist_folder(path: &str) -> common::Result<()> {
 }
 
 pub fn copy_to_remote_node(path: &str) -> common::Result<()> {
-    if let Some(guests) = &common::get_config().guest {
+    if let Some(guests) = &common::setting::get_config().guest {
         for guest in guests {
             let guest_ssh_ip = format!("{}:{}", guest.ip, guest.ssh_port);
             let tcp = std::net::TcpStream::connect(guest_ssh_ip)?;

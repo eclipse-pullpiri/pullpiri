@@ -21,7 +21,7 @@ pub async fn parse_package(package_name: &str) -> common::Result<package::Packag
     //url path
     let full_url: String = format!(
         "{}/packages/{}.tar",
-        common::get_config().piccolo_cloud,
+        common::setting::get_config().piccolo_cloud,
         package_name
     );
     println!("full url : {}", full_url);
@@ -29,7 +29,7 @@ pub async fn parse_package(package_name: &str) -> common::Result<package::Packag
     //save path
     let full_save_path = format!(
         "{}/packages/{}.tar",
-        common::get_config().yaml_storage,
+        common::setting::get_config().yaml_storage,
         package_name
     );
     println!("full save path : {}", full_save_path);
@@ -43,7 +43,7 @@ pub async fn parse_package(package_name: &str) -> common::Result<package::Packag
     //parsing
     let parsing_path = format!(
         "{}/packages/{}",
-        common::get_config().yaml_storage,
+        common::setting::get_config().yaml_storage,
         package_name
     );
     package::parse(&parsing_path)
@@ -52,12 +52,12 @@ pub async fn parse_package(package_name: &str) -> common::Result<package::Packag
 pub async fn get_scenario_from_file(scenario_path: &str) -> common::Result<scenario::ScenarioEtcd> {
     let full_url = format!(
         "{}/scenarios/{}.yaml",
-        common::get_config().piccolo_cloud,
+        common::setting::get_config().piccolo_cloud,
         scenario_path
     );
     let full_save_path = format!(
         "{}/scenarios/{}.yaml",
-        common::get_config().yaml_storage,
+        common::setting::get_config().yaml_storage,
         scenario_path
     );
 

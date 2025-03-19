@@ -2,102 +2,88 @@
  * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
  * SPDX-License-Identifier: Apache-2.0
  */
-
-pub mod actioncontroller;
-pub mod apiserver;
 pub mod error;
 pub mod etcd;
-pub mod filtergateway;
-pub mod monitoringclient;
-pub mod nodeagent;
-pub mod policymanager;
+pub mod setting;
 pub mod spec;
-pub mod statemanager;
 
-pub use crate::error::Result;
+pub mod actioncontroller {
+    tonic::include_proto!("actioncontroller");
 
-use std::sync::OnceLock;
-static SETTINGS: OnceLock<Settings> = OnceLock::new();
+    pub fn open_server() -> String {
+        format!("{}:47001", crate::setting::get_config().host.ip)
+    }
 
-#[derive(serde::Deserialize)]
-pub struct Settings {
-    pub yaml_storage: String,
-    pub piccolo_cloud: String,
-    pub host: HostSettings,
-    pub guest: Option<Vec<GuestSettings>>,
-}
-
-#[derive(serde::Deserialize)]
-pub struct HostSettings {
-    pub name: String,
-    pub ip: String,
-}
-
-#[derive(serde::Deserialize)]
-pub struct GuestSettings {
-    pub name: String,
-    pub ip: String,
-    pub ssh_port: String,
-    pub id: String,
-    pub pw: String,
-}
-
-fn parse_settings_yaml() -> Settings {
-    let s: Settings = Settings {
-        yaml_storage: String::from("/root/piccolo_yaml"),
-        piccolo_cloud: String::from("http://0.0.0.0:41234"),
-        host: HostSettings {
-            name: String::from("HPC"),
-            ip: String::from("0.0.0.0"),
-        },
-        /*guest: Some(vec![GuestSettings {
-            name: String::from("ZONE"),
-            ip: String::from("192.168.10.239"),
-            ssh_port: String::from("22"),
-            id: String::from("root"),
-            pw: String::from("lge123"),
-        }]),*/
-        guest: None,
-    };
-
-    let settings = config::Config::builder()
-        .add_source(config::File::with_name("/piccolo/settings.yaml"))
-        .build();
-
-    match settings {
-        Ok(result) => result.try_deserialize::<Settings>().unwrap_or(s),
-        Err(_) => s,
+    pub fn connect_server() -> String {
+        format!("http://{}:47001", crate::setting::get_config().host.ip)
     }
 }
 
-pub fn get_config() -> &'static Settings {
-    SETTINGS.get_or_init(parse_settings_yaml)
+pub mod apiserver {
+    pub fn open_rest_server() -> String {
+        format!("{}:47099", crate::setting::get_config().host.ip)
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::sync::OnceLock;
-    static CONFIG: OnceLock<config::Config> = OnceLock::new();
+pub mod filtergateway {
 
-    fn init_conf() -> config::Config {
-        config::Config::builder()
-            .add_source(config::File::with_name("piccolo"))
-            .build()
-            .unwrap_or(
-                config::Config::builder()
-                    .set_default("HOST_IP", "0.0.0.0")
-                    .unwrap()
-                    .set_default("HOST_NODE", "HPC")
-                    .unwrap()
-                    .build()
-                    .unwrap(),
-            )
+    tonic::include_proto!("filtergateway");
+
+    pub fn open_server() -> String {
+        format!("{}:47002", crate::setting::get_config().host.ip)
     }
 
-    #[test]
-    pub fn get_conf() {
-        let conf = CONFIG.get_or_init(init_conf);
-        assert_eq!(conf.get_string("HOST_IP").unwrap(), "0.0.0.0");
-        assert_eq!(conf.get_string("HOST_NODE").unwrap(), "HPC");
+    pub fn connect_server() -> String {
+        format!("http://{}:47002", crate::setting::get_config().host.ip)
+    }
+}
+
+pub mod monitoringclient {
+
+    tonic::include_proto!("monitoringclient");
+
+    pub fn open_server() -> String {
+        format!("{}:47003", crate::setting::get_config().host.ip)
+    }
+
+    pub fn connect_server() -> String {
+        format!("http://{}:47003", crate::setting::get_config().host.ip)
+    }
+}
+
+pub mod nodeagent {
+    tonic::include_proto!("nodeagent");
+
+    pub fn open_server() -> String {
+        format!("{}:47004", crate::setting::get_config().host.ip)
+    }
+
+    pub fn connect_server() -> String {
+        format!("http://{}:47004", crate::setting::get_config().host.ip)
+    }
+}
+
+pub mod policymanager {
+    tonic::include_proto!("policymanager");
+
+    pub fn open_server() -> String {
+        format!("{}:47005", crate::setting::get_config().host.ip)
+    }
+
+    pub fn connect_server() -> String {
+        format!("http://{}:47005", crate::setting::get_config().host.ip)
+    }
+}
+
+pub mod statemanager {
+
+    tonic::include_proto!("statemanager");
+
+    pub fn open_server() -> String {
+        format!("{}:47006", crate::setting::get_config().host.ip)
+    }
+
+    pub fn connect_server() -> String {
+        format!("http://{}:47006", crate::setting::get_config().host.ip)
     }
 }

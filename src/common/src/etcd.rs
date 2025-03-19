@@ -7,7 +7,7 @@ pub use etcd_client::{Client, DeleteOptions, Error, GetOptions};
 use etcd_client::{SortOrder, SortTarget};
 
 pub fn open_server() -> String {
-    format!("{}:2379", crate::get_config().host.ip)
+    format!("{}:2379", crate::setting::get_config().host.ip)
 }
 
 async fn get_client() -> Result<Client, Error> {

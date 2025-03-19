@@ -21,9 +21,9 @@ mod tests {
     use common::spec::artifact::Artifact;
     use common::spec::artifact::Model;
     use common::spec::artifact::Network;
-    use common::spec::artifact::Volume;
     use common::spec::artifact::Package;
     use common::spec::artifact::Scenario;
+    use common::spec::artifact::Volume;
 
     enum Document {
         Scenario(Scenario),

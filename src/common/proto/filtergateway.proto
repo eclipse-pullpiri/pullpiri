@@ -13,7 +13,7 @@ service FilterGatewayConnection {
 
 message HandleScenarioRequest {
   Action action = 1;
-  string scenario_name = 2;
+  string scenario = 2;
 }
 
 message HandleScenarioResponse {

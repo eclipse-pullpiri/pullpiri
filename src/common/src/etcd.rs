@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-pub use etcd_client::{Client, DeleteOptions, Error, GetOptions};
-use etcd_client::{SortOrder, SortTarget};
+use etcd_client::{Client, DeleteOptions, Error, GetOptions, SortOrder, SortTarget};
 
 pub fn open_server() -> String {
     format!("{}:2379", crate::setting::get_config().host.ip)

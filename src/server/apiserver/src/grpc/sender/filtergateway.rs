@@ -10,10 +10,10 @@ use common::filtergateway::{
 use tonic::{Request, Response, Status};
 
 pub async fn send(
-    condition: HandleScenarioRequest,
+    scenario: HandleScenarioRequest,
 ) -> Result<Response<HandleScenarioResponse>, Status> {
     let mut client = FilterGatewayConnectionClient::connect(connect_server())
         .await
         .unwrap();
-    client.handle_scenario(Request::new(condition)).await
+    client.handle_scenario(Request::new(scenario)).await
 }

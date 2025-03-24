@@ -15,7 +15,7 @@ impl FilterGatewayConnection for FilterGatewayGrpcServer {
         request: tonic::Request<HandleScenarioRequest>,
     ) -> Result<tonic::Response<HandleScenarioResponse>, tonic::Status> {
         let req = request.into_inner();
-        let command = req.scenario_name;
+        let command = req.scenario;
 
         Err(tonic::Status::new(tonic::Code::Unavailable, command))
     }

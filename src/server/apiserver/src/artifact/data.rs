@@ -9,7 +9,7 @@
 /// * `artifact_name: &str` - name of the newly released artifact
 /// # return
 /// * `Result<(String)>` - `Ok()` contains yaml string if success
-async fn read_from_etcd(artifact_name: &str) -> common::Result<String> {
+pub async fn read_from_etcd(artifact_name: &str) -> common::Result<String> {
     let raw = common::etcd::get(artifact_name).await?;
     Ok(raw)
 }
@@ -20,8 +20,19 @@ async fn read_from_etcd(artifact_name: &str) -> common::Result<String> {
 /// * `artifact_name: &str` - name of the newly released artifact
 /// # return
 /// * `Result<()>` - `Ok` if success, `Err` otherwise
-async fn write_to_etcd(artifact_str: &str) -> common::Result<()> {
-    common::etcd::put("key", artifact_str).await?;
+pub async fn write_to_etcd(key: &str, artifact_str: &str) -> common::Result<()> {
+    common::etcd::put(key, artifact_str).await?;
+    Ok(())
+}
+
+/// Write yaml string of artifacts to etcd
+///
+/// # parameters
+/// * `artifact_name: &str` - name of the newly released artifact
+/// # return
+/// * `Result<()>` - `Ok` if success, `Err` otherwise
+pub async fn delete_at_etcd(key: &str) -> common::Result<()> {
+    common::etcd::delete(key).await?;
     Ok(())
 }
 

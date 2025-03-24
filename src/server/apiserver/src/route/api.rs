@@ -18,7 +18,7 @@ pub fn router() -> Router {
 /// # parametets
 /// * `artifact_name` - name of the newly released artifact
 async fn notify(artifact_name: String) -> Response {
-    println!("{}", artifact_name.len());
+    println!("{}", artifact_name);
     super::status_ok()
 }
 
@@ -27,7 +27,7 @@ async fn notify(artifact_name: String) -> Response {
 /// # parameters
 /// * `body` - the string in yaml format
 async fn apply_artifact(body: String) -> Response {
-    let result = crate::artifact::apply_artifact(body).await;
+    let result = crate::manager::apply_artifact(&body).await;
 
     if let Err(msg) = result {
         super::status_err(&msg.to_string())
@@ -40,8 +40,8 @@ async fn apply_artifact(body: String) -> Response {
 ///
 /// # parameters
 /// * `artifact_name` - name of the artifact to be deleted
-async fn withdraw_artifact(artifact_name: String) -> Response {
-    let result = crate::artifact::withdraw_artifact(artifact_name).await;
+async fn withdraw_artifact(body: String) -> Response {
+    let result = crate::manager::withdraw_artifact(&body).await;
 
     if let Err(msg) = result {
         super::status_err(&msg.to_string())

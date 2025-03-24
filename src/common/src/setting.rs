@@ -1,5 +1,3 @@
-pub use crate::error::Result;
-
 use std::sync::OnceLock;
 static SETTINGS: OnceLock<Settings> = OnceLock::new();
 

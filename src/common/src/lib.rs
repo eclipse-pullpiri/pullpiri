@@ -2,6 +2,8 @@
  * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
  * SPDX-License-Identifier: Apache-2.0
  */
+pub use crate::error::Result;
+
 pub mod error;
 pub mod etcd;
 pub mod setting;
@@ -26,7 +28,6 @@ pub mod apiserver {
 }
 
 pub mod filtergateway {
-
     tonic::include_proto!("filtergateway");
 
     pub fn open_server() -> String {
@@ -39,7 +40,6 @@ pub mod filtergateway {
 }
 
 pub mod monitoringclient {
-
     tonic::include_proto!("monitoringclient");
 
     pub fn open_server() -> String {
@@ -76,7 +76,6 @@ pub mod policymanager {
 }
 
 pub mod statemanager {
-
     tonic::include_proto!("statemanager");
 
     pub fn open_server() -> String {

@@ -14,69 +14,65 @@ use common::spec::artifact::Volume;
 
 /// Apply downloaded artifact to etcd
 ///
-/// # parametets
+/// ### Parametets
 /// * `body` - whole yaml string of piccolo artifact
-/// # returns
-/// * `Result(String)` - scenario yaml in downloaded artifact
-/// # description
+/// ### Returns
+/// * `Result(String, String)` - scenario and package yaml in downloaded artifact
+/// ### Description
 /// write artifact in etcd
-pub async fn apply(body: &str) -> common::Result<String> {
+pub async fn apply(body: &str) -> common::Result<(String, String)> {
     let docs: Vec<&str> = body.split("---").collect();
     let mut scenario_str = String::new();
+    let mut package_str = String::new();
+
     for doc in docs {
         let value: serde_yaml::Value = serde_yaml::from_str(doc)?;
         let artifact_str = serde_yaml::to_string(&value)?;
-        if let Some(kind) = value.get("kind").and_then(|k| k.as_str()) {
-            match kind {
-                "Scenario" => {
-                    let name = serde_yaml::from_value::<Scenario>(value)?.get_name();
-                    let key = format!("Scenario/{}", name);
-                    data::write_to_etcd(&key, &artifact_str).await?;
-                    scenario_str = artifact_str;
-                }
-                "Package" => {
-                    let name = serde_yaml::from_value::<Package>(value)?.get_name();
-                    let key = format!("Package/{}", name);
-                    data::write_to_etcd(&key, &artifact_str).await?;
-                }
-                "Volume" => {
-                    let name = serde_yaml::from_value::<Volume>(value)?.get_name();
-                    let key = format!("Volume/{}", name);
-                    data::write_to_etcd(&key, &artifact_str).await?;
-                }
-                "Network" => {
-                    let name = serde_yaml::from_value::<Network>(value)?.get_name();
-                    let key = format!("Network/{}", name);
-                    data::write_to_etcd(&key, &artifact_str).await?;
-                }
-                "Model" => {
-                    let name = serde_yaml::from_value::<Model>(value)?.get_name();
-                    let key = format!("Model/{}", name);
-                    data::write_to_etcd(&key, &artifact_str).await?;
-                }
+
+        if let Some(kind) = value.clone().get("kind").and_then(|k| k.as_str()) {
+            let name: String = match kind {
+                "Scenario" => serde_yaml::from_value::<Scenario>(value)?.get_name(),
+                "Package" => serde_yaml::from_value::<Package>(value)?.get_name(),
+                "Volume" => serde_yaml::from_value::<Volume>(value)?.get_name(),
+                "Network" => serde_yaml::from_value::<Network>(value)?.get_name(),
+                "Model" => serde_yaml::from_value::<Model>(value)?.get_name(),
                 _ => {
                     println!("unknown artifact");
+                    continue;
                 }
+            };
+            let key = format!("{}/{}", kind, name);
+            data::write_to_etcd(&key, &artifact_str).await?;
+
+            if kind == "Scenario" {
+                scenario_str = artifact_str;
+            } else if kind == "Package" {
+                package_str = artifact_str;
             }
         }
     }
 
-    Ok(scenario_str)
+    if scenario_str.is_empty() {
+        Err("There is not any scenario in yaml string".into())
+    } else {
+        Ok((scenario_str, package_str))
+    }
 }
 
 /// Delete downloaded artifact to etcd
 ///
-/// # parametets
+/// ### Parametets
 /// * `body` - whole yaml string of piccolo artifact
-/// # returns
+/// ### Returns
 /// * `Result(String)` - scenario yaml in downloaded artifact
-/// # description
+/// ### Description
 /// delete scenario yaml only, because other scenario can use a package with same name
 pub async fn withdraw(body: &str) -> common::Result<String> {
     let docs: Vec<&str> = body.split("---").collect();
     for doc in docs {
         let value: serde_yaml::Value = serde_yaml::from_str(doc)?;
         let artifact_str = serde_yaml::to_string(&value)?;
+
         if let Some(kind) = value.get("kind").and_then(|k| k.as_str()) {
             match kind {
                 "Scenario" => {

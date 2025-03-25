@@ -19,14 +19,11 @@ pub struct HostSettings {
 pub struct GuestSettings {
     pub name: String,
     pub ip: String,
-    pub ssh_port: String,
-    pub id: String,
-    pub pw: String,
 }
 
 fn parse_settings_yaml() -> Settings {
     let s: Settings = Settings {
-        yaml_storage: String::from("/root/piccolo_yaml"),
+        yaml_storage: String::from("/etc/piccolo"),
         piccolo_cloud: String::from("http://0.0.0.0:41234"),
         host: HostSettings {
             name: String::from("HPC"),
@@ -34,10 +31,7 @@ fn parse_settings_yaml() -> Settings {
         },
         /*guest: Some(vec![GuestSettings {
             name: String::from("ZONE"),
-            ip: String::from("192.168.10.239"),
-            ssh_port: String::from("22"),
-            id: String::from("root"),
-            pw: String::from("lge123"),
+            ip: String::from("192.168.0.1"),
         }]),*/
         guest: None,
     };

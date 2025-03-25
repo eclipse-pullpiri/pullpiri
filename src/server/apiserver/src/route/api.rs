@@ -15,7 +15,7 @@ pub fn router() -> Router {
 
 /// Notify of new artifact release in the cloud
 ///
-/// # parametets
+/// ### Parametets
 /// * `artifact_name` - name of the newly released artifact
 async fn notify(artifact_name: String) -> Response {
     println!("{}", artifact_name);
@@ -24,7 +24,7 @@ async fn notify(artifact_name: String) -> Response {
 
 /// Apply the new artifacts (scenario, package, etc...)
 ///
-/// # parameters
+/// ### Parameters
 /// * `body` - the string in yaml format
 async fn apply_artifact(body: String) -> Response {
     let result = crate::manager::apply_artifact(&body).await;
@@ -38,7 +38,7 @@ async fn apply_artifact(body: String) -> Response {
 
 /// Withdraw the applied scenario
 ///
-/// # parameters
+/// ### Parameters
 /// * `artifact_name` - name of the artifact to be deleted
 async fn withdraw_artifact(body: String) -> Response {
     let result = crate::manager::withdraw_artifact(&body).await;

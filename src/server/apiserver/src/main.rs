@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 mod artifact;
+mod bluechi;
 mod grpc;
-//mod importer;
 mod manager;
 mod route;
 

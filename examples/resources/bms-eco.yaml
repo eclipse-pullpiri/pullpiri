@@ -23,22 +23,22 @@ spec:
   pattern:
     - type: plain
   models:
-    - name: bms-blis
+    - name: bms-algorithm-eco-blis
       node: ZONE
       resources:
         volume: bms-volume
         network: bms-network
-    - name: bms-frism
+    - name: bms-algorithm-eco-frism
       node: ZONE
       resources:
         volume: bms-volume
         network: bms-network
-    - name: bms-mavd
+    - name: bms-algorithm-eco-mavd
       node: HPC
       resources:
         volume: bms-volume
         network: bms-network
-    - name: bms-rdv
+    - name: bms-algorithm-eco-rdv
       node: ZONE
       resources:
         volume: bms-volume
@@ -61,7 +61,7 @@ spec: null
 apiVersion: v1
 kind: Model
 metadata:
-  name: bms-blis
+  name: bms-algorithm-eco-blis
   annotations:
     io.piccolo.annotations.package-type: blis
     io.piccolo.annotations.package-name: bms
@@ -78,7 +78,7 @@ spec:
 apiVersion: v1
 kind: Model
 metadata:
-  name: bms-frism
+  name: bms-algorithm-eco-frism
   annotations:
     io.piccolo.annotations.package-type: frism
     io.piccolo.annotations.package-name: bms
@@ -95,7 +95,7 @@ spec:
 apiVersion: v1
 kind: Model
 metadata:
-  name: bms-mavd
+  name: bms-algorithm-eco-mavd
   annotations:
     io.piccolo.annotations.package-type: mavd
     io.piccolo.annotations.package-name: bms
@@ -115,7 +115,7 @@ spec:
 apiVersion: v1
 kind: Model
 metadata:
-  name: bms-rdv
+  name: bms-algorithm-eco-rdv
   annotations:
     io.piccolo.annotations.package-type: rdv
     io.piccolo.annotations.package-name: bms

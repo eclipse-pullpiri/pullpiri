@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Pod;
-use crate::spec::MetaData;
 use crate::spec::artifact::Model;
+use crate::spec::MetaData;
 
 impl Pod {
     pub fn new(name: &str, podspec: PodSpec) -> Pod {

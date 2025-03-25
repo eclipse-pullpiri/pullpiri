@@ -1,7 +1,8 @@
+use serde::Deserialize;
 use std::sync::OnceLock;
 static SETTINGS: OnceLock<Settings> = OnceLock::new();
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct Settings {
     pub yaml_storage: String,
     pub piccolo_cloud: String,
@@ -9,20 +10,20 @@ pub struct Settings {
     pub guest: Option<Vec<GuestSettings>>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct HostSettings {
     pub name: String,
     pub ip: String,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct GuestSettings {
     pub name: String,
     pub ip: String,
 }
 
 fn parse_settings_yaml() -> Settings {
-    let s: Settings = Settings {
+    let default_settings: Settings = Settings {
         yaml_storage: String::from("/etc/piccolo"),
         piccolo_cloud: String::from("http://0.0.0.0:41234"),
         host: HostSettings {
@@ -41,8 +42,10 @@ fn parse_settings_yaml() -> Settings {
         .build();
 
     match settings {
-        Ok(result) => result.try_deserialize::<Settings>().unwrap_or(s),
-        Err(_) => s,
+        Ok(result) => result
+            .try_deserialize::<Settings>()
+            .unwrap_or(default_settings),
+        Err(_) => default_settings,
     }
 }
 

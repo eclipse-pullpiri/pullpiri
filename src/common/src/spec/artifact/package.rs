@@ -11,14 +11,6 @@ impl Package {
     pub fn get_models(&self) -> &Vec<ModelInfo> {
         &self.spec.models
     }
-    pub fn get_model_name(&self) -> Vec<String> {
-        let mut ret: Vec<String> = Vec::new();
-
-        for mi in self.get_models() {
-            ret.push(mi.get_name());
-        }
-        ret
-    }
 }
 
 #[derive(Debug, serde::Deserialize, PartialEq)]

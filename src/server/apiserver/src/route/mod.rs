@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+//! Access point of Piccolo REST API
+
 pub mod api;
 
 use axum::{

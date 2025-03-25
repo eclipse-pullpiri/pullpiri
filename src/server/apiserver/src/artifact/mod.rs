@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+//! Convert string-type artifacts to struct and access etcd
+
 pub mod data;
 
 use common::spec::artifact::Artifact;

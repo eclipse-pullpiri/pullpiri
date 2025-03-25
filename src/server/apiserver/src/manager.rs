@@ -1,3 +1,5 @@
+//! Controls the flow of data between each module.
+
 use common::filtergateway::{Action, HandleScenarioRequest};
 
 pub async fn initialize() {

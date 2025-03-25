@@ -44,16 +44,14 @@ pub async fn get_all_with_prefix(key: &str) -> Result<Vec<KV>, Error> {
     );
     let resp = client.get(key, option).await?;
 
-    let vec_kv = resp
+    Ok(resp
         .kvs()
         .iter()
         .map(|kv| KV {
             key: kv.key_str().unwrap_or_default().to_string(),
             value: kv.value_str().unwrap_or_default().to_string(),
         })
-        .collect();
-
-    Ok(vec_kv)
+        .collect())
 }
 
 pub async fn delete(key: &str) -> Result<(), Error> {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! Make files for Bluechi available nodes
+//! Performs tasks required for Bluechi integration
 
 mod filemaker;
 mod parser;

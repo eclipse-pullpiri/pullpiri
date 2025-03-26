@@ -3,6 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! Function related gRPC
+//! Running gRPC message send/receive
 
 pub mod sender;

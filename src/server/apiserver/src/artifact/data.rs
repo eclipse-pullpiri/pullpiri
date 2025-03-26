@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+//! Read/Write/Delete artifact data in etcd
+
 /// Read yaml string of artifacts from etcd
 ///
 /// ### Parameters
@@ -30,7 +32,7 @@ pub async fn read_all_scenario_from_etcd() -> common::Result<Vec<String>> {
 /// Write yaml string of artifacts to etcd
 ///
 /// ### Parameters
-/// * `artifact_name: &str` - name of the newly released artifact
+/// * `key: &str, artifact_name: &str` - etcd key and the name of the newly released artifact
 /// ### Return
 /// * `Result<()>` - `Ok` if success, `Err` otherwise
 pub async fn write_to_etcd(key: &str, artifact_str: &str) -> common::Result<()> {
@@ -41,7 +43,7 @@ pub async fn write_to_etcd(key: &str, artifact_str: &str) -> common::Result<()> 
 /// Write yaml string of artifacts to etcd
 ///
 /// ### Parameters
-/// * `artifact_name: &str` - name of the newly released artifact
+/// * `key: &str` - data key to delete from etcd
 /// ### Return
 /// * `Result<()>` - `Ok` if success, `Err` otherwise
 pub async fn delete_at_etcd(key: &str) -> common::Result<()> {

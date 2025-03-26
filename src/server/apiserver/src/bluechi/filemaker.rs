@@ -2,13 +2,16 @@
  * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
  * SPDX-License-Identifier: Apache-2.0
  */
+
+//! Make files for Bluechi and copy to other nodes
+
 use common::spec::k8s::Pod;
 use std::io::Write;
 
 /// Make files about bluechi for Pod
 ///
 /// ### Parametets
-/// * `Vec<Pod>` - Vector of pods
+/// * `pods: Vec<Pod>` - Vector of pods
 /// ### Description
 /// Make `.kube`, `.yaml` files for bluechi
 pub async fn make_files_from_pod(pods: Vec<Pod>) -> common::Result<Vec<String>> {
@@ -28,6 +31,12 @@ pub async fn make_files_from_pod(pods: Vec<Pod>) -> common::Result<Vec<String>> 
     Ok(file_names)
 }
 
+/// Make .kube files for Pod
+///
+/// ### Parametets
+/// * `dir: &str, pod_name: &str` - Piccolo yaml directory path and pod name
+/// ### Description
+/// Make .kube files for Pod
 fn make_kube_file(dir: &str, pod_name: &str) -> common::Result<()> {
     let kube_file_path = format!("{}/{}.kube", dir, pod_name);
     let yaml_file_path = format!("{}/{}.yaml", dir, pod_name);
@@ -55,6 +64,12 @@ Restart=no
     Ok(())
 }
 
+/// Make .yaml files for Pod
+///
+/// ### Parametets
+/// * `dir: &str, pod: Pod` - Piccolo yaml directory path and Pod structure
+/// ### Description
+/// Make .yaml files for Pod
 fn make_yaml_file(dir: &str, pod: Pod) -> common::Result<()> {
     let yaml_file_path = format!("{}/{}.yaml", dir, pod.get_name());
     let mut yaml_file = std::fs::File::create(yaml_file_path)?;
@@ -65,6 +80,12 @@ fn make_yaml_file(dir: &str, pod: Pod) -> common::Result<()> {
     Ok(())
 }
 
+/// (under construction) Copy Bluechi files to other nodes
+///
+/// ### Parametets
+/// TBD
+/// ### Description
+/// TBD
 pub fn copy_to_remote_node(file_names: Vec<String>) -> common::Result<()> {
     Ok(())
 }

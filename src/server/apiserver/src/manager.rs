@@ -1,15 +1,21 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 //! Controls the flow of data between each module.
 
 use common::filtergateway::{Action, HandleScenarioRequest};
 
+/// Launch REST API listener and reload scenario data in etcd
 pub async fn initialize() {
     tokio::join!(crate::route::launch_tcp_listener(), reload());
 }
 
-/// Send request message to piccolo cloud
+/// (under construction) Send request message to piccolo cloud
 ///
 /// ### Parametets
-/// * `name` - piccolo scenario name
+/// TBD
 /// ### Description
 /// TODO
 async fn send_download_request() {}
@@ -41,7 +47,7 @@ async fn reload() {
 /// Apply downloaded artifact
 ///
 /// ### Parametets
-/// * `body` - whole yaml string of piccolo artifact
+/// * `body: &str` - whole yaml string of piccolo artifact
 /// ### Description
 /// write artifact in etcd  
 /// (optional) make yaml, kube files for Bluechi  
@@ -63,7 +69,7 @@ pub async fn apply_artifact(body: &str) -> common::Result<()> {
 /// Withdraw downloaded artifact
 ///
 /// ### Parametets
-/// * `body` - whole yaml string of piccolo artifact
+/// * `body: &str` - whole yaml string of piccolo artifact
 /// ### Description
 /// delete artifact in etcd  
 /// (optional) delete yaml, kube files for Bluechi  

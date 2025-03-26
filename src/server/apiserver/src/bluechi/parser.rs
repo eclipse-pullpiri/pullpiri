@@ -1,9 +1,16 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+//! Create Model artifact from given Package information
+
 use common::spec::artifact::{Model, Network, Package, Volume};
 
 /// Get combined `Network`, `Volume`, parsed `Model` information
 ///
 /// ### Parametets
-/// * `Package` - Package artifact
+/// * `p: Package` - Package artifact
 /// ### Description
 /// Get base `Model` information from package spec  
 /// Combine `Network`, `Volume`, parsed `Model` information

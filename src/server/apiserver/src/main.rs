@@ -6,7 +6,7 @@
 //! The Apiserver provides internal/external APIs for Piccolo operations
 //! and performs registration and preparation tasks for scenarios and other
 //! artifacts.
-//! 
+//!
 //! * Open a REST API to communicate with Piccolo Cloud or receive artifacts
 //! directly.
 //! * Appropriately parse the received string-type artifacts so that they can
@@ -20,6 +20,7 @@ mod grpc;
 mod manager;
 mod route;
 
+/// Main function of Piccolo API Server
 #[tokio::main]
 async fn main() {
     manager::initialize().await

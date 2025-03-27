@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Pod;
+use crate::spec::artifact::Model;
 use crate::spec::MetaData;
 
 impl Pod {
     pub fn new(name: &str, podspec: PodSpec) -> Pod {
         Pod {
-            apiVersion: "v1".to_string(),
-            kind: "Pod".to_string(),
+            apiVersion: String::from("v1"),
+            kind: String::from("Pod"),
             metadata: MetaData {
                 name: name.to_string(),
                 labels: None,
@@ -15,6 +16,16 @@ impl Pod {
             },
             spec: podspec,
         }
+    }
+
+    pub fn get_name(&self) -> String {
+        self.metadata.name.clone()
+    }
+}
+
+impl From<Model> for Pod {
+    fn from(model: Model) -> Self {
+        Pod::new(&model.get_name(), model.get_podspec())
     }
 }
 

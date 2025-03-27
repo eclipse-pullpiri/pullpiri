@@ -16,7 +16,7 @@ spec:
   pattern:
     - type: plain
   models:
-    - name: antipinch-core
+    - name: antipinch-enable-core
       node: HPC
       resources:
         volume: antipinch-volume
@@ -39,7 +39,7 @@ spec: null
 apiVersion: v1
 kind: Model
 metadata:
-  name: antipinch-core
+  name: antipinch-enable-core
   annotations:
     io.piccolo.annotations.package-type: antipinch-v2.0
     io.piccolo.annotations.package-name: antipinch

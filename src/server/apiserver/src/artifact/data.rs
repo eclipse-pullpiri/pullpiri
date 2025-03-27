@@ -3,22 +3,37 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+//! Read/Write/Delete artifact data in etcd
+
 /// Read yaml string of artifacts from etcd
 ///
-/// # parameters
+/// ### Parameters
 /// * `artifact_name: &str` - name of the newly released artifact
-/// # return
+/// ### Return
 /// * `Result<(String)>` - `Ok()` contains yaml string if success
 pub async fn read_from_etcd(artifact_name: &str) -> common::Result<String> {
     let raw = common::etcd::get(artifact_name).await?;
     Ok(raw)
 }
 
+/// Read all scenario yaml string in etcd
+///
+/// ### Parameters
+/// * None
+/// ### Return
+/// * `Result<Vec<String>>` - `Ok(_)` contains scenario yaml string vector
+pub async fn read_all_scenario_from_etcd() -> common::Result<Vec<String>> {
+    let kv_scenario = common::etcd::get_all_with_prefix("Scenario").await?;
+    let values = kv_scenario.into_iter().map(|kv| kv.value).collect();
+
+    Ok(values)
+}
+
 /// Write yaml string of artifacts to etcd
 ///
-/// # parameters
-/// * `artifact_name: &str` - name of the newly released artifact
-/// # return
+/// ### Parameters
+/// * `key: &str, artifact_name: &str` - etcd key and the name of the newly released artifact
+/// ### Return
 /// * `Result<()>` - `Ok` if success, `Err` otherwise
 pub async fn write_to_etcd(key: &str, artifact_str: &str) -> common::Result<()> {
     common::etcd::put(key, artifact_str).await?;
@@ -27,21 +42,11 @@ pub async fn write_to_etcd(key: &str, artifact_str: &str) -> common::Result<()> 
 
 /// Write yaml string of artifacts to etcd
 ///
-/// # parameters
-/// * `artifact_name: &str` - name of the newly released artifact
-/// # return
+/// ### Parameters
+/// * `key: &str` - data key to delete from etcd
+/// ### Return
 /// * `Result<()>` - `Ok` if success, `Err` otherwise
 pub async fn delete_at_etcd(key: &str) -> common::Result<()> {
     common::etcd::delete(key).await?;
     Ok(())
 }
-
-// TODO
-// yaml to struct
-// struct to yaml
-
-/*fn export_artifact_data() {
-
-}*/
-
-pub async fn reload() {}

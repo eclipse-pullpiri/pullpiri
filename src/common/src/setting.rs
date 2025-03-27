@@ -1,7 +1,8 @@
+use serde::Deserialize;
 use std::sync::OnceLock;
 static SETTINGS: OnceLock<Settings> = OnceLock::new();
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct Settings {
     pub yaml_storage: String,
     pub piccolo_cloud: String,
@@ -9,24 +10,21 @@ pub struct Settings {
     pub guest: Option<Vec<GuestSettings>>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct HostSettings {
     pub name: String,
     pub ip: String,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct GuestSettings {
     pub name: String,
     pub ip: String,
-    pub ssh_port: String,
-    pub id: String,
-    pub pw: String,
 }
 
 fn parse_settings_yaml() -> Settings {
-    let s: Settings = Settings {
-        yaml_storage: String::from("/root/piccolo_yaml"),
+    let default_settings: Settings = Settings {
+        yaml_storage: String::from("/etc/piccolo"),
         piccolo_cloud: String::from("http://0.0.0.0:41234"),
         host: HostSettings {
             name: String::from("HPC"),
@@ -34,10 +32,7 @@ fn parse_settings_yaml() -> Settings {
         },
         /*guest: Some(vec![GuestSettings {
             name: String::from("ZONE"),
-            ip: String::from("192.168.10.239"),
-            ssh_port: String::from("22"),
-            id: String::from("root"),
-            pw: String::from("lge123"),
+            ip: String::from("192.168.0.1"),
         }]),*/
         guest: None,
     };
@@ -47,8 +42,10 @@ fn parse_settings_yaml() -> Settings {
         .build();
 
     match settings {
-        Ok(result) => result.try_deserialize::<Settings>().unwrap_or(s),
-        Err(_) => s,
+        Ok(result) => result
+            .try_deserialize::<Settings>()
+            .unwrap_or(default_settings),
+        Err(_) => default_settings,
     }
 }
 

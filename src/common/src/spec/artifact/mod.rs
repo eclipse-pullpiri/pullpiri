@@ -4,13 +4,14 @@ mod package;
 mod scenario;
 mod volume;
 
+use serde::{Deserialize, Serialize};
 use super::MetaData;
 
 pub trait Artifact {
     fn get_name(&self) -> String;
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Scenario {
     apiVersion: String,
     kind: String,
@@ -19,7 +20,7 @@ pub struct Scenario {
     status: Option<scenario::ScenarioStatus>,
 }
 
-#[derive(Debug, serde::Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct Package {
     apiVersion: String,
     kind: String,
@@ -28,7 +29,7 @@ pub struct Package {
     status: Option<package::PackageStatus>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Volume {
     apiVersion: String,
     kind: String,
@@ -36,7 +37,7 @@ pub struct Volume {
     spec: Option<volume::VolumeSpec>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Network {
     apiVersion: String,
     kind: String,
@@ -44,7 +45,7 @@ pub struct Network {
     spec: Option<network::NetworkSpec>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Model {
     apiVersion: String,
     kind: String,

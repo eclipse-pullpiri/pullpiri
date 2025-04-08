@@ -1,52 +1,47 @@
-# FilterGateway
+# ActionController
 
 ## 1. 목적 프롬프트
 ### 주요기능
-ActionController는 settings.json파일을 읽어서 각 노드가 bluechi node인지 normal node 인지 판단한다. ActionController는 외부 모듈 FilterGateway에서 트리거이벤트를 받아 시나리오 이름을 전달받는다. 전달 받은 시나리오 이름으로 ETCD에서 시나리오의 전체 정보를 읽어온다. 해당 시나리오의 Action과 Target을 확인하여 Bluechi Controller API를 호출할지 아니면 NodeAgent API를 호출할지 판단하여 수행한다. 
-모든 bluechi node에 대해서 bluechi API를 한번만 호출하면 되고 모든 normal node에 대해서는 각 nodeagent 마다 API를 호출 해야한다. 외부모듈 statemanager로 부터 시나리오의 상태를 reconcile 함수로 수신 받아서 시나리오의 current state를 desire state로 조정하는 작업을 한다. 그 조정 작업은 runtime API 호출하여 조정한다.
-
-
+ActionController는 FilterGateway로부터 특정 시나리오의 조건 충족 이벤트를 전달받아, 해당 시나리오의 Action과 Target 정보를 기반으로 Bluechi Controller API 또는 NodeAgent API를 호출하여 작업을 수행하는 모듈입니다.  
+또한, ETCD에서 시나리오 정보를 읽어와 각 노드의 상태를 조정하며, Bluechi와 NodeAgent를 사용하는 노드를 구분하여 처리합니다.
 
 ### 주요 데이터 흐름
-1. settings.json 파일로 부터 node 정보를 읽어온다.  
-2. 외부 모듈 filtergateway로 부터 전달받은 시나리오의 이름으로 Action과 Target 정보를 ETCD에서 불러온다.  
-3. Action과 Target 정보를 가지고 각 노드의 모드에 따라 runtime API(bluech API 혹은 nodeagent API) 를 호출한다.  
-4. 외부 모듈 statemanager로 부터 전달받은 desire state와 current state를 확인하고 desire state로 조정하기 위해 runtime API(bluech API 혹은 nodeagent API)를 호출한다.  
+1. **초기화**: `settings.json` 파일에서 노드 정보를 읽어와 Bluechi 노드와 NodeAgent 노드를 구분합니다.
+2. **시나리오 처리**: FilterGateway로부터 전달받은 시나리오 이름으로 ETCD에서 Action과 Target 정보를 조회합니다.
+3. **작업 수행**: Action과 Target 정보를 기반으로 Bluechi API 또는 NodeAgent API를 호출하여 작업을 수행합니다.
+4. **상태 조정**: 외부 모듈 StateManager로부터 전달받은 상태 정보를 기반으로 현재 상태를 조정합니다.
+
+---
 
 ## 2. 파일 정보
-main 에서 grpc sender, receiver, manager를 생성한다. manager에서 각 노드별로 bluechi와 nodeagent 를 생성한다. 
+ActionController는 다음과 같은 파일들로 구성됩니다:
 
-ActionController  
-├── main.rs  
-├── manager.rs  
-└── grpc  
-    ├── mod.rs  
-    └── receiver.rs  
-└── runtime  
-    ├── mod.rs  
-    ├── bluechi
-        └── mod.rs  
-    └── nodeagent
-        └── mod.rs  
+```
+ActionController/
+├── main.rs
+├── manager.rs
+├── grpc/
+│   ├── mod.rs
+│   ├── receiver.rs
+│   └── sender.rs
+├── runtime/
+│   ├── mod.rs
+│   ├── bluechi/
+│   │   └── mod.rs
+│   └── nodeagent/
+│       └── mod.rs
+```
 
-main.rs   - initialize 만 수행한다. 
-manager.rs  
-grpc/mod.rs  
-grpc/receiver.rs  
-runtime/mod.rs  
-runtime/bluechi/mod.rs 
-Runtime/nodeagent/mod.rs  
+- **main.rs**: 초기화 작업 수행.
+- **manager.rs**: `settings.json` 파일에서 노드 정보를 읽어오고, 시나리오 정보를 처리하여 API 호출.
+- **grpc/mod.rs**: gRPC 관련 모듈 정의.
+- **grpc/receiver.rs**: FilterGateway 및 StateManager로부터 gRPC 메시지를 수신.
+- **grpc/sender.rs**: ActionController에서 gRPC 메시지 전송.
+- **runtime/mod.rs**: Bluechi 및 NodeAgent 관련 작업 수행.
+- **runtime/bluechi/mod.rs**: Bluechi 관련 API 호출.
+- **runtime/nodeagent/mod.rs**: NodeAgent 관련 API 호출.
 
-- **main.rs** - initialize 만 수행.
-- **manager.rs** - settins.json 파일에서 노드들의 정보를 읽어옴. 시나리오 정보를 ETCD에서 읽어와서 Action과 Target 정보를 확인. 노드 별로 API 호출. 
-- **grpc/mod.rs**
-- **grpc/receiver.rs** - filtergateway 로부터 받은 gRPC 메시지를 manager 로 channel을 통해 전달, statemanger로부터 받은 gRPC 메세지를 manager를 통해 전달. 
-- **grpc/sender.rs** - actioncontroller 로 gRPC 메시지 전달
-- **filter/mod.rs** - filter 관련된 모든 함수 들어 있음. Filter에 대한 struct 생성
-- **vehicle/mod.rs** 
-- **vehicle/dds/mod.rs** 
-- **vehicle/dds/listener.rs**  - DDS listener 를 topic 마다 thread 로 생성. 각 thread는 channel 을 통해 manager 로 전달
-
+---
 
 ## 3. 주요 API 정보
 
@@ -54,87 +49,94 @@ Runtime/nodeagent/mod.rs
 - **API Name**: Initialize
 - **File**: main.rs
 - **Type**: function
-- **Parameters**:
-- **Returns**:
-- **Description**: manager 스레드 초기화 및 listener 생성 작업 진행.
+- **Parameters**: None
+- **Returns**: None
+- **Description**: `settings.json` 파일에서 노드 정보를 읽어와 Bluechi 노드와 NodeAgent 노드를 구분하여 초기화합니다.
 
-### API : HandleScenario
-- **API Name**: handle_scenario
+---
+
+### API : TriggerAction
+- **API Name**: trigger_action
 - **File**: grpc/receiver.rs
 - **Type**: grpc
-- **Parameters**: scenario_yaml_str: String, action: i32
-- **Returns**: core::result::Result
-- **Description**:  API-Server로 부터 PICCOLO 시나리오 이름을 받아서 ETCD에 저장된 시나리오 정보를 추가하거나 삭제한다. 
-API-Server로 부터 시나리오 yaml string 을 받아서 Scenario struct 에 넣는다. 차량 데이터 토픽을 구독등록하고 Filter 생성 후 실행 한다.
+- **Parameters**: scenario_data: Struct
+- **Returns**: bool
+- **Description**: FilterGateway로부터 전달받은 시나리오 데이터를 기반으로 ETCD에서 Action과 Target 정보를 조회하고, 작업을 수행합니다.
 
-### API : subscribe_vehicle_data
-- **API Name**: subscribe_vehicle_data
+---
+
+### API : CreateWorkload
+- **API Name**: create_workload
 - **File**: manager.rs
 - **Type**: function
-- **Parameters**: scenario_name: String, vehicle_message: Struct (message type, topic 등을 포함)
-- **Returns**: core::result::Result
-- **Description**: 차량 데이터 토픽을 수신 받도록 구독 신청을 한다.
+- **Parameters**: scenario_data: Struct
+- **Returns**: bool
+- **Description**: ETCD에서 Systemd 파일 및 Pod YAML 파일을 읽어와 작업을 생성합니다. Bluechi, NodeAgent, 또는 QNX 8.0에 따라 적절한 API를 호출합니다.
 
-### API : unsubscribe_vehicle_data
-- **API Name**: unsubscribe_vehicle_data
+---
+
+### API : DeleteWorkload
+- **API Name**: delete_workload
 - **File**: manager.rs
 - **Type**: function
-- **Parameters**: scenario_name: String, vehicle_message Struct
-- **Returns**: core::result::Result
-- **Description**: 차량 데이터 토픽을 수신받지 않도록 구독 해제 한다.(현재 버전에서 생략)
+- **Parameters**: scenario_data: Struct
+- **Returns**: bool
+- **Description**: 기존 작업 파일을 삭제하고, Bluechi 또는 NodeAgent API를 호출하여 작업을 제거합니다.
 
-### API : launch_scenario_filter
-- **API Name**: launch_scenario_filter
+---
+
+### API : RestartWorkload
+- **API Name**: restart_workload
 - **File**: manager.rs
 - **Type**: function
-- **Parameters**: scenario: struct Scenario
-- **Returns**: core::result::Result
-- **Description**: 전달 받은 PICCOLO Scenario에 해당하는 Filter를 생성하고 실행한다. Filter는 Scenario 하나 당 별도 thread로 생성되고 생성된 후 Scenario에 선언된 차량데이터를 Listener부터 전달 받는다. 전달 받은 차량 데이터로 Scenario의 조건을 판단 한다.
+- **Parameters**: scenario_data: Struct
+- **Returns**: bool
+- **Description**: Bluechi 또는 NodeAgent API를 호출하여 작업을 재실행합니다.
 
-### API : remove_scenario_filter
-- **API Name**: remove_scenario_filter
+---
+
+### API : PauseWorkload
+- **API Name**: pause_workload
 - **File**: manager.rs
 - **Type**: function
-- **Parameters**: scenario_name: String
-- **Returns**: core::result::Result
-- **Description**: PICCOLO Scenario에 해당하는 Filter를 삭제한다.
+- **Parameters**: scenario_data: Struct
+- **Returns**: bool
+- **Description**: Bluechi 또는 NodeAgent API를 호출하여 작업을 일시정지합니다.
 
-### API : meet_scenario_condition
-- **API Name**: meet_scenario_condition
-- **File**: filter.rs
+---
+
+### API : StartWorkload
+- **API Name**: start_workload
+- **File**: manager.rs
 - **Type**: function
-- **Parameters**: scenario_data: vehicle message struct
-- **Returns**: core::result::Result
-- **Description**: 수신받고 있는 차량데이터들이 Scenario 조건에 부합 하면 Action Controller의 TriggerAction 함수를 실행한다.
+- **Parameters**: scenario_data: Struct
+- **Returns**: bool
+- **Description**: Bluechi 또는 NodeAgent API를 호출하여 작업을 시작합니다.
 
-### API : pause_scenario_filter
-- **API Name**: pause_scenario_filter
-- **File**: filter.rs
+---
+
+### API : StopWorkload
+- **API Name**: stop_workload
+- **File**: manager.rs
 - **Type**: function
-- **Parameters**: scenario_name: String
-- **Returns**: core::result::Result
-- **Description**: 해당 시나리오 Filter에서 수신받고 있는 차량 데이터들의 Scenario 조건 판단을 하지 않는다.
+- **Parameters**: scenario_data: Struct
+- **Returns**: bool
+- **Description**: Bluechi 또는 NodeAgent API를 호출하여 작업을 중지합니다.
 
-### API : resume_scenario_filter
-- **API Name**: resume_scenario_filter
-- **File**: filter.rs
-- **Type**: function
-- **Parameters**: scenario_name: String
-- **Returns**: core::result::Result
-- **Description**: 해당 Filter에서 수신받고 있는 차량 데이터들의 Scenario 조건 판단을 재개 한다.
+---
 
-## 4.참고(참조파일 먼저 입력필요)
-Cargo.toml 파일을 생성한 후 [dependencies] 에 'common = {workspace = true}' 이 문구를 추가한다.
-'common/src/spec/scenario/mod.rs' 참고해서 시나리오를 파싱한다.(수정불가)   
-'common/proto/filtergateway.proto'를 이용해서 grpc/receiver.rs를 구현한다.  
-'common/proto/actioncontroller.proto'를 이용해서 grpc/sender.rs를 구현한다.  
-'example/resource/scenario/bms/high-performance.yaml' 은 예제 시나리오 파일이니 참고해서 DDS 토픽을 수신받도록 구독한다.
-'example/resource/scenario/bms/high-performance.yaml' 은 예제 시나리오 파일이니 참고해서 수신 받은 DDS 토픽의 조건이 만족하는지 판단한다.
-모듈 내부에서 통신하는 채널을 사용할때는 std::sync::mpsc 대신 tokio::sync::mpsc를 사용한다.   
+## 4. 참고
+- `Cargo.toml` 파일에 `[dependencies]` 섹션에 `common = {workspace = true}`를 추가합니다.
+- `common/src/spec/scenario/mod.rs`를 참고하여 시나리오를 파싱합니다.
+- `common/proto/filtergateway.proto`를 기반으로 `grpc/receiver.rs`를 구현합니다.
+- `common/proto/actioncontroller.proto`를 기반으로 `grpc/sender.rs`를 구현합니다.
+- `example/resource/scenario/bms/high-performance.yaml` 파일을 참고하여 DDS 토픽을 구독합니다.
+- `tokio::sync::mpsc`를 사용하여 모듈 간 통신 채널을 구현합니다.
 
-## 5.코드 생성 이후 추가 요구사항
-주요 api가 제대로된 파일위치에 모두 확인하고 제대로 구현해줘
-생성된 코드의 라이브러리 버전이랑 문법을 다시 확인해서 수정해줘
-각 API 테스트를 위한 임의의 데이터를 만들어서 테스트 수행하는 테스트코드 만들어줘
-빌드랑 테스트 수행하고 결과 보여줘.
-전체 파일 다 보여줘
+---
+
+## 5. 추가 요구사항
+1. 주요 API가 올바른 파일에 구현되었는지 확인합니다.
+2. 생성된 코드의 라이브러리 버전과 문법을 검토하여 수정합니다.
+3. 각 API 테스트를 위한 임의 데이터를 생성하고 테스트 코드를 작성합니다.
+4. 빌드 및 테스트를 수행하고 결과를 확인합니다.

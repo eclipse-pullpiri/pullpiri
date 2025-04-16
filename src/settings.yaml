@@ -1,13 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
-yaml_storage: /root/piccolo_yaml
-doc_registry: http://0.0.0.0:41234
+yaml_storage: /etc/piccolo
+piccolo_cloud: http://0.0.0.0:41234
 host:
   name: HPC
   ip: 0.0.0.0
 guest:
 #  - name: ZONE
-#    ip: 192.168.10.11
-#    ssh_port: 22
-#    id: root
-#    pw: rootpassword
+#    ip: 192.168.0.1

@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-pub use etcd_client::{Client, DeleteOptions, Error, GetOptions};
-use etcd_client::{SortOrder, SortTarget};
+use etcd_client::{Client, DeleteOptions, Error, GetOptions, SortOrder, SortTarget};
 
 pub fn open_server() -> String {
-    format!("{}:2379", crate::get_config().host.ip)
+    format!("{}:2379", crate::setting::get_config().host.ip)
 }
 
 async fn get_client() -> Result<Client, Error> {
@@ -29,10 +28,10 @@ pub async fn get(key: &str) -> Result<String, Error> {
     let mut client = get_client().await?;
     let resp = client.get(key, None).await?;
 
-    if let Some(kv) = resp.clone().kvs().first() {
+    if let Some(kv) = resp.kvs().first() {
         Ok(kv.value_str()?.to_string())
     } else {
-        Err(etcd_client::Error::InvalidArgs("".to_string()))
+        Err(etcd_client::Error::InvalidArgs("Key not found".to_string()))
     }
 }
 
@@ -45,15 +44,14 @@ pub async fn get_all_with_prefix(key: &str) -> Result<Vec<KV>, Error> {
     );
     let resp = client.get(key, option).await?;
 
-    let mut vec_kv = Vec::<KV>::new();
-    for kv in resp.clone().kvs() {
-        vec_kv.push(KV {
-            key: kv.key_str()?.to_string(),
-            value: kv.value_str()?.to_string(),
+    Ok(resp
+        .kvs()
+        .iter()
+        .map(|kv| KV {
+            key: kv.key_str().unwrap_or_default().to_string(),
+            value: kv.value_str().unwrap_or_default().to_string(),
         })
-    }
-
-    Ok(vec_kv)
+        .collect())
 }
 
 pub async fn delete(key: &str) -> Result<(), Error> {

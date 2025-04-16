@@ -1,0 +1,56 @@
+FROM ghcr.io/eclipse-pullpiri/pullpiribuilder:latest AS builder
+ARG TARGETARCH
+WORKDIR /dummy
+
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        ITEMARCH="x86_64"; \
+        mkdir /dummy/lib64; \
+        mkdir /dummy/${ITEMARCH}-linux-gnu/; \
+        cp -rf /lib64/ld-linux-x86-64.so.2 /dummy/lib64/; \
+        cp -rf /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /dummy/${ITEMARCH}-linux-gnu/; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        ITEMARCH="aarch64"; \
+        mkdir /dummy/${ITEMARCH}-linux-gnu/; \
+        cp -rf /lib/aarch64-linux-gnu/ld-linux-aarch64.so.1 /dummy/${ITEMARCH}-linux-gnu/; \
+        cp -rf /lib/ld-linux-aarch64.so.1 /dummy/; \
+    else \
+        exit 1; \
+    fi; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libc.so.6 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libcap.so.2 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libcap.so.2.66 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libdbus-1.so.3 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libdbus-1.so.3.32.4 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libgcc_s.so.1 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libgcrypt.so.20 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libgcrypt.so.20.4.1 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libgpg-error.so.0 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libgpg-error.so.0.33.1 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/liblzma.so.5 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/liblzma.so.5.4.1 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/liblz4.so.1 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/liblz4.so.1.9.4 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libm.so.6 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libsystemd.so.0 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libsystemd.so.0.35.0 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libzstd.so.1 /dummy/${ITEMARCH}-linux-gnu/; \
+    cp -rf /lib/${ITEMARCH}-linux-gnu/libzstd.so.1.5.4 /dummy/${ITEMARCH}-linux-gnu/;
+
+
+FROM alpine:3.21.3
+
+ARG TARGETARCH
+
+COPY --from=builder /dummy /lib
+
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        ITEMARCH="x86_64"; \
+        mkdir /lib64; \
+        cp -rf /lib/lib64/ld-linux-x86-64.so.2 /lib64/; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        ITEMARCH="aarch64"; \
+    else \
+        exit 1; \
+    fi;
+
+CMD [ "sh" ]

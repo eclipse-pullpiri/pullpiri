@@ -5,9 +5,8 @@
 
 #![allow(non_snake_case)]
 
+pub mod artifact;
 pub mod k8s;
-pub mod package;
-pub mod scenario;
 
 use std::collections::HashMap;
 

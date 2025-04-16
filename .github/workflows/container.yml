@@ -43,7 +43,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
-        file: containers/Dockerfile-arm
+        file: containers/arm/Dockerfile
         push: true
         platforms: linux/arm64
         tags: ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}-arm64:${{ github.ref_name }}

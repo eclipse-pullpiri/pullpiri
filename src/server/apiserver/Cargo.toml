@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "apiserver"
+version = "0.1.0"
+edition = "2021"
+description = "A piccolo daemon that operates like API server of k8s"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+common = { workspace = true }
+axum = "0.7.7"
+serde = { version = "1.0.214", features = ["derive"] }
+serde_yaml = "0.9"
+tonic = "0.12.3"
+tokio = { version = "1.41.0", features = ["macros", "rt-multi-thread"] }
+tower-http ={ version = "0.6.1", features = ["cors"]}

@@ -1,0 +1,29 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+
+package nodeagent;
+
+service NodeAgentConnection {
+  rpc HandleWorkload(HandleWorkloadRequest) returns (HandleWorkloadResponse);
+}
+
+message HandleWorkloadRequest {
+  string workload_name = 1;
+  Action action = 2;
+  string description = 3;
+}
+
+message HandleWorkloadResponse {
+  int32 status = 1;
+  string desc = 2;
+}
+
+enum Action {
+  ACTION_START = 0;
+  ACTION_STOP = 1;
+  ACTION_CHANGE = 2;
+}

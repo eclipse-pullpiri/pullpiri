@@ -21,7 +21,7 @@ height="75%"
 ├── LICENSES
 └── src
     ├── api         # gRPC proto files
-    ├── api-server
+    ├── apiserver
     ├── common      # common library
     ├── gateway
     ├── importer
@@ -30,9 +30,9 @@ height="75%"
         └── lge_dds # DDS receiver for gateway
 ```
 
-## api-server
+## apiserver
 
-Api-server works similarly to api-server in k8s.
+Apiserver works similarly to apiserver in k8s.
 It parses resources received via REST API through `importer` and writes actions and conditions to `etcd` so that the `gateway` can recognize the conditions.
 In addition, it can access `statemanager` directly.
 
@@ -42,16 +42,16 @@ We are also developing to collect metrics for monitoring.
 
 Importer is responsible for parsing resource files into the necessary items for piccolo.
 
-Specifically, create a `.kube` file and a `.yaml` file in the PICCOLO_YAML path, separate the scenario and package into condition and action and target, and pass it to the api-server.
+Specifically, create a `.kube` file and a `.yaml` file in the PICCOLO_YAML path, separate the scenario and package into condition and action and target, and pass it to the apiserver.
 
 ## gateway
 
-The gateway receives a vehicle message according to the condition received from the api-server and notifies the statemanager when the condition is satisfied.
+The gateway receives a vehicle message according to the condition received from the apiserver and notifies the statemanager when the condition is satisfied.
 It is currently written in C++, but a version rewritten in Rust is nearly complete and will soon be replaced.
 
 ## statemanager
 
-The statemanager calls the other workload orchestrator API based on a message from the gateway or api-server.
+The statemanager calls the other workload orchestrator API based on a message from the gateway or apiserver.
 Therefore, it is the destination that must be passed through in order to execute the workload.
 Specifically, when it receives a notification from the gateway that the condition has been satisfied, it pulls out the corresponding action from etcd and executes it.
 
@@ -60,7 +60,7 @@ In addition to the API calls, the complexity increases for reconcile tasks, etc.
 ## etcd
 
 The etcd stores data that is commonly used by each Piccolo module.
-Writes are made only from the api-server, and the gateway and statemanager read them to perform the necessary actions.
+Writes are made only from the apiserver, and the gateway and statemanager read them to perform the necessary actions.
 
 ## others (will be updated)
 

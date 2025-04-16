@@ -1,0 +1,7 @@
+FROM rust:1.85.0-slim
+
+RUN apt update -y && \
+    apt upgrade -y && \
+    apt install -y libdbus-1-dev pkg-config protobuf-compiler libssl-dev
+
+CMD sh

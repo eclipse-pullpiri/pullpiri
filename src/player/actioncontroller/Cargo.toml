@@ -2,7 +2,14 @@
 name = "actioncontroller"
 version = "0.1.0"
 edition = "2021"
+authors = ["LG Electronics"]
+license = "Apache-2.0"
+description = "Action Controller component for Pullpiri"
 
 [dependencies]
-common = { workspace = true }
+tokio = { version = "1.36.0", features = ["full"] }
 tonic = "0.12.3"
+prost = "0.13.3"
+serde = { version = "1.0.214", features = ["derive"] }
+serde_yaml = "0.9"
+common = { workspace = true }

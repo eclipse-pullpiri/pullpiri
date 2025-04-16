@@ -7,7 +7,7 @@
 ActionController는 FilterGateway로부터 특정 시나리오의 조건 충족 이벤트를 전달받아, 해당 시나리오의 Action과 Target 정보를 기반으로 Bluechi Controller API 또는 NodeAgent API를 호출하여 작업을 수행하는 모듈입니다.  
 또한, ETCD에서 시나리오 정보를 읽어와 각 노드의 상태를 조정하며, Bluechi와 NodeAgent를 사용하는 노드를 구분하여 처리합니다. filtergateway와 statmaanger로부터 메세지를 전달받고 Bluechi와 nodeagent로 함수를 호출합니다. 노드 별로 알맞은 함수 호출을 담당합니다.
 
-### Main dataflow
+### Main Dataflow
 
 1. **초기화**: `settings.json` 파일에서 노드 정보를 읽어와 Bluechi 노드와 NodeAgent 노드를 구분합니다.
 1. **시나리오 처리**: FilterGateway로부터 전달받은 시나리오 이름으로 ETCD에서 Action과 Target 정보를 조회합니다.
@@ -44,7 +44,7 @@ ActionController/
 - **runtime/bluechi/mod.rs**: Bluechi 관련 API 호출.
 - **runtime/nodeagent/mod.rs**: NodeAgent 관련 API 호출.
 
-## 3. 주요 API 정보
+## 3. Function information
 
 ### API : Initialize
 
@@ -107,8 +107,7 @@ ActionController/
 - **Type**: function
 - **Parameters**: scenario_name: string, current: i32, desired: i32
 - **Returns**: common::Result<()>
-- **Description**: grpc reconcile로부터 전달받은 시나리오 데이터를 기반으로 scenario, current, desired 정보를
-확인하고, 보정 작업을 수행합니다.
+- **Description**: grpc reconcile로부터 전달받은 시나리오 데이터를 기반으로 scenario, current, desired 정보를 확인하고, 보정 작업을 수행합니다.
 
 ### API : CreateWorkload
 
@@ -180,5 +179,5 @@ common = {workspace = true}
 
 - `tokio::sync::mpsc`를 사용하여 모듈 간 통신 채널에 사용합니다
 
-- 로직 코드는 만들지 말고 함수형태만 만들어주고 아래 링크 참고해서 함수마다 주석 생성합니다.
-[링크](https://doc.rust-lang.org/stable/rustdoc/index.html)
+- 로직 코드는 만들지 말고 함수형태만 만들어주고 아래 링크 참고해서  함수마다 주석 생성합니다.
+ [링크](https://doc.rust-lang.org/stable/rustdoc/index.html)

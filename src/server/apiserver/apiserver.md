@@ -1,8 +1,8 @@
 # API Server
 
-## 1. 목적 프롬프트
+## 1. Introduction
 
-### 주요기능
+### Major features
 
 API Server는 내,외부 API를 제공하며 Piccolo Artifact 등록 및 준비 작업을 수행 한다.
 
@@ -12,7 +12,7 @@ API Server는 내,외부 API를 제공하며 Piccolo Artifact 등록 및 준비 
 1. 파싱 결과를 etcd 에 저장하고 grpc를 통해 filtergateway 로 전달한다.
 1. 만약 Bluechi 를 사용할 경우 bluechi 동작에 필요한 파일 생성 후 전파한다.
 
-### 주요 데이터 흐름
+### Main Dataflow
 
 1. REST API 오픈하여 외부에서 GET 메소드로 scenario 를 비롯한
 Piccolo artifact 를 수신한다.
@@ -21,7 +21,7 @@ Piccolo artifact 를 수신한다.
 1. (선택사항) Bluechi 를 사용할 경우 `.kube`, `.yaml` 파일을 생성 후 각 노드에 전파한다.
 1. artifact 중 scenario 는 gRPC 를 통해 filtergateway 로 전달한다.
 
-## 2. 파일 정보
+## 2. File information
 
 ```text
 apiserver
@@ -60,7 +60,7 @@ apiserver
 - **bluechi/filemaker.rs** - Bluechi 동작에 필요한 파일 생성 및 다른 node 에 전파
 - **bluechi/parser.rs** - 주어진 Package 정보로부터 Model artifact 생성
 
-## 3. 주요 function 정보
+## 3. Function information
 
 본 문단의 function 정보는 rustdoc 에서 사용하는 주석 형태로 작성되었다.
 이에 대해서는 [링크](https://doc.rust-lang.org/stable/rustdoc/index.html) 를 참조하라.
@@ -216,7 +216,7 @@ async fn apply_artifact(body: String) -> Response {}
 async fn withdraw_artifact(body: String) -> Response {}
 ```
 
-### `grpc/sender/filtergateway.rs` : 사전 작성 됨
+### `grpc/sender/filtergateway.rs` : Predefined code
 
 ```rust
 //! Running gRPC message sending to filtergateway

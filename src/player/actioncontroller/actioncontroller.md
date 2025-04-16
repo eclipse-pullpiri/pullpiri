@@ -62,8 +62,8 @@ ActionController/
 - **File**: grpc/receiver.rs
 - **Type**: grpc
 - **Parameters**: scenario_name: string
-- **Returns**: core::result::Result
-- **Description**: FilterGateway로부터 전달받은 시나리오 데이터를 기반으로 ETCD에서 Action과 Target 정보를 조회하고, 작업을 수행합니다.
+- **Returns**: common::Result<()>
+- **Description**: FilterGateway로부터 전달받은 시나리오 데이터를 manager의 TriggerManagerAction으로 전달합니다.
 ---
 
 ### API : Reconcile
@@ -71,9 +71,8 @@ ActionController/
 - **File**: grpc/receiver.rs
 - **Type**: grpc
 - **Parameters**: scenario_name: string, current: i32, desired: i32
-- **Returns**: core::result::Result
-- **Description**: Statemanger로부터 전달받은 시나리오 데이터를 기반으로 scenario, current, desired 정보를 
-확인하고, 보정 작업을 수행합니다.
+- **Returns**: common::Result<()>
+- **Description**: Statemanger로부터 전달받은 시나리오 데이터를 manager의 ReconcileDo로 전달합니다.
 
 ---
 
@@ -82,7 +81,7 @@ ActionController/
 - **File**: grpc/sender.rs
 - **Type**: grpc
 - **Parameters**: scenario_name: string
-- **Returns**: core::result::Result
+- **Returns**: common::Result<()>
 - **Description**: 해당 시나리오가 수행 가능한지 policy를 확인합니다.
 
 ---
@@ -92,8 +91,29 @@ ActionController/
 - **File**: grpc/sender.rs
 - **Type**: grpc
 - **Parameters**: workload_name: string, action: i32, description: string
-- **Returns**: core::result::Result
+- **Returns**: common::Result<()> 
 - **Description**: nodeagent에서 수행 할 workload action의 내용을 전달 합니다
+
+---
+### API : TriggerManagerAction
+- **API Name**: trigger_manager_action
+- **File**: manager.rs
+- **Type**: function
+- **Parameters**: scenario_name: string
+- **Returns**: common::Result<()>
+- **Description**: grpc receiver로부터 전달받은 시나리오 데이터를 기반으로 ETCD에서 Action과 Target 정보를 조회하고, 작업을 수행합니다.
+
+---
+
+### API : ReconcileDo
+- **API Name**: reconcile_do
+- **File**: manager.rs
+- **Type**: function
+- **Parameters**: scenario_name: string, current: i32, desired: i32
+- **Returns**: common::Result<()>
+- **Description**: grpc reconcile로부터 전달받은 시나리오 데이터를 기반으로 scenario, current, desired 정보를 
+확인하고, 보정 작업을 수행합니다.
+
 ---
 
 ### API : CreateWorkload
@@ -101,7 +121,7 @@ ActionController/
 - **File**: manager.rs
 - **Type**: function
 - **Parameters**: scenario_name: string
-- **Returns**: core::result::Result
+- **Returns**: common::Result<()> 
 - **Description**: ETCD에서 Systemd 파일 및 Pod YAML 파일을 읽어와 작업을 생성합니다. Bluechi, NodeAgent따라 적절한 API를 호출합니다.
 
 ---
@@ -111,7 +131,7 @@ ActionController/
 - **File**: manager.rs
 - **Type**: function
 - **Parameters**: scenario_name: string
-- **Returns**: core::result::Result
+- **Returns**: common::Result<()> 
 - **Description**: 기존 작업 파일을 삭제하고, Bluechi 또는 NodeAgent API를 호출하여 작업을 제거합니다.
 
 ---
@@ -121,7 +141,7 @@ ActionController/
 - **File**: manager.rs
 - **Type**: function
 - **Parameters**: scenario_name: string
-- **Returns**: core::result::Result
+- **Returns**: common::Result<()> 
 - **Description**: Bluechi 또는 NodeAgent API를 호출하여 작업을 재실행합니다.
 
 ---
@@ -131,7 +151,7 @@ ActionController/
 - **File**: manager.rs
 - **Type**: function
 - **Parameters**: scenario_name: string
-- **Returns**: core::result::Result
+- **Returns**: common::Result<()> 
 - **Description**: Bluechi 또는 NodeAgent API를 호출하여 작업을 일시정지합니다.
 
 ---
@@ -141,7 +161,7 @@ ActionController/
 - **File**: manager.rs
 - **Type**: function
 - **Parameters**: scenario_name: string
-- **Returns**: core::result::Result
+- **Returns**: common::Result<()> 
 - **Description**: Bluechi 또는 NodeAgent API를 호출하여 작업을 시작합니다.
 
 ---
@@ -151,23 +171,22 @@ ActionController/
 - **File**: manager.rs
 - **Type**: function
 - **Parameters**: scenario_name: string
-- **Returns**: core::result::Result
+- **Returns**: common::Result<()> 
 - **Description**: Bluechi 또는 NodeAgent API를 호출하여 작업을 중지합니다.
 
 ---
 
 ## 4. 참고
-- `Cargo.toml` 파일에 `[dependencies]` 섹션에 `common = {workspace = true}`를 추가합니다.
-- `common/src/spec/scenario/mod.rs`를 참고하여 시나리오를 파싱합니다.
-- `common/proto/actioncontroller.proto`를 기반으로 `grpc/receiver.rs`를 구현합니다.
-- `common/proto/policymanager.proto`와 `common/proto/nodeagent.proto`를 기반으로 `grpc/sender.rs`를 구현합니다.
-- `example/resource/bms-performance.yaml` 파일을 참고하여 DDS 토픽을 구독합니다.
-- `tokio::sync::mpsc`를 사용하여 모듈 간 통신 채널을 구현합니다.
+- `Cargo.toml` 파일에 아래 내용을 추가합니다 
+common = {workspace = true}
+tokio = { version = "1.36.0", features = ["full"] }
+tonic = "0.12.3"
+prost = "0.13.3"
+serde = { version = "1.0.214", features = ["derive"] }
+serde_yaml = "0.9"
+common = {workspace = true}
 
----
+- `tokio::sync::mpsc`를 사용하여 모듈 간 통신 채널에 사용합니다
 
-## 5. 추가 요구사항
-1. 주요 API가 올바른 파일에 구현되었는지 확인합니다.
-2. 생성된 코드의 라이브러리 버전과 문법을 검토하여 수정합니다.
-3. 각 API 테스트를 위한 임의 데이터를 생성하고 테스트 코드를 작성합니다.
-4. 빌드 및 테스트를 수행하고 결과를 확인합니다.
+- 로직 코드는 만들지 말고 함수형태만 만들어주고 아래 링크 참고해서  함수마다 주석 생성합니다.
+[링크](https://doc.rust-lang.org/stable/rustdoc/index.html)

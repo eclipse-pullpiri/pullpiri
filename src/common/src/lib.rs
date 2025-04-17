@@ -2,100 +2,95 @@
  * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
  * SPDX-License-Identifier: Apache-2.0
  */
-
-pub mod apiserver;
-pub mod error;
-pub mod etcd;
-pub mod gateway;
-pub mod spec;
-pub mod statemanager;
-pub mod constants {
-    pub use api::proto::constants::*;
-}
 pub use crate::error::Result;
 
-use std::sync::OnceLock;
-static SETTINGS: OnceLock<Settings> = OnceLock::new();
+pub mod error;
+pub mod etcd;
+pub mod setting;
+pub mod spec;
 
-#[derive(serde::Deserialize)]
-pub struct Settings {
-    pub yaml_storage: String,
-    pub doc_registry: String,
-    pub host: HostSettings,
-    pub guest: Option<Vec<GuestSettings>>,
+fn open_server(port: u16) -> String {
+    format!("{}:{}", crate::setting::get_config().host.ip, port)
 }
 
-#[derive(serde::Deserialize)]
-pub struct HostSettings {
-    pub name: String,
-    pub ip: String,
+fn connect_server(port: u16) -> String {
+    format!("http://{}:{}", crate::setting::get_config().host.ip, port)
 }
 
-#[derive(serde::Deserialize)]
-pub struct GuestSettings {
-    pub name: String,
-    pub ip: String,
-    pub ssh_port: String,
-    pub id: String,
-    pub pw: String,
-}
+pub mod actioncontroller {
+    tonic::include_proto!("actioncontroller");
 
-fn parse_settings_yaml() -> Settings {
-    let s: Settings = Settings {
-        yaml_storage: String::from("/root/piccolo_yaml"),
-        doc_registry: String::from("http://0.0.0.0:41234"),
-        host: HostSettings {
-            name: String::from("HPC"),
-            ip: String::from("0.0.0.0"),
-        },
-        /*guest: Some(vec![GuestSettings {
-            name: String::from("ZONE"),
-            ip: String::from("192.168.10.239"),
-            ssh_port: String::from("22"),
-            id: String::from("root"),
-            pw: String::from("lge123"),
-        }]),*/
-        guest: None,
-    };
+    pub fn open_server() -> String {
+        super::open_server(47001)
+    }
 
-    let settings = config::Config::builder()
-        .add_source(config::File::with_name("/piccolo/settings.yaml"))
-        .build();
-
-    match settings {
-        Ok(result) => result.try_deserialize::<Settings>().unwrap_or(s),
-        Err(_) => s,
+    pub fn connect_server() -> String {
+        super::connect_server(47001)
     }
 }
 
-pub fn get_config() -> &'static Settings {
-    SETTINGS.get_or_init(parse_settings_yaml)
+pub mod apiserver {
+    pub fn open_rest_server() -> String {
+        super::open_server(47099)
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::sync::OnceLock;
-    static CONFIG: OnceLock<config::Config> = OnceLock::new();
+pub mod filtergateway {
+    tonic::include_proto!("filtergateway");
 
-    fn init_conf() -> config::Config {
-        config::Config::builder()
-            .add_source(config::File::with_name("piccolo"))
-            .build()
-            .unwrap_or(
-                config::Config::builder()
-                    .set_default("HOST_IP", "0.0.0.0")
-                    .unwrap()
-                    .set_default("HOST_NODE", "HPC")
-                    .unwrap()
-                    .build()
-                    .unwrap(),
-            )
+    pub fn open_server() -> String {
+        super::open_server(47002)
     }
 
-    #[test]
-    pub fn get_conf() {
-        let conf = CONFIG.get_or_init(init_conf);
-        assert_eq!(conf.get_string("HOST_IP").unwrap(), "0.0.0.0");
-        assert_eq!(conf.get_string("HOST_NODE").unwrap(), "HPC");
+    pub fn connect_server() -> String {
+        super::connect_server(47002)
+    }
+}
+
+pub mod monitoringclient {
+    tonic::include_proto!("monitoringclient");
+
+    pub fn open_server() -> String {
+        super::open_server(47003)
+    }
+
+    pub fn connect_server() -> String {
+        super::connect_server(47003)
+    }
+}
+
+pub mod nodeagent {
+    tonic::include_proto!("nodeagent");
+
+    pub fn open_server() -> String {
+        super::open_server(47004)
+    }
+
+    pub fn connect_server() -> String {
+        super::connect_server(47004)
+    }
+}
+
+pub mod policymanager {
+    tonic::include_proto!("policymanager");
+
+    pub fn open_server() -> String {
+        super::open_server(47005)
+    }
+
+    pub fn connect_server() -> String {
+        super::connect_server(47005)
+    }
+}
+
+pub mod statemanager {
+    tonic::include_proto!("statemanager");
+
+    pub fn open_server() -> String {
+        super::open_server(47006)
+    }
+
+    pub fn connect_server() -> String {
+        super::connect_server(47006)
     }
 }

@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: bms-charging
+spec:
+  condition:
+    express: eq
+    value: "BulkCharging"
+    operands:
+      type: DDS
+      name: charging_status
+      value: "/rt/piccolo/Charging_Status"
+  action: update
+  target: bms-algorithm-charging
+---
+apiVersion: v1
+kind: Package
+metadata:
+  label: null
+  name: bms-algorithm-charging
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: bms-algorithm-charging-blis
+      node: HPC
+      resources:
+        volume: bms-volume
+        network: bms-network
+    - name: bms-algorithm-charging-frism
+      node: ZONE
+      resources:
+        volume: bms-volume
+        network: bms-network
+    - name: bms-algorithm-charging-mavd
+      node: HPC
+      resources:
+        volume: bms-volume
+        network: bms-network
+    - name: bms-algorithm-charging-rdv
+      node: ZONE
+      resources:
+        volume: bms-volume
+        network: bms-network
+---
+apiVersion: v1
+kind: Volume
+metadata:
+  label: null
+  name: bms-volume
+spec: null
+---
+apiVersion: v1
+kind: Network
+metadata:
+  label: null
+  name: bms-netowrk
+spec: null
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: bms-algorithm-charging-blis
+  annotations:
+    io.piccolo.annotations.package-type: blis
+    io.piccolo.annotations.package-name: bms
+    io.piccolo.annotations.package-network: default
+  labels:
+    app: bms-blis
+spec:
+  hostNetwork: true
+  containers:
+    - name: blis
+      image: localhost/blis:1.0
+  terminationGracePeriodSeconds: 0
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: bms-algorithm-charging-frism
+  annotations:
+    io.piccolo.annotations.package-type: frism
+    io.piccolo.annotations.package-name: bms
+    io.piccolo.annotations.package-network: default
+  labels:
+    app: bms-frism
+spec:
+  hostNetwork: true
+  containers:
+    - name: frism
+      image: localhost/frism:1.0
+  terminationGracePeriodSeconds: 0
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: bms-algorithm-charging-mavd
+  annotations:
+    io.piccolo.annotations.package-type: mavd
+    io.piccolo.annotations.package-name: bms
+    io.piccolo.annotations.package-network: default
+  labels:
+    app: bms-mavd
+spec:
+  hostNetwork: true
+  containers:
+    - name: mavd
+      image: localhost/mavd:1.0
+      env:
+      - name: LGES_MAVD_MONITOR_SIM_MODE
+        value: "1"
+  terminationGracePeriodSeconds: 0
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: bms-algorithm-charging-rdv
+  annotations:
+    io.piccolo.annotations.package-type: rdv
+    io.piccolo.annotations.package-name: bms
+    io.piccolo.annotations.package-network: default
+  labels:
+    app: bms-rdv
+spec:
+  hostNetwork: true
+  containers:
+    - name: rdv
+      image: localhost/rdv:1.0
+  terminationGracePeriodSeconds: 0

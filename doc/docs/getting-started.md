@@ -21,8 +21,8 @@ Also, [Rust](https://www.rust-lang.org) is required to test without using a cont
 There is a [settings.yaml](/src/settings.yaml) for configuration. Modify this to suit your system.
 
 ```yaml
-yaml_storage: /root/piccolo_yaml
-doc_registry: http://0.0.0.0:41234
+yaml_storage: /etc/piccolo
+piccolo_cloud: http://0.0.0.0:41234
 host:
   name: HPC
   ip: 0.0.0.0
@@ -35,7 +35,7 @@ guest:
 ```
 
 - yaml_storage : For making systemd service with podman, we need `.kube` and `.yaml` files. Lib `importer` makes these files in this directory.
-- doc_registry : The repository address saving `Packages` and `scenarios`.
+- piccolo_cloud : The repository address saving `Packages` and `scenarios`.
 - host.name : To deliver systemd command with `bluechi`, we need node name.
 - guest : Bluechi agent node information. ID/PW is required for `.kube`, `.yaml` files transfers.
 
@@ -106,10 +106,10 @@ You can see container list via `podman ps`.
 CONTAINER ID  IMAGE                                    COMMAND               CREATED         STATUS         PORTS       NAMES
 a89293d15b18  localhost/podman-pause:5.1.2-1720678294                        20 seconds ago  Up 21 seconds              a13f3aa439f3-service
 ebce43e479be  localhost/podman-pause:5.1.2-1720678294                        20 seconds ago  Up 21 seconds              55f9dda92972-infra
-53b9a1631df9  localhost/piccolo:1.0                                          20 seconds ago  Up 20 seconds              piccolo-api-server
+53b9a1631df9  localhost/piccolo:1.0                                          20 seconds ago  Up 20 seconds              piccolo-apiserver
 cd0683bb5675  localhost/piccolo:1.0                                          20 seconds ago  Up 21 seconds              piccolo-statemanager
 eb8f60534077  gcr.io/etcd-development/etcd:v3.5.11     --data-dir=/etcd-...  20 seconds ago  Up 21 seconds              piccolo-etcd
-9771320d5fee  localhost/piccolo-gateway:1.0                                  20 seconds ago  Up 21 seconds              piccolo-gateway
+9771320d5fee  localhost/piccolo:1.0                                          20 seconds ago  Up 21 seconds              piccolo-gateway
 
 [root@master images]# podman pod ps
 POD ID        NAME         STATUS      CREATED        INFRA ID      # OF CONTAINERS

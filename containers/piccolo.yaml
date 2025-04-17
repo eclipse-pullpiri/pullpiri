@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# DO NOT USE this file if you can see this comment.
+
 apiVersion: v1
 kind: Pod
 metadata:
@@ -10,9 +12,9 @@ spec:
   hostNetwork: true
   hostPid: true
   containers:
-  - name: api-server
+  - name: apiserver
     image: ghcr.io/eclipse-pullpiri/pullpiri:0.1.0
-    command: ["/piccolo/api-server"]
+    command: ["/piccolo/apiserver"]
     volumeMounts:
     - name: piccolo-yaml
       mountPath: /root/piccolo_yaml

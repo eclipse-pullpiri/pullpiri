@@ -314,7 +314,9 @@ Create Requirement Issue
        ↓
   Create Branch
        ↓
-    Development Work
+    Fork Repo
+       ↓
+  Development Work
        ↓
   Commit and Push
        ↓

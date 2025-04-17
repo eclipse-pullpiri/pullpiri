@@ -16,9 +16,9 @@
 
 ### 이슈 유형 분류
 
-- **Bug**: 버그 수정
-- **Feature**: 기능 추가
-- **Task**: 그 외 업무
+- **FEATURE**: 요구사항 이슈 (부모 이슈)
+- **TASK**: 개발 작업 이슈 (하위 이슈)
+- **BUG**: 버그 수정 이슈
 
 ### 이슈 제목 형식
 
@@ -28,9 +28,9 @@
 
 예시:
 
-- `[Bug] 사용자 인증 오류`
-- `[Feature] 로그인 페이지 UI 추가 개발`
-- `[Task] 리팩토링`
+- `[FEATURE] 사용자 인증 시스템 구현`
+- `[TASK] 로그인 페이지 UI 개발`
+- `[BUG] 비밀번호 재설정 이메일 전송 실패`
 
 ### 이슈 본문 템플릿
 
@@ -40,7 +40,7 @@
 ---
 name: 요구사항
 about: 새로운 기능 요구사항
-title: '[Bug] '
+title: '[FEATURE] '
 labels: requirement, status:backlog
 assignees: ''
 ---
@@ -101,11 +101,11 @@ Relates to #
 - 요구사항(REQ)과 개발 작업(TASK) 연결: TASK 이슈 설명에 `Relates to #요구사항_번호` 명시
 - 요구사항 이슈에서 태스크 리스트로 하위 작업 추적:
 
-```markdown
-## 📌 하위 작업
-- [ ] #123 로그인 페이지 UI 개발
-- [ ] #124 백엔드 인증 API 구현
-```
+  ```markdown
+  ## 📌 하위 작업
+  - [ ] #123 로그인 페이지 UI 개발
+  - [ ] #124 백엔드 인증 API 구현
+  ```
 
 ## 2. 브랜치 생성 룰
 
@@ -225,13 +225,7 @@ Closes #
 - `priority:medium` - 중간 우선순위
 - `priority:low` - 낮은 우선순위
 
-#### 4. 복잡도 라벨 (complexity:*)
-
-- `complexity:easy` - 간단한 작업
-- `complexity:medium` - 보통 복잡도
-- `complexity:hard` - 복잡한 작업
-
-#### 5. 테스트 상태 라벨 (test:*)
+#### 4. 테스트 상태 라벨 (test:*)
 
 - `test:pending` - 테스트 대기 중
 - `test:running` - 테스트 실행 중
@@ -332,5 +326,3 @@ GitHub Actions으로 다음 자동화 구현:
 ```
 
 ---
-
-이 가이드는 GitHub에서 요구사항부터 개발, 테스트까지의 전체 워크플로우를 체계화하여 프로젝트 관리의 효율성과 추적성을 높이기 위해 작성되었습니다.

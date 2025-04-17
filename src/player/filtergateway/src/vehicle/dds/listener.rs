@@ -1,9 +1,8 @@
 use crate::vehicle::dds::DdsData;
-use common::Result;
 use dust_dds::{
     dds_async::{
         domain_participant_factory::DomainParticipantFactoryAsync,
-        subscriber::datareader::DataReaderAsync,
+        //subscriber::datareader::DataReaderAsync,
         wait_set::{ConditionAsync, WaitSetAsync},
     },
     infrastructure::{
@@ -14,7 +13,6 @@ use dust_dds::{
     subscription::sample_info::{ANY_INSTANCE_STATE, ANY_SAMPLE_STATE, ANY_VIEW_STATE},
     topic_definition::type_support::DdsType,
 };
-use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use tokio::task::JoinHandle;
 
@@ -73,7 +71,7 @@ impl TopicListener {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error
-    pub async fn start(&mut self) -> Result<()> {
+    pub async fn start(&mut self) -> common::Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -95,7 +93,7 @@ impl TopicListener {
         data_type_name: String,
         tx: Sender<DdsData>,
         domain_id: u32,
-    ) -> Result<()> {
+    ) -> common::Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -107,7 +105,7 @@ impl TopicListener {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error
-    pub async fn stop(&mut self) -> Result<()> {
+    pub async fn stop(&mut self) -> common::Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -163,11 +161,11 @@ pub struct VehicleData {
 /// # Returns
 ///
 /// * `Result<DataReaderAsync<T>>` - Data reader instance
-async fn create_data_reader<T: DdsType>(
+async fn create_data_reader(
     _participant: &dust_dds::dds_async::domain_participant::DomainParticipantAsync,
     _topic_name: &str,
     _type_name: &str,
-) -> Result<DataReaderAsync<T>> {
+) -> common::Result<()> {
     // TODO: Implementation
     Err("Not implemented".into())
 }

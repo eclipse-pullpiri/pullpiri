@@ -35,9 +35,11 @@ image:
 
 .PHONY: builder
 builder:
-	podman run --privileged --rm tonistiigi/binfmt --install all
-	podman buildx build --platform linux/amd64,linux/arm64 -t localhost/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
-	podman buildx build --platform linux/amd64,linux/arm64 -t localhost/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
+#	podman run --privileged --rm tonistiigi/binfmt --install all
+#	podman buildx build --platform linux/amd64,linux/arm64 -t localhost/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
+#	podman buildx build --platform linux/amd64,linux/arm64 -t localhost/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
+	podman build -t localhost/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
+	podman build -t localhost/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
 
 .PHONY: pushbuilder
 pushbuilder:

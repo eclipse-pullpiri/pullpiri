@@ -43,7 +43,7 @@ cargo fmt
 cargo clippy
 ```
 
-### Structure
+### Structure (Deprecated)
 
 <img alt="piccolo overview" src="../images/overview.png"
 width="75%"

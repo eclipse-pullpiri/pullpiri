@@ -2,7 +2,7 @@ pub mod bluechi;
 pub mod nodeagent;
 
 /// Initialize the runtime module for workload operations
-/// 
+///
 /// Sets up the runtime components for interacting with both Bluechi and NodeAgent
 /// backends. This function ensures that the appropriate runtime modules are
 /// ready to handle workload operations for their respective node types.

@@ -1,15 +1,15 @@
-use tonic::{Request, transport::Channel};
 use common::Result;
+use tonic::{transport::Channel, Request};
 
 // Import the generated protobuf code for external service clients
 use common::policymanager::{
-    policy_manager_connection_client::PolicyManagerConnectionClient,
-    CheckPolicyRequest, CheckPolicyResponse
+    policy_manager_connection_client::PolicyManagerConnectionClient, CheckPolicyRequest,
+    CheckPolicyResponse,
 };
 
 use common::nodeagent::{
-    node_agent_connection_client::NodeAgentConnectionClient,
-    HandleWorkloadRequest, HandleWorkloadResponse
+    node_agent_connection_client::NodeAgentConnectionClient, HandleWorkloadRequest,
+    HandleWorkloadResponse,
 };
 
 /// Sender for making outgoing gRPC requests from ActionController
@@ -60,11 +60,11 @@ impl ActionControllerSender {
         // Initialize the policy client
         let policy_addr = common::policymanager::connect_server();
         self.policy_client = Some(PolicyManagerConnectionClient::connect(policy_addr).await?);
-        
+
         // Initialize the nodeagent client
         let nodeagent_addr = common::nodeagent::connect_server();
         self.nodeagent_client = Some(NodeAgentConnectionClient::connect(nodeagent_addr).await?);
-        
+
         Ok(())
     }
 
@@ -91,13 +91,11 @@ impl ActionControllerSender {
     pub async fn check_policy(&self, scenario_name: String) -> Result<()> {
         // TODO: Implementation
         if let Some(client) = &self.policy_client {
-            let request = Request::new(CheckPolicyRequest {
-                scenario_name,
-            });
-            
+            let request = Request::new(CheckPolicyRequest { scenario_name });
+
             // Make the gRPC call and handle the response
         }
-        
+
         Ok(())
     }
 
@@ -123,7 +121,12 @@ impl ActionControllerSender {
     /// - The connection to NodeAgent is not established
     /// - The gRPC request fails
     /// - The workload handling operation fails
-    pub async fn handle_workload(&self, workload_name: String, action: i32, description: String) -> Result<()> {
+    pub async fn handle_workload(
+        &self,
+        workload_name: String,
+        action: i32,
+        description: String,
+    ) -> Result<()> {
         // TODO: Implementation
         if let Some(client) = &self.nodeagent_client {
             let request = Request::new(HandleWorkloadRequest {
@@ -131,10 +134,10 @@ impl ActionControllerSender {
                 action,
                 description,
             });
-            
+
             // Make the gRPC call and handle the response
         }
-        
+
         Ok(())
     }
 }

@@ -30,7 +30,7 @@ impl NodeAgentRuntime {
     }
 
     /// Initialize connection information for NodeAgent nodes
-    /// 
+    ///
     /// # Arguments
     ///
     /// * `nodes` - List of node names to initialize connections for

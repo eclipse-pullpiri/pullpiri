@@ -1,13 +1,14 @@
-use tonic::{Request, Response, Status};
 use common::Result;
 use std::sync::Arc;
+use tonic::{Request, Response, Status};
 
 // Import the generated protobuf code
 use common::actioncontroller::{
-    action_controller_connection_server::{ActionControllerConnection, ActionControllerConnectionServer},
-    TriggerActionRequest, TriggerActionResponse,
-    ReconcileRequest, ReconcileResponse,
-    Status as ActionStatus
+    action_controller_connection_server::{
+        ActionControllerConnection, ActionControllerConnectionServer,
+    },
+    ReconcileRequest, ReconcileResponse, Status as ActionStatus, TriggerActionRequest,
+    TriggerActionResponse,
 };
 
 /// Receiver for handling incoming gRPC requests for ActionController
@@ -59,11 +60,11 @@ impl ActionControllerConnection for ActionControllerReceiver {
     /// * `Status` - gRPC status error if the request fails
     async fn trigger_action(
         &self,
-        request: Request<TriggerActionRequest>
+        request: Request<TriggerActionRequest>,
     ) -> std::result::Result<Response<TriggerActionResponse>, Status> {
         // TODO: Implementation
         let scenario_name = request.into_inner().scenario_name;
-        
+
         match self.manager.trigger_manager_action(scenario_name).await {
             Ok(_) => Ok(Response::new(TriggerActionResponse {
                 status: 0, // Success
@@ -88,15 +89,19 @@ impl ActionControllerConnection for ActionControllerReceiver {
     /// * `Status` - gRPC status error if the request fails
     async fn reconcile(
         &self,
-        request: Request<ReconcileRequest>
+        request: Request<ReconcileRequest>,
     ) -> std::result::Result<Response<ReconcileResponse>, Status> {
         // TODO: Implementation
         let req = request.into_inner();
         let scenario_name = req.scenario_name;
         let current = req.current;
         let desired = req.desired;
-        
-        match self.manager.reconcile_do(scenario_name, current, desired).await {
+
+        match self
+            .manager
+            .reconcile_do(scenario_name, current, desired)
+            .await
+        {
             Ok(_) => Ok(Response::new(ReconcileResponse {
                 status: 0, // Success
                 desc: "Reconciliation completed successfully".to_string(),

@@ -1,7 +1,7 @@
 use std::error::Error;
 
-mod manager;
 mod grpc;
+mod manager;
 mod runtime;
 
 /// Initialize the ActionController component
@@ -35,15 +35,15 @@ async fn initialize() -> Result<(), Box<dyn Error>> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     println!("Starting ActionController...");
-    
+
     // Initialize the controller
     initialize().await?;
-    
+
     // TODO: Set up gRPC server
-    
+
     // Keep the application running
     tokio::signal::ctrl_c().await?;
     println!("Shutting down ActionController...");
-    
+
     Ok(())
 }

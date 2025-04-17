@@ -80,7 +80,12 @@ impl ActionControllerManager {
     /// Returns an error if:
     /// - The scenario does not exist
     /// - The reconciliation action fails
-    pub async fn reconcile_do(&self, scenario_name: String, current: i32, desired: i32) -> Result<()> {
+    pub async fn reconcile_do(
+        &self,
+        scenario_name: String,
+        current: i32,
+        desired: i32,
+    ) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }

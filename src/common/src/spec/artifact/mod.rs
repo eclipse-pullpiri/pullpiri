@@ -4,8 +4,8 @@ mod package;
 mod scenario;
 mod volume;
 
-use serde::{Deserialize, Serialize};
 use super::MetaData;
+use serde::{Deserialize, Serialize};
 
 pub trait Artifact {
     fn get_name(&self) -> String;

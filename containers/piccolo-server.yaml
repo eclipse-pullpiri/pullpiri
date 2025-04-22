@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# DO NOT USE this file if you can see this comment.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: piccolo-server
+spec:
+  hostNetwork: true
+  hostPid: true
+  containers:
+  - name: apiserver
+    image: localhost/pullpiri-server:latest
+    command: ["/piccolo/apiserver"]
+    volumeMounts:
+    - name: piccolo-yaml
+      mountPath: /root/piccolo_yaml
+    - name: config-path
+      mountPath: /piccolo/settings.yaml
+  - name: policymanager
+    image: localhost/pullpiri-server:latest
+    command: ["/piccolo/policymanager"]
+  - name: etcd
+    image: gcr.io/etcd-development/etcd:v3.5.11
+    command: ["/usr/local/bin/etcd"]
+    args: ["--data-dir=/etcd-data"]
+    volumeMounts:
+    - name: etcd-data
+      mountPath: /etcd-data
+  - name: monitoringserver
+    image: localhost/pullpiri-server:latest
+    command: ["/piccolo/monitoringserver"]
+  volumes:
+  - name: piccolo-yaml
+    hostPath:
+      path: /root/piccolo_yaml
+  - name: etcd-data
+    hostPath:
+      path: /etc/containers/systemd/piccolo/etcd-data
+  - name: config-path
+    hostPath:
+      path: /etc/containers/systemd/piccolo/settings.yaml

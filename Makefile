@@ -4,7 +4,7 @@
 .PHONY: default build
 build:
 	cargo build --manifest-path=src/common/Cargo.toml
-	cargo build --manifest-path=src/observer/Cargo.toml
+	cargo build --manifest-path=src/agent/Cargo.toml
 	cargo build --manifest-path=src/player/Cargo.toml
 	cargo build --manifest-path=src/server/Cargo.toml
 	cargo build --manifest-path=src/tools/Cargo.toml
@@ -12,7 +12,7 @@ build:
 .PHONY: release
 release:
 	cargo build --manifest-path=src/common/Cargo.toml --release
-	cargo build --manifest-path=src/observer/Cargo.toml --release
+	cargo build --manifest-path=src/agent/Cargo.toml --release
 	cargo build --manifest-path=src/player/Cargo.toml --release
 	cargo build --manifest-path=src/server/Cargo.toml --release
 	cargo build --manifest-path=src/tools/Cargo.toml --release
@@ -20,14 +20,14 @@ release:
 .PHONY: clean
 clean:
 	cargo clean --manifest-path=src/common/Cargo.toml
-	cargo clean --manifest-path=src/observer/Cargo.toml
+	cargo clean --manifest-path=src/agent/Cargo.toml
 	cargo clean --manifest-path=src/player/Cargo.toml
 	cargo clean --manifest-path=src/server/Cargo.toml
 	cargo clean --manifest-path=src/tools/Cargo.toml
 
 .PHONY: image
 image:
-	podman build -t localhost/pullpiri-observer:latest -f containers/Dockerfile-observer .
+	podman build -t localhost/pullpiri-agent:latest -f containers/Dockerfile-agent .
 	podman build -t localhost/pullpiri-player:latest -f containers/Dockerfile-player .
 	podman build -t localhost/pullpiri-server:latest -f containers/Dockerfile-server .
 

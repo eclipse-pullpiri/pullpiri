@@ -41,7 +41,7 @@ localhost/pullpiri-server       latest      c075222701fd  About a minute ago  22
 <none>                          <none>      7d10b78d6046  About a minute ago  1.4 GB
 localhost/pullpiri-player       latest      65dec5e51782  2 minutes ago       17.7 MB
 <none>                          <none>      00745f9dcc27  2 minutes ago       1.47 GB
-localhost/pullpiri-observer     latest      10621675f045  4 minutes ago       15.6 MB
+localhost/pullpiri-agent        latest      10621675f045  4 minutes ago       15.6 MB
 <none>                          <none>      ff941faf947e  4 minutes ago       1.38 GB
 localhost/pullpirirelease       latest      6fef0c340631  7 minutes ago       15.2 MB
 <none>                          <none>      488de000d246  7 minutes ago       874 MB

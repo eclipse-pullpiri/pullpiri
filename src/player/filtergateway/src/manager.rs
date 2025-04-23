@@ -7,11 +7,6 @@ use tokio::sync::{mpsc, Mutex};
 use common::spec::artifact::Scenario;
 
 
-/// 시나리오 타입 별칭
-///
-/// common 크레이트의 spec::artifact::Scenario를 사용하는 대신 타입 별칭 사용
-// pub type Scenario = serde_yaml::Value;
-
 /// Manager for FilterGateway
 ///
 /// Responsible for:
@@ -127,13 +122,10 @@ impl FilterGatewayManager {
         // Create a new filter for the scenario
         let filter = Filter::new(
             scenario.get_name().to_string(),
-            Some(Arc::new(scenario)),
+            scenario,
             true,
             self.sender.clone()
             );
-
-        // Clone the filter for use in the async task
-        // let filter_for_task = Arc::clone(&filter);
 
         // Add the filter to our managed collection
         {

@@ -3,8 +3,8 @@
 
 .PHONY: default build
 build:
-	cargo build --manifest-path=src/common/Cargo.toml
-	cargo build --manifest-path=src/observer/Cargo.toml
+#	cargo build --manifest-path=src/common/Cargo.toml
+#	cargo build --manifest-path=src/observer/Cargo.toml
 	cargo build --manifest-path=src/player/Cargo.toml
 	cargo build --manifest-path=src/server/Cargo.toml
 	cargo build --manifest-path=src/tools/Cargo.toml

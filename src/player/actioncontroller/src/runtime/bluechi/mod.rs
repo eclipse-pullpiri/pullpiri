@@ -1,6 +1,17 @@
 use common::Result;
-use std::collections::HashMap;
+// pub mod controller;
+// pub mod node;
+// pub mod unit;
 
+use dbus::blocking::{Connection, Proxy};
+use dbus::Path;
+use std::{collections::HashMap, time::Duration};
+use tokio::sync::mpsc::Receiver;
+
+const DEST: &str = "org.eclipse.bluechi";
+const PATH: &str = "/org/eclipse/bluechi";
+const DEST_CONTROLLER: &str = "org.eclipse.bluechi.Controller";
+const DEST_NODE: &str = "org.eclipse.bluechi.Node";
 /// Runtime implementation for Bluechi API interactions
 ///
 /// Handles workload operations for nodes managed by Bluechi,
@@ -8,7 +19,7 @@ use std::collections::HashMap;
 /// operations like creating, starting, stopping, and deleting workloads.
 pub struct BluechiRuntime {
     /// Connection to the Bluechi Controller
-    connection: Option<String>, // This would be the actual Bluechi client type
+    connection: Connection,
     /// Cache of node information for quick access
     node_cache: HashMap<String, String>,
 }
@@ -23,13 +34,13 @@ impl super::Runtime for BluechiRuntime {
     ///
     /// A new BluechiRuntime instance
     fn new() -> Self {
-        Self {
-            connection: None,
+        BluechiRuntime {
+            connection: Connection::new_system().unwrap(),
             node_cache: HashMap::new(),
         }
     }
 
-    /// Establish connection to the Bluechi Controller
+    /// Establish connection to the Bluechi Controller and initialize node cache
     ///
     /// # Returns
     ///
@@ -42,8 +53,50 @@ impl super::Runtime for BluechiRuntime {
     /// - The Bluechi Controller is not reachable
     /// - Authentication fails
     async fn init(&mut self) -> Result<()> {
-        // TODO: Implementation
+        let bluechi = self.connection.with_proxy(DEST, PATH, Duration::from_millis(5000));
+
+        // Fetch the main node
+        let (node,): (Path,) = bluechi
+            .method_call(
+                DEST_CONTROLLER,
+                "GetNode",
+                (&common::setting::get_config().host.name,),
+            )
+            .unwrap();
+        self.node_cache.insert(
+            common::setting::get_config().host.name.clone(),
+            node.to_string(),
+        );
+
+        // Fetch guest nodes if available
+        if let Some(guests) = &common::setting::get_config().guest {
+            for guest in guests {
+                let (node,): (Path,) = bluechi
+                    .method_call(DEST_CONTROLLER, "GetNode", (&guest.name,))
+                    .unwrap();
+                self.node_cache.insert(
+                    guest.name.clone(),
+                    node.to_string(),
+                );
+            }
+        }
         Ok(())
+    }
+
+    /// Get a Proxy object for a node
+    ///
+    /// # Arguments
+    ///
+    /// * `node_name` - Name of the node
+    ///
+    /// # Returns
+    ///
+    /// * `Some(Proxy)` - Returns a Proxy object if the node exists in cache
+    /// * `None` - If the node does not exist in cache
+    pub fn get_node_proxy<'a>(&'a self, node_name: &str) -> Option<Proxy<'a, &'a Connection>> {
+        self.node_cache.get(node_name).map(|node_path| {
+            self.connection.with_proxy(DEST, Path::from(node_path.clone()), Duration::from_millis(5000))
+        })
     }
 
     /// Create a workload using Bluechi API
@@ -188,4 +241,25 @@ impl super::Runtime for BluechiRuntime {
         // TODO: Implementation
         Ok(())
     }
+
+    // pub struct BluechiCmd {
+    //     pub command: Command,
+    //     pub node: Option<String>,
+    //     pub unit: Option<String>,
+    // }
+    
+    // #[allow(dead_code)]
+    // pub enum Command {
+    //     ControllerListNode,
+    //     ControllerReloadAllNodes,
+    //     NodeListUnit,
+    //     NodeReload,
+    //     UnitStart,
+    //     UnitStop,
+    //     UnitRestart,
+    //     UnitReload,
+    //     UnitEnable,
+    //     UnitDisable,
+    // }
+   
 }

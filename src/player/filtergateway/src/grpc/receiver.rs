@@ -1,4 +1,4 @@
-use crate::manager::Scenario;
+use common::spec::artifact::Scenario;
 use common::Result;
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};

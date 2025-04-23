@@ -24,6 +24,28 @@ pub struct BluechiRuntime {
     node_cache: HashMap<String, String>,
 }
 
+impl BluechiRuntime {
+    /// Get a Proxy object for a node
+    ///
+    /// # Arguments
+    ///
+    /// * `node_name` - Name of the node
+    ///
+    /// # Returns
+    ///
+    /// * `Some(Proxy)` - Returns a Proxy object if the node exists in cache
+    /// * `None` - If the node does not exist in cache
+    pub fn get_node_proxy<'a>(&'a self, node_name: &str) -> Option<Proxy<'a, &'a Connection>> {
+        self.node_cache.get(node_name).map(|node_path| {
+            self.connection.with_proxy(
+                DEST,
+                Path::from(node_path.clone()),
+                Duration::from_millis(5000),
+            )
+        })
+    }
+}
+
 impl super::Runtime for BluechiRuntime {
     /// Create a new BluechiRuntime instance
     ///
@@ -53,7 +75,9 @@ impl super::Runtime for BluechiRuntime {
     /// - The Bluechi Controller is not reachable
     /// - Authentication fails
     async fn init(&mut self) -> Result<()> {
-        let bluechi = self.connection.with_proxy(DEST, PATH, Duration::from_millis(5000));
+        let bluechi = self
+            .connection
+            .with_proxy(DEST, PATH, Duration::from_millis(5000));
 
         // Fetch the main node
         let (node,): (Path,) = bluechi
@@ -74,29 +98,10 @@ impl super::Runtime for BluechiRuntime {
                 let (node,): (Path,) = bluechi
                     .method_call(DEST_CONTROLLER, "GetNode", (&guest.name,))
                     .unwrap();
-                self.node_cache.insert(
-                    guest.name.clone(),
-                    node.to_string(),
-                );
+                self.node_cache.insert(guest.name.clone(), node.to_string());
             }
         }
         Ok(())
-    }
-
-    /// Get a Proxy object for a node
-    ///
-    /// # Arguments
-    ///
-    /// * `node_name` - Name of the node
-    ///
-    /// # Returns
-    ///
-    /// * `Some(Proxy)` - Returns a Proxy object if the node exists in cache
-    /// * `None` - If the node does not exist in cache
-    pub fn get_node_proxy<'a>(&'a self, node_name: &str) -> Option<Proxy<'a, &'a Connection>> {
-        self.node_cache.get(node_name).map(|node_path| {
-            self.connection.with_proxy(DEST, Path::from(node_path.clone()), Duration::from_millis(5000))
-        })
     }
 
     /// Create a workload using Bluechi API
@@ -247,7 +252,7 @@ impl super::Runtime for BluechiRuntime {
     //     pub node: Option<String>,
     //     pub unit: Option<String>,
     // }
-    
+
     // #[allow(dead_code)]
     // pub enum Command {
     //     ControllerListNode,
@@ -261,5 +266,4 @@ impl super::Runtime for BluechiRuntime {
     //     UnitEnable,
     //     UnitDisable,
     // }
-   
 }

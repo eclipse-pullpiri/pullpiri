@@ -6,7 +6,7 @@ mod runtime;
 
 /// Initialize the ActionController component
 ///
-/// Reads node information from settings.json file, distinguishes between
+/// Reads node information from `settings.yaml` file, distinguishes between
 /// Bluechi nodes and NodeAgent nodes, and sets up the initial configuration
 /// for the component to start processing workload orchestration requests.
 ///
@@ -18,6 +18,9 @@ mod runtime;
 /// - gRPC server setup fails
 async fn initialize() -> Result<(), Box<dyn Error>> {
     // TODO: Implementation
+    let manager = manager::ActionControllerManager::new();
+    let _ = grpc::init(manager).await?;
+
     Ok(())
 }
 

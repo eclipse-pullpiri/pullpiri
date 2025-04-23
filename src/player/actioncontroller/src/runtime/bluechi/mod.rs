@@ -13,7 +13,7 @@ pub struct BluechiRuntime {
     node_cache: HashMap<String, String>,
 }
 
-impl BluechiRuntime {
+impl super::Runtime for BluechiRuntime {
     /// Create a new BluechiRuntime instance
     ///
     /// Initializes a runtime handler for Bluechi operations without
@@ -22,7 +22,7 @@ impl BluechiRuntime {
     /// # Returns
     ///
     /// A new BluechiRuntime instance
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             connection: None,
             node_cache: HashMap::new(),
@@ -41,7 +41,7 @@ impl BluechiRuntime {
     /// Returns an error if:
     /// - The Bluechi Controller is not reachable
     /// - Authentication fails
-    pub async fn connect(&mut self) -> Result<()> {
+    async fn init(&mut self) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -66,7 +66,7 @@ impl BluechiRuntime {
     /// - The scenario definition is invalid
     /// - The Bluechi API call fails
     /// - The workload already exists
-    pub async fn create_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn create_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -89,7 +89,7 @@ impl BluechiRuntime {
     /// Returns an error if:
     /// - The workload does not exist
     /// - The Bluechi API call fails
-    pub async fn delete_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn delete_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -112,7 +112,7 @@ impl BluechiRuntime {
     /// Returns an error if:
     /// - The workload does not exist
     /// - The Bluechi API call fails
-    pub async fn restart_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn restart_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -136,7 +136,7 @@ impl BluechiRuntime {
     /// - The workload does not exist
     /// - The workload is not in a pausable state
     /// - The Bluechi API call fails
-    pub async fn pause_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn pause_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -160,7 +160,7 @@ impl BluechiRuntime {
     /// - The workload does not exist
     /// - The workload is already running
     /// - The Bluechi API call fails
-    pub async fn start_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn start_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -184,7 +184,7 @@ impl BluechiRuntime {
     /// - The workload does not exist
     /// - The workload is already stopped
     /// - The Bluechi API call fails
-    pub async fn stop_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn stop_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }

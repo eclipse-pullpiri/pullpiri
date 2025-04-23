@@ -36,7 +36,7 @@ spec:
   volumes:
   - name: piccolo-yaml
     hostPath:
-      path: /root/piccolo_yaml
+      path: /etc/piccolo/yaml
   - name: etcd-data
     hostPath:
       path: /etc/containers/systemd/piccolo/etcd-data

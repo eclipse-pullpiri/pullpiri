@@ -21,7 +21,7 @@ Also, [Rust](https://www.rust-lang.org) is required to test without using a cont
 There is a [settings.yaml](/src/settings.yaml) for configuration. Modify this to suit your system.
 
 ```yaml
-yaml_storage: /etc/piccolo
+yaml_storage: /etc/piccolo/yaml
 piccolo_cloud: http://0.0.0.0:41234
 host:
   name: HPC

@@ -24,7 +24,7 @@ pub struct GuestSettings {
 
 fn parse_settings_yaml() -> Settings {
     let default_settings: Settings = Settings {
-        yaml_storage: String::from("/etc/piccolo"),
+        yaml_storage: String::from("/etc/piccolo/yaml"),
         piccolo_cloud: String::from("http://0.0.0.0:41234"),
         host: HostSettings {
             name: String::from("HPC"),

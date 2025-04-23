@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
-yaml_storage: /etc/piccolo
+yaml_storage: /etc/piccolo/yaml
 piccolo_cloud: http://0.0.0.0:41234
 host:
   name: HPC

@@ -19,7 +19,7 @@ spec:
     image: localhost/pullpiri-player:latest
     command: ["/piccolo/actioncontroller"]
   - name: statemanager
-    image: ghcr.io/eclipse-pullpiri/pullpiri:0.1.0
+    image: localhost/pullpiri-player:latest
     command: ["/piccolo/statemanager"]
     volumeMounts:
     - name: piccolo-yaml
@@ -33,7 +33,7 @@ spec:
   volumes:
   - name: piccolo-yaml
     hostPath:
-      path: /root/piccolo_yaml
+      path: /etc/piccolo/yaml
   - name: dbus
     hostPath:
       path: /run/dbus

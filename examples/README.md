@@ -58,7 +58,7 @@ the `apiserver` (which is almost complete). The rest will be updated later.
 In root folder, you can find `settings.yaml`. Currently, there is no special correction.
 
 ```yaml
-yaml_storage: /etc/piccolo
+yaml_storage: /etc/piccolo/yaml
 piccolo_cloud: http://0.0.0.0:41234
 host:
   name: HPC

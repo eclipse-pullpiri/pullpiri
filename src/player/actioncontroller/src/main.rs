@@ -19,7 +19,7 @@ mod runtime;
 async fn initialize() -> Result<(), Box<dyn Error>> {
     // TODO: Implementation
     let manager = manager::ActionControllerManager::new();
-    let _ = grpc::init(manager).await?;
+    grpc::init(manager).await?;
 
     Ok(())
 }

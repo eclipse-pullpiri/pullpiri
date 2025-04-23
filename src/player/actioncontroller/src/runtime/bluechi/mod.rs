@@ -6,7 +6,6 @@ use common::Result;
 use dbus::blocking::{Connection, Proxy};
 use dbus::Path;
 use std::{collections::HashMap, time::Duration};
-use tokio::sync::mpsc::Receiver;
 
 const DEST: &str = "org.eclipse.bluechi";
 const PATH: &str = "/org/eclipse/bluechi";
@@ -46,7 +45,7 @@ impl BluechiRuntime {
     }
 }
 
-impl super::Runtime for BluechiRuntime {
+impl BluechiRuntime {
     /// Create a new BluechiRuntime instance
     ///
     /// Initializes a runtime handler for Bluechi operations without
@@ -55,7 +54,7 @@ impl super::Runtime for BluechiRuntime {
     /// # Returns
     ///
     /// A new BluechiRuntime instance
-    fn new() -> Self {
+    pub fn new() -> Self {
         BluechiRuntime {
             connection: Connection::new_system().unwrap(),
             node_cache: HashMap::new(),
@@ -218,7 +217,7 @@ impl super::Runtime for BluechiRuntime {
     /// - The workload does not exist
     /// - The workload is already running
     /// - The Bluechi API call fails
-    async fn start_workload(&self, scenario_name: &str) -> Result<()> {
+    pub async fn start_workload(self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -242,7 +241,7 @@ impl super::Runtime for BluechiRuntime {
     /// - The workload does not exist
     /// - The workload is already stopped
     /// - The Bluechi API call fails
-    async fn stop_workload(&self, scenario_name: &str) -> Result<()> {
+    pub async fn stop_workload(self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }

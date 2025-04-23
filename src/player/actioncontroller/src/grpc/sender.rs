@@ -106,7 +106,7 @@ impl ActionControllerSender {
         }
 
         // If policy_client is None, return an error
-        return Err("PolicyManager client not connected".into());
+        Err("PolicyManager client not connected".into())
     }
 
     /// Send a workload handling request to NodeAgent

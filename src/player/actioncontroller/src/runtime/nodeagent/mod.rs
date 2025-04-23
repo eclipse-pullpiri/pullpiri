@@ -13,7 +13,7 @@ pub struct NodeAgentRuntime {
     workload_cache: HashMap<String, String>,
 }
 
-impl super::Runtime for NodeAgentRuntime {
+impl NodeAgentRuntime {
     /// Create a new NodeAgentRuntime instance
     ///
     /// Initializes a runtime handler for NodeAgent operations with empty
@@ -22,7 +22,7 @@ impl super::Runtime for NodeAgentRuntime {
     /// # Returns
     ///
     /// A new NodeAgentRuntime instance
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             node_connections: HashMap::new(),
             workload_cache: HashMap::new(),
@@ -165,7 +165,7 @@ impl super::Runtime for NodeAgentRuntime {
     /// - The workload does not exist
     /// - The workload is already running
     /// - The NodeAgent API call fails
-    async fn start_workload(&self, scenario_name: &str) -> Result<()> {
+    pub async fn start_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -189,7 +189,7 @@ impl super::Runtime for NodeAgentRuntime {
     /// - The workload does not exist
     /// - The workload is already stopped
     /// - The NodeAgent API call fails
-    async fn stop_workload(&self, scenario_name: &str) -> Result<()> {
+    pub async fn stop_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }

@@ -25,7 +25,7 @@ pub async fn init(manager: crate::manager::ActionControllerManager) -> common::R
     let arc_manager = Arc::new(manager);
     let grpc_server = receiver::ActionControllerReceiver::new(arc_manager.clone());
 
-    let _ = Server::builder()
+    Server::builder()
         .add_service(grpc_server.into_service())
         .serve(common::statemanager::open_server().parse()?)
         .await?;

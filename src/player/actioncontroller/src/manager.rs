@@ -2,8 +2,6 @@ use common::{
     spec::artifact::{Package, Scenario},
     Result,
 };
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 /// Manager for coordinating scenario actions and workload operations
 ///
@@ -231,6 +229,14 @@ impl ActionControllerManager {
     /// - The runtime operation fails
     pub async fn start_workload(&self, model_name: &str, node_name: &str) -> Result<()> {
         // TODO: Implementation
+        if self.bluechi_nodes.contains(&node_name.to_string()) {
+            let runtime = crate::runtime::bluechi::BluechiRuntime::new();
+            runtime.start_workload(model_name).await?;
+        } else {
+            let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
+            runtime.start_workload(model_name).await?;
+        };
+
         Ok(())
     }
 
@@ -254,6 +260,14 @@ impl ActionControllerManager {
     /// - The runtime operation fails
     pub async fn stop_workload(&self, model_name: &str, node_name: &str) -> Result<()> {
         // TODO: Implementation
+        if self.bluechi_nodes.contains(&node_name.to_string()) {
+            let runtime = crate::runtime::bluechi::BluechiRuntime::new();
+            runtime.stop_workload(model_name).await?;
+        } else {
+            let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
+            runtime.stop_workload(model_name).await?;
+        };
+
         Ok(())
     }
 }

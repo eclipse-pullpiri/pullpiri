@@ -1,15 +1,16 @@
 use crate::filter::Filter;
 use crate::grpc::sender::FilterGatewaySender;
 use crate::vehicle::dds::DdsData;
-use common::Result;
+use common::{spec::artifact::Artifact, Result};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-// use common::spec::artifact::scenario::Scenario;
+use common::spec::artifact::Scenario;
+
 
 /// 시나리오 타입 별칭
 ///
 /// common 크레이트의 spec::artifact::Scenario를 사용하는 대신 타입 별칭 사용
-pub type Scenario = serde_yaml::Value;
+// pub type Scenario = serde_yaml::Value;
 
 /// Manager for FilterGateway
 ///
@@ -45,7 +46,7 @@ impl FilterGatewayManager {
         let sender = Arc::new(FilterGatewaySender::new());
         Self {
             rx_grpc: rx,
-            tx_dds,
+            tx_dds: tx_dds,
             rx_dds: Arc::new(Mutex::new(rx_dds)),
             filters: Arc::new(Mutex::new(Vec::new())),
             sender,
@@ -122,8 +123,23 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn launch_scenario_filter(&self, scenario: Scenario) -> Result<()> {
-        let _ = scenario; // 사용하지 않는 변수 경고 방지
-                          // TODO: Implementation
+        // let _ = scenario; // 사용하지 않는 변수 경고 방지
+        // Create a new filter for the scenario
+        let filter = Filter::new(
+            scenario.get_name().to_string(),
+            Some(Arc::new(scenario)),
+            true,
+            self.sender.clone()
+            );
+
+        // Clone the filter for use in the async task
+        // let filter_for_task = Arc::clone(&filter);
+
+        // Add the filter to our managed collection
+        {
+            let mut filters = self.filters.lock().await;
+            filters.push(filter);
+        }
         Ok(())
     }
 
@@ -139,8 +155,14 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn remove_scenario_filter(&self, scenario_name: String) -> Result<()> {
-        let _ = scenario_name; // 사용하지 않는 변수 경고 방지
-                               // TODO: Implementation
+        println!("remove filter {}\n", scenario_name);
+
+        let arc_filters = Arc::clone(&self.filters);
+        let mut filters = arc_filters.lock().await;
+        let index = filters.iter().position(|f| f.scenario_name == scenario_name);
+        if let Some(i) = index {
+            filters.remove(i);
+        }
         Ok(())
     }
 }

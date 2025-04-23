@@ -11,7 +11,7 @@ pub struct Filter {
     /// Name of the scenario
     pub scenario_name: String,
     /// Full scenario definition
-    pub scenario: Option<Arc<common::spec::artifact::Scenario>>,
+    pub scenario: common::spec::artifact::Scenario,
     /// Flag to indicate if the filter is active
     is_active: bool,
     /// gRPC sender for action controller
@@ -33,7 +33,7 @@ impl Filter {
     /// A new Filter instance
     pub fn new(
         scenario_name: String,
-        scenario: Option<Arc<common::spec::artifact::Scenario>>,
+        scenario: common::spec::artifact::Scenario,
         is_active: bool,
         sender: Arc<FilterGatewaySender>,
     ) -> Self {
@@ -74,9 +74,9 @@ impl Filter {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn pause_scenario_filter(&mut self, scenario_name: String) -> Result<()> {
-        let _ = scenario_name; // 사용하지 않는 변수 경고 방지
-                               // TODO: Implementation
+    pub async fn pause_scenario_filter(&mut self) -> Result<()> {        
+                               // TODO: Implementation                            
+        self.is_active = false;
         Ok(())
     }
 
@@ -91,9 +91,9 @@ impl Filter {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn resume_scenario_filter(&mut self, scenario_name: String) -> Result<()> {
-        let _ = scenario_name; // 사용하지 않는 변수 경고 방지
+    pub async fn resume_scenario_filter(&mut self) -> Result<()> {        
                                // TODO: Implementation
+        self.is_active = true;
         Ok(())
     }
 }

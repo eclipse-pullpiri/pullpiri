@@ -1,7 +1,7 @@
 use crate::grpc::sender::FilterGatewaySender;
 use crate::vehicle::dds::DdsData;
-use common::Result;
 use common::spec::artifact::Scenario;
+use common::Result;
 // use dust_dds::infrastructure::wait_set::Condition;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -59,7 +59,7 @@ impl Filter {
     /// * `Result<()>` - Success or error result
     pub async fn meet_scenario_condition(&self, data: &DdsData) -> Result<()> {
         let _ = data; // 사용하지 않는 변수 경고 방지
-                      // TODO: Implementation                      
+                      // TODO: Implementation
         Ok(())
     }
 
@@ -74,8 +74,8 @@ impl Filter {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn pause_scenario_filter(&mut self) -> Result<()> {        
-                               // TODO: Implementation                            
+    pub async fn pause_scenario_filter(&mut self) -> Result<()> {
+        // TODO: Implementation
         self.is_active = false;
         Ok(())
     }
@@ -91,10 +91,9 @@ impl Filter {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn resume_scenario_filter(&mut self) -> Result<()> {        
-                               // TODO: Implementation
+    pub async fn resume_scenario_filter(&mut self) -> Result<()> {
+        // TODO: Implementation
         self.is_active = true;
         Ok(())
     }
 }
-

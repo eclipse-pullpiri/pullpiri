@@ -95,18 +95,18 @@ impl ActionControllerSender {
             // Make the gRPC call and handle the response
             let response = client.clone().check_policy(request).await?;
             let response_inner = response.into_inner();
-            
+
             // Check status code - 0 means success, any other value means error
             if response_inner.status != 0 {
                 // Return error with the description from the response
                 return Err(response_inner.desc.into());
             }
-            
+
             return Ok(());
         }
-        
+
         // If policy_client is None, return an error
-        return Err("PolicyManager client not connected".into())
+        Err("PolicyManager client not connected".into())
     }
 
     /// Send a workload handling request to NodeAgent

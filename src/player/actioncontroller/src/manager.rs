@@ -1,6 +1,7 @@
-use common::Result;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use common::{
+    spec::artifact::{Package, Scenario},
+    Result,
+};
 
 /// Manager for coordinating scenario actions and workload operations
 ///
@@ -54,8 +55,37 @@ impl ActionControllerManager {
     /// - The scenario does not exist
     /// - The scenario is not allowed by policy
     /// - The runtime operation fails
-    pub async fn trigger_manager_action(&self, scenario_name: String) -> Result<()> {
+    pub async fn trigger_manager_action(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
+        let etcd_scenario_key = format!("scenario/{}", scenario_name);
+        let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
+        let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;
+
+        let action = scenario.get_actions();
+
+        let etcd_package_key = format!("package/{}", scenario.get_targets());
+        let package_str = common::etcd::get(&etcd_package_key).await?;
+        let package: Package = serde_yaml::from_str(&package_str)?;
+
+        for mi in package.get_models() {
+            let model_name = mi.get_name();
+            let model_node = mi.get_node();
+
+            match action.as_str() {
+                "launch" => {
+                    self.start_workload(&model_name, &model_node).await?;
+                }
+                "terminate" => {
+                    self.stop_workload(&model_name, &model_node).await?;
+                }
+                "update" | "rollback" => {
+                    self.stop_workload(&model_name, &model_node).await?;
+                    self.start_workload(&model_name, &model_node).await?;
+                }
+                _ => {}
+            }
+        }
+
         Ok(())
     }
 
@@ -197,8 +227,16 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is not in a startable state
     /// - The runtime operation fails
-    pub async fn start_workload(&self, scenario_name: String) -> Result<()> {
+    pub async fn start_workload(&self, model_name: &str, node_name: &str) -> Result<()> {
         // TODO: Implementation
+        if self.bluechi_nodes.contains(&node_name.to_string()) {
+            let runtime = crate::runtime::bluechi::BluechiRuntime::new();
+            runtime.start_workload(model_name).await?;
+        } else {
+            let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
+            runtime.start_workload(model_name).await?;
+        };
+
         Ok(())
     }
 
@@ -220,8 +258,16 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is already stopped
     /// - The runtime operation fails
-    pub async fn stop_workload(&self, scenario_name: String) -> Result<()> {
+    pub async fn stop_workload(&self, model_name: &str, node_name: &str) -> Result<()> {
         // TODO: Implementation
+        if self.bluechi_nodes.contains(&node_name.to_string()) {
+            let runtime = crate::runtime::bluechi::BluechiRuntime::new();
+            runtime.stop_workload(model_name).await?;
+        } else {
+            let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
+            runtime.stop_workload(model_name).await?;
+        };
+
         Ok(())
     }
 }

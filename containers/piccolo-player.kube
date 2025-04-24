@@ -1,0 +1,13 @@
+[Unit]
+Description=Piccolo player
+After=network.target
+
+[Install]
+# Start by default on boot
+WantedBy=multi-user.target default.target
+
+[Kube]
+Yaml=/etc/containers/systemd/piccolo/piccolo-player.yaml
+
+[Service]
+Restart=always

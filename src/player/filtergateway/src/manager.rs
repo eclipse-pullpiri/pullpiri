@@ -1,11 +1,10 @@
 use crate::filter::Filter;
 use crate::grpc::sender::FilterGatewaySender;
 use crate::vehicle::dds::DdsData;
+use common::spec::artifact::Scenario;
 use common::{spec::artifact::Artifact, Result};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-use common::spec::artifact::Scenario;
-
 
 /// Manager for FilterGateway
 ///
@@ -124,8 +123,8 @@ impl FilterGatewayManager {
             scenario.get_name().to_string(),
             scenario,
             true,
-            self.sender.clone()
-            );
+            self.sender.clone(),
+        );
 
         // Add the filter to our managed collection
         {
@@ -151,7 +150,9 @@ impl FilterGatewayManager {
 
         let arc_filters = Arc::clone(&self.filters);
         let mut filters = arc_filters.lock().await;
-        let index = filters.iter().position(|f| f.scenario_name == scenario_name);
+        let index = filters
+            .iter()
+            .position(|f| f.scenario_name == scenario_name);
         if let Some(i) = index {
             filters.remove(i);
         }

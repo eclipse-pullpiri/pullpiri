@@ -6,7 +6,6 @@ use common::Result;
 use dbus::blocking::{Connection, Proxy};
 use dbus::Path;
 use std::{collections::HashMap, time::Duration};
-use tokio::sync::mpsc::Receiver;
 
 const DEST: &str = "org.eclipse.bluechi";
 const PATH: &str = "/org/eclipse/bluechi";
@@ -22,6 +21,28 @@ pub struct BluechiRuntime {
     connection: Connection,
     /// Cache of node information for quick access
     node_cache: HashMap<String, String>,
+}
+
+impl BluechiRuntime {
+    /// Get a Proxy object for a node
+    ///
+    /// # Arguments
+    ///
+    /// * `node_name` - Name of the node
+    ///
+    /// # Returns
+    ///
+    /// * `Some(Proxy)` - Returns a Proxy object if the node exists in cache
+    /// * `None` - If the node does not exist in cache
+    pub fn get_node_proxy<'a>(&'a self, node_name: &str) -> Option<Proxy<'a, &'a Connection>> {
+        self.node_cache.get(node_name).map(|node_path| {
+            self.connection.with_proxy(
+                DEST,
+                Path::from(node_path.clone()),
+                Duration::from_millis(5000),
+            )
+        })
+    }
 }
 
 impl BluechiRuntime {
@@ -52,8 +73,10 @@ impl BluechiRuntime {
     /// Returns an error if:
     /// - The Bluechi Controller is not reachable
     /// - Authentication fails
-    pub async fn connect_initialize(&mut self) -> Result<()> {
-        let bluechi = self.connection.with_proxy(DEST, PATH, Duration::from_millis(5000));
+    async fn init(&mut self) -> Result<()> {
+        let bluechi = self
+            .connection
+            .with_proxy(DEST, PATH, Duration::from_millis(5000));
 
         // Fetch the main node
         let (node,): (Path,) = bluechi
@@ -74,29 +97,10 @@ impl BluechiRuntime {
                 let (node,): (Path,) = bluechi
                     .method_call(DEST_CONTROLLER, "GetNode", (&guest.name,))
                     .unwrap();
-                self.node_cache.insert(
-                    guest.name.clone(),
-                    node.to_string(),
-                );
+                self.node_cache.insert(guest.name.clone(), node.to_string());
             }
         }
         Ok(())
-    }
-
-    /// Get a Proxy object for a node
-    ///
-    /// # Arguments
-    ///
-    /// * `node_name` - Name of the node
-    ///
-    /// # Returns
-    ///
-    /// * `Some(Proxy)` - Returns a Proxy object if the node exists in cache
-    /// * `None` - If the node does not exist in cache
-    pub fn get_node_proxy<'a>(&'a self, node_name: &str) -> Option<Proxy<'a, &'a Connection>> {
-        self.node_cache.get(node_name).map(|node_path| {
-            self.connection.with_proxy(DEST, Path::from(node_path.clone()), Duration::from_millis(5000))
-        })
     }
 
     /// Create a workload using Bluechi API
@@ -119,7 +123,7 @@ impl BluechiRuntime {
     /// - The scenario definition is invalid
     /// - The Bluechi API call fails
     /// - The workload already exists
-    pub async fn create_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn create_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -142,7 +146,7 @@ impl BluechiRuntime {
     /// Returns an error if:
     /// - The workload does not exist
     /// - The Bluechi API call fails
-    pub async fn delete_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn delete_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -165,7 +169,7 @@ impl BluechiRuntime {
     /// Returns an error if:
     /// - The workload does not exist
     /// - The Bluechi API call fails
-    pub async fn restart_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn restart_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -189,7 +193,7 @@ impl BluechiRuntime {
     /// - The workload does not exist
     /// - The workload is not in a pausable state
     /// - The Bluechi API call fails
-    pub async fn pause_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn pause_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -213,7 +217,7 @@ impl BluechiRuntime {
     /// - The workload does not exist
     /// - The workload is already running
     /// - The Bluechi API call fails
-    pub async fn start_workload(&self, scenario_name: &str) -> Result<()> {
+    pub async fn start_workload(self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -237,7 +241,7 @@ impl BluechiRuntime {
     /// - The workload does not exist
     /// - The workload is already stopped
     /// - The Bluechi API call fails
-    pub async fn stop_workload(&self, scenario_name: &str) -> Result<()> {
+    pub async fn stop_workload(self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -247,7 +251,7 @@ impl BluechiRuntime {
     //     pub node: Option<String>,
     //     pub unit: Option<String>,
     // }
-    
+
     // #[allow(dead_code)]
     // pub enum Command {
     //     ControllerListNode,
@@ -261,5 +265,4 @@ impl BluechiRuntime {
     //     UnitEnable,
     //     UnitDisable,
     // }
-   
 }

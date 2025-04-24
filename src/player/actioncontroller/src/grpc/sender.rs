@@ -89,14 +89,24 @@ impl ActionControllerSender {
     /// - The gRPC request fails
     /// - The policy check fails
     pub async fn check_policy(&self, scenario_name: String) -> Result<()> {
-        // TODO: Implementation
         if let Some(client) = &self.policy_client {
             let request = Request::new(CheckPolicyRequest { scenario_name });
 
             // Make the gRPC call and handle the response
+            let response = client.clone().check_policy(request).await?;
+            let response_inner = response.into_inner();
+
+            // Check status code - 0 means success, any other value means error
+            if response_inner.status != 0 {
+                // Return error with the description from the response
+                return Err(response_inner.desc.into());
+            }
+
+            return Ok(());
         }
 
-        Ok(())
+        // If policy_client is None, return an error
+        Err("PolicyManager client not connected".into())
     }
 
     /// Send a workload handling request to NodeAgent

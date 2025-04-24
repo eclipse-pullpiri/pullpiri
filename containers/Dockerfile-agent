@@ -6,9 +6,9 @@ FROM localhost/pullpiribuilder:latest AS builder
 WORKDIR /piccolo
 
 COPY ./src/common/ /piccolo/common
-COPY ./src/observer/ /piccolo/observer
+COPY ./src/agent/ /piccolo/agent
 
-WORKDIR /piccolo/observer
+WORKDIR /piccolo/agent
 RUN cargo build --release
 
 
@@ -18,6 +18,6 @@ WORKDIR /piccolo
 
 COPY ./src/settings.yaml .
 COPY --from=builder \
-    /piccolo/observer/target/release/monitoringclient ./
+    /piccolo/agent/target/release/nodeagent ./
 
 CMD [ "sh" ]

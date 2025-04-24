@@ -1,7 +1,8 @@
 use crate::grpc::sender::FilterGatewaySender;
-use crate::manager::Scenario;
 use crate::vehicle::dds::DdsData;
+use common::spec::artifact::Scenario;
 use common::Result;
+// use dust_dds::infrastructure::wait_set::Condition;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
@@ -10,7 +11,7 @@ pub struct Filter {
     /// Name of the scenario
     pub scenario_name: String,
     /// Full scenario definition
-    scenario: Scenario,
+    pub scenario: common::spec::artifact::Scenario,
     /// Flag to indicate if the filter is active
     is_active: bool,
     /// gRPC sender for action controller
@@ -32,14 +33,14 @@ impl Filter {
     /// A new Filter instance
     pub fn new(
         scenario_name: String,
-        scenario: Scenario,
-        _rx_dds: Arc<Mutex<mpsc::Receiver<DdsData>>>,
+        scenario: common::spec::artifact::Scenario,
+        is_active: bool,
         sender: Arc<FilterGatewaySender>,
     ) -> Self {
         Self {
             scenario_name,
             scenario,
-            is_active: true,
+            is_active,
             sender,
         }
     }
@@ -73,9 +74,9 @@ impl Filter {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn pause_scenario_filter(&mut self, scenario_name: String) -> Result<()> {
-        let _ = scenario_name; // 사용하지 않는 변수 경고 방지
-                               // TODO: Implementation
+    pub async fn pause_scenario_filter(&mut self) -> Result<()> {
+        // TODO: Implementation
+        self.is_active = false;
         Ok(())
     }
 
@@ -90,25 +91,9 @@ impl Filter {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn resume_scenario_filter(&mut self, scenario_name: String) -> Result<()> {
-        let _ = scenario_name; // 사용하지 않는 변수 경고 방지
-                               // TODO: Implementation
+    pub async fn resume_scenario_filter(&mut self) -> Result<()> {
+        // TODO: Implementation
+        self.is_active = true;
         Ok(())
     }
-}
-
-/// Process DDS data for filters
-///
-/// # Arguments
-///
-/// * `arc_rx_dds` - Receiver for DDS data
-/// * `arc_filters` - List of filters
-///
-/// This function is typically run as a separate task
-pub async fn handle_dds(
-    arc_rx_dds: Arc<Mutex<mpsc::Receiver<DdsData>>>,
-    arc_filters: Arc<Mutex<Vec<Filter>>>,
-) {
-    let _ = (arc_rx_dds, arc_filters); // 사용하지 않는 변수 경고 방지
-                                       // TODO: Implementation
 }

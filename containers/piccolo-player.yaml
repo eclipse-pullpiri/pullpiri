@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# DO NOT USE this file if you can see this comment.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: piccolo-player
+spec:
+  hostNetwork: true
+  hostPid: true
+  containers:
+  - name: filtergateway
+    image: localhost/pullpiri-player:latest
+    command: ["/piccolo/filtergateway"]
+  - name: actioncontroller
+    image: localhost/pullpiri-player:latest
+    command: ["/piccolo/actioncontroller"]
+  - name: statemanager
+    image: localhost/pullpiri-player:latest
+    command: ["/piccolo/statemanager"]
+    volumeMounts:
+    - name: piccolo-yaml
+      mountPath: /root/piccolo_yaml
+    - name: dbus
+      mountPath: /run/dbus
+    - name: systemd
+      mountPath: /etc/containers/systemd
+    - name: config-path
+      mountPath: /piccolo/settings.yaml
+  volumes:
+  - name: piccolo-yaml
+    hostPath:
+      path: /etc/piccolo/yaml
+  - name: dbus
+    hostPath:
+      path: /run/dbus
+  - name: systemd
+    hostPath:
+      path: /etc/containers/systemd
+  - name: config-path
+    hostPath:
+      path: /etc/containers/systemd/piccolo/settings.yaml

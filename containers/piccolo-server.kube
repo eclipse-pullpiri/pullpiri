@@ -1,0 +1,13 @@
+[Unit]
+Description=Piccolo server
+After=network.target
+
+[Install]
+# Start by default on boot
+WantedBy=multi-user.target default.target
+
+[Kube]
+Yaml=/etc/containers/systemd/piccolo/piccolo-server.yaml
+
+[Service]
+Restart=always

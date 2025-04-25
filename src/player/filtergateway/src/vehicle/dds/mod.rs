@@ -3,7 +3,6 @@ pub mod listener;
 use common::Result;
 use tokio::sync::mpsc;
 
-
 /// DDS data structure
 ///
 /// Represents data received from DDS topics
@@ -33,13 +32,13 @@ pub async fn run(tx: mpsc::Sender<DdsData>) -> Result<()> {
         domain_id: 100, // Default domain ID
         tx,
     };
-    
+
     // Configure the manager as needed
     // manager.set_domain_id(1);  // Optional: use a different domain
-    
+
     // Add required listeners based on application needs
     // Example: manager.create_listener("vehicle_status".to_string(), "Status".to_string()).await?;
-    
+
     // Start all listeners
     manager.start_all().await?;
     Ok(())
@@ -108,8 +107,8 @@ impl DdsManager {
         // TODO: Implementation
         // Create a new listener with the given topic and data type
         let listener = listener::TopicListener::new(
-            topic_name.clone(), 
-            data_type_name.clone(), 
+            topic_name.clone(),
+            data_type_name.clone(),
             self.tx.clone(),
             self.domain_id,
         );
@@ -132,7 +131,8 @@ impl DdsManager {
         // TODO: Implementation
         // Find and remove listeners with the matching topic name
         let initial_len = self.listeners.len();
-        self.listeners.retain(|listener| listener.topic_name != topic_name);
+        self.listeners
+            .retain(|listener| listener.topic_name != topic_name);
 
         // Check if any listeners were removed
         if self.listeners.len() == initial_len {

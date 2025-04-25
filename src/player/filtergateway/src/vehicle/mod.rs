@@ -33,7 +33,7 @@ impl VehicleManager {
         // TODO: Implementation
         self.dds_manager = dds::DdsManager::new();
         self.set_domain_id(100); // Set default domain ID
-        // Initialize DDS system
+                                 // Initialize DDS system
 
         Ok(())
     }

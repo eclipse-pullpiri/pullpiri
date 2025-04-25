@@ -63,17 +63,18 @@ impl FilterGatewayReceiver {
         match action {
             0 => {
                 println!("Action: APPLY");
-                 // Send the scenario to the FilterGateway manager
-                 let _=self.manager.launch_scenario_filter(scenario).await;                
-            },
+                // Send the scenario to the FilterGateway manager
+                let _ = self.manager.launch_scenario_filter(scenario).await;
+            }
             1 => {
                 println!("Action: WITHDRAW");
-                self.manager.remove_scenario_filter(scenario.get_name().to_string()).await?
-            },
+                self.manager
+                    .remove_scenario_filter(scenario.get_name().to_string())
+                    .await?
+            }
             _ => return Err(format!("Invalid action code: {}", action).into()),
         }
 
-   
         Ok(())
     }
 }
@@ -91,10 +92,13 @@ impl FilterGatewayConnection for FilterGatewayReceiver {
         match self.handle_scenario(req.scenario, req.action).await {
             Ok(_) => {
                 println!("Successfully handled scenario");
-            },
+            }
             Err(e) => {
                 eprintln!("Error handling scenario: {}", e);
-                return Err(Status::internal(format!("Failed to handle scenario: {}", e)));
+                return Err(Status::internal(format!(
+                    "Failed to handle scenario: {}",
+                    e
+                )));
             }
         }
         Ok(Response::new(HandleScenarioResponse {

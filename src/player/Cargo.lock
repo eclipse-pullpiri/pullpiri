@@ -372,9 +372,9 @@ dependencies = [
 
 [[package]]
 name = "dust_dds"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee155270750643d8586cfe5d0e7cdf148cf4754e268f361a977cd1c6b23f5979"
+checksum = "6cbcc879e19e1ba83e5389e1db170d283d5cafeb9d02588ca0bd8486c8b85a6b"
 dependencies = [
  "dust_dds_derive",
  "fnmatch-regex",
@@ -386,9 +386,9 @@ dependencies = [
 
 [[package]]
 name = "dust_dds_derive"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2f6c1e0113699edc14a6a2700fd1d3979f14f0c6a4b80006d7805bc158abdde"
+checksum = "9fabaa44b60b3e7ddf158b88fd9468dafa0e05d707d1d5b230ba9a864172e1ce"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -470,14 +470,13 @@ checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
 
 [[package]]
 name = "fnmatch-regex"
-version = "0.2.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5eec03d88df0f4a3d911435c4904b209e2472e3dc93df8483653f02ba6834635"
+checksum = "5d36d4d9558f46504ee286d7211e463d813cee1b778976c8bde5e3270ac67186"
 dependencies = [
- "anyhow",
- "itertools 0.13.0",
+ "itertools 0.10.5",
+ "quick-error",
  "regex",
- "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -741,9 +740,9 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.13.0"
+version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
 dependencies = [
  "either",
 ]
@@ -1121,6 +1120,12 @@ checksum = "52c2c1bf36ddb1a1c396b3601a3cec27c2462e45f07c386894ec3ccf5332bd16"
 dependencies = [
  "prost",
 ]
+
+[[package]]
+name = "quick-error"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a993555f31e5a609f617c12db6250dedcac1b0a85076912c436e6fc9b2c8e6a3"
 
 [[package]]
 name = "quote"

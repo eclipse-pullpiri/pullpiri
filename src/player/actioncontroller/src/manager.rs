@@ -1,4 +1,5 @@
 use common::{
+    actioncontroller::Status,
     spec::artifact::{Package, Scenario},
     Result,
 };
@@ -56,7 +57,6 @@ impl ActionControllerManager {
     /// - The scenario is not allowed by policy
     /// - The runtime operation fails
     pub async fn trigger_manager_action(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
         let etcd_scenario_key = format!("scenario/{}", scenario_name);
         let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
         let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;
@@ -113,10 +113,29 @@ impl ActionControllerManager {
     pub async fn reconcile_do(
         &self,
         scenario_name: String,
-        current: i32,
-        desired: i32,
+        current: Status,
+        desired: Status,
     ) -> Result<()> {
-        // TODO: Implementation
+        let etcd_scenario_key = format!("scenario/{}", scenario_name);
+        let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
+        let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;
+
+        let etcd_package_key = format!("package/{}", scenario.get_targets());
+        let package_str = common::etcd::get(&etcd_package_key).await?;
+        let package: Package = serde_yaml::from_str(&package_str)?;
+
+        for mi in package.get_models() {
+            let model_name = mi.get_name();
+            let model_node = mi.get_node();
+
+            match desired {
+                Status::Running => {
+                    self.start_workload(&model_name, &model_node).await?;
+                }
+                _ => {}
+            }
+        }
+
         Ok(())
     }
 

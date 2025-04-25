@@ -94,8 +94,16 @@ impl ActionControllerConnection for ActionControllerReceiver {
         // TODO: Implementation
         let req = request.into_inner();
         let scenario_name = req.scenario_name;
-        let current = req.current;
-        let desired = req.desired;
+
+        let current = i32_to_status(req.current);
+        let desired = i32_to_status(req.desired);
+
+        if current == desired {
+            return Ok(Response::new(ReconcileResponse {
+                status: 0, // Success
+                desc: "Current and desired states are equal".to_string(),
+            }));
+        }
 
         match self
             .manager
@@ -111,5 +119,17 @@ impl ActionControllerConnection for ActionControllerReceiver {
                 desc: format!("Failed to reconcile: {}", e),
             })),
         }
+    }
+}
+
+fn i32_to_status(value: i32) -> ActionStatus {
+    match value {
+        0 => ActionStatus::None,
+        1 => ActionStatus::Init,
+        2 => ActionStatus::Ready,
+        3 => ActionStatus::Running,
+        4 => ActionStatus::Done,
+        5 => ActionStatus::Failed,
+        _ => ActionStatus::Unknown,
     }
 }

@@ -57,6 +57,53 @@ impl FilterGatewayManager {
     /// * `Result<()>` - Success or error result
     pub async fn run(&mut self) -> Result<()> {
         // TODO: Implementation
+        loop {
+            tokio::select! {
+                // Process incoming scenario requests from gRPC
+                // Some(scenario) = self.rx_grpc.recv() => {
+                //     println!("Received scenario: {}", scenario.get_name());
+                    
+                //     match scenario.get_artifact() {
+                //         Artifact::Launch => {
+                //             // Launch a new filter for this scenario
+                //             self.launch_scenario_filter(scenario).await?;
+                //         },
+                //         Artifact::Stop => {
+                //             // Stop and remove the filter for this scenario
+                //             self.remove_scenario_filter(scenario.get_name().to_string()).await?;
+                //         },
+                //         _ => {
+                //             println!("Unhandled scenario artifact type: {:?}", scenario.get_artifact());
+                //         }
+                //     }
+                // },
+                
+                // // Process incoming DDS data
+                // dds_data = self.rx_dds.lock().await.recv() => {
+                //     if let Some(data) = dds_data {
+                //         println!("Received DDS data");
+                        
+                //         // Process DDS data with active filters
+                //         let filters = self.filters.lock().await;
+                //         for filter in filters.iter() {
+                //             // Here we would process the data with each filter
+                //             // Check if the scenario conditions are met
+                //             filter.meet_scenario_condition(&data).await?;
+                        
+                //             println!("Processing DDS data for scenario: {}", filter.scenario_name);
+                //         }
+                //     } else {
+                //         println!("DDS data channel closed");
+                //         break;
+                //     }
+                // },
+                
+                else => {
+                    println!("All channels closed, exiting");
+                    break;
+                }
+            }
+        }
         Ok(())
     }
 

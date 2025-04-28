@@ -1,8 +1,8 @@
+use common::setting::get_config;
+use common::Result;
 use dbus::blocking::{Connection, Proxy};
 use dbus::Path;
 use std::{collections::HashMap, time::Duration};
-use common::Result;
-use common::setting::get_config;
 
 const DEST: &str = "org.eclipse.bluechi";
 const PATH: &str = "/org/eclipse/bluechi";
@@ -61,8 +61,11 @@ impl Command {
 /// * `scenario_name` - Name of the scenario to operate on
 /// * `node` - Name of the node to target
 /// * `bluechi_cmd` - The Bluechi command to execute
-pub async fn handle_bluechi_cmd(scenario_name: &str, node: &str, bluechi_cmd: BluechiCmd) -> Result<()>{
-
+pub async fn handle_bluechi_cmd(
+    scenario_name: &str,
+    node: &str,
+    bluechi_cmd: BluechiCmd,
+) -> Result<()> {
     let conn = Connection::new_system().unwrap();
     let bluechi = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
 
@@ -70,11 +73,12 @@ pub async fn handle_bluechi_cmd(scenario_name: &str, node: &str, bluechi_cmd: Bl
         Command::ControllerReloadAllNodes => {
             let _ = reload_all_nodes(&bluechi);
         }
-        Command::UnitStart
-        | Command::UnitStop
-        | Command::UnitRestart
-        | Command::UnitReload => {
-            let _ = workload_run(bluechi_cmd.command.to_method_name(), &bluechi, scenario_name);
+        Command::UnitStart | Command::UnitStop | Command::UnitRestart | Command::UnitReload => {
+            let _ = workload_run(
+                bluechi_cmd.command.to_method_name(),
+                &bluechi,
+                scenario_name,
+            );
         }
     }
     Ok(())
@@ -95,9 +99,12 @@ pub async fn handle_bluechi_cmd(scenario_name: &str, node: &str, bluechi_cmd: Bl
 ///
 /// * `Ok(String)` - A successful result message including the job path
 /// * `Err(...)` - If the D-Bus call fails
-pub async fn workload_run(method: &str, node_proxy: &Proxy<'_, &Connection>, unit_name: &str) -> Result<String> {
-    let (job_path,): (Path,) =
-        node_proxy.method_call(DEST_NODE, method, (unit_name, "replace"))?;
+pub async fn workload_run(
+    method: &str,
+    node_proxy: &Proxy<'_, &Connection>,
+    unit_name: &str,
+) -> Result<String> {
+    let (job_path,): (Path,) = node_proxy.method_call(DEST_NODE, method, (unit_name, "replace"))?;
 
     Ok(format!("{method} '{unit_name}' : {job_path}\n"))
 }
@@ -125,8 +132,7 @@ pub async fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> 
     let conn = Connection::new_system()?;
     let mut result = String::new();
     for (node_name, _, _) in nodes {
-        let (node,): (Path,) =
-            proxy.method_call(DEST_CONTROLLER, "GetNode", (&node_name,))?;
+        let (node,): (Path,) = proxy.method_call(DEST_CONTROLLER, "GetNode", (&node_name,))?;
 
         let node_proxy = conn.with_proxy(DEST, node, Duration::from_millis(5000));
         node_proxy.method_call::<(), _, _, _>(DEST_NODE, "Reload", ())?;
@@ -135,4 +141,3 @@ pub async fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> 
     }
     Ok(result)
 }
-

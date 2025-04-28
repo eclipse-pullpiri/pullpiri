@@ -14,12 +14,14 @@ pub struct Settings {
 pub struct HostSettings {
     pub name: String,
     pub ip: String,
+    pub r#type: String,
 }
 
 #[derive(Deserialize)]
 pub struct GuestSettings {
     pub name: String,
     pub ip: String,
+    pub r#type: String,
 }
 
 fn parse_settings_yaml() -> Settings {
@@ -29,10 +31,12 @@ fn parse_settings_yaml() -> Settings {
         host: HostSettings {
             name: String::from("HPC"),
             ip: String::from("0.0.0.0"),
+            r#type: String::from("bluechi"),
         },
         /*guest: Some(vec![GuestSettings {
             name: String::from("ZONE"),
             ip: String::from("192.168.0.1"),
+            r#type: String::from("nodeagent"),
         }]),*/
         guest: None,
     };

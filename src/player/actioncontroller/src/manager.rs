@@ -1,15 +1,9 @@
+use crate::runtime::bluechi;
 use common::{
     actioncontroller::Status,
     spec::artifact::{Package, Scenario},
     Result,
 };
-use crate::runtime::bluechi;
-use std::fs;
-use serde_json::{
-    Value,
-};
-const JSON: &str = "./config/scenario_config.json";
-
 
 /// Manager for coordinating scenario actions and workload operations
 ///
@@ -36,24 +30,31 @@ impl ActionControllerManager {
     ///
     /// A new ActionControllerManager instance
     pub fn new() -> Self {
+        let mut bluechi_nodes = Vec::new();
+        let mut nodeagent_nodes = Vec::new();
+        let settings = common::setting::get_config();
+
+        if settings.host.r#type == "bluechi" {
+            bluechi_nodes.push(settings.host.name.clone());
+        } else if settings.host.r#type == "nodeagent" {
+            nodeagent_nodes.push(settings.host.name.clone());
+        }
+
+        if let Some(guests) = &settings.guest {
+            for guest in guests {
+                if guest.r#type == "bluechi" {
+                    bluechi_nodes.push(guest.name.clone());
+                } else if guest.r#type == "nodeagent" {
+                    nodeagent_nodes.push(guest.name.clone());
+                }
+            }
+        }
+
         Self {
-            bluechi_nodes: Vec::new(),
-            nodeagent_nodes: Vec::new(),
-            // Initialize other fields
+            bluechi_nodes,
+            nodeagent_nodes,
         }
     }
-
-
-    async fn node_type(&self, path: &str) -> Result<String> {
-        let file_path = format!("./scenarios/{}.json", path);
-        let file_content = fs::read_to_string(&file_path)?;
-        let json_data: Value = serde_json::from_str(&file_content)?;
-        
-        let api_type = json_data["api_type"].to_string();
-
-        Ok(api_type)
-    }
-
 
     /// Processes a trigger action request for a specific scenario
     ///
@@ -85,21 +86,32 @@ impl ActionControllerManager {
         let etcd_package_key = format!("package/{}", scenario.get_targets());
         let package_str = common::etcd::get(&etcd_package_key).await?;
         let package: Package = serde_yaml::from_str(&package_str)?;
-        let node_type = self.node_type(JSON).await?;
+
         for mi in package.get_models() {
             let model_name = mi.get_name();
             let model_node = mi.get_node();
+            let node_type = if self.bluechi_nodes.contains(&model_node) {
+                "bluechi"
+            } else if self.nodeagent_nodes.contains(&model_node) {
+                "nodeagent"
+            } else {
+                continue; // Skip if node type is unknown
+            };
 
             match action.as_str() {
                 "launch" => {
-                    self.start_workload(&model_name, &model_node, &node_type).await?;
+                    self.start_workload(&model_name, &model_node, &node_type)
+                        .await?;
                 }
                 "terminate" => {
-                    self.stop_workload(&model_name, &model_node, &node_type).await?;
+                    self.stop_workload(&model_name, &model_node, &node_type)
+                        .await?;
                 }
                 "update" | "rollback" => {
-                    self.stop_workload(&model_name, &model_node, &node_type).await?;
-                    self.start_workload(&model_name, &model_node, &node_type).await?;
+                    self.stop_workload(&model_name, &model_node, &node_type)
+                        .await?;
+                    self.start_workload(&model_name, &model_node, &node_type)
+                        .await?;
                 }
                 _ => {}
             }
@@ -146,10 +158,18 @@ impl ActionControllerManager {
         for mi in package.get_models() {
             let model_name = mi.get_name();
             let model_node = mi.get_node();
+            let node_type = if self.bluechi_nodes.contains(&model_node) {
+                "bluechi"
+            } else if self.nodeagent_nodes.contains(&model_node) {
+                "nodeagent"
+            } else {
+                continue; // Skip if node type is unknown
+            };
 
             match desired {
                 Status::Running => {
-                    self.start_workload(&model_name, &model_node).await?;
+                    self.start_workload(&model_name, &model_node, &node_type)
+                        .await?;
                 }
                 _ => {}
             }
@@ -265,10 +285,17 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is not in a startable state
     /// - The runtime operation fails
-    pub async fn start_workload(&self, model_name: &str, node_name: &str, node_type: &str) -> Result<()> {
+    pub async fn start_workload(
+        &self,
+        model_name: &str,
+        node_name: &str,
+        node_type: &str,
+    ) -> Result<()> {
         match node_type {
             "bluechi" => {
-                let cmd = bluechi::BluechiCmd {command: bluechi::Command::UnitStart,};
+                let cmd = bluechi::BluechiCmd {
+                    command: bluechi::Command::UnitStart,
+                };
                 bluechi::handle_bluechi_cmd(&model_name, &node_name, cmd).await?;
             }
             "nodeagent" => {
@@ -298,10 +325,17 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is already stopped
     /// - The runtime operation fails
-    pub async fn stop_workload(&self, model_name: &str, node_name: &str, node_type: &str) -> Result<()> {
+    pub async fn stop_workload(
+        &self,
+        model_name: &str,
+        node_name: &str,
+        node_type: &str,
+    ) -> Result<()> {
         match node_type {
             "bluechi" => {
-                let cmd = bluechi::BluechiCmd {command: bluechi::Command::UnitStop,};
+                let cmd = bluechi::BluechiCmd {
+                    command: bluechi::Command::UnitStop,
+                };
                 bluechi::handle_bluechi_cmd(&model_name, &node_name, cmd).await?;
             }
             "nodeagent" => {

@@ -5,6 +5,8 @@ piccolo_cloud: http://0.0.0.0:41234
 host:
   name: HPC
   ip: 0.0.0.0
+  type: bluechi
 guest:
 #  - name: ZONE
 #    ip: 192.168.0.1
+#    type: nodeagent

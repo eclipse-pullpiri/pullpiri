@@ -58,9 +58,49 @@ impl Filter {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn meet_scenario_condition(&self, data: &DdsData) -> Result<()> {
-        let _ = data; // 사용하지 않는 변수 경고 방지
-                      // TODO: Implementation
-        Ok(())
+        let condition = self.scenario.get_conditions().unwrap();
+        let topic = condition.get_operand_value();
+        let target_value = condition.get_value();
+        let express = condition.get_express();
+
+        if !data.name.eq(&topic) {
+            return Err("data topic does not match".into());
+        }
+
+        let check: bool = match express.as_str() {
+            "eq" => target_value.to_lowercase() == data.value.to_lowercase(),
+            "lt" => {
+                let target_v = target_value.parse::<f32>().unwrap();
+                let current_v = data.value.parse::<f32>().unwrap();
+                target_v < current_v
+            }
+            "le" => {
+                let target_v = target_value.parse::<f32>().unwrap();
+                let current_v = data.value.parse::<f32>().unwrap();
+                target_v <= current_v
+            }
+            "ge" => {
+                let target_v = target_value.parse::<f32>().unwrap();
+                let current_v = data.value.parse::<f32>().unwrap();
+                target_v >= current_v
+            }
+            "gt" => {
+                let target_v = target_value.parse::<f32>().unwrap();
+                let current_v = data.value.parse::<f32>().unwrap();
+                target_v > current_v
+            }
+            _ => return Err("wrong expression in condition".into()),
+        };
+
+        if check {
+            println!("Condition met for scenario: {}", self.scenario_name);
+            self.sender
+                .trigger_action(self.scenario_name.clone())
+                .await?;
+            Ok(())
+        } else {
+            Err("cannot meet condition".into())
+        }
     }
 
     /// Pause the filter processing

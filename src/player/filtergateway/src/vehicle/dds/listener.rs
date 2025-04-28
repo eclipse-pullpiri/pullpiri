@@ -1,19 +1,18 @@
 use crate::vehicle::{self, dds::DdsData};
 use dust_dds::{
-    domain::domain_participant_factory::{DomainParticipantFactory, DomainId},
-
     dds_async::{
         domain_participant_factory::DomainParticipantFactoryAsync,
         //subscriber::datareader::DataReaderAsync,
         wait_set::{ConditionAsync, WaitSetAsync},
     },
+    domain::domain_participant_factory::{DomainId, DomainParticipantFactory},
     infrastructure::{
-        qos::{QosKind,  DomainParticipantQos},        
+        qos::{DomainParticipantQos, QosKind},
         status::{StatusKind, NO_STATUS},
         time::Duration,
     },
     subscription::sample_info::{ANY_INSTANCE_STATE, ANY_SAMPLE_STATE, ANY_VIEW_STATE},
-    topic_definition::type_support::DdsType
+    topic_definition::type_support::DdsType,
 };
 use tokio::sync::mpsc::Sender;
 use tokio::task::JoinHandle;
@@ -118,26 +117,26 @@ impl TopicListener {
     ) -> common::Result<()> {
         // TODO: Implementation
         // Get the domain participant factory
-        
+
         let factory = DomainParticipantFactoryAsync::get_instance();
-            
 
         // Create a domain participant
-        let participant = factory.create_participant(domain_id as i32, QosKind::Default, None, NO_STATUS).await
+        let participant = factory
+            .create_participant(domain_id as i32, QosKind::Default, None, NO_STATUS)
+            .await
             .map_err(|e| format!("Failed to create participant: {:?}", e))?;
 
         let topic = participant
-        .create_topic::<VehicleData>(
-            &topic_name,
-            &data_type_name,
-            QosKind::Default,
-            None,
-            NO_STATUS,
-        )
-        .await
-        .map_err(|e| format!("Failed to create topic: {:?}", e))?;
+            .create_topic::<VehicleData>(
+                &topic_name,
+                &data_type_name,
+                QosKind::Default,
+                None,
+                NO_STATUS,
+            )
+            .await
+            .map_err(|e| format!("Failed to create topic: {:?}", e))?;
 
-  
         // Create a subscriber with default QoS
         let subscriber = participant
             .create_subscriber(QosKind::Default, None, NO_STATUS)
@@ -148,7 +147,6 @@ impl TopicListener {
             .create_datareader::<VehicleData>(&topic, QosKind::Default, None, NO_STATUS)
             .await
             .unwrap();
-            
 
         let cond = reader.get_statuscondition();
         cond.set_enabled_statuses(&[StatusKind::DataAvailable])
@@ -160,16 +158,15 @@ impl TopicListener {
             .await
             .unwrap();
         reader_wait_set.wait(Duration::new(10, 0)).await.unwrap();
-    
+
         let samples = reader
             .take(1, ANY_SAMPLE_STATE, ANY_VIEW_STATE, ANY_INSTANCE_STATE)
             .await
             .unwrap();
-    
+
         assert_eq!(samples.len(), 1);
         // assert_eq!(samples[0].data().unwrap(), data);
 
-        
         Ok(())
     }
 

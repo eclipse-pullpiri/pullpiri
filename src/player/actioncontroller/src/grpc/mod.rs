@@ -27,7 +27,7 @@ pub async fn init(manager: crate::manager::ActionControllerManager) -> common::R
 
     Server::builder()
         .add_service(grpc_server.into_service())
-        .serve(common::statemanager::open_server().parse()?)
+        .serve(common::actioncontroller::open_server().parse()?)
         .await?;
 
     println!("gRPC server started on");

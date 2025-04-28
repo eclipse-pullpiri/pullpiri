@@ -2,6 +2,13 @@ use common::{
     spec::artifact::{Package, Scenario},
     Result,
 };
+use crate::runtime::bluechi;
+use std::fs;
+use serde_json::{
+    Value,
+};
+const JSON: &str = "./config/scenario_config.json";
+
 
 /// Manager for coordinating scenario actions and workload operations
 ///
@@ -35,6 +42,18 @@ impl ActionControllerManager {
         }
     }
 
+
+    async fn node_type(&self, path: &str) -> Result<String> {
+        let file_path = format!("./scenarios/{}.json", path);
+        let file_content = fs::read_to_string(&file_path)?;
+        let json_data: Value = serde_json::from_str(&file_content)?;
+        
+        let api_type = json_data["api_type"].to_string();
+
+        Ok(api_type)
+    }
+
+
     /// Processes a trigger action request for a specific scenario
     ///
     /// Retrieves scenario information from ETCD and performs the
@@ -66,21 +85,21 @@ impl ActionControllerManager {
         let etcd_package_key = format!("package/{}", scenario.get_targets());
         let package_str = common::etcd::get(&etcd_package_key).await?;
         let package: Package = serde_yaml::from_str(&package_str)?;
-
+        let node_type = self.node_type(JSON).await?;
         for mi in package.get_models() {
             let model_name = mi.get_name();
             let model_node = mi.get_node();
 
             match action.as_str() {
                 "launch" => {
-                    self.start_workload(&model_name, &model_node).await?;
+                    self.start_workload(&model_name, &model_node, &node_type).await?;
                 }
                 "terminate" => {
-                    self.stop_workload(&model_name, &model_node).await?;
+                    self.stop_workload(&model_name, &model_node, &node_type).await?;
                 }
                 "update" | "rollback" => {
-                    self.stop_workload(&model_name, &model_node).await?;
-                    self.start_workload(&model_name, &model_node).await?;
+                    self.stop_workload(&model_name, &model_node, &node_type).await?;
+                    self.start_workload(&model_name, &model_node, &node_type).await?;
                 }
                 _ => {}
             }
@@ -227,16 +246,18 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is not in a startable state
     /// - The runtime operation fails
-    pub async fn start_workload(&self, model_name: &str, node_name: &str) -> Result<()> {
-        // TODO: Implementation
-        if self.bluechi_nodes.contains(&node_name.to_string()) {
-            let runtime = crate::runtime::bluechi::BluechiRuntime::new();
-            runtime.start_workload(model_name).await?;
-        } else {
-            let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
-            runtime.start_workload(model_name).await?;
-        };
-
+    pub async fn start_workload(&self, model_name: &str, node_name: &str, node_type: &str) -> Result<()> {
+        match node_type {
+            "bluechi" => {
+                let cmd = bluechi::BluechiCmd {command: bluechi::Command::UnitStart,};
+                bluechi::handle_bluechi_cmd(&model_name, &node_name, cmd).await?;
+            }
+            "nodeagent" => {
+                // let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
+                // runtime.start_workload(model_name).await?;
+            }
+            _ => {}
+        }
         Ok(())
     }
 
@@ -258,16 +279,18 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is already stopped
     /// - The runtime operation fails
-    pub async fn stop_workload(&self, model_name: &str, node_name: &str) -> Result<()> {
-        // TODO: Implementation
-        if self.bluechi_nodes.contains(&node_name.to_string()) {
-            let runtime = crate::runtime::bluechi::BluechiRuntime::new();
-            runtime.stop_workload(model_name).await?;
-        } else {
-            let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
-            runtime.stop_workload(model_name).await?;
-        };
-
+    pub async fn stop_workload(&self, model_name: &str, node_name: &str, node_type: &str) -> Result<()> {
+        match node_type {
+            "bluechi" => {
+                let cmd = bluechi::BluechiCmd {command: bluechi::Command::UnitStop,};
+                bluechi::handle_bluechi_cmd(&model_name, &node_name, cmd).await?;
+            }
+            "nodeagent" => {
+                // let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
+                // runtime.start_workload(model_name).await?;
+            }
+            _ => {}
+        }
         Ok(())
     }
 }

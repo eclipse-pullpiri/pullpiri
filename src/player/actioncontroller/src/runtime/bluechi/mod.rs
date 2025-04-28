@@ -1,7 +1,6 @@
 use dbus::blocking::{Connection, Proxy};
 use dbus::Path;
 use std::{collections::HashMap, time::Duration};
-use tokio::sync::mpsc::Receiver;
 use common::Result;
 use common::setting::get_config;
 
@@ -16,8 +15,6 @@ const DEST_NODE: &str = "org.eclipse.bluechi.Node";
 /// information needed to target specific components.
 pub struct BluechiCmd {
     pub command: Command,
-    pub node: Option<String>,
-    pub unit: Option<String>,
 }
 
 /// Commands supported by the Bluechi runtime
@@ -53,64 +50,34 @@ impl Command {
     }
 }
 
-/// Handle Bluechi commands from a receiver channel
+/// Handle Bluechi commands for operations
 ///
-/// This function processes commands for Bluechi operations by:
+/// This function processes a single Bluechi command by:
 /// 1. Establishing a D-Bus connection to the Bluechi controller
-/// 2. Building a cache of node proxies for quick access
-/// 3. Processing incoming commands and routing them to the appropriate handler
-///
-/// The function runs indefinitely, processing commands as they arrive through 
-/// the channel, until the channel is closed.
+/// 2. Executing the appropriate operation based on the command type
 ///
 /// # Arguments
 ///
-/// * `rx` - Receiver channel for BluechiCmd messages
-pub async fn handle_bluechi_cmd(mut rx: Receiver<BluechiCmd>) {
+/// * `scenario_name` - Name of the scenario to operate on
+/// * `node` - Name of the node to target
+/// * `bluechi_cmd` - The Bluechi command to execute
+pub async fn handle_bluechi_cmd(scenario_name: &str, node: &str, bluechi_cmd: BluechiCmd) -> Result<()>{
+
     let conn = Connection::new_system().unwrap();
     let bluechi = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
 
-    let mut map_node_proxy: HashMap<String, Proxy<'_, &Connection>> = HashMap::new();
-    // host node proxy
-    let (node,): (Path,) = bluechi
-        .method_call(
-            DEST_CONTROLLER,
-            "GetNode",
-            (&get_config().host.name,),
-        )
-        .unwrap();
-    map_node_proxy.insert(
-        get_config().host.name.clone(),
-        conn.with_proxy(DEST, node, Duration::from_millis(5000)),
-    );
-    // guest node proxy
-    if let Some(guests) = &get_config().guest {
-        for guest in guests {
-            let (node,): (Path,) = bluechi
-                .method_call(DEST_CONTROLLER, "GetNode", (&guest.name,))
-                .unwrap();
-            map_node_proxy.insert(
-                guest.name.clone(),
-                conn.with_proxy(DEST, node, Duration::from_millis(5000)),
-            );
+    match bluechi_cmd.command {
+        Command::ControllerReloadAllNodes => {
+            let _ = reload_all_nodes(&bluechi);
+        }
+        Command::UnitStart
+        | Command::UnitStop
+        | Command::UnitRestart
+        | Command::UnitReload => {
+            let _ = workload_run(bluechi_cmd.command.to_method_name(), &bluechi, scenario_name);
         }
     }
-
-    while let Some(bluechi_cmd) = rx.recv().await {
-        match bluechi_cmd.command {
-            Command::ControllerReloadAllNodes => {
-                let _ = reload_all_nodes(&bluechi);
-            }
-       
-            Command::UnitStart
-            | Command::UnitStop
-            | Command::UnitRestart
-            | Command::UnitReload => {
-                let node_proxy = map_node_proxy.get(&bluechi_cmd.node.unwrap()).unwrap();
-                let _ = workload_run(bluechi_cmd.command.to_method_name(), node_proxy, &bluechi_cmd.unit.unwrap());
-            }
-        }
-    }
+    Ok(())
 }
 
 /// Execute a unit-related operation on a Bluechi node
@@ -168,3 +135,4 @@ pub async fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> 
     }
     Ok(result)
 }
+

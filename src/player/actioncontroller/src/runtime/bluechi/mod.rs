@@ -74,7 +74,7 @@ pub async fn handle_bluechi_cmd(scenario_name: &str, node: &str, bluechi_cmd: Bl
         | Command::UnitStop
         | Command::UnitRestart
         | Command::UnitReload => {
-            let _ = workload_run(bluechi_cmd.command.to_method_name(), &bluechi, scenario_name);
+            let _ = workload_run(&conn, bluechi_cmd.command.to_method_name(), node, &bluechi, scenario_name);
         }
     }
     Ok(())
@@ -95,7 +95,12 @@ pub async fn handle_bluechi_cmd(scenario_name: &str, node: &str, bluechi_cmd: Bl
 ///
 /// * `Ok(String)` - A successful result message including the job path
 /// * `Err(...)` - If the D-Bus call fails
-pub async fn workload_run(method: &str, node_proxy: &Proxy<'_, &Connection>, unit_name: &str) -> Result<String> {
+pub async fn workload_run(conn: &Connection, method: &str, node_name: &str, proxy: &Proxy<'_, &Connection>, unit_name: &str) -> Result<String> {
+    let (node,): (Path,) =
+        proxy.method_call(DEST_CONTROLLER, "GetNode", (&node_name,))?;
+
+    let node_proxy = conn.with_proxy(DEST, node, Duration::from_millis(5000));
+
     let (job_path,): (Path,) =
         node_proxy.method_call(DEST_NODE, method, (unit_name, "replace"))?;
 

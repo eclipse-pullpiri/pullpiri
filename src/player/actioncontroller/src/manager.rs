@@ -147,6 +147,10 @@ impl ActionControllerManager {
         current: Status,
         desired: Status,
     ) -> Result<()> {
+        if current == desired {
+            return Ok(());
+        }
+
         let etcd_scenario_key = format!("scenario/{}", scenario_name);
         let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
         let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;

@@ -4,7 +4,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Package
 
-A piccolo package exposes container image information, network, volume requirements, etc. By separating these resources, Piccolo aims to make it easier for users to assemble the services they want.
+A Pullpiri package exposes container image information, network, volume requirements, etc. By separating these resources, Pullpiri aims to make it easier for users to assemble the services they want.
 
 The following is an example of a simple `package` from [version-display-1.tar](/examples/res/packages/version-cli-1.tar). The package is used in tar format, but for convenience, the extracted folder is placed in the [path](/examples/res/packages/version-display-1/).
 

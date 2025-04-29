@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # License
 
-Piccolo itself uses the [Apache-2.0](/LICENSES/Apache-2.0.txt) license.
+Pullpiri itself uses the [Apache-2.0](/LICENSES/Apache-2.0.txt) license.
 
 The following packages (Rust Crate) use the [MIT](/LICENSES/MIT.txt) license.
 

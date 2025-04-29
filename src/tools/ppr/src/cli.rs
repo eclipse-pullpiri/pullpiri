@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-pub struct PiccoloCli {
+pub struct PullpiriCli {
     #[command(subcommand)]
     pub command: Commands,
     #[arg(short, long, default_value_t = false)]
@@ -20,6 +20,6 @@ pub struct YamlInfo {
     name: String,
 }
 
-pub fn parse() -> PiccoloCli {
-    PiccoloCli::parse()
+pub fn parse() -> PullpiriCli {
+    PullpiriCli::parse()
 }

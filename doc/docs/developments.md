@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Piccolo
+# Pullpiri
 
 - [Development](#development)
   - [Environment Setup](#environment-setup)
@@ -43,9 +43,11 @@ cargo fmt
 cargo clippy
 ```
 
-### Structure (Deprecated)
+### Structure
 
-<img alt="piccolo overview" src="../images/overview.png"
+Deprecated
+
+<img alt="pullpiri overview" src="../images/overview.png"
 width="75%"
 height="75%"
 />
@@ -117,6 +119,6 @@ etcd : 2379, 2380
 Files for documentation of this project are located in the [doc](/doc/) directory comprising:
 
 - [Examples](/examples/version-display/): directory containing all files and guides for performing example
-- [piccolo.drawio](/doc/images/piccolo.drawio) file containing all diagrams used for Piccolo
+- [pullpiri.drawio](/doc/images/pullpiri.drawio) file containing all diagrams used for Pullpiri
 
 <!-- markdownlint-disable-file MD033 no-inline-html -->

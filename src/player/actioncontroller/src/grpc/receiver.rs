@@ -1,4 +1,3 @@
-use common::Result;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
@@ -61,7 +60,7 @@ impl ActionControllerConnection for ActionControllerReceiver {
     async fn trigger_action(
         &self,
         request: Request<TriggerActionRequest>,
-    ) -> std::result::Result<Response<TriggerActionResponse>, Status> {
+    ) -> Result<Response<TriggerActionResponse>, Status> {
         // TODO: Implementation
         let scenario_name = request.into_inner().scenario_name;
 
@@ -90,7 +89,7 @@ impl ActionControllerConnection for ActionControllerReceiver {
     async fn reconcile(
         &self,
         request: Request<ReconcileRequest>,
-    ) -> std::result::Result<Response<ReconcileResponse>, Status> {
+    ) -> Result<Response<ReconcileResponse>, Status> {
         // TODO: Implementation
         let req = request.into_inner();
         let scenario_name = req.scenario_name;

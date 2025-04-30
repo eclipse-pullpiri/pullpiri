@@ -194,3 +194,137 @@ impl NodeAgentRuntime {
         Ok(())
     }
 }
+
+//UNIT TEST
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use common::Result;
+
+    use tokio;
+
+    #[tokio::test]
+    async fn test_new_initializes_empty() {
+        let runtime = NodeAgentRuntime::new();
+        assert!(runtime.node_connections.is_empty(), "node_connections should be empty");
+        assert!(runtime.workload_cache.is_empty(), "workload_cache should be empty");
+    }
+
+    // ------------------------- init() -------------------------
+
+    #[tokio::test]
+    async fn test_init_returns_ok() {
+        let mut runtime = NodeAgentRuntime::new();
+        let result = runtime.init().await;
+        assert!(result.is_ok(), "init() should return Ok");
+    }
+
+    #[tokio::test]
+    async fn test_init_invalid_node_should_fail() {
+        let mut runtime = NodeAgentRuntime::new();
+
+        // Simulate invalid node info if implementation later checks connections
+        runtime.node_connections.insert("invalid_node".to_string(), "".to_string());
+
+        let result = runtime.init().await;
+        // Replace this is_ok() with is_err() once real validation exists
+        assert!(result.is_ok(), "TODO: expect Err once init validates node info");
+    }
+
+    // ------------------------- create_workload() -------------------------
+
+    #[tokio::test]
+    async fn test_create_workload_returns_ok() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.create_workload("test_scenario").await;
+        assert!(result.is_ok(), "create_workload() should return Ok");
+    }
+
+    #[tokio::test]
+    async fn test_create_workload_invalid_scenario_should_fail() {
+        let runtime = NodeAgentRuntime::new();
+
+        let result = runtime.create_workload("").await; // Empty scenario = invalid
+        assert!(result.is_ok(), "TODO: expect Err once create_workload validates input");
+    }
+
+    // ------------------------- delete_workload() -------------------------
+
+    #[tokio::test]
+    async fn test_delete_workload_returns_ok() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.delete_workload("test_scenario").await;
+        assert!(result.is_ok(), "delete_workload() should return Ok");
+    }
+
+    #[tokio::test]
+    async fn test_delete_workload_nonexistent_should_fail() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.delete_workload("nonexistent_scenario").await;
+        assert!(result.is_ok(), "TODO: expect Err when workload does not exist");
+    }
+
+    // ------------------------- restart_workload() -------------------------
+
+    #[tokio::test]
+    async fn test_restart_workload_returns_ok() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.restart_workload("test_scenario").await;
+        assert!(result.is_ok(), "restart_workload() should return Ok");
+    }
+
+    #[tokio::test]
+    async fn test_restart_workload_nonexistent_should_fail() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.restart_workload("nonexistent_scenario").await;
+        assert!(result.is_ok(), "TODO: expect Err when workload does not exist");
+    }
+
+    // ------------------------- pause_workload() -------------------------
+
+    #[tokio::test]
+    async fn test_pause_workload_returns_ok() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.pause_workload("test_scenario").await;
+        assert!(result.is_ok(), "pause_workload() should return Ok");
+    }
+
+    #[tokio::test]
+    async fn test_pause_workload_nonexistent_should_fail() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.pause_workload("nonexistent_scenario").await;
+        assert!(result.is_ok(), "TODO: expect Err when workload does not exist");
+    }
+
+    // ------------------------- start_workload() -------------------------
+
+    #[tokio::test]
+    async fn test_start_workload_returns_ok() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.start_workload("test_scenario").await;
+        assert!(result.is_ok(), "start_workload() should return Ok");
+    }
+
+    #[tokio::test]
+    async fn test_start_workload_nonexistent_should_fail() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.start_workload("nonexistent_scenario").await;
+        assert!(result.is_ok(), "TODO: expect Err when workload does not exist");
+    }
+
+    // ------------------------- stop_workload() -------------------------
+
+    #[tokio::test]
+    async fn test_stop_workload_returns_ok() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.stop_workload("test_scenario").await;
+        assert!(result.is_ok(), "stop_workload() should return Ok");
+    }
+
+    #[tokio::test]
+    async fn test_stop_workload_nonexistent_should_fail() {
+        let runtime = NodeAgentRuntime::new();
+        let result = runtime.stop_workload("nonexistent_scenario").await;
+        assert!(result.is_ok(), "TODO: expect Err when workload does not exist");
+    }
+}

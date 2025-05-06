@@ -13,4 +13,4 @@ prost = "0.13.3"
 serde = { version = "1.0.214", features = ["derive"] }
 serde_yaml = "0.9"
 common = { workspace = true }
-dust_dds = "0.11.0"
+dust_dds = "0.12.0"

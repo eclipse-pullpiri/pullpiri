@@ -1,4 +1,3 @@
-use common::Result;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
@@ -61,11 +60,11 @@ impl ActionControllerConnection for ActionControllerReceiver {
     async fn trigger_action(
         &self,
         request: Request<TriggerActionRequest>,
-    ) -> std::result::Result<Response<TriggerActionResponse>, Status> {
+    ) -> Result<Response<TriggerActionResponse>, Status> {
         // TODO: Implementation
         let scenario_name = request.into_inner().scenario_name;
 
-        match self.manager.trigger_manager_action(scenario_name).await {
+        match self.manager.trigger_manager_action(&scenario_name).await {
             Ok(_) => Ok(Response::new(TriggerActionResponse {
                 status: 0, // Success
                 desc: "Action triggered successfully".to_string(),
@@ -90,12 +89,20 @@ impl ActionControllerConnection for ActionControllerReceiver {
     async fn reconcile(
         &self,
         request: Request<ReconcileRequest>,
-    ) -> std::result::Result<Response<ReconcileResponse>, Status> {
+    ) -> Result<Response<ReconcileResponse>, Status> {
         // TODO: Implementation
         let req = request.into_inner();
         let scenario_name = req.scenario_name;
-        let current = req.current;
-        let desired = req.desired;
+
+        let current = i32_to_status(req.current);
+        let desired = i32_to_status(req.desired);
+
+        if current == desired {
+            return Ok(Response::new(ReconcileResponse {
+                status: 0, // Success
+                desc: "Current and desired states are equal".to_string(),
+            }));
+        }
 
         match self
             .manager
@@ -111,5 +118,17 @@ impl ActionControllerConnection for ActionControllerReceiver {
                 desc: format!("Failed to reconcile: {}", e),
             })),
         }
+    }
+}
+
+fn i32_to_status(value: i32) -> ActionStatus {
+    match value {
+        0 => ActionStatus::None,
+        1 => ActionStatus::Init,
+        2 => ActionStatus::Ready,
+        3 => ActionStatus::Running,
+        4 => ActionStatus::Done,
+        5 => ActionStatus::Failed,
+        _ => ActionStatus::Unknown,
     }
 }

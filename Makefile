@@ -4,7 +4,7 @@
 .PHONY: default build
 build:
 	cargo build --manifest-path=src/common/Cargo.toml
-	cargo build --manifest-path=src/observer/Cargo.toml
+	cargo build --manifest-path=src/agent/Cargo.toml
 	cargo build --manifest-path=src/player/Cargo.toml
 	cargo build --manifest-path=src/server/Cargo.toml
 	cargo build --manifest-path=src/tools/Cargo.toml
@@ -12,7 +12,7 @@ build:
 .PHONY: release
 release:
 	cargo build --manifest-path=src/common/Cargo.toml --release
-	cargo build --manifest-path=src/observer/Cargo.toml --release
+	cargo build --manifest-path=src/agent/Cargo.toml --release
 	cargo build --manifest-path=src/player/Cargo.toml --release
 	cargo build --manifest-path=src/server/Cargo.toml --release
 	cargo build --manifest-path=src/tools/Cargo.toml --release
@@ -20,14 +20,14 @@ release:
 .PHONY: clean
 clean:
 	cargo clean --manifest-path=src/common/Cargo.toml
-	cargo clean --manifest-path=src/observer/Cargo.toml
+	cargo clean --manifest-path=src/agent/Cargo.toml
 	cargo clean --manifest-path=src/player/Cargo.toml
 	cargo clean --manifest-path=src/server/Cargo.toml
 	cargo clean --manifest-path=src/tools/Cargo.toml
 
 .PHONY: image
 image:
-	podman build -t localhost/pullpiri-observer:latest -f containers/Dockerfile-observer .
+	podman build -t localhost/pullpiri-agent:latest -f containers/Dockerfile-agent .
 	podman build -t localhost/pullpiri-player:latest -f containers/Dockerfile-player .
 	podman build -t localhost/pullpiri-server:latest -f containers/Dockerfile-server .
 
@@ -48,32 +48,40 @@ pushbuilder:
 	docker buildx build --push --platform linux/amd64,linux/arm64 -t ghcr.io/eclipse-pullpiri/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
 	docker buildx build --push --platform linux/amd64,linux/arm64 -t ghcr.io/eclipse-pullpiri/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
 
-.PHONY: pre
-pre:
-	-mkdir -p /root/piccolo_yaml
-	-cp -r examples/resources/* /root/piccolo_yaml/
-	-mkdir -p /etc/containers/systemd/piccolo/
-	-mkdir -p /etc/containers/systemd/piccolo/etcd-data/
-	-podman-compose -f examples/nginx/docker-compose.yaml up -d
+#.PHONY: pre
+#pre:
+#	-mkdir -p /etc/piccolo/yaml
+#	-mkdir -p /etc/containers/systemd/piccolo/
+#	-mkdir -p /etc/containers/systemd/piccolo/etcd-data/
+#	-podman-compose -f examples/nginx/docker-compose.yaml up -d
 
 .PHONY: install
 install:
+	-mkdir -p /etc/piccolo/yaml
+	-mkdir -p /etc/containers/systemd/piccolo/
+	-mkdir -p /etc/containers/systemd/piccolo/etcd-data/
 	-cp -r ./src/settings.yaml /etc/containers/systemd/piccolo/
-	-cp -r ./containers/piccolo.* /etc/containers/systemd/piccolo/
+	-cp -r ./containers/piccolo-*.* /etc/containers/systemd/piccolo/
 	systemctl daemon-reload
-	systemctl start piccolo
+	systemctl start piccolo-agent
+	systemctl start piccolo-player
+	systemctl start piccolo-server
 
 .PHONY: uninstall
 uninstall:
-	-systemctl stop piccolo
+	-systemctl stop piccolo-agent
+	-systemctl stop piccolo-player
+	-systemctl stop piccolo-server
 	systemctl daemon-reload
-
-.PHONY: post
-post:
-	-rm -rf /root/piccolo_yaml
+	-rm -rf /etc/piccolo/yaml
 	-rm -rf /etc/containers/systemd/*
-	-podman-compose -f examples/nginx/docker-compose.yaml down
-	systemctl daemon-reload
+
+#.PHONY: post
+#post:
+#	-rm -rf /etc/piccolo/yaml
+#	-rm -rf /etc/containers/systemd/*
+#	systemctl daemon-reload
+#	-podman-compose -f examples/nginx/docker-compose.yaml down
 
 .PHONY: tools
 tools:

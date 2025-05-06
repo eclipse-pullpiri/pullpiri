@@ -1,6 +1,9 @@
-use common::Result;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use crate::runtime::bluechi;
+use common::{
+    actioncontroller::Status,
+    spec::artifact::{Package, Scenario},
+    Result,
+};
 
 /// Manager for coordinating scenario actions and workload operations
 ///
@@ -27,10 +30,29 @@ impl ActionControllerManager {
     ///
     /// A new ActionControllerManager instance
     pub fn new() -> Self {
+        let mut bluechi_nodes = Vec::new();
+        let mut nodeagent_nodes = Vec::new();
+        let settings = common::setting::get_config();
+
+        if settings.host.r#type == "bluechi" {
+            bluechi_nodes.push(settings.host.name.clone());
+        } else if settings.host.r#type == "nodeagent" {
+            nodeagent_nodes.push(settings.host.name.clone());
+        }
+
+        if let Some(guests) = &settings.guest {
+            for guest in guests {
+                if guest.r#type == "bluechi" {
+                    bluechi_nodes.push(guest.name.clone());
+                } else if guest.r#type == "nodeagent" {
+                    nodeagent_nodes.push(guest.name.clone());
+                }
+            }
+        }
+
         Self {
-            bluechi_nodes: Vec::new(),
-            nodeagent_nodes: Vec::new(),
-            // Initialize other fields
+            bluechi_nodes,
+            nodeagent_nodes,
         }
     }
 
@@ -54,8 +76,47 @@ impl ActionControllerManager {
     /// - The scenario does not exist
     /// - The scenario is not allowed by policy
     /// - The runtime operation fails
-    pub async fn trigger_manager_action(&self, scenario_name: String) -> Result<()> {
-        // TODO: Implementation
+    pub async fn trigger_manager_action(&self, scenario_name: &str) -> Result<()> {
+        let etcd_scenario_key = format!("scenario/{}", scenario_name);
+        let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
+        let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;
+
+        let action = scenario.get_actions();
+
+        let etcd_package_key = format!("package/{}", scenario.get_targets());
+        let package_str = common::etcd::get(&etcd_package_key).await?;
+        let package: Package = serde_yaml::from_str(&package_str)?;
+
+        for mi in package.get_models() {
+            let model_name = mi.get_name();
+            let model_node = mi.get_node();
+            let node_type = if self.bluechi_nodes.contains(&model_node) {
+                "bluechi"
+            } else if self.nodeagent_nodes.contains(&model_node) {
+                "nodeagent"
+            } else {
+                continue; // Skip if node type is unknown
+            };
+
+            match action.as_str() {
+                "launch" => {
+                    self.start_workload(&model_name, &model_node, &node_type)
+                        .await?;
+                }
+                "terminate" => {
+                    self.stop_workload(&model_name, &model_node, &node_type)
+                        .await?;
+                }
+                "update" | "rollback" => {
+                    self.stop_workload(&model_name, &model_node, &node_type)
+                        .await?;
+                    self.start_workload(&model_name, &model_node, &node_type)
+                        .await?;
+                }
+                _ => {}
+            }
+        }
+
         Ok(())
     }
 
@@ -83,10 +144,41 @@ impl ActionControllerManager {
     pub async fn reconcile_do(
         &self,
         scenario_name: String,
-        current: i32,
-        desired: i32,
+        current: Status,
+        desired: Status,
     ) -> Result<()> {
-        // TODO: Implementation
+        if current == desired {
+            return Ok(());
+        }
+
+        let etcd_scenario_key = format!("scenario/{}", scenario_name);
+        let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
+        let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;
+
+        let etcd_package_key = format!("package/{}", scenario.get_targets());
+        let package_str = common::etcd::get(&etcd_package_key).await?;
+        let package: Package = serde_yaml::from_str(&package_str)?;
+
+        for mi in package.get_models() {
+            let model_name = mi.get_name();
+            let model_node = mi.get_node();
+            let node_type = if self.bluechi_nodes.contains(&model_node) {
+                "bluechi"
+            } else if self.nodeagent_nodes.contains(&model_node) {
+                "nodeagent"
+            } else {
+                continue; // Skip if node type is unknown
+            };
+
+            match desired {
+                Status::Running => {
+                    self.start_workload(&model_name, &model_node, &node_type)
+                        .await?;
+                }
+                _ => {}
+            }
+        }
+
         Ok(())
     }
 
@@ -197,8 +289,25 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is not in a startable state
     /// - The runtime operation fails
-    pub async fn start_workload(&self, scenario_name: String) -> Result<()> {
-        // TODO: Implementation
+    pub async fn start_workload(
+        &self,
+        model_name: &str,
+        node_name: &str,
+        node_type: &str,
+    ) -> Result<()> {
+        match node_type {
+            "bluechi" => {
+                let cmd = bluechi::BluechiCmd {
+                    command: bluechi::Command::UnitStart,
+                };
+                bluechi::handle_bluechi_cmd(&model_name, &node_name, cmd).await?;
+            }
+            "nodeagent" => {
+                // let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
+                // runtime.start_workload(model_name).await?;
+            }
+            _ => {}
+        }
         Ok(())
     }
 
@@ -220,8 +329,25 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is already stopped
     /// - The runtime operation fails
-    pub async fn stop_workload(&self, scenario_name: String) -> Result<()> {
-        // TODO: Implementation
+    pub async fn stop_workload(
+        &self,
+        model_name: &str,
+        node_name: &str,
+        node_type: &str,
+    ) -> Result<()> {
+        match node_type {
+            "bluechi" => {
+                let cmd = bluechi::BluechiCmd {
+                    command: bluechi::Command::UnitStop,
+                };
+                bluechi::handle_bluechi_cmd(&model_name, &node_name, cmd).await?;
+            }
+            "nodeagent" => {
+                // let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
+                // runtime.start_workload(model_name).await?;
+            }
+            _ => {}
+        }
         Ok(())
     }
 }

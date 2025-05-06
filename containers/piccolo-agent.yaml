@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# DO NOT USE this file if you can see this comment.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: piccolo-agent
+spec:
+  hostNetwork: true
+  hostPid: true
+  containers:
+  - name: nodeagent
+    image: localhost/pullpiri-agent:latest
+    command: ["/piccolo/nodeagent"]

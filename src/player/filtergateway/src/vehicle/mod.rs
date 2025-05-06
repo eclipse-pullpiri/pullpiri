@@ -31,6 +31,10 @@ impl VehicleManager {
     /// * `Result<()>` - Success or error result
     pub async fn init(&mut self) -> Result<()> {
         // TODO: Implementation
+        self.dds_manager = dds::DdsManager::new();
+        self.set_domain_id(100); // Set default domain ID
+                                 // Initialize DDS system
+
         Ok(())
     }
 
@@ -50,6 +54,9 @@ impl VehicleManager {
         data_type_name: String,
     ) -> Result<()> {
         // TODO: Implementation
+        self.dds_manager
+            .create_listener(topic_name, data_type_name)
+            .await?;
         Ok(())
     }
 
@@ -64,6 +71,7 @@ impl VehicleManager {
     /// * `Result<()>` - Success or error result
     pub async fn unsubscribe_topic(&mut self, topic_name: String) -> Result<()> {
         // TODO: Implementation
+        self.dds_manager.remove_listener(&topic_name).await?;
         Ok(())
     }
 

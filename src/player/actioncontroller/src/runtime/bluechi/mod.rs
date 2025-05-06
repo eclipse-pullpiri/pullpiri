@@ -1,191 +1,150 @@
 use common::Result;
-use std::collections::HashMap;
+use dbus::blocking::{Connection, Proxy};
+use dbus::Path;
+use std::time::Duration;
 
-/// Runtime implementation for Bluechi API interactions
+const DEST: &str = "org.eclipse.bluechi";
+const PATH: &str = "/org/eclipse/bluechi";
+const DEST_CONTROLLER: &str = "org.eclipse.bluechi.Controller";
+const DEST_NODE: &str = "org.eclipse.bluechi.Node";
+
+/// Command structure for Bluechi operations
 ///
-/// Handles workload operations for nodes managed by Bluechi,
-/// interfacing with the Bluechi Controller API to perform
-/// operations like creating, starting, stopping, and deleting workloads.
-pub struct BluechiRuntime {
-    /// Connection to the Bluechi Controller
-    connection: Option<String>, // This would be the actual Bluechi client type
-    /// Cache of node information for quick access
-    node_cache: HashMap<String, String>,
+/// Contains the command type to execute and optional node and unit
+/// information needed to target specific components.
+pub struct BluechiCmd {
+    pub command: Command,
 }
 
-impl BluechiRuntime {
-    /// Create a new BluechiRuntime instance
+/// Commands supported by the Bluechi runtime
+///
+/// Represents the various operations that can be performed
+/// on the Bluechi controller, nodes, and units.
+#[allow(dead_code)]
+pub enum Command {
+    ControllerReloadAllNodes,
+    UnitStart,
+    UnitStop,
+    UnitRestart,
+    UnitReload,
+}
+
+impl Command {
+    /// Convert command enum to the corresponding D-Bus method name
     ///
-    /// Initializes a runtime handler for Bluechi operations without
-    /// establishing a connection. Use `connect()` to establish the connection.
+    /// Maps each command type to its corresponding Bluechi D-Bus method name
+    /// that will be used in the actual method call.
     ///
     /// # Returns
     ///
-    /// A new BluechiRuntime instance
-    pub fn new() -> Self {
-        Self {
-            connection: None,
-            node_cache: HashMap::new(),
+    /// The D-Bus method name as a string slice
+    fn to_method_name(&self) -> &str {
+        match self {
+            Command::UnitStart => "StartUnit",
+            Command::UnitStop => "StopUnit",
+            Command::UnitRestart => "RestartUnit",
+            Command::UnitReload => "ReloadUnit",
+            _ => "Unknown",
         }
     }
+}
 
-    /// Establish connection to the Bluechi Controller
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if connection was successful
-    /// * `Err(...)` if connection failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The Bluechi Controller is not reachable
-    /// - Authentication fails
-    pub async fn connect(&mut self) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
-    }
+/// Handle Bluechi commands for operations
+///
+/// This function processes a single Bluechi command by:
+/// 1. Establishing a D-Bus connection to the Bluechi controller
+/// 2. Executing the appropriate operation based on the command type
+///
+/// # Arguments
+///
+/// * `scenario_name` - Name of the scenario to operate on
+/// * `node` - Name of the node to target
+/// * `bluechi_cmd` - The Bluechi command to execute
+pub async fn handle_bluechi_cmd(
+    scenario_name: &str,
+    node: &str,
+    bluechi_cmd: BluechiCmd,
+) -> Result<()> {
+    let conn = Connection::new_system().unwrap();
+    let bluechi = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
 
-    /// Create a workload using Bluechi API
-    ///
-    /// Reads the scenario definition and creates the corresponding workload
-    /// using the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario to create workload for
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload creation was successful
-    /// * `Err(...)` if workload creation failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The scenario definition is invalid
-    /// - The Bluechi API call fails
-    /// - The workload already exists
-    pub async fn create_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
+    match bluechi_cmd.command {
+        Command::ControllerReloadAllNodes => {
+            let _ = reload_all_nodes(&bluechi);
+        }
+        Command::UnitStart | Command::UnitStop | Command::UnitRestart | Command::UnitReload => {
+            let _ = workload_run(
+                &conn,
+                bluechi_cmd.command.to_method_name(),
+                node,
+                &bluechi,
+                scenario_name,
+            );
+        }
     }
+    Ok(())
+}
 
-    /// Delete a workload using Bluechi API
-    ///
-    /// Removes an existing workload through the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario that owns the workload
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload deletion was successful
-    /// * `Err(...)` if workload deletion failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The workload does not exist
-    /// - The Bluechi API call fails
-    pub async fn delete_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
-    }
+/// Execute a unit-related operation on a Bluechi node
+///
+/// Calls the specified D-Bus method on the given node proxy to perform
+/// operations like starting, stopping, restarting, or reloading a unit.
+///
+/// # Arguments
+///
+/// * `method` - The D-Bus method name to call (e.g., "StartUnit", "StopUnit")
+/// * `node_proxy` - The proxy to the Bluechi node where the unit is located
+/// * `unit_name` - The name of the unit to operate on
+///
+/// # Returns
+///
+/// * `Ok(String)` - A successful result message including the job path
+/// * `Err(...)` - If the D-Bus call fails
+pub async fn workload_run(
+    conn: &Connection,
+    method: &str,
+    node_name: &str,
+    proxy: &Proxy<'_, &Connection>,
+    unit_name: &str,
+) -> Result<String> {
+    let (node,): (Path,) = proxy.method_call(DEST_CONTROLLER, "GetNode", (&node_name,))?;
 
-    /// Restart a workload using Bluechi API
-    ///
-    /// Restarts an existing workload through the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario that owns the workload
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload restart was successful
-    /// * `Err(...)` if workload restart failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The workload does not exist
-    /// - The Bluechi API call fails
-    pub async fn restart_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
-    }
+    let node_proxy = conn.with_proxy(DEST, node, Duration::from_millis(5000));
 
-    /// Pause a workload using Bluechi API
-    ///
-    /// Suspends execution of a workload through the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario that owns the workload
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload pause was successful
-    /// * `Err(...)` if workload pause failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The workload does not exist
-    /// - The workload is not in a pausable state
-    /// - The Bluechi API call fails
-    pub async fn pause_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
-    }
+    let (job_path,): (Path,) = node_proxy.method_call(DEST_NODE, method, (unit_name, "replace"))?;
 
-    /// Start a workload using Bluechi API
-    ///
-    /// Starts an existing workload through the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario that owns the workload
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload start was successful
-    /// * `Err(...)` if workload start failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The workload does not exist
-    /// - The workload is already running
-    /// - The Bluechi API call fails
-    pub async fn start_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
-    }
+    Ok(format!("{method} '{unit_name}' : {job_path}\n"))
+}
 
-    /// Stop a workload using Bluechi API
-    ///
-    /// Stops an existing workload through the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario that owns the workload
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload stop was successful
-    /// * `Err(...)` if workload stop failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The workload does not exist
-    /// - The workload is already stopped
-    /// - The Bluechi API call fails
-    pub async fn stop_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
+/// Reload all nodes managed by the Bluechi controller
+///
+/// This function:
+/// 1. Lists all nodes registered with the controller
+/// 2. Creates a proxy for each node
+/// 3. Calls the Reload method on each node
+/// 4. Collects status information for reporting
+///
+/// # Arguments
+///
+/// * `proxy` - The proxy to the Bluechi controller
+///
+/// # Returns
+///
+/// * `Ok(String)` - A successful result message listing all reloaded nodes
+/// * `Err(...)` - If any of the D-Bus calls fail
+pub async fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> {
+    let (nodes,): (Vec<(String, dbus::Path, String)>,) =
+        proxy.method_call(DEST_CONTROLLER, "ListNodes", ())?;
+
+    let conn = Connection::new_system()?;
+    let mut result = String::new();
+    for (node_name, _, _) in nodes {
+        let (node,): (Path,) = proxy.method_call(DEST_CONTROLLER, "GetNode", (&node_name,))?;
+
+        let node_proxy = conn.with_proxy(DEST, node, Duration::from_millis(5000));
+        node_proxy.method_call::<(), _, _, _>(DEST_NODE, "Reload", ())?;
+
+        result.push_str(&format!("Node - {} is reloaded.\n", &node_name));
     }
+    Ok(result)
 }

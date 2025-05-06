@@ -1,153 +1,80 @@
-use common::Result;
-use tonic::{transport::Channel, Request};
-
-// Import the generated protobuf code for external service clients
-use common::policymanager::{
-    policy_manager_connection_client::PolicyManagerConnectionClient, CheckPolicyRequest,
-    CheckPolicyResponse,
-};
-
 use common::nodeagent::{
     node_agent_connection_client::NodeAgentConnectionClient, HandleWorkloadRequest,
-    HandleWorkloadResponse,
 };
+use common::policymanager::{
+    policy_manager_connection_client::PolicyManagerConnectionClient, CheckPolicyRequest,
+};
+use common::Result;
+use tonic::Request;
 
-/// Sender for making outgoing gRPC requests from ActionController
+/// Check if a scenario is allowed by policy
 ///
-/// Responsible for communication with:
-/// - PolicyManager: For policy checks before taking actions
-/// - NodeAgent: For handling workloads on nodes that don't use Bluechi
-pub struct ActionControllerSender {
-    /// Client for communicating with PolicyManager
-    policy_client: Option<PolicyManagerConnectionClient<Channel>>,
-    /// Client for communicating with NodeAgent
-    nodeagent_client: Option<NodeAgentConnectionClient<Channel>>,
+/// Makes a gRPC request to PolicyManager to check if the scenario
+/// meets the current policy requirements.
+///
+/// # Arguments
+///
+/// * `scenario_name` - The name of the scenario to check
+///
+/// # Returns
+///
+/// * `Ok(())` if the policy check passes
+/// * `Err(...)` if the policy check fails or the request fails
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The connection to PolicyManager is not established
+/// - The gRPC request fails
+/// - The policy check fails
+pub async fn check_policy(scenario_name: String) -> Result<i32> {
+    let addr = common::policymanager::connect_server();
+    let mut client = PolicyManagerConnectionClient::connect(addr).await.unwrap();
+    let request = Request::new(CheckPolicyRequest { scenario_name });
+    let response = client.check_policy(request).await?;
+    let response_inner = response.into_inner();
+
+    println!("Error: {}", response_inner.desc);
+    Ok(response_inner.status)
 }
 
-impl ActionControllerSender {
-    /// Create a new ActionControllerSender instance
-    ///
-    /// Initializes a sender with no active client connections.
-    /// Connections must be established using the `init` method.
-    ///
-    /// # Returns
-    ///
-    /// A new ActionControllerSender instance
-    pub fn new() -> Self {
-        Self {
-            policy_client: None,
-            nodeagent_client: None,
-        }
-    }
+/// Send a workload handling request to NodeAgent
+///
+/// Makes a gRPC request to NodeAgent to perform an action on a workload
+/// (create, delete, start, stop, etc.)
+///
+/// # Arguments
+///
+/// * `workload_name` - The name of the workload to handle
+/// * `action` - The action to perform (numeric code)
+/// * `description` - Additional information about the action
+///
+/// # Returns
+///
+/// * `Ok(())` if the request was successful
+/// * `Err(...)` if the request failed
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The connection to NodeAgent is not established
+/// - The gRPC request fails
+/// - The workload handling operation fails
+pub async fn handle_workload(
+    workload_name: String,
+    action: i32,
+    description: String,
+) -> Result<i32> {
+    let addr = common::nodeagent::connect_server();
+    let mut client = NodeAgentConnectionClient::connect(addr).await.unwrap();
+    let request = Request::new(HandleWorkloadRequest {
+        workload_name,
+        action,
+        description,
+    });
+    let response = client.handle_workload(request).await?;
+    let response_inner = response.into_inner();
 
-    /// Initialize gRPC client connections
-    ///
-    /// Establishes connections to:
-    /// - PolicyManager service
-    /// - NodeAgent service
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if initialization was successful
-    /// * `Err(...)` if connection establishment failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - Connection to PolicyManager fails
-    /// - Connection to NodeAgent fails
-    pub async fn init(&mut self) -> Result<()> {
-        // Initialize the policy client
-        let policy_addr = common::policymanager::connect_server();
-        self.policy_client = Some(PolicyManagerConnectionClient::connect(policy_addr).await?);
-
-        // Initialize the nodeagent client
-        let nodeagent_addr = common::nodeagent::connect_server();
-        self.nodeagent_client = Some(NodeAgentConnectionClient::connect(nodeagent_addr).await?);
-
-        Ok(())
-    }
-
-    /// Check if a scenario is allowed by policy
-    ///
-    /// Makes a gRPC request to PolicyManager to check if the scenario
-    /// meets the current policy requirements.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - The name of the scenario to check
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if the policy check passes
-    /// * `Err(...)` if the policy check fails or the request fails
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The connection to PolicyManager is not established
-    /// - The gRPC request fails
-    /// - The policy check fails
-    pub async fn check_policy(&self, scenario_name: String) -> Result<()> {
-        if let Some(client) = &self.policy_client {
-            let request = Request::new(CheckPolicyRequest { scenario_name });
-
-            // Make the gRPC call and handle the response
-            let response = client.clone().check_policy(request).await?;
-            let response_inner = response.into_inner();
-            
-            // Check status code - 0 means success, any other value means error
-            if response_inner.status != 0 {
-                // Return error with the description from the response
-                return Err(response_inner.desc.into());
-            }
-            
-            return Ok(());
-        }
-        
-        // If policy_client is None, return an error
-        return Err("PolicyManager client not connected".into())
-    }
-
-    /// Send a workload handling request to NodeAgent
-    ///
-    /// Makes a gRPC request to NodeAgent to perform an action on a workload
-    /// (create, delete, start, stop, etc.)
-    ///
-    /// # Arguments
-    ///
-    /// * `workload_name` - The name of the workload to handle
-    /// * `action` - The action to perform (numeric code)
-    /// * `description` - Additional information about the action
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if the request was successful
-    /// * `Err(...)` if the request failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The connection to NodeAgent is not established
-    /// - The gRPC request fails
-    /// - The workload handling operation fails
-    pub async fn handle_workload(
-        &self,
-        workload_name: String,
-        action: i32,
-        description: String,
-    ) -> Result<()> {
-        // TODO: Implementation
-        if let Some(client) = &self.nodeagent_client {
-            let request = Request::new(HandleWorkloadRequest {
-                workload_name,
-                action,
-                description,
-            });
-
-            // Make the gRPC call and handle the response
-        }
-
-        Ok(())
-    }
+    println!("Error: {}", response_inner.desc);
+    Ok(response_inner.status)
 }

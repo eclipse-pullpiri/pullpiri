@@ -26,7 +26,21 @@ pub struct DdsData {
 ///
 /// * `Result<()>` - Success or error result
 pub async fn run(tx: mpsc::Sender<DdsData>) -> Result<()> {
-    // TODO: Implementation
+    // Create a DdsManager instance using the provided channel
+    let mut manager = DdsManager {
+        listeners: Vec::new(),
+        domain_id: 100, // Default domain ID
+        tx,
+    };
+
+    // Configure the manager as needed
+    // manager.set_domain_id(1);  // Optional: use a different domain
+
+    // Add required listeners based on application needs
+    // Example: manager.create_listener("vehicle_status".to_string(), "Status".to_string()).await?;
+
+    // Start all listeners
+    manager.start_all().await?;
     Ok(())
 }
 
@@ -91,6 +105,16 @@ impl DdsManager {
         data_type_name: String,
     ) -> Result<()> {
         // TODO: Implementation
+        // Create a new listener with the given topic and data type
+        let listener = listener::TopicListener::new(
+            topic_name.clone(),
+            data_type_name.clone(),
+            self.tx.clone(),
+            self.domain_id,
+        );
+
+        // Add the listener to our collection
+        self.listeners.push(listener);
         Ok(())
     }
 
@@ -105,6 +129,16 @@ impl DdsManager {
     /// * `Result<()>` - Success or error result
     pub async fn remove_listener(&mut self, topic_name: &str) -> Result<()> {
         // TODO: Implementation
+        // Find and remove listeners with the matching topic name
+        let initial_len = self.listeners.len();
+        self.listeners
+            .retain(|listener| listener.topic_name != topic_name);
+
+        // Check if any listeners were removed
+        if self.listeners.len() == initial_len {
+            // Optional: You could log a warning here that no listener was found
+            // log::warn!("No listener found for topic: {}", topic_name);
+        }
         Ok(())
     }
 
@@ -115,6 +149,9 @@ impl DdsManager {
     /// * `Result<()>` - Success or error result
     pub async fn start_all(&mut self) -> Result<()> {
         // TODO: Implementation
+        for listener in &mut self.listeners {
+            listener.start().await?;
+        }
         Ok(())
     }
 
@@ -125,6 +162,9 @@ impl DdsManager {
     /// * `Result<()>` - Success or error result
     pub async fn stop_all(&mut self) -> Result<()> {
         // TODO: Implementation
+        for listener in &mut self.listeners {
+            listener.stop().await?;
+        }
         Ok(())
     }
 }

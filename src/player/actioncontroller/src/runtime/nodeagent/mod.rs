@@ -45,7 +45,7 @@ impl NodeAgentRuntime {
     /// Returns an error if:
     /// - Node information is invalid
     /// - Connection setup fails
-    pub async fn init(&mut self, nodes: Vec<String>) -> Result<()> {
+    async fn init(&mut self) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -70,7 +70,7 @@ impl NodeAgentRuntime {
     /// - The scenario definition is invalid
     /// - The NodeAgent API call fails
     /// - The workload already exists
-    pub async fn create_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn create_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -93,8 +93,9 @@ impl NodeAgentRuntime {
     /// Returns an error if:
     /// - The workload does not exist
     /// - The NodeAgent API call fails
-    pub async fn delete_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn delete_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
+
         Ok(())
     }
 
@@ -116,7 +117,7 @@ impl NodeAgentRuntime {
     /// Returns an error if:
     /// - The workload does not exist
     /// - The NodeAgent API call fails
-    pub async fn restart_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn restart_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }
@@ -140,7 +141,7 @@ impl NodeAgentRuntime {
     /// - The workload does not exist
     /// - The workload is not in a pausable state
     /// - The NodeAgent API call fails
-    pub async fn pause_workload(&self, scenario_name: &str) -> Result<()> {
+    async fn pause_workload(&self, scenario_name: &str) -> Result<()> {
         // TODO: Implementation
         Ok(())
     }

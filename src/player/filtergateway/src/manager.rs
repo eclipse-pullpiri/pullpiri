@@ -1,16 +1,10 @@
 use crate::filter::Filter;
 use crate::grpc::sender::FilterGatewaySender;
 use crate::vehicle::dds::DdsData;
+use common::spec::artifact::Scenario;
 use common::{spec::artifact::Artifact, Result};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-use common::spec::artifact::Scenario;
-
-
-/// 시나리오 타입 별칭
-///
-/// common 크레이트의 spec::artifact::Scenario를 사용하는 대신 타입 별칭 사용
-// pub type Scenario = serde_yaml::Value;
 
 /// Manager for FilterGateway
 ///
@@ -63,6 +57,53 @@ impl FilterGatewayManager {
     /// * `Result<()>` - Success or error result
     pub async fn run(&mut self) -> Result<()> {
         // TODO: Implementation
+        loop {
+            tokio::select! {
+                // Process incoming scenario requests from gRPC
+                // Some(scenario) = self.rx_grpc.recv() => {
+                //     println!("Received scenario: {}", scenario.get_name());
+
+                //     match scenario.get_artifact() {
+                //         Artifact::Launch => {
+                //             // Launch a new filter for this scenario
+                //             self.launch_scenario_filter(scenario).await?;
+                //         },
+                //         Artifact::Stop => {
+                //             // Stop and remove the filter for this scenario
+                //             self.remove_scenario_filter(scenario.get_name().to_string()).await?;
+                //         },
+                //         _ => {
+                //             println!("Unhandled scenario artifact type: {:?}", scenario.get_artifact());
+                //         }
+                //     }
+                // },
+
+                // // Process incoming DDS data
+                // dds_data = self.rx_dds.lock().await.recv() => {
+                //     if let Some(data) = dds_data {
+                //         println!("Received DDS data");
+
+                //         // Process DDS data with active filters
+                //         let filters = self.filters.lock().await;
+                //         for filter in filters.iter() {
+                //             // Here we would process the data with each filter
+                //             // Check if the scenario conditions are met
+                //             filter.meet_scenario_condition(&data).await?;
+
+                //             println!("Processing DDS data for scenario: {}", filter.scenario_name);
+                //         }
+                //     } else {
+                //         println!("DDS data channel closed");
+                //         break;
+                //     }
+                // },
+
+                else => {
+                    println!("All channels closed, exiting");
+                    break;
+                }
+            }
+        }
         Ok(())
     }
 
@@ -123,17 +164,22 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn launch_scenario_filter(&self, scenario: Scenario) -> Result<()> {
-        // let _ = scenario; // 사용하지 않는 변수 경고 방지
+        // Check if the scenario has conditions
+        if scenario.get_conditions().is_none() {
+            println!("No conditions for scenario: {}", scenario.get_name());
+            self.sender
+                .trigger_action(scenario.get_name().clone())
+                .await?;
+            return Ok(());
+        }
+
         // Create a new filter for the scenario
         let filter = Filter::new(
             scenario.get_name().to_string(),
-            Some(Arc::new(scenario)),
+            scenario,
             true,
-            self.sender.clone()
-            );
-
-        // Clone the filter for use in the async task
-        // let filter_for_task = Arc::clone(&filter);
+            self.sender.clone(),
+        );
 
         // Add the filter to our managed collection
         {
@@ -159,7 +205,9 @@ impl FilterGatewayManager {
 
         let arc_filters = Arc::clone(&self.filters);
         let mut filters = arc_filters.lock().await;
-        let index = filters.iter().position(|f| f.scenario_name == scenario_name);
+        let index = filters
+            .iter()
+            .position(|f| f.scenario_name == scenario_name);
         if let Some(i) = index {
             filters.remove(i);
         }

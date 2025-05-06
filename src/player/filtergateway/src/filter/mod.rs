@@ -1,7 +1,7 @@
 use crate::grpc::sender::FilterGatewaySender;
 use crate::vehicle::dds::DdsData;
-use common::Result;
 use common::spec::artifact::Scenario;
+use common::Result;
 // use dust_dds::infrastructure::wait_set::Condition;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -11,7 +11,7 @@ pub struct Filter {
     /// Name of the scenario
     pub scenario_name: String,
     /// Full scenario definition
-    pub scenario: Option<Arc<common::spec::artifact::Scenario>>,
+    pub scenario: common::spec::artifact::Scenario,
     /// Flag to indicate if the filter is active
     is_active: bool,
     /// gRPC sender for action controller
@@ -33,7 +33,7 @@ impl Filter {
     /// A new Filter instance
     pub fn new(
         scenario_name: String,
-        scenario: Option<Arc<common::spec::artifact::Scenario>>,
+        scenario: common::spec::artifact::Scenario,
         is_active: bool,
         sender: Arc<FilterGatewaySender>,
     ) -> Self {
@@ -58,9 +58,49 @@ impl Filter {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn meet_scenario_condition(&self, data: &DdsData) -> Result<()> {
-        let _ = data; // 사용하지 않는 변수 경고 방지
-                      // TODO: Implementation                      
-        Ok(())
+        let condition = self.scenario.get_conditions().unwrap();
+        let topic = condition.get_operand_value();
+        let target_value = condition.get_value();
+        let express = condition.get_express();
+
+        if !data.name.eq(&topic) {
+            return Err("data topic does not match".into());
+        }
+
+        let check: bool = match express.as_str() {
+            "eq" => target_value.to_lowercase() == data.value.to_lowercase(),
+            "lt" => {
+                let target_v = target_value.parse::<f32>().unwrap();
+                let current_v = data.value.parse::<f32>().unwrap();
+                target_v < current_v
+            }
+            "le" => {
+                let target_v = target_value.parse::<f32>().unwrap();
+                let current_v = data.value.parse::<f32>().unwrap();
+                target_v <= current_v
+            }
+            "ge" => {
+                let target_v = target_value.parse::<f32>().unwrap();
+                let current_v = data.value.parse::<f32>().unwrap();
+                target_v >= current_v
+            }
+            "gt" => {
+                let target_v = target_value.parse::<f32>().unwrap();
+                let current_v = data.value.parse::<f32>().unwrap();
+                target_v > current_v
+            }
+            _ => return Err("wrong expression in condition".into()),
+        };
+
+        if check {
+            println!("Condition met for scenario: {}", self.scenario_name);
+            self.sender
+                .trigger_action(self.scenario_name.clone())
+                .await?;
+            Ok(())
+        } else {
+            Err("cannot meet condition".into())
+        }
     }
 
     /// Pause the filter processing
@@ -74,9 +114,9 @@ impl Filter {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn pause_scenario_filter(&mut self, scenario_name: String) -> Result<()> {
-        let _ = scenario_name; // 사용하지 않는 변수 경고 방지
-                               // TODO: Implementation
+    pub async fn pause_scenario_filter(&mut self) -> Result<()> {
+        // TODO: Implementation
+        self.is_active = false;
         Ok(())
     }
 
@@ -91,10 +131,9 @@ impl Filter {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn resume_scenario_filter(&mut self, scenario_name: String) -> Result<()> {
-        let _ = scenario_name; // 사용하지 않는 변수 경고 방지
-                               // TODO: Implementation
+    pub async fn resume_scenario_filter(&mut self) -> Result<()> {
+        // TODO: Implementation
+        self.is_active = true;
         Ok(())
     }
 }
-

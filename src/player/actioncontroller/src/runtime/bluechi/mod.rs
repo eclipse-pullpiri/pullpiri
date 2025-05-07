@@ -148,3 +148,161 @@ pub async fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> 
     }
     Ok(result)
 }
+
+//UNIT TEST
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dbus::blocking::{Connection, Proxy};
+    use std::time::Duration;
+
+    /// Dummy Connection (session bus)
+    fn dummy_connection() -> Connection {
+        Connection::new_session().unwrap()
+    }
+
+    /// Check if BlueChi D-Bus service is available (only for tests)
+    fn is_bluechi_service_available(conn: &Connection) -> bool {
+        let proxy = conn.with_proxy("org.freedesktop.DBus", "/org/freedesktop/DBus", Duration::from_millis(5000));
+    
+        let result: core::result::Result<(bool,), Box<dyn std::error::Error>> =
+            proxy.method_call("org.freedesktop.DBus", "NameHasOwner", (DEST,))
+                 .map_err(|e| Box::new(e) as Box<dyn std::error::Error>);
+    
+        match result {
+            Ok((has_owner,)) => has_owner,
+            Err(_) => false,
+        }
+    }
+    
+    /// Test handle_bluechi_cmd() with ControllerReloadAllNodes command (positive)
+    #[tokio::test]
+    async fn test_handle_bluechi_cmd_controller_reload() {
+        let scenario = "test-scenario";
+        let node = "node1";
+        let cmd = BluechiCmd {
+            command: Command::ControllerReloadAllNodes,
+        };
+
+        let result = handle_bluechi_cmd(scenario, node, cmd).await;
+        assert!(result.is_ok());
+    }
+
+    /// Test handle_bluechi_cmd() with UnitStart command (positive)
+    #[tokio::test]
+    async fn test_handle_bluechi_cmd_unit_start() {
+        let scenario = "test-scenario";
+        let node = "node1";
+        let cmd = BluechiCmd {
+            command: Command::UnitStart,
+        };
+
+        let result = handle_bluechi_cmd(scenario, node, cmd).await;
+        assert!(result.is_ok());
+    }
+
+    /// Test workload_run() with dummy data (positive)
+    #[tokio::test]
+    async fn test_workload_run_start_unit() {
+        let conn = dummy_connection();
+
+        if !is_bluechi_service_available(&conn) {
+            println!("Skipping test_workload_run_start_unit — BlueChi service unavailable.");
+            return;
+        }
+
+        let scenario = "test-scenario";
+        let node = "node1";
+        let unit_name = "unitA";
+
+        let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
+
+        let result = workload_run(&conn, "StartUnit", node, &bluechi_proxy, unit_name).await;
+        assert!(result.is_ok());
+
+        let output = result.unwrap();
+        assert!(output.contains("StartUnit"));
+        assert!(output.contains(unit_name));
+    }
+
+    /// Test reload_all_nodes() (positive)
+    #[tokio::test]
+    async fn test_reload_all_nodes() {
+        let conn = dummy_connection();
+
+        if !is_bluechi_service_available(&conn) {
+            println!("Skipping test_reload_all_nodes — BlueChi service unavailable.");
+            return;
+        }
+
+        let proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
+        let result = reload_all_nodes(&proxy).await;
+        assert!(result.is_ok());
+    }
+
+    /// Test Command::to_method_name() for all command variants (sync test)
+    #[tokio::test]
+    async fn test_command_to_method_name() {
+        assert_eq!(Command::UnitStart.to_method_name(), "StartUnit");
+        assert_eq!(Command::UnitStop.to_method_name(), "StopUnit");
+        assert_eq!(Command::UnitRestart.to_method_name(), "RestartUnit");
+        assert_eq!(Command::UnitReload.to_method_name(), "ReloadUnit");
+
+        let unknown_cmd = Command::ControllerReloadAllNodes;
+        assert_eq!(unknown_cmd.to_method_name(), "Unknown");
+    }
+
+    // ------------------- NEGATIVE TESTS -------------------
+
+    /// Negative: workload_run() with invalid node name
+    #[tokio::test]
+    async fn test_workload_run_invalid_node() {
+        let conn = dummy_connection();
+
+        if !is_bluechi_service_available(&conn) {
+            println!("Skipping test_workload_run_invalid_node — BlueChi service unavailable.");
+            return;
+        }
+
+        let invalid_node = "nonexistent-node";
+        let unit_name = "unitA";
+
+        let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
+
+        let result = workload_run(&conn, "StartUnit", invalid_node, &bluechi_proxy, unit_name).await;
+        assert!(result.is_err());
+    }
+
+    /// Negative: workload_run() with invalid method
+    #[tokio::test]
+    async fn test_workload_run_invalid_method() {
+        let conn = dummy_connection();
+
+        if !is_bluechi_service_available(&conn) {
+            println!("Skipping test_workload_run_invalid_method — BlueChi service unavailable.");
+            return;
+        }
+
+        let node = "node1";
+        let unit_name = "unitA";
+        let invalid_method = "NonExistentMethod";
+
+        let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
+
+        let result = workload_run(&conn, invalid_method, node, &bluechi_proxy, unit_name).await;
+        assert!(result.is_err());
+    }
+
+    /// Negative: reload_all_nodes() with missing service
+    #[tokio::test]
+    async fn test_reload_all_nodes_service_missing() {
+        let conn = dummy_connection();
+
+        // Intentionally use a WRONG DEST to simulate service missing
+        let fake_dest = "org.eclipse.fakebluechi";
+        let proxy = conn.with_proxy(fake_dest, PATH, Duration::from_millis(5000));
+
+        let result = reload_all_nodes(&proxy).await;
+        assert!(result.is_err());
+    }
+}

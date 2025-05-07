@@ -16,10 +16,13 @@ mod runtime;
 /// - Configuration files cannot be read
 /// - Node information is invalid
 /// - gRPC server setup fails
-async fn initialize() -> Result<(), Box<dyn Error>> {
+async fn initialize(skip_grpc: bool) -> Result<(), Box<dyn Error>> {
     // TODO: Implementation
     let manager = manager::ActionControllerManager::new();
-    grpc::init(manager).await?;
+    //Production code will not effect by this change
+    if !skip_grpc {
+        grpc::init(manager).await?;
+    }
 
     Ok(())
 }
@@ -40,7 +43,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Starting ActionController...");
 
     // Initialize the controller
-    initialize().await?;
+    initialize(false).await?;
 
     // TODO: Set up gRPC server
 
@@ -49,4 +52,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Shutting down ActionController...");
 
     Ok(())
+}
+
+//UNIT TEST
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Positive test: initialize should succeed when skip_grpc is true
+    #[tokio::test]
+    async fn test_initialize_success() {
+        let result = initialize(true).await;
+        assert!(
+            result.is_ok(),
+            "Expected initialize() to return Ok(), got Err: {:?}",
+            result.err()
+        );
+    }
+
+    // Negative test (edge case): double initialization (should not panic or fail)
+    #[tokio::test]
+    async fn test_double_initialize() {
+        let first = initialize(true).await;
+        let second = initialize(true).await;
+
+        assert!(first.is_ok(), "First initialize() should succeed");
+        assert!(second.is_ok(), "Second initialize() should succeed");
+    }
 }

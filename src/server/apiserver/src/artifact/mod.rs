@@ -56,6 +56,9 @@ pub async fn apply(body: &str) -> common::Result<(String, String)> {
 
     if scenario_str.is_empty() {
         Err("There is not any scenario in yaml string".into())
+    } else if package_str.is_empty() {
+        //Missing Check is Added for Package
+        Err("There is not any package in yaml string".into())
     } else {
         Ok((scenario_str, package_str))
     }
@@ -91,4 +94,191 @@ pub async fn withdraw(body: &str) -> common::Result<String> {
     }
 
     Err("There is not any scenario in yaml string".into())
+}
+
+//UNIT TEST CASES
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio;
+
+    // -- Test Artifacts --
+
+    /// Valid artifact YAML (Scenario + Package + Model)
+    const VALID_ARTIFACT_YAML: &str = r#"
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: helloworld
+spec:
+  condition:
+  action: update
+  target: helloworld
+---
+apiVersion: v1
+kind: Package
+metadata:
+  name: helloworld
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: helloworld-core
+      node: HPC
+      resources:
+        volume: []
+        network: []
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: helloworld-core
+spec:
+  hostNetwork: true
+  containers:
+    - name: helloworld
+      image: helloworld
+  terminationGracePeriodSeconds: 0
+"#;
+
+    /// Invalid YAML — missing `action` in Scenario
+    const INVALID_YAML_MISSING_ACTION: &str = r#"
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: helloworld
+spec:
+  condition:
+  target: helloworld
+---
+apiVersion: v1
+kind: Package
+metadata:
+  name: helloworld
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: helloworld-core
+      node: HPC
+      resources:
+        volume: []
+        network: []
+"#;
+
+    /// Invalid YAML — only unknown artifact
+    const INVALID_YAML_UNKNOWN_ARTIFACT: &str = r#"
+apiVersion: v1
+kind: Unknown
+metadata:
+  name: helloworld
+spec:
+  dummy: value
+"#;
+
+    /// Invalid YAML — empty string
+    const INVALID_YAML_EMPTY: &str = "";
+
+    // -- apply() tests --
+
+    /// Test apply() with valid artifact YAML (Scenario + Package present)
+    #[tokio::test]
+    async fn test_apply_valid_artifact() {
+        let result = apply(VALID_ARTIFACT_YAML).await;
+
+        // Assert: should succeed because both Scenario + Package present and valid
+        assert!(
+            result.is_ok(),
+            "apply() failed with valid artifact: {:?}",
+            result.err()
+        );
+
+        // Assert: scenario and package strings should not be empty
+        let (scenario, package) = result.unwrap();
+        assert!(!scenario.is_empty(), "Scenario YAML should not be empty");
+        assert!(!package.is_empty(), "Package YAML should not be empty");
+    }
+
+    /// Test apply() with missing `action` field (invalid Scenario)
+    #[tokio::test]
+    async fn test_apply_invalid_missing_action() {
+        let result = apply(INVALID_YAML_MISSING_ACTION).await;
+
+        // Assert: should fail because Scenario is invalid (missing required field)
+        assert!(
+            result.is_err(),
+            "apply() unexpectedly succeeded with missing action"
+        );
+    }
+
+    /// Test apply() with unknown artifact (no Scenario, no Package)
+    #[tokio::test]
+    async fn test_apply_invalid_unknown_artifact() {
+        let result = apply(INVALID_YAML_UNKNOWN_ARTIFACT).await;
+
+        // Assert: should fail because no Scenario or Package present
+        assert!(
+            result.is_err(),
+            "apply() unexpectedly succeeded with unknown artifact only"
+        );
+    }
+
+    /// Test apply() with empty YAML
+    #[tokio::test]
+    async fn test_apply_invalid_empty_yaml() {
+        let result = apply(INVALID_YAML_EMPTY).await;
+
+        // Assert: should fail because YAML is empty
+        assert!(
+            result.is_err(),
+            "apply() unexpectedly succeeded with empty YAML"
+        );
+    }
+
+    // -- withdraw() tests --
+
+    /// Test withdraw() with valid artifact YAML (Scenario present)
+    #[tokio::test]
+    async fn test_withdraw_valid_artifact() {
+        let result = withdraw(VALID_ARTIFACT_YAML).await;
+
+        // Assert: should succeed because Scenario is present
+        assert!(
+            result.is_ok(),
+            "withdraw() failed with valid artifact: {:?}",
+            result.err()
+        );
+
+        // Assert: returned scenario YAML should not be empty
+        let scenario = result.unwrap();
+        assert!(
+            !scenario.is_empty(),
+            "Returned scenario YAML should not be empty"
+        );
+    }
+
+    /// Test withdraw() with unknown artifact (no Scenario)
+    #[tokio::test]
+    async fn test_withdraw_invalid_unknown_artifact() {
+        let result = withdraw(INVALID_YAML_UNKNOWN_ARTIFACT).await;
+
+        // Assert: should fail because no Scenario present
+        assert!(
+            result.is_err(),
+            "withdraw() unexpectedly succeeded with unknown artifact"
+        );
+    }
+
+    /// Test withdraw() with empty YAML
+    #[tokio::test]
+    async fn test_withdraw_invalid_empty_yaml() {
+        let result = withdraw(INVALID_YAML_EMPTY).await;
+
+        // Assert: should fail because YAML is empty
+        assert!(
+            result.is_err(),
+            "withdraw() unexpectedly succeeded with empty YAML"
+        );
+    }
 }

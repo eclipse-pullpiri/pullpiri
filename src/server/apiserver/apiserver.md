@@ -316,3 +316,5 @@ pub fn copy_to_remote_node(file_names: Vec<String>) -> common::Result<()> {}
 - REST API 로 들어오는 artifact 예제는 `examples/resources` 아래 yaml 파일을 사용한다.
 
 ## 5.코드 생성 이후 추가 요구사항
+
+## 6. unittesting

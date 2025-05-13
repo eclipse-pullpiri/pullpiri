@@ -15,7 +15,9 @@ use common::{
 pub struct ActionControllerManager {
     /// List of nodes managed by Bluechi
     pub bluechi_nodes: Vec<String>,
+    pub bluechi_nodes: Vec<String>,
     /// List of nodes managed by NodeAgent
+    pub nodeagent_nodes: Vec<String>,
     pub nodeagent_nodes: Vec<String>,
     // Add other fields as needed
 }
@@ -96,10 +98,12 @@ impl ActionControllerManager {
         let action: String = scenario.get_actions();
 
         let etcd_package_key: String = format!("package/{}", scenario.get_targets());
+        let etcd_package_key: String = format!("package/{}", scenario.get_targets());
         let package_str = common::etcd::get(&etcd_package_key).await?;
         let package: Package = serde_yaml::from_str(&package_str)?;
 
         for mi in package.get_models() {
+            let model_name = format!("{}.service", mi.get_name());
             let model_name = format!("{}.service", mi.get_name());
             let model_node = mi.get_node();
             let node_type = if self.bluechi_nodes.contains(&model_node) {
@@ -172,6 +176,7 @@ impl ActionControllerManager {
         let package: Package = serde_yaml::from_str(&package_str)?;
 
         for mi in package.get_models() {
+            let model_name = format!("{}.service", mi.get_name());
             let model_name = format!("{}.service", mi.get_name());
             let model_node = mi.get_node();
             let node_type = if self.bluechi_nodes.contains(&model_node) {

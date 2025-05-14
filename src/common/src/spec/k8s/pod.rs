@@ -94,11 +94,227 @@ pub struct Requests {
 }
 
 impl PodSpec {
-    pub fn get_image(&self) -> &str {
-        &self.containers[0].image
+    /// Returns the image of the first container in the PodSpec.
+    /// If no containers are present, returns `None`.
+    pub fn get_image(&self) -> Option<&str> {
+        self.containers.get(0).map(|container| container.image.as_str())
     }
 
     pub fn get_volume(&mut self) -> &Option<Vec<Volume>> {
         &self.volumes
+    }
+}
+
+//Unit Test Cases
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Positive Test: Validate that `get_image` returns the image of the first container
+    // when multiple containers are present in the PodSpec.
+    #[tokio::test]
+    async fn test_get_image_with_multiple_containers() {
+        let container1 = Container {
+            name: String::from("container-1"),
+            image: String::from("image-1"),
+            volumeMounts: None,
+            env: None,
+            ports: None,
+            command: None,
+            workingDir: None,
+            resources: None,
+        };
+        let container2 = Container {
+            name: String::from("container-2"),
+            image: String::from("image-2"),
+            volumeMounts: None,
+            env: None,
+            ports: None,
+            command: None,
+            workingDir: None,
+            resources: None,
+        };
+        let podspec = PodSpec {
+            hostNetwork: None,
+            containers: vec![container1, container2],
+            volumes: None,
+            initContainers: None,
+            restartPolicy: None,
+            terminationGracePeriodSeconds: None,
+            hostIpc: None,
+            runtimeClassName: None,
+        };
+        assert_eq!(podspec.get_image(), Some("image-1"));
+    }
+
+    // Negative Test: Validate that `get_image` returns `None` when no containers are present.
+    #[tokio::test]
+    async fn test_get_image_with_no_containers() {
+        let podspec = PodSpec {
+            hostNetwork: None,
+            containers: vec![],
+            volumes: None,
+            initContainers: None,
+            restartPolicy: None,
+            terminationGracePeriodSeconds: None,
+            hostIpc: None,
+            runtimeClassName: None,
+        };
+        assert_eq!(podspec.get_image(), None);
+    }
+
+    // Negative Test: Validate that `get_image` correctly handles containers with an empty
+    // image field and returns an empty string.
+    #[tokio::test]
+    async fn test_get_image_with_null_image_field() {
+        let container = Container {
+            name: String::from("test-container"),
+            image: String::from(""),
+            volumeMounts: None,
+            env: None,
+            ports: None,
+            command: None,
+            workingDir: None,
+            resources: None,
+        };
+        let podspec = PodSpec {
+            hostNetwork: None,
+            containers: vec![container],
+            volumes: None,
+            initContainers: None,
+            restartPolicy: None,
+            terminationGracePeriodSeconds: None,
+            hostIpc: None,
+            runtimeClassName: None,
+        };
+        assert_eq!(podspec.get_image(), Some(""));
+    }
+
+    // Positive Test: Validate that `get_volume` correctly returns all volumes when
+    // multiple volumes are present in the PodSpec.
+    #[tokio::test]
+    async fn test_get_volume_with_multiple_volumes() {
+        let volume1 = Volume {
+            name: String::from("volume-1"),
+            hostPath: HostPath {
+                path: String::from("/path/1"),
+            },
+        };
+        let volume2 = Volume {
+            name: String::from("volume-2"),
+            hostPath: HostPath {
+                path: String::from("/path/2"),
+            },
+        };
+        let mut podspec = PodSpec {
+            hostNetwork: None,
+            containers: vec![],
+            volumes: Some(vec![volume1, volume2]),
+            initContainers: None,
+            restartPolicy: None,
+            terminationGracePeriodSeconds: None,
+            hostIpc: None,
+            runtimeClassName: None,
+        };
+        assert_eq!(podspec.get_volume(), &Some(vec![
+            Volume {
+                name: String::from("volume-1"),
+                hostPath: HostPath {
+                    path: String::from("/path/1"),
+                },
+            },
+            Volume {
+                name: String::from("volume-2"),
+                hostPath: HostPath {
+                    path: String::from("/path/2"),
+                },
+            },
+        ]));
+    }
+
+    // Negative Test: Validate that `get_volume` returns `None` when no volumes are present.
+    #[tokio::test]
+    async fn test_get_volume_with_no_volumes() {
+        let mut podspec = PodSpec {
+            hostNetwork: None,
+            containers: vec![],
+            volumes: None,
+            initContainers: None,
+            restartPolicy: None,
+            terminationGracePeriodSeconds: None,
+            hostIpc: None,
+            runtimeClassName: None,
+        };
+        assert_eq!(podspec.get_volume(), &None);
+    }
+
+    // Negative Test: Validate that `get_volume` correctly handles an empty volume list.
+    #[tokio::test]
+    async fn test_get_volume_with_empty_volume_list() {
+        let mut podspec = PodSpec {
+            hostNetwork: None,
+            containers: vec![],
+            volumes: Some(vec![]),
+            initContainers: None,
+            restartPolicy: None,
+            terminationGracePeriodSeconds: None,
+            hostIpc: None,
+            runtimeClassName: None,
+        };
+        assert_eq!(podspec.get_volume(), &Some(vec![]));
+    }
+
+    // Negative Test: Validate that `get_volume` correctly handles invalid volume data.
+    #[tokio::test]
+    async fn test_get_volume_with_invalid_volume() {
+        let volume = Volume {
+            name: String::from(""),
+            hostPath: HostPath {
+                path: String::from(""),
+            },
+        };
+        let mut podspec = PodSpec {
+            hostNetwork: None,
+            containers: vec![],
+            volumes: Some(vec![volume]),
+            initContainers: None,
+            restartPolicy: None,
+            terminationGracePeriodSeconds: None,
+            hostIpc: None,
+            runtimeClassName: None,
+        };
+        assert_eq!(podspec.get_volume(), &Some(vec![Volume {
+            name: String::from(""),
+            hostPath: HostPath {
+                path: String::from(""),
+            },
+        }]));
+    }
+
+    // Positive Test: Validate that `get_image` correctly handles container image names
+    // with special characters such as colons and tags.
+    #[tokio::test]
+    async fn test_get_image_with_special_characters_in_image_name() {
+        let container = Container {
+            name: String::from("test-container"),
+            image: String::from("special:image@tag"),
+            volumeMounts: None,
+            env: None,
+            ports: None,
+            command: None,
+            workingDir: None,
+            resources: None,
+        };
+        let podspec = PodSpec {
+            hostNetwork: None,
+            containers: vec![container],
+            volumes: None,
+            initContainers: None,
+            restartPolicy: None,
+            terminationGracePeriodSeconds: None,
+            hostIpc: None,
+            runtimeClassName: None,
+        };
+        assert_eq!(podspec.get_image(), Some("special:image@tag"));
     }
 }

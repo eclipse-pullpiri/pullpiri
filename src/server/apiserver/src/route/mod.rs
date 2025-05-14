@@ -40,15 +40,16 @@ pub async fn launch_tcp_listener() {
 /// * `result: Result<()>` - result of API handler logic
 /// ### Description
 /// Additional StatusCode may be added depending on the error.
+#[allow(clippy::useless_conversion)]
 pub fn status(result: common::Result<()>) -> Response {
     if let Err(msg) = result {
-        return (
+        (
             StatusCode::METHOD_NOT_ALLOWED,
             Json(String::from(msg.to_string())),
         )
-            .into_response();
+            .into_response()
     } else {
-        return (StatusCode::OK, Json(String::from("Ok"))).into_response();
+        (StatusCode::OK, Json(String::from("Ok"))).into_response()
     }
 }
 

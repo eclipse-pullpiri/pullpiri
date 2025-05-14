@@ -86,6 +86,7 @@ fn make_yaml_file(dir: &str, pod: Pod) -> common::Result<()> {
 /// TBD
 /// ### Description
 /// TBD
+#[allow(unused_variables)]
 pub fn copy_to_remote_node(file_names: Vec<String>) -> common::Result<()> {
     Ok(())
 }

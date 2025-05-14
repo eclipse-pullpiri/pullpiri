@@ -17,6 +17,7 @@ pub mod nodeagent;
 /// Returns an error if:
 /// - Configuration for either runtime system is invalid
 /// - Connection to runtime systems fails
+#[allow(dead_code)]
 pub async fn init() -> common::Result<()> {
     // TODO: Implementation
     Ok(())
@@ -31,7 +32,11 @@ mod tests {
     #[tokio::test]
     async fn test_init_success() {
         let result = init().await;
-        assert!(result.is_ok(), "Expected init() to succeed, got: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Expected init() to succeed, got: {:?}",
+            result
+        );
     }
 
     // Negative test case (This will be based on our production logic in future)

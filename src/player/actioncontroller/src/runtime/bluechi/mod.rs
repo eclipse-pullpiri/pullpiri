@@ -60,6 +60,7 @@ impl Command {
 /// * `scenario_name` - Name of the scenario to operate on
 /// * `node` - Name of the node to target
 /// * `bluechi_cmd` - The Bluechi command to execute
+#[allow(clippy::let_underscore_future)]
 pub async fn handle_bluechi_cmd(
     scenario_name: &str,
     node: &str,
@@ -163,18 +164,22 @@ mod tests {
 
     /// Check if BlueChi D-Bus service is available (only for tests)
     fn is_bluechi_service_available(conn: &Connection) -> bool {
-        let proxy = conn.with_proxy("org.freedesktop.DBus", "/org/freedesktop/DBus", Duration::from_millis(5000));
-    
-        let result: core::result::Result<(bool,), Box<dyn std::error::Error>> =
-            proxy.method_call("org.freedesktop.DBus", "NameHasOwner", (DEST,))
-                 .map_err(|e| Box::new(e) as Box<dyn std::error::Error>);
-    
+        let proxy = conn.with_proxy(
+            "org.freedesktop.DBus",
+            "/org/freedesktop/DBus",
+            Duration::from_millis(5000),
+        );
+
+        let result: core::result::Result<(bool,), Box<dyn std::error::Error>> = proxy
+            .method_call("org.freedesktop.DBus", "NameHasOwner", (DEST,))
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>);
+
         match result {
             Ok((has_owner,)) => has_owner,
             Err(_) => false,
         }
     }
-    
+
     /// Test handle_bluechi_cmd() with ControllerReloadAllNodes command (positive)
     #[tokio::test]
     async fn test_handle_bluechi_cmd_controller_reload() {
@@ -269,7 +274,8 @@ mod tests {
 
         let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
 
-        let result = workload_run(&conn, "StartUnit", invalid_node, &bluechi_proxy, unit_name).await;
+        let result =
+            workload_run(&conn, "StartUnit", invalid_node, &bluechi_proxy, unit_name).await;
         assert!(result.is_err());
     }
 

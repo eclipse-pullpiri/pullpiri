@@ -1,11 +1,12 @@
+#![allow(unused_variables)]
 use common::Result;
 use std::collections::HashMap;
-
 /// Runtime implementation for NodeAgent API interactions
 ///
 /// Handles workload operations for nodes managed by NodeAgent,
 /// making gRPC calls to the NodeAgent service to perform
 /// operations like creating, starting, stopping, and deleting workloads.
+#[allow(dead_code)]
 pub struct NodeAgentRuntime {
     /// Connection information for each NodeAgent
     node_connections: HashMap<String, String>,
@@ -13,6 +14,7 @@ pub struct NodeAgentRuntime {
     workload_cache: HashMap<String, String>,
 }
 
+#[allow(dead_code)]
 impl NodeAgentRuntime {
     /// Create a new NodeAgentRuntime instance
     ///
@@ -206,8 +208,14 @@ mod tests {
     #[tokio::test]
     async fn test_new_initializes_empty() {
         let runtime = NodeAgentRuntime::new();
-        assert!(runtime.node_connections.is_empty(), "node_connections should be empty");
-        assert!(runtime.workload_cache.is_empty(), "workload_cache should be empty");
+        assert!(
+            runtime.node_connections.is_empty(),
+            "node_connections should be empty"
+        );
+        assert!(
+            runtime.workload_cache.is_empty(),
+            "workload_cache should be empty"
+        );
     }
 
     // ------------------------- init() -------------------------
@@ -224,11 +232,16 @@ mod tests {
         let mut runtime = NodeAgentRuntime::new();
 
         // Simulate invalid node info if implementation later checks connections
-        runtime.node_connections.insert("invalid_node".to_string(), "".to_string());
+        runtime
+            .node_connections
+            .insert("invalid_node".to_string(), "".to_string());
 
         let result = runtime.init().await;
         // Replace this is_ok() with is_err() once real validation exists
-        assert!(result.is_ok(), "TODO: expect Err once init validates node info");
+        assert!(
+            result.is_ok(),
+            "TODO: expect Err once init validates node info"
+        );
     }
 
     // ------------------------- create_workload() -------------------------
@@ -245,7 +258,10 @@ mod tests {
         let runtime = NodeAgentRuntime::new();
 
         let result = runtime.create_workload("").await; // Empty scenario = invalid
-        assert!(result.is_ok(), "TODO: expect Err once create_workload validates input");
+        assert!(
+            result.is_ok(),
+            "TODO: expect Err once create_workload validates input"
+        );
     }
 
     // ------------------------- delete_workload() -------------------------
@@ -261,7 +277,10 @@ mod tests {
     async fn test_delete_workload_nonexistent_should_fail() {
         let runtime = NodeAgentRuntime::new();
         let result = runtime.delete_workload("nonexistent_scenario").await;
-        assert!(result.is_ok(), "TODO: expect Err when workload does not exist");
+        assert!(
+            result.is_ok(),
+            "TODO: expect Err when workload does not exist"
+        );
     }
 
     // ------------------------- restart_workload() -------------------------
@@ -277,7 +296,10 @@ mod tests {
     async fn test_restart_workload_nonexistent_should_fail() {
         let runtime = NodeAgentRuntime::new();
         let result = runtime.restart_workload("nonexistent_scenario").await;
-        assert!(result.is_ok(), "TODO: expect Err when workload does not exist");
+        assert!(
+            result.is_ok(),
+            "TODO: expect Err when workload does not exist"
+        );
     }
 
     // ------------------------- pause_workload() -------------------------
@@ -293,7 +315,10 @@ mod tests {
     async fn test_pause_workload_nonexistent_should_fail() {
         let runtime = NodeAgentRuntime::new();
         let result = runtime.pause_workload("nonexistent_scenario").await;
-        assert!(result.is_ok(), "TODO: expect Err when workload does not exist");
+        assert!(
+            result.is_ok(),
+            "TODO: expect Err when workload does not exist"
+        );
     }
 
     // ------------------------- start_workload() -------------------------
@@ -309,7 +334,10 @@ mod tests {
     async fn test_start_workload_nonexistent_should_fail() {
         let runtime = NodeAgentRuntime::new();
         let result = runtime.start_workload("nonexistent_scenario").await;
-        assert!(result.is_ok(), "TODO: expect Err when workload does not exist");
+        assert!(
+            result.is_ok(),
+            "TODO: expect Err when workload does not exist"
+        );
     }
 
     // ------------------------- stop_workload() -------------------------
@@ -325,6 +353,9 @@ mod tests {
     async fn test_stop_workload_nonexistent_should_fail() {
         let runtime = NodeAgentRuntime::new();
         let result = runtime.stop_workload("nonexistent_scenario").await;
-        assert!(result.is_ok(), "TODO: expect Err when workload does not exist");
+        assert!(
+            result.is_ok(),
+            "TODO: expect Err when workload does not exist"
+        );
     }
 }

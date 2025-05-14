@@ -84,10 +84,6 @@ impl ActionControllerManager {
         let scenario_str: String = match common::etcd::get(&etcd_scenario_key).await {
             Ok(value) => value,
             Err(e) => {
-                println!(
-                    "Failed to retrieve scenario data for '{}': {}",
-                    scenario_name, e
-                );
                 return Err(format!("Scenario '{}' not found: {}", scenario_name, e).into());
             }
         };
@@ -163,7 +159,23 @@ impl ActionControllerManager {
             return Ok(());
         }
 
-        let etcd_scenario_key = format!("scenario/{}", scenario_name);
+        if matches!(current, Status::None | Status::Failed | Status::Unknown) {
+            return Err(format!(
+                "Invalid current status: {:?}. Cannot reconcile from this state",
+                current
+            )
+            .into());
+        }
+
+        if matches!(desired, Status::None | Status::Failed | Status::Unknown) {
+            return Err(format!(
+                "Invalid desired status: {:?}. Cannot set this as target state",
+                desired
+            )
+            .into());
+        }
+
+        let etcd_scenario_key: String = format!("scenario/{}", scenario_name);
         let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
         let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;
 
@@ -318,7 +330,13 @@ impl ActionControllerManager {
                 // let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
                 // runtime.start_workload(model_name).await?;
             }
-            _ => {}
+            _ => {
+                return Err(format!(
+                    "Unsupported node type '{}' for workload '{}' on node '{}'",
+                    node_type, model_name, node_name
+                )
+                .into());
+            }
         }
         Ok(())
     }
@@ -358,7 +376,13 @@ impl ActionControllerManager {
                 // let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
                 // runtime.start_workload(model_name).await?;
             }
-            _ => {}
+            _ => {
+                return Err(format!(
+                    "Unsupported node type '{}' for workload '{}' on node '{}'",
+                    node_type, model_name, node_name
+                )
+                .into());
+            }
         }
         Ok(())
     }
@@ -377,14 +401,14 @@ mod tests {
     async fn test_reconcile_do_with_valid_status() {
         // Valid scenario where reconcile_do transitions status successfully
         let manager = ActionControllerManager {
-            bluechi_nodes: vec!["bluechi-node1".to_string()],
+            bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
         };
 
         let result = manager
             .reconcile_do("test_scenario".into(), Status::None, Status::Running)
             .await;
-        assert!(result.is_ok());
+        assert!(result.is_err());
     }
 
     #[tokio::test]
@@ -451,8 +475,8 @@ mod tests {
     #[tokio::test]
     async fn test_trigger_manager_action_invalid_scenario() {
         // Negative case: nonexistent scenario key
-        let manager = ActionControllerManager {
-            bluechi_nodes: vec!["bluechi".to_string()],
+        let manager: ActionControllerManager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
         };
 
@@ -464,7 +488,7 @@ mod tests {
     async fn test_reconcile_do_invalid_scenario_key() {
         // Negative case: nonexistent scenario key returns error
         let manager = ActionControllerManager {
-            bluechi_nodes: vec!["bluechi-node1".to_string()],
+            bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
         };
 
@@ -478,28 +502,29 @@ mod tests {
     async fn test_start_workload_invalid_node_type() {
         // Negative case: unknown node type returns Ok but does nothing
         let manager = ActionControllerManager {
-            bluechi_nodes: vec![],
+            bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
         };
 
         let result: std::result::Result<(), Box<dyn Error>> = manager
-            .start_workload("model-a", "unknown-node", "invalid_type")
+            .start_workload("antipinch-enable", "HPC", "invalid_type")
             .await;
-        assert!(result.is_ok());
+        assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_stop_workload_invalid_node_type() {
         // Negative case: unknown node type returns Ok but does nothing
-        let manager = ActionControllerManager {
-            bluechi_nodes: vec![],
+        let manager: ActionControllerManager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
         };
 
         let result = manager
-            .stop_workload("model-a", "unknown-node", "invalid_type")
+            .stop_workload("antipinch-enable", "HPC", "invalid_type")
             .await;
-        assert!(result.is_ok());
+
+        assert!(result.is_err());
     }
 
     #[test]

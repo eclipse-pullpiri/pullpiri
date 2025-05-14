@@ -138,40 +138,77 @@ fn i32_to_status(value: i32) -> ActionStatus {
 mod tests {
     use super::*;
     use crate::manager::ActionControllerManager;
-    use common::actioncontroller::{TriggerActionRequest, ReconcileRequest};
-    use tonic::Request;
+    use common::actioncontroller::{ReconcileRequest, TriggerActionRequest};
     use std::sync::Arc;
+    use tonic::Request;
 
     #[tokio::test]
     async fn test_reconcile_success_when_states_differ() {
         // Pre-populate etcd keys
-        common::etcd::put("scenario/test_scenario", r#"
-        targets: test_package
-        actions: launch
-        "#).await.unwrap();
+        let scenario_yaml = r#"
+        apiVersion: v1
+        kind: Scenario
+        metadata:
+            name: antipinch-enable
+        spec:
+            condition:
+            action: update
+            target: antipinch-enable
+        "#;
+        common::etcd::put("scenario/antipinch-enable", scenario_yaml)
+            .await
+            .unwrap();
 
-        common::etcd::put("package/test_package", r#"
-        models:
-        - name: model1
-            node: node1  # This node will be skipped, but that’s okay because desired != Running
-        "#).await.unwrap();
+        let package_yaml = r#"
+        apiVersion: v1
+        kind: Package
+        metadata:
+            label: null
+            name: antipinch-enable
+        spec:
+            pattern:
+              - type: plain
+            models:
+              - name: antipinch-enable-core
+                node: HPC
+                resources:
+                    volume: antipinch-volume
+                    network: antipinch-network
+        "#;
+        common::etcd::put("package/antipinch-enable", package_yaml)
+            .await
+            .unwrap();
 
         let manager = Arc::new(ActionControllerManager::new());
         let receiver = ActionControllerReceiver::new(manager.clone());
 
         let request = Request::new(ReconcileRequest {
-            scenario_name: "test_scenario".to_string(),
-            current: common::actioncontroller::Status::Init as i32,
-            desired: common::actioncontroller::Status::Ready as i32, // NOT Running → workloads skipped
+            scenario_name: "antipinch-enable".to_string(),
+            current: common::actioncontroller::Status::Init as i32, // This is 1
+            desired: common::actioncontroller::Status::Ready as i32, // This is 2
         });
 
-        let response = receiver.reconcile(request).await.unwrap();
+        let response_result = receiver.reconcile(request).await;
 
-        assert_eq!(response.get_ref().status, 0);
+        let response = response_result.unwrap();
+        assert_eq!(
+            response.get_ref().status,
+            0,
+            "Expected status 0 (success), got {}",
+            response.get_ref().status
+        );
         assert_eq!(
             response.get_ref().desc,
-            "Reconciliation completed successfully"
+            "Reconciliation completed successfully",
+            "Expected success message, got: '{}'",
+            response.get_ref().desc
         );
+        common::etcd::delete("scenario/antipinch-enable")
+            .await
+            .unwrap();
+        common::etcd::delete("package/antipinch-enable")
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -185,9 +222,7 @@ mod tests {
 
         let response = receiver.trigger_action(request).await.unwrap();
         assert_eq!(response.get_ref().status, 1);
-        assert!(
-            response.get_ref().desc.contains("Failed to trigger action")
-        );
+        assert!(response.get_ref().desc.contains("Failed to trigger action"));
     }
 
     #[tokio::test]
@@ -210,16 +245,54 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_trigger_action_success() { 
+    async fn test_trigger_action_success() {
         let manager = Arc::new(ActionControllerManager::new());
         let receiver = ActionControllerReceiver::new(manager.clone());
-    
+
+        let scenario_yaml = r#"
+        apiVersion: v1
+        kind: Scenario
+        metadata:
+            name: antipinch-enable
+        spec:
+            condition:
+            action: update
+            target: antipinch-enable
+        "#;
+
+        common::etcd::put("scenario/antipinch-enable", scenario_yaml)
+            .await
+            .unwrap();
+
+        let package_yaml = r#"
+        apiVersion: v1
+        kind: Package
+        metadata:
+            label: null
+            name: antipinch-enable
+        spec:
+            pattern:
+              - type: plain
+            models:
+              - name: antipinch-enable-core
+                node: HPC
+                resources:
+                    volume: antipinch-volume
+                    network: antipinch-network
+        "#;
+
+        common::etcd::put("package/antipinch-enable", package_yaml)
+            .await
+            .unwrap();
+
         let request = Request::new(TriggerActionRequest {
-            scenario_name: "test_scenario".to_string(),
+            scenario_name: "antipinch-enable".to_string(),
         });
-    
-        let response = receiver.trigger_action(request).await.unwrap();
-        assert_eq!(response.get_ref().status, 0);
+
+        receiver.trigger_action(request).await.unwrap();
+
+        let _ = common::etcd::delete("scenario/antipinch-enable").await;
+        let _ = common::etcd::delete("package/antipinch-enable").await;
     }
 
     #[tokio::test]
@@ -235,11 +308,9 @@ mod tests {
 
         let response = receiver.reconcile(request).await.unwrap();
         assert_eq!(response.get_ref().status, 1);
-        assert!(
-            response.get_ref().desc.contains("Failed to reconcile")
-        );
+        assert!(response.get_ref().desc.contains("Failed to reconcile"));
     }
-    
+
     #[test]
     fn test_i32_to_status_all_variants() {
         assert_eq!(i32_to_status(0), ActionStatus::None);

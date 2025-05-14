@@ -11,6 +11,7 @@
 /// * `artifact_name: &str` - name of the newly released artifact
 /// ### Return
 /// * `Result<(String)>` - `Ok()` contains yaml string if success
+#[allow(dead_code)]
 pub async fn read_from_etcd(artifact_name: &str) -> common::Result<String> {
     let raw = common::etcd::get(artifact_name).await?;
     Ok(raw)

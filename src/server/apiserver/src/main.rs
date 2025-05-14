@@ -8,11 +8,11 @@
 //! artifacts.
 //!
 //! * Open a REST API to communicate with Piccolo Cloud or receive artifacts
-//! directly.
+//!   directly.
 //! * Appropriately parse the received string-type artifacts so that they can
-//! be used within Piccolo.
+//!   be used within Piccolo.
 //! * The parsing results are stored in etcd and passed to filtergateway so
-//! that a filter can be created.
+//!   that a filter can be created.
 
 mod artifact;
 mod bluechi;

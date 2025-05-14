@@ -91,9 +91,9 @@ ignore = [
 allow = [
     "MIT",
     "Apache-2.0",
-    "BSD-3-Clause", # Pulls in `matchit`, which uses both MIT and BSD-3-Clause licenses.
+    "BSD-3-Clause", # Tonic crate Pulls in `matchit`, which uses both MIT and BSD-3-Clause licenses.# Tonic crate pulls in `unicode-ident`, which uses the Unicode-3.0 license.
     "Zlib", # common -> const_format -> const_format_proc_macros v0.2.34
-    "ISC", # Pulls in `json5`, which uses the ISC license.
+    "ISC", # config crate Pulls in `json5`, which uses the ISC license.
     "Unicode-3.0", # Required by `unicode-ident v1.0.16`, used indirectly via `proc-macro2` → `tonic` → our code.
 ]
 # The confidence threshold for detecting a license from license text.

@@ -28,6 +28,10 @@ use tonic::Request;
 /// - The gRPC request fails
 /// - The policy check fails
 pub async fn check_policy(scenario_name: String) -> Result<i32> {
+    if scenario_name.trim().is_empty() {
+        return Err("Invalid scenario name: cannot be empty".into());
+    }
+
     let addr = common::policymanager::connect_server();
     let mut client = PolicyManagerConnectionClient::connect(addr).await.unwrap();
     let request = Request::new(CheckPolicyRequest { scenario_name });
@@ -65,6 +69,13 @@ pub async fn handle_workload(
     action: i32,
     description: String,
 ) -> Result<i32> {
+    if workload_name.trim().is_empty() || description.trim().is_empty() {
+        return Err("Invalid input: workload name and description cannot be empty".into());
+    }
+    if action < 0 {
+        return Err("Invalid action: must be a non-negative integer".into());
+    }
+
     let addr = common::nodeagent::connect_server();
     let mut client = NodeAgentConnectionClient::connect(addr).await.unwrap();
     let request = Request::new(HandleWorkloadRequest {
@@ -79,7 +90,6 @@ pub async fn handle_workload(
     Ok(response_inner.status)
 }
 
-
 // ===========================
 // UNIT TESTS
 // ===========================
@@ -90,36 +100,24 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_policy_success() {
-        let scenario_name = "test-scenario".to_string();
+        let scenario_name = "antipinch-enable".to_string();
 
         let result = check_policy(scenario_name).await;
-
-        if result.is_ok() {
-            assert_eq!(
-                result.unwrap(),
-                0,
-                "Expected status == 0 meaning success from PolicyManager"
-            );
+        if let Err(ref e) = result {
+            println!("Error in test_check_policy_success: {:?}", e);
         } else {
-            eprintln!("PolicyManager server not available, skipping test_check_policy_success");
+            println!("test_check_policy_success successful");
         }
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_check_policy_failure_invalid_scenario() {
         // Sending invalid scenario_name to simulate policy check failure
-        let scenario_name = "".to_string();  // Empty string is invalid
+        let scenario_name: String = "".to_string(); // Empty string is invalid
 
         let result = check_policy(scenario_name).await;
-
-        if let Ok(status) = result {
-            assert_ne!(
-                status, 0,
-                "Expected non-zero status meaning policy check failure from PolicyManager"
-            );
-        } else {
-            eprintln!("PolicyManager server not available, skipping test_check_policy_failure_invalid_scenario");
-        }
+        assert!(result.is_err());
     }
 
     #[tokio::test]
@@ -129,34 +127,23 @@ mod tests {
         let description = "example description".to_string();
 
         let result = handle_workload(workload_name, action, description).await;
-
-        if result.is_ok() {
-            assert_eq!(
-                result.unwrap(),
-                0,
-                "Expected status == 0 meaning success from NodeAgent"
-            );
+        if let Err(ref e) = result {
+            println!("Error in test_handle_workload_success: {:?}", e);
         } else {
-            eprintln!("NodeAgent server not available, skipping test_handle_workload_success");
+            println!("test_handle_workload_success successful");
         }
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_handle_workload_failure_invalid_workload() {
         // Sending invalid workload_name and invalid action to trigger failure
-        let workload_name = "".to_string();  // Invalid empty workload
-        let action = -999;                   // Invalid action code
-        let description = "".to_string();    // Empty description
+        let workload_name = "".to_string(); // Invalid empty workload
+        let action = -999; // Invalid action code
+        let description = "".to_string(); // Empty description
 
         let result = handle_workload(workload_name, action, description).await;
 
-        if let Ok(status) = result {
-            assert_ne!(
-                status, 0,
-                "Expected non-zero status meaning workload handling failure from NodeAgent"
-            );
-        } else {
-            eprintln!("NodeAgent server not available, skipping test_handle_workload_failure_invalid_workload");
-        }
+        assert!(result.is_err());
     }
 }

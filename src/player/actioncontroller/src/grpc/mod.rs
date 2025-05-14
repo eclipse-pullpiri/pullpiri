@@ -40,7 +40,7 @@ pub async fn init(manager: crate::manager::ActionControllerManager) -> common::R
 mod tests {
     use super::*;
     use crate::manager::ActionControllerManager;
-    use tokio::time::{sleep, Duration, timeout};  
+    use tokio::time::{sleep, timeout, Duration};
 
     #[tokio::test]
     async fn test_open_server_returns_valid_address() {

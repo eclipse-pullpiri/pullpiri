@@ -1,6 +1,9 @@
 pub mod dds;
 
 use common::Result;
+use dds::{DdsData, DdsManager};
+use log::{debug, info};
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 /// Vehicle data management module
 ///
@@ -16,9 +19,9 @@ impl VehicleManager {
     /// # Returns
     ///
     /// A new VehicleManager instance
-    pub fn new() -> Self {
+    pub fn new(tx: Sender<DdsData> ) -> Self {
         Self {
-            dds_manager: dds::DdsManager::new(),
+            dds_manager: dds::DdsManager::new(tx),
         }
     }
 
@@ -30,7 +33,16 @@ impl VehicleManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn init(&mut self) -> Result<()> {
-        // TODO: Implementation
+        // Initialize DDS manager
+        match self.dds_manager.init().await {
+            Ok(_) => {},
+            Err(e) => {
+                log::warn!("Failed to initialize DDS manager with settings file: {}. Using default settings.", e);
+                // 기본 설정 적용
+            }
+        }
+        self.set_domain_id(100); // Set default domain ID
+
         Ok(())
     }
 
@@ -50,7 +62,17 @@ impl VehicleManager {
         data_type_name: String,
     ) -> Result<()> {
         // TODO: Implementation
+        self.dds_manager.create_typed_listener(topic_name, data_type_name).await?;
+        // self.dds_manager
+        //     .create_listener(topic_name, data_type_name)
+        //     .await?;
         Ok(())
+    }
+
+
+    /// 사용 가능한 DDS 타입 목록 조회
+    pub fn list_available_types(&self) -> Vec<String> {
+        self.dds_manager.list_available_types()
     }
 
     /// Unsubscribes from a vehicle data topic
@@ -64,6 +86,7 @@ impl VehicleManager {
     /// * `Result<()>` - Success or error result
     pub async fn unsubscribe_topic(&mut self, topic_name: String) -> Result<()> {
         // TODO: Implementation
+        self.dds_manager.remove_listener(&topic_name).await?;
         Ok(())
     }
 
@@ -81,7 +104,8 @@ impl VehicleManager {
     /// # Arguments
     ///
     /// * `domain_id` - Domain ID to use for DDS communication
-    pub fn set_domain_id(&mut self, domain_id: u32) {
+    
+    pub fn set_domain_id(&mut self, domain_id: i32) {
         self.dds_manager.set_domain_id(domain_id);
     }
 }

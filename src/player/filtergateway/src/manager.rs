@@ -1,15 +1,11 @@
 use crate::filter::Filter;
 use crate::grpc::sender::FilterGatewaySender;
 use crate::vehicle::dds::DdsData;
-use common::Result;
+use crate::vehicle::{self, VehicleManager};
+use common::spec::artifact::Scenario;
+use common::{spec::artifact::Artifact, Result};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-// use common::spec::artifact::scenario::Scenario;
-
-/// 시나리오 타입 별칭
-///
-/// common 크레이트의 spec::artifact::Scenario를 사용하는 대신 타입 별칭 사용
-pub type Scenario = serde_yaml::Value;
 
 /// Manager for FilterGateway
 ///
@@ -17,17 +13,25 @@ pub type Scenario = serde_yaml::Value;
 /// - Managing scenario filters
 /// - Coordinating vehicle data subscriptions
 /// - Processing incoming scenario requests
+/// 
+#[derive(Debug, Clone)]
+pub struct ScenarioParameter {
+    /// Name of the scenario
+    pub action: i32,
+    /// Vehicle message information
+    pub vehicle_message: DdsData,
+}
 pub struct FilterGatewayManager {
     /// Receiver for scenario information from gRPC
-    rx_grpc: mpsc::Receiver<Scenario>,
-    /// Sender for DDS data
-    tx_dds: mpsc::Sender<DdsData>,
+    rx_grpc: mpsc::Receiver<ScenarioParameter>,
     /// Receiver for DDS data
     rx_dds: Arc<Mutex<mpsc::Receiver<DdsData>>>,
     /// Active filters for scenarios
     filters: Arc<Mutex<Vec<Filter>>>,
     /// gRPC sender for action controller
     sender: Arc<FilterGatewaySender>,
+    /// Vehicle manager for handling vehicle data
+    vehicle_manager: VehicleManager,
 }
 
 impl FilterGatewayManager {
@@ -40,15 +44,24 @@ impl FilterGatewayManager {
     /// # Returns
     ///
     /// A new FilterGatewayManager instance
-    pub fn new(rx: mpsc::Receiver<Scenario>) -> Self {
+
+    pub async fn new(rx_grpc: mpsc::Receiver<ScenarioParameter>) -> Self {
         let (tx_dds, rx_dds) = mpsc::channel::<DdsData>(10);
         let sender = Arc::new(FilterGatewaySender::new());
+        let mut vehicle_manager = VehicleManager::new(tx_dds);
+        
+        // 오류 처리 개선: unwrap() 대신 명시적 에러 처리
+        if let Err(e) = vehicle_manager.init().await {
+            println!("Warning: Failed to initialize vehicle manager: {:?}. Continuing with default settings.", e);
+            // 계속 진행 (이미 VehicleManager::init()에서 기본값 사용)
+        }
+        
         Self {
-            rx_grpc: rx,
-            tx_dds,
+            rx_grpc: rx_grpc,
             rx_dds: Arc::new(Mutex::new(rx_dds)),
             filters: Arc::new(Mutex::new(Vec::new())),
             sender,
+            vehicle_manager: vehicle_manager,
         }
     }
 
@@ -61,7 +74,33 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn run(&mut self) -> Result<()> {
-        // TODO: Implementation
+        loop {
+            // Wait for scenario parameter from gRPC
+            let scenario_parameter = self.rx_grpc.recv().await;
+            match scenario_parameter {
+                Some(param) => {
+                    println!("Received scenario parameter: {:?}", param);
+                    match param.action {
+                        0 => { // Allow
+                            // Subscribe to vehicle data
+                            self.subscribe_vehicle_data(
+                                param.vehicle_message.clone(),
+                            )
+                            .await?;
+                        }
+                        1 => {//Withdraw
+                            // Unsubscribe from vehicle data
+                            self.unsubscribe_vehicle_data(
+                                param.vehicle_message.clone(),
+                            )
+                            .await?;
+                        }
+                        _ => {}
+                    }
+                }
+                None => break,
+            }
+        }
         Ok(())
     }
 
@@ -78,12 +117,14 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn subscribe_vehicle_data(
-        &self,
-        scenario_name: String,
+        &mut self,
         vehicle_message: DdsData,
     ) -> Result<()> {
-        let _ = (scenario_name, vehicle_message); // 사용하지 않는 변수 경고 방지
-                                                  // TODO: Implementation
+        print!("subscribe vehicle data {}\n", vehicle_message.name);
+        self.vehicle_manager
+            .subscribe_topic(vehicle_message.name, vehicle_message.value)
+            .await?;
+   
         Ok(())
     }
 
@@ -100,12 +141,14 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn unsubscribe_vehicle_data(
-        &self,
-        scenario_name: String,
+        &mut self,
         vehicle_message: DdsData,
     ) -> Result<()> {
-        let _ = (scenario_name, vehicle_message); // 사용하지 않는 변수 경고 방지
-                                                  // TODO: Implementation
+        print!("unsubscribe vehicle data {}\n", vehicle_message.name);
+        self.vehicle_manager
+            .unsubscribe_topic(vehicle_message.name)
+            .await?;
+
         Ok(())
     }
 
@@ -122,8 +165,28 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn launch_scenario_filter(&self, scenario: Scenario) -> Result<()> {
-        let _ = scenario; // 사용하지 않는 변수 경고 방지
-                          // TODO: Implementation
+        // Check if the scenario has conditions
+        if scenario.get_conditions().is_none() {
+            println!("No conditions for scenario: {}", scenario.get_name());
+            self.sender
+                .trigger_action(scenario.get_name().clone())
+                .await?;
+            return Ok(());
+        }
+
+        // Create a new filter for the scenario
+        let filter = Filter::new(
+            scenario.get_name().to_string(),
+            scenario,
+            true,
+            self.sender.clone(),
+        );
+
+        // Add the filter to our managed collection
+        {
+            let mut filters = self.filters.lock().await;
+            filters.push(filter);
+        }
         Ok(())
     }
 
@@ -139,8 +202,16 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn remove_scenario_filter(&self, scenario_name: String) -> Result<()> {
-        let _ = scenario_name; // 사용하지 않는 변수 경고 방지
-                               // TODO: Implementation
+        println!("remove filter {}\n", scenario_name);
+
+        let arc_filters = Arc::clone(&self.filters);
+        let mut filters = arc_filters.lock().await;
+        let index = filters
+            .iter()
+            .position(|f| f.scenario_name == scenario_name);
+        if let Some(i) = index {
+            filters.remove(i);
+        }
         Ok(())
     }
 }

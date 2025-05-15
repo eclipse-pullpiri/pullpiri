@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use crate::runtime::bluechi;
 use common::{
     actioncontroller::Status,
@@ -19,7 +18,7 @@ pub struct ActionControllerManager {
     nodeagent_nodes: Vec<String>,
     // Add other fields as needed
 }
-#[allow(dead_code)]
+
 impl ActionControllerManager {
     /// Creates a new ActionControllerManager instance
     ///
@@ -76,7 +75,6 @@ impl ActionControllerManager {
     /// - The scenario does not exist
     /// - The scenario is not allowed by policy
     /// - The runtime operation fails
-    #[allow(clippy::needless_borrow)]
     pub async fn trigger_manager_action(&self, scenario_name: &str) -> Result<()> {
         let etcd_scenario_key = format!("scenario/{}", scenario_name);
         let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
@@ -142,7 +140,6 @@ impl ActionControllerManager {
     /// Returns an error if:
     /// - The scenario does not exist
     /// - The reconciliation action fails
-    #[allow(clippy::needless_borrow)]
     pub async fn reconcile_do(
         &self,
         scenario_name: String,
@@ -288,7 +285,6 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is not in a startable state
     /// - The runtime operation fails
-    #[allow(clippy::needless_borrow)]
     pub async fn start_workload(
         &self,
         model_name: &str,
@@ -329,7 +325,6 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is already stopped
     /// - The runtime operation fails
-    #[allow(clippy::needless_borrow)]
     pub async fn stop_workload(
         &self,
         model_name: &str,

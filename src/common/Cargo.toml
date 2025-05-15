@@ -12,7 +12,7 @@ license = "MIT OR Apache-2.0" #Added license field to support deny check
 
 [dependencies]
 const_format = "0.2.33"
-config = "0.14.1" 
+config = "0.14.1"
 etcd-client = "0.14.0"
 serde = { version = "1.0.214", features = ["derive"] }
 serde_yaml = "0.9"

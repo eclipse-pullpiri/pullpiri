@@ -17,7 +17,6 @@ pub mod nodeagent;
 /// Returns an error if:
 /// - Configuration for either runtime system is invalid
 /// - Connection to runtime systems fails
-#[allow(dead_code)]
 pub async fn init() -> common::Result<()> {
     // TODO: Implementation
     Ok(())

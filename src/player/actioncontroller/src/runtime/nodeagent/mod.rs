@@ -1,12 +1,12 @@
-#![allow(unused_variables)]
 use common::Result;
 use std::collections::HashMap;
+
 /// Runtime implementation for NodeAgent API interactions
 ///
 /// Handles workload operations for nodes managed by NodeAgent,
 /// making gRPC calls to the NodeAgent service to perform
 /// operations like creating, starting, stopping, and deleting workloads.
-#[allow(dead_code)]
+
 pub struct NodeAgentRuntime {
     /// Connection information for each NodeAgent
     node_connections: HashMap<String, String>,
@@ -14,7 +14,6 @@ pub struct NodeAgentRuntime {
     workload_cache: HashMap<String, String>,
 }
 
-#[allow(dead_code)]
 impl NodeAgentRuntime {
     /// Create a new NodeAgentRuntime instance
     ///

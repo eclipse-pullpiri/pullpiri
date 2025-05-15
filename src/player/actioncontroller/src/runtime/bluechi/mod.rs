@@ -20,7 +20,6 @@ pub struct BluechiCmd {
 ///
 /// Represents the various operations that can be performed
 /// on the Bluechi controller, nodes, and units.
-#[allow(dead_code)]
 pub enum Command {
     ControllerReloadAllNodes,
     UnitStart,
@@ -60,7 +59,6 @@ impl Command {
 /// * `scenario_name` - Name of the scenario to operate on
 /// * `node` - Name of the node to target
 /// * `bluechi_cmd` - The Bluechi command to execute
-#[allow(clippy::let_underscore_future)]
 pub async fn handle_bluechi_cmd(
     scenario_name: &str,
     node: &str,

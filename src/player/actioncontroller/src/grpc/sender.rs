@@ -27,7 +27,6 @@ use tonic::Request;
 /// - The connection to PolicyManager is not established
 /// - The gRPC request fails
 /// - The policy check fails
-#[allow(dead_code)]
 pub async fn check_policy(scenario_name: String) -> Result<i32> {
     let addr = common::policymanager::connect_server();
     let mut client = PolicyManagerConnectionClient::connect(addr).await.unwrap();
@@ -61,7 +60,6 @@ pub async fn check_policy(scenario_name: String) -> Result<i32> {
 /// - The connection to NodeAgent is not established
 /// - The gRPC request fails
 /// - The workload handling operation fails
-#[allow(dead_code)]
 pub async fn handle_workload(
     workload_name: String,
     action: i32,

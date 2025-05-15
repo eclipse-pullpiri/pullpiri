@@ -8,7 +8,7 @@ description = "Action Controller component for Pullpiri"
 
 [dependencies]
 tokio = { version = "1.45.0", features = ["full"] }
-tonic = "0.12.3"  
+tonic = "0.12.3"
 prost = "0.13.3"
 dbus = "0.9.7"
 serde = { version = "1.0.214", features = ["derive"] }

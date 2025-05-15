@@ -31,7 +31,11 @@ mod tests {
     #[tokio::test]
     async fn test_init_success() {
         let result = init().await;
-        assert!(result.is_ok(), "Expected init() to succeed, got: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Expected init() to succeed, got: {:?}",
+            result
+        );
     }
 
     // Negative test case (This will be based on our production logic in future)

@@ -1,10 +1,13 @@
 use crate::filter::Filter;
 use crate::grpc::sender::FilterGatewaySender;
 use crate::vehicle::dds::DdsData;
+use crate::vehicle::VehicleManager;
 use common::spec::artifact::Scenario;
 use common::{spec::artifact::Artifact, Result};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+
+
 
 /// Manager for FilterGateway
 ///
@@ -23,9 +26,10 @@ pub struct FilterGatewayManager {
     filters: Arc<Mutex<Vec<Filter>>>,
     /// gRPC sender for action controller
     sender: Arc<FilterGatewaySender>,
+
+    vehicle_manager: Arc<Mutex<VehicleManager>>,
 }
 
-impl FilterGatewayManager {
     /// Creates a new FilterGatewayManager instance
     ///
     /// # Arguments
@@ -35,17 +39,23 @@ impl FilterGatewayManager {
     /// # Returns
     ///
     /// A new FilterGatewayManager instance
-    pub fn new(rx: mpsc::Receiver<Scenario>) -> Self {
-        let (tx_dds, rx_dds) = mpsc::channel::<DdsData>(10);
+impl FilterGatewayManager {
+    pub fn new(rx_grpc: mpsc::Receiver<Scenario>, 
+        tx_dds: mpsc::Sender<DdsData>, 
+        rx_dds: mpsc::Receiver<DdsData>) -> Self {        
         let sender = Arc::new(FilterGatewaySender::new());
+        let tx_dds_clone = tx_dds.clone();
+        let vehicle_manager = Arc::new(Mutex::new(VehicleManager::new(tx_dds_clone)));
         Self {
-            rx_grpc: rx,
-            tx_dds: tx_dds,
+            rx_grpc,
+            tx_dds,
             rx_dds: Arc::new(Mutex::new(rx_dds)),
             filters: Arc::new(Mutex::new(Vec::new())),
             sender,
+            vehicle_manager,
         }
     }
+    
 
     /// Start the manager processing
     ///
@@ -56,27 +66,16 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn run(&mut self) -> Result<()> {
-        // TODO: Implementation
+        // TODO: Implementation      
+
         loop {
             tokio::select! {
                 // Process incoming scenario requests from gRPC
-                // Some(scenario) = self.rx_grpc.recv() => {
-                //     println!("Received scenario: {}", scenario.get_name());
+                Some(scenario) = self.rx_grpc.recv() => {
+                    println!("Received scenario: {}", scenario.get_name());
 
-                //     match scenario.get_artifact() {
-                //         Artifact::Launch => {
-                //             // Launch a new filter for this scenario
-                //             self.launch_scenario_filter(scenario).await?;
-                //         },
-                //         Artifact::Stop => {
-                //             // Stop and remove the filter for this scenario
-                //             self.remove_scenario_filter(scenario.get_name().to_string()).await?;
-                //         },
-                //         _ => {
-                //             println!("Unhandled scenario artifact type: {:?}", scenario.get_artifact());
-                //         }
-                //     }
-                // },
+ 
+                },
 
                 // // Process incoming DDS data
                 // dds_data = self.rx_dds.lock().await.recv() => {
@@ -124,8 +123,15 @@ impl FilterGatewayManager {
         scenario_name: String,
         vehicle_message: DdsData,
     ) -> Result<()> {
-        let _ = (scenario_name, vehicle_message); // 사용하지 않는 변수 경고 방지
-                                                  // TODO: Implementation
+        // let _ = (scenario_name, vehicle_message); // 사용하지 않는 변수 경고 방지
+        //   TODO: Implementation
+        println!("Subscribing to vehicle data for scenario: {}", scenario_name);
+        // Forward vehicle message to the DDS handler
+        let mut vehicle_manager = self.vehicle_manager.lock().await;
+        
+        vehicle_manager.subscribe_topic(vehicle_message.name.clone(), vehicle_message.name);
+        
+        println!("Successfully subscribed to vehicle data for scenario: {}", scenario_name);
         Ok(())
     }
 
@@ -146,8 +152,14 @@ impl FilterGatewayManager {
         scenario_name: String,
         vehicle_message: DdsData,
     ) -> Result<()> {
-        let _ = (scenario_name, vehicle_message); // 사용하지 않는 변수 경고 방지
-                                                  // TODO: Implementation
+      
+        println!("Unsubscribing from vehicle data for scenario: {}", scenario_name);
+        // Forward vehicle message to the DDS handler to cancel subscription
+        if let Err(e) = self.tx_dds.send(vehicle_message).await {
+            println!("Failed to send vehicle data unsubscription: {}", e);
+            return Err(e.into());
+        }
+        println!("Successfully unsubscribed from vehicle data for scenario: {}", scenario_name);
         Ok(())
     }
 

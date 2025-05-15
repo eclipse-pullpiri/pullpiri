@@ -10,3 +10,8 @@ guest:
 #  - name: ZONE
 #    ip: 192.168.0.1
 #    type: nodeagent
+# DDS 관련 설정
+dds:
+  idl_path: src/vehicle/dds/idl
+  domain_id: 100
+  out_dir: generated

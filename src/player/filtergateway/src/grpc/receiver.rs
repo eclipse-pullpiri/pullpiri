@@ -3,9 +3,12 @@ use std::io::Error;
 
 use crate::manager::FilterGatewayManager;
 use common::spec::artifact::{Artifact, Scenario};
+
 use common::Result;
+use dust_dds::infrastructure::wait_set::Condition;
 use tokio::sync::mpsc::{self, error::SendError};
 use tonic::{Request, Response, Status};
+use crate::vehicle::dds::DdsData;
 
 // Import the generated protobuf code from filtergateway.proto
 use common::filtergateway::{
@@ -63,11 +66,56 @@ impl FilterGatewayReceiver {
         match action {
             0 => {
                 println!("Action: APPLY");
-                // Send the scenario to the FilterGateway manager
+                // Send the scenario to the FilterGateway manager                
+
+                let cond = scenario.get_conditions();
+                if let Some(condition) = cond {
+                    let v = condition.get_operand_value();
+                    let sub = self.manager.subscribe_vehicle_data(
+                        scenario.get_name().to_string(),
+                        DdsData {
+                            name: v.to_string(),
+                            value: "".to_string(),
+                            fields: std::collections::HashMap::new(),
+                        },
+                    ).await;
+                    if let Err(e) = sub {
+                        println!("Error subscribing to vehicle data: {}", e);
+                    } else {
+                        println!("Subscribed to vehicle data successfully");
+                    }
+                    println!("Condition found in scenario - Operand value: {}", v);
+                } else {
+                    println!("No conditions found in scenario");
+                }
+
                 let _ = self.manager.launch_scenario_filter(scenario).await;
+  
             }
             1 => {
                 println!("Action: WITHDRAW");
+                // Remove the scenario from the FilterGateway manager
+                let cond = scenario.get_conditions();
+                if let Some(condition) = cond {
+                    let v = condition.get_operand_value();
+                    let sub = self.manager.unsubscribe_vehicle_data(
+                        scenario.get_name().to_string(),
+                        DdsData {
+                            name: v.to_string(),
+                            value: "".to_string(),
+                            fields: std::collections::HashMap::new(),
+                        },
+                    ).await;
+                    if let Err(e) = sub {
+                        println!("Error subscribing to vehicle data: {}", e);
+                    } else {
+                        println!("Unsubscribed to vehicle data successfully");
+                    }
+                    println!("Condition found in scenario - Operand value: {}", v);
+                } else {
+                    println!("No conditions found in scenario");
+                }
+
                 self.manager
                     .remove_scenario_filter(scenario.get_name().to_string())
                     .await?

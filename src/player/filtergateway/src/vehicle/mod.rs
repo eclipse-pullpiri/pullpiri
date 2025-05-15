@@ -1,6 +1,9 @@
 pub mod dds;
 
 use common::Result;
+use dds::{DdsData, DdsManager};
+use log::{debug, info};
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 /// Vehicle data management module
 ///
@@ -16,9 +19,9 @@ impl VehicleManager {
     /// # Returns
     ///
     /// A new VehicleManager instance
-    pub fn new() -> Self {
+    pub fn new(tx: Sender<DdsData> ) -> Self {
         Self {
-            dds_manager: dds::DdsManager::new(),
+            dds_manager: dds::DdsManager::new(tx),
         }
     }
 
@@ -30,10 +33,9 @@ impl VehicleManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn init(&mut self) -> Result<()> {
-        // TODO: Implementation
-        self.dds_manager = dds::DdsManager::new();
+        // Initialize DDS manager
+        self.dds_manager.init().await?;
         self.set_domain_id(100); // Set default domain ID
-                                 // Initialize DDS system
 
         Ok(())
     }
@@ -58,6 +60,12 @@ impl VehicleManager {
             .create_listener(topic_name, data_type_name)
             .await?;
         Ok(())
+    }
+
+
+    /// 사용 가능한 DDS 타입 목록 조회
+    pub fn list_available_types(&self) -> Vec<String> {
+        self.dds_manager.list_available_types()
     }
 
     /// Unsubscribes from a vehicle data topic
@@ -89,7 +97,8 @@ impl VehicleManager {
     /// # Arguments
     ///
     /// * `domain_id` - Domain ID to use for DDS communication
-    pub fn set_domain_id(&mut self, domain_id: u32) {
+    
+    pub fn set_domain_id(&mut self, domain_id: i32) {
         self.dds_manager.set_domain_id(domain_id);
     }
 }

@@ -10,6 +10,7 @@ mod vehicle;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 
+
 async fn launch_manager(rx_grpc: Receiver<ScenarioParameter>) {
     let mut manager = manager::FilterGatewayManager::new(rx_grpc).await;
     manager.run().await;

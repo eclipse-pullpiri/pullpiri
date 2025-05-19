@@ -101,7 +101,8 @@ impl DdsManager {
                 .await
                 .map_err(|e| anyhow!("Failed to start typed listener: {:?}", e))?;
                 
-            info!("Started typed listener for {} with specific type {}", topic_name, data_type_name);
+            
+            println!("Started typed listener for {} with specific type {}", topic_name, data_type_name);
             
             // 리스너 맵에 추가
             self.listeners.insert(topic_name, typed_listener);

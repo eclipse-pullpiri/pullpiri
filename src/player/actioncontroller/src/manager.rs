@@ -4,7 +4,6 @@ use common::{
     spec::artifact::{Package, Scenario},
     Result,
 };
-
 /// Manager for coordinating scenario actions and workload operations
 ///
 /// Responsible for:
@@ -170,12 +169,9 @@ impl ActionControllerManager {
                 continue; // Skip if node type is unknown
             };
 
-            match desired {
-                Status::Running => {
-                    self.start_workload(&model_name, &model_node, &node_type)
-                        .await?;
-                }
-                _ => {}
+            if desired == Status::Running {
+                self.start_workload(&model_name, &model_node, &node_type)
+                    .await?;
             }
         }
 
@@ -355,109 +351,109 @@ impl ActionControllerManager {
 //UNIT TEST SKELTON
 
 #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::runtime::bluechi::handle_bluechi_cmd;
-        use common::actioncontroller::Status;
+mod tests {
+    use super::*;
+    use crate::runtime::bluechi::handle_bluechi_cmd;
+    use common::actioncontroller::Status;
 
-        #[tokio::test]
-        async fn test_reconcile_do_with_valid_status() {
-            // Valid scenario where reconcile_do transitions status successfully
-            let manager = ActionControllerManager {
-                bluechi_nodes: vec!["bluechi-node1".to_string()],
-                nodeagent_nodes: vec![],
-            };
+    #[tokio::test]
+    async fn test_reconcile_do_with_valid_status() {
+        // Valid scenario where reconcile_do transitions status successfully
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["bluechi-node1".to_string()],
+            nodeagent_nodes: vec![],
+        };
 
-            let result = manager
-                .reconcile_do("test_scenario".into(), Status::None, Status::Running)
-                .await;
-            assert!(result.is_ok());
-        }
-
-        #[tokio::test]
-        async fn test_trigger_manager_action_with_valid_data() {
-            // Valid scenario with existing scenario and package
-            let manager = ActionControllerManager {
-                bluechi_nodes: vec!["bluechi-node1".to_string()],
-                nodeagent_nodes: vec![],
-            };
-
-            let result = manager.trigger_manager_action("test_scenario").await;
-            assert!(result.is_ok());
-        }
-
-        #[tokio::test]
-        async fn test_trigger_manager_action_invalid_scenario() {
-            // Negative case: nonexistent scenario key
-            let manager = ActionControllerManager {
-                bluechi_nodes: vec!["bluechi-node1".to_string()],
-                nodeagent_nodes: vec![],
-            };
-
-            let result = manager.trigger_manager_action("invalid_scenario").await;
-            assert!(result.is_err());
-        }
-
-        #[tokio::test]
-        async fn test_reconcile_do_invalid_scenario_key() {
-            // Negative case: nonexistent scenario key returns error
-            let manager = ActionControllerManager {
-                bluechi_nodes: vec!["bluechi-node1".to_string()],
-                nodeagent_nodes: vec![],
-            };
-
-            let result = manager
-                .reconcile_do("invalid_scenario".into(), Status::None, Status::Running)
-                .await;
-            assert!(result.is_err());
-        }
-
-        #[tokio::test]
-        async fn test_start_workload_invalid_node_type() {
-            // Negative case: unknown node type returns Ok but does nothing
-            let manager = ActionControllerManager {
-                bluechi_nodes: vec![],
-                nodeagent_nodes: vec![],
-            };
-
-            let result = manager
-                .start_workload("model-a", "unknown-node", "invalid_type")
-                .await;
-            assert!(result.is_ok());
-        }
-
-        #[tokio::test]
-        async fn test_stop_workload_invalid_node_type() {
-            // Negative case: unknown node type returns Ok but does nothing
-            let manager = ActionControllerManager {
-                bluechi_nodes: vec![],
-                nodeagent_nodes: vec![],
-            };
-
-            let result = manager
-                .stop_workload("model-a", "unknown-node", "invalid_type")
-                .await;
-            assert!(result.is_ok());
-        }
-
-        #[test]
-        fn test_manager_initializes_nodes() {
-            // Ensures new() returns manager with non-empty nodes
-            let manager = ActionControllerManager::new();
-            assert!(!manager.bluechi_nodes.is_empty() || !manager.nodeagent_nodes.is_empty());
-        }
-
-        #[tokio::test]
-        async fn test_create_delete_restart_pause_are_noops() {
-            // All of these are currently no-op, so they should succeed regardless of input
-            let manager = ActionControllerManager {
-                bluechi_nodes: vec![],
-                nodeagent_nodes: vec![],
-            };
-
-            assert!(manager.create_workload("test".into()).await.is_ok());
-            assert!(manager.delete_workload("test".into()).await.is_ok());
-            assert!(manager.restart_workload("test".into()).await.is_ok());
-            assert!(manager.pause_workload("test".into()).await.is_ok());
-        }
+        let result = manager
+            .reconcile_do("test_scenario".into(), Status::None, Status::Running)
+            .await;
+        assert!(result.is_ok());
     }
+
+    #[tokio::test]
+    async fn test_trigger_manager_action_with_valid_data() {
+        // Valid scenario with existing scenario and package
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["bluechi-node1".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager.trigger_manager_action("test_scenario").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_trigger_manager_action_invalid_scenario() {
+        // Negative case: nonexistent scenario key
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["bluechi-node1".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager.trigger_manager_action("invalid_scenario").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_reconcile_do_invalid_scenario_key() {
+        // Negative case: nonexistent scenario key returns error
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["bluechi-node1".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager
+            .reconcile_do("invalid_scenario".into(), Status::None, Status::Running)
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_start_workload_invalid_node_type() {
+        // Negative case: unknown node type returns Ok but does nothing
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec![],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager
+            .start_workload("model-a", "unknown-node", "invalid_type")
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_stop_workload_invalid_node_type() {
+        // Negative case: unknown node type returns Ok but does nothing
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec![],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager
+            .stop_workload("model-a", "unknown-node", "invalid_type")
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_manager_initializes_nodes() {
+        // Ensures new() returns manager with non-empty nodes
+        let manager = ActionControllerManager::new();
+        assert!(!manager.bluechi_nodes.is_empty() || !manager.nodeagent_nodes.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_create_delete_restart_pause_are_noops() {
+        // All of these are currently no-op, so they should succeed regardless of input
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec![],
+            nodeagent_nodes: vec![],
+        };
+
+        assert!(manager.create_workload("test".into()).await.is_ok());
+        assert!(manager.delete_workload("test".into()).await.is_ok());
+        assert!(manager.restart_workload("test".into()).await.is_ok());
+        assert!(manager.pause_workload("test".into()).await.is_ok());
+    }
+}

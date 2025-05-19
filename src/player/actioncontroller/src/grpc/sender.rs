@@ -79,7 +79,6 @@ pub async fn handle_workload(
     Ok(response_inner.status)
 }
 
-
 // ===========================
 // UNIT TESTS
 // ===========================
@@ -108,7 +107,7 @@ mod tests {
     #[tokio::test]
     async fn test_check_policy_failure_invalid_scenario() {
         // Sending invalid scenario_name to simulate policy check failure
-        let scenario_name = "".to_string();  // Empty string is invalid
+        let scenario_name = "".to_string(); // Empty string is invalid
 
         let result = check_policy(scenario_name).await;
 
@@ -144,9 +143,9 @@ mod tests {
     #[tokio::test]
     async fn test_handle_workload_failure_invalid_workload() {
         // Sending invalid workload_name and invalid action to trigger failure
-        let workload_name = "".to_string();  // Invalid empty workload
-        let action = -999;                   // Invalid action code
-        let description = "".to_string();    // Empty description
+        let workload_name = "".to_string(); // Invalid empty workload
+        let action = -999; // Invalid action code
+        let description = "".to_string(); // Empty description
 
         let result = handle_workload(workload_name, action, description).await;
 

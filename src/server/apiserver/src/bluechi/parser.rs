@@ -14,7 +14,6 @@ use common::spec::artifact::{Model, Network, Package, Volume};
 /// ### Description
 /// Get base `Model` information from package spec  
 /// Combine `Network`, `Volume`, parsed `Model` information
-#[allow(unused_variables)]
 pub async fn get_complete_model(p: Package) -> common::Result<Vec<Model>> {
     let mut models: Vec<Model> = Vec::new();
 

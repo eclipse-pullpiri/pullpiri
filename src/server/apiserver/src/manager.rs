@@ -18,7 +18,6 @@ pub async fn initialize() {
 /// TBD
 /// ### Description
 /// TODO
-#[allow(dead_code)]
 async fn send_download_request() {}
 
 /// Reload all scenario data in etcd

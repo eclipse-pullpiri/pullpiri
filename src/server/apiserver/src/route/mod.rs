@@ -40,7 +40,6 @@ pub async fn launch_tcp_listener() {
 /// * `result: Result<()>` - result of API handler logic
 /// ### Description
 /// Additional StatusCode may be added depending on the error.
-#[allow(clippy::useless_conversion)]
 pub fn status(result: common::Result<()>) -> Response {
     if let Err(msg) = result {
         (

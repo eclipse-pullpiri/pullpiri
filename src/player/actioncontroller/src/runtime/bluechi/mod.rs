@@ -20,7 +20,6 @@ pub struct BluechiCmd {
 ///
 /// Represents the various operations that can be performed
 /// on the Bluechi controller, nodes, and units.
-#[allow(dead_code)]
 pub enum Command {
     ControllerReloadAllNodes,
     UnitStart,

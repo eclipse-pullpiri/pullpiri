@@ -114,7 +114,7 @@ mod tests {
     #[tokio::test]
     async fn test_check_policy_failure_invalid_scenario() {
         // Sending invalid scenario_name to simulate policy check failure
-        let scenario_name: String = "".to_string(); // Empty string is invalid
+        let scenario_name = "".to_string(); // Empty string is invalid
 
         let result = check_policy(scenario_name).await;
         assert!(result.is_err());

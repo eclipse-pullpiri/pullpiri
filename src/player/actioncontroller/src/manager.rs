@@ -4,7 +4,6 @@ use common::{
     spec::artifact::{Package, Scenario},
     Result,
 };
-
 /// Manager for coordinating scenario actions and workload operations
 ///
 /// Responsible for:
@@ -194,12 +193,9 @@ impl ActionControllerManager {
                 continue; // Skip if node type is unknown
             };
 
-            match desired {
-                Status::Running => {
-                    self.start_workload(&model_name, &model_node, &node_type)
-                        .await?;
-                }
-                _ => {}
+            if desired == Status::Running {
+                self.start_workload(&model_name, &model_node, &node_type)
+                    .await?;
             }
         }
 
@@ -404,11 +400,10 @@ mod tests {
             bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
         };
-
         let result = manager
-            .reconcile_do("test_scenario".into(), Status::None, Status::Running)
+            .reconcile_do("antipinch-enable".into(), Status::Running, Status::Running)
             .await;
-        assert!(result.is_err());
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
@@ -513,6 +508,59 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_trigger_manager_action_invalid_scenario() {
+        // Negative case: nonexistent scenario key
+        let manager: ActionControllerManager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager.trigger_manager_action("invalid_scenario").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_stop_workload_invalid_node_type() {
+        // Negative case: unknown node type returns Ok but does nothing
+        let manager: ActionControllerManager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager
+            .stop_workload("antipinch-enable", "HPC", "invalid_type")
+            .await;
+
+        assert!(result.is_err());
+      
+    async fn test_reconcile_do_invalid_scenario_key() {
+        // Negative case: nonexistent scenario key returns error
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["bluechi-node1".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager
+            .reconcile_do("invalid_scenario".into(), Status::None, Status::Running)
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_start_workload_invalid_node_type() {
+        // Negative case: unknown node type returns Ok but does nothing
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec![],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager
+            .start_workload("model-a", "unknown-node", "invalid_type")
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
     async fn test_stop_workload_invalid_node_type() {
         // Negative case: unknown node type returns Ok but does nothing
         let manager: ActionControllerManager = ActionControllerManager {
@@ -548,3 +596,4 @@ mod tests {
         assert!(manager.pause_workload("test".into()).await.is_ok());
     }
 }
+

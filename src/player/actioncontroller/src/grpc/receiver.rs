@@ -145,6 +145,7 @@ mod tests {
     #[tokio::test]
     async fn test_reconcile_success_when_states_differ() {
         // Pre-populate etcd keys
+
         let scenario_yaml = r#"
         apiVersion: v1
         kind: Scenario
@@ -293,6 +294,9 @@ mod tests {
 
         let _ = common::etcd::delete("scenario/antipinch-enable").await;
         let _ = common::etcd::delete("package/antipinch-enable").await;
+
+        let response = receiver.trigger_action(request).await.unwrap();
+        assert_eq!(response.get_ref().status, 0);
     }
 
     #[tokio::test]

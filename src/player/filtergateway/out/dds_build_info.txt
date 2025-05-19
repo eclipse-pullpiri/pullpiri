@@ -1,9 +1,0 @@
-DDS Build Information
---------------------
-IDL Directory: "/home/edo/2025/projects/pullpiri/src/player/filtergateway/src/vehicle/dds/idl"
-Output Directory: out
-Domain ID: 100
-Found IDL Files: 3
-  - "/home/edo/2025/projects/pullpiri/src/player/filtergateway/src/vehicle/dds/idl/BodyLightsHeadLamp.idl"
-  - "/home/edo/2025/projects/pullpiri/src/player/filtergateway/src/vehicle/dds/idl/BodyTrunk.idl"
-  - "/home/edo/2025/projects/pullpiri/src/player/filtergateway/src/vehicle/dds/idl/ADASObstacleDetection.idl"

@@ -40,7 +40,7 @@ impl FilterGatewaySender {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn trigger_action(&self, scenario_name: String) -> Result<()> {
-        let _ = scenario_name; // 사용하지 않는 변수 경고 방지
+        let _ = scenario_name; // Suppress unused variable warning
                                // TODO: Implementation
         Ok(())
     }

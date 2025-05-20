@@ -1,8 +1,10 @@
 use crate::filter::Filter;
 use crate::grpc::sender::FilterGatewaySender;
 use crate::vehicle::dds::DdsData;
+use crate::vehicle::VehicleManager;
 use common::spec::artifact::Scenario;
 use common::{spec::artifact::Artifact, Result};
+// use dust_dds::infrastructure::wait_set::Condition;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
@@ -12,17 +14,26 @@ use tokio::sync::{mpsc, Mutex};
 /// - Managing scenario filters
 /// - Coordinating vehicle data subscriptions
 /// - Processing incoming scenario requests
+/// 
+#[derive(Debug)]
+pub struct ScenarioParameter {
+    /// Name of the scenario
+    pub action: i32,
+    /// Vehicle message information
+    pub scenario: Scenario,
+}
+
 pub struct FilterGatewayManager {
     /// Receiver for scenario information from gRPC
-    rx_grpc: mpsc::Receiver<Scenario>,
-    /// Sender for DDS data
-    tx_dds: mpsc::Sender<DdsData>,
+    rx_grpc: Arc<Mutex<mpsc::Receiver<ScenarioParameter>>>,
     /// Receiver for DDS data
     rx_dds: Arc<Mutex<mpsc::Receiver<DdsData>>>,
     /// Active filters for scenarios
     filters: Arc<Mutex<Vec<Filter>>>,
     /// gRPC sender for action controller
     sender: Arc<FilterGatewaySender>,
+    /// Vehicle manager for handling vehicle data
+    vehicle_manager: Arc<Mutex<VehicleManager>>,
 }
 
 impl FilterGatewayManager {
@@ -35,16 +46,131 @@ impl FilterGatewayManager {
     /// # Returns
     ///
     /// A new FilterGatewayManager instance
-    pub fn new(rx: mpsc::Receiver<Scenario>) -> Self {
+
+    pub async fn new(rx_grpc: mpsc::Receiver<ScenarioParameter>) -> Self {
         let (tx_dds, rx_dds) = mpsc::channel::<DdsData>(10);
         let sender = Arc::new(FilterGatewaySender::new());
+        let mut vehicle_manager = VehicleManager::new(tx_dds);
+        
+        // Improved error handling: explicit error handling instead of unwrap()
+        if let Err(e) = vehicle_manager.init().await {
+            println!("Warning: Failed to initialize vehicle manager: {:?}. Continuing with default settings.", e);
+            // Continue (already using default values in VehicleManager::init())
+        }
+        
         Self {
-            rx_grpc: rx,
-            tx_dds: tx_dds,
+            rx_grpc: Arc::new(Mutex::new(rx_grpc)),
             rx_dds: Arc::new(Mutex::new(rx_dds)),
             filters: Arc::new(Mutex::new(Vec::new())),
             sender,
+            vehicle_manager: Arc::new(Mutex::new(vehicle_manager)),
         }
+    }
+
+    /// Function to receive subscribed DDS data and pass it to filters
+    /// 
+    /// This function runs as a separate task to continuously receive and process DDS data.
+    /// 
+    /// # Returns
+    /// 
+    /// * `Result<()>` - Success or error result
+    async fn process_dds_data(&self) -> Result<()> {
+        // Create clone of shared receiver
+        let rx_dds = Arc::clone(&self.rx_dds);
+        
+        // Receive loop
+        loop {
+            let mut receiver = rx_dds.lock().await;
+            
+            // Receive DDS data
+            match receiver.recv().await {
+                Some(dds_data) => {
+                    // Log DDS data reception
+                    println!("Received DDS data: topic={}, value={}", dds_data.name, dds_data.value);
+                    
+                    // Forward data to all active filters
+                    let filters = self.filters.lock().await;
+                    for filter in filters.iter() {
+                        if filter.is_active() {
+                            // Pass DDS data to filter
+                            if let Err(e) = filter.process_data(&dds_data).await {
+                                println!("Error processing DDS data in filter {}: {:?}", 
+                                         filter.scenario_name, e);
+                            }
+                        }
+                    }
+                },
+                None => {
+                    // Channel closed
+                    println!("DDS data channel closed, stopping processor");
+                    break;
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    /// Function to process gRPC requests
+    /// 
+    /// This function processes scenario requests coming through gRPC.
+    /// 
+    /// # Returns
+    /// 
+    /// * `Result<()>` - Success or error result
+    async fn process_grpc_requests(&self) -> Result<()> {
+        loop {
+            // Wait for scenario parameter from gRPC
+            let scenario_parameter = {
+                let mut rx_grpc = self.rx_grpc.lock().await;
+                rx_grpc.recv().await
+            };
+
+            match scenario_parameter {
+                Some(param) => {
+                    println!("Received scenario parameter: {:?}", param);
+                    match param.action {
+                        0 => { // Allow
+                            // Subscribe to vehicle data
+                            let topic_name = param.scenario.get_conditions()
+                                .as_ref()
+                                .map(|cond| cond.get_operand_value())
+                                .unwrap_or_default();
+                            let data_type_name = param.scenario.get_conditions()
+                                .as_ref()
+                                .map(|cond| cond.get_operand_value())
+                                .unwrap_or_default();
+                            let mut vehicle_manager = self.vehicle_manager.lock().await;
+                            if let Err(e) = vehicle_manager.subscribe_topic(
+                                topic_name,
+                                data_type_name
+                            ).await {
+                                eprintln!("Error subscribing to vehicle data: {:?}", e);
+                            }
+                            self.launch_scenario_filter(param.scenario).await?;
+                        }
+                        1 => { // Withdraw
+                            // Unsubscribe from vehicle data
+                            let mut vehicle_manager = self.vehicle_manager.lock().await;
+                            if let Err(e) = vehicle_manager.unsubscribe_topic(
+                                param.scenario.get_name().clone()
+                            ).await {
+                                eprintln!("Error unsubscribing from vehicle data: {:?}", e);
+                            }
+                            self.remove_scenario_filter(param.scenario.get_name().clone()).await?;
+                        }
+                        _ => {}
+                    }
+                }
+                None => {
+                    // Channel closed
+                    println!("gRPC channel closed, stopping processor");
+                    break;
+                }
+            }
+        }
+
+        Ok(())
     }
 
     /// Start the manager processing
@@ -53,61 +179,33 @@ impl FilterGatewayManager {
     /// coordinates DDS data handling.
     ///
     /// # Returns
-    ///
-    /// * `Result<()>` - Success or error result
-    pub async fn run(&mut self) -> Result<()> {
-        // TODO: Implementation
-        loop {
-            tokio::select! {
-                // Process incoming scenario requests from gRPC
-                // Some(scenario) = self.rx_grpc.recv() => {
-                //     println!("Received scenario: {}", scenario.get_name());
-
-                //     match scenario.get_artifact() {
-                //         Artifact::Launch => {
-                //             // Launch a new filter for this scenario
-                //             self.launch_scenario_filter(scenario).await?;
-                //         },
-                //         Artifact::Stop => {
-                //             // Stop and remove the filter for this scenario
-                //             self.remove_scenario_filter(scenario.get_name().to_string()).await?;
-                //         },
-                //         _ => {
-                //             println!("Unhandled scenario artifact type: {:?}", scenario.get_artifact());
-                //         }
-                //     }
-                // },
-
-                // // Process incoming DDS data
-                // dds_data = self.rx_dds.lock().await.recv() => {
-                //     if let Some(data) = dds_data {
-                //         println!("Received DDS data");
-
-                //         // Process DDS data with active filters
-                //         let filters = self.filters.lock().await;
-                //         for filter in filters.iter() {
-                //             // Here we would process the data with each filter
-                //             // Check if the scenario conditions are met
-                //             filter.meet_scenario_condition(&data).await?;
-
-                //             println!("Processing DDS data for scenario: {}", filter.scenario_name);
-                //         }
-                //     } else {
-                //         println!("DDS data channel closed");
-                //         break;
-                //     }
-                // },
-
-                else => {
-                    println!("All channels closed, exiting");
-                    break;
-                }
+    pub async fn run(self) -> Result<()> {
+        // 자신을 Arc로 래핑
+        let arc_self = Arc::new(self);
+        
+        // DDS 데이터 처리 태스크 시작
+        let gateway_dds_manager = Arc::clone(&arc_self);
+        let dds_processor = tokio::spawn(async move {
+            if let Err(e) = gateway_dds_manager.process_dds_data().await {
+                eprintln!("Error in DDS processor: {:?}", e);
             }
-        }
+        });
+
+        // gRPC 요청 처리를 위해 process_grpc_requests도 &self로 수정해야 함
+        let gateway_grpc_manager = Arc::clone(&arc_self);
+        let grpc_processor = tokio::spawn(async move {
+            if let Err(e) = gateway_grpc_manager.process_grpc_requests().await {
+                eprintln!("Error in gRPC processor: {:?}", e);
+            }
+        });
+
+        // 태스크 완료 대기
+        let _ = tokio::try_join!(dds_processor, grpc_processor);
+
+        println!("FilterGatewayManager stopped");
+
         Ok(())
     }
-
-    /// Subscribe to vehicle data for a scenario
     ///
     /// Registers a subscription to vehicle data topics needed for a scenario.
     ///
@@ -121,11 +219,15 @@ impl FilterGatewayManager {
     /// * `Result<()>` - Success or error result
     pub async fn subscribe_vehicle_data(
         &self,
-        scenario_name: String,
         vehicle_message: DdsData,
     ) -> Result<()> {
-        let _ = (scenario_name, vehicle_message); // 사용하지 않는 변수 경고 방지
-                                                  // TODO: Implementation
+        print!("subscribe vehicle data {}\n", vehicle_message.name);
+        println!("subscribe vehicle data {}", vehicle_message.value);
+        let mut vehicle_manager = self.vehicle_manager.lock().await;
+        vehicle_manager
+            .subscribe_topic(vehicle_message.name, vehicle_message.value)
+            .await?;
+   
         Ok(())
     }
 
@@ -143,11 +245,14 @@ impl FilterGatewayManager {
     /// * `Result<()>` - Success or error result
     pub async fn unsubscribe_vehicle_data(
         &self,
-        scenario_name: String,
         vehicle_message: DdsData,
     ) -> Result<()> {
-        let _ = (scenario_name, vehicle_message); // 사용하지 않는 변수 경고 방지
-                                                  // TODO: Implementation
+        print!("unsubscribe vehicle data {}\n", vehicle_message.name);
+        let mut vehicle_manager = self.vehicle_manager.lock().await;
+        vehicle_manager
+            .unsubscribe_topic(vehicle_message.name)
+            .await?;
+
         Ok(())
     }
 

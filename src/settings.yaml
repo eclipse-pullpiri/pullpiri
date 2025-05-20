@@ -12,4 +12,4 @@ guest:
 dds:
   idl_path: src/vehicle/dds/idl
   domain_id: 100
-  out_dir: out
+  # Removed out_dir - will use Cargo's default OUT_DIR

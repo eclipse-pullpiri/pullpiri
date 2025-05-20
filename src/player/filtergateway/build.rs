@@ -15,7 +15,15 @@ use build_scripts::settings::load_dds_settings;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=src/vehicle/dds/idl");
-    println!("cargo:rerun-if-changed=/home/edo/2025/projects/pullpiri/src/settings.yaml");
+    // Ensure build script reruns if settings.yaml changes (relative to project root)
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
+    let settings_path = PathBuf::from(&manifest_dir)
+        .parent() // go up to 'player'
+        .and_then(|p| p.parent()) // go up to 'src'
+        .and_then(|p| p.parent()) // go up to 'pullpiri'
+        .map(|p| p.join("src/settings.yaml"))
+        .ok_or("Failed to resolve project root for settings.yaml")?;
+    println!("cargo:rerun-if-changed={}", settings_path.display());
 
     // Check current working directory (project root)
     let current_dir = env::current_dir().expect("Cannot determine current directory");

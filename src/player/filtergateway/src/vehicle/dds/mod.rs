@@ -242,18 +242,13 @@ impl DdsManager {
 
 // Include generated DDS types at runtime
 #[allow(unused)]
-pub mod dds_types {
-    // Try including the generated code from build.rs
-    // If no IDL files exist, this will just include an empty file
-    // No placeholder types will be created
-    #[allow(unused_variables, unused_imports)]            
+pub mod dds_types {        
+    #[allow(unused_variables, unused_imports)]
     include! {
-        concat! {
-            env!("OUT_DIR"),
-            "/dds_types.rs"
-        }
+        concat!(env!("OUT_DIR"), "/dds_types.rs")
     }
 }
+
 #[allow(unused)]
 pub mod dds_type_metadata {
     // Try including the generated code from build.rs

@@ -15,8 +15,10 @@ pub fn load_dds_settings() -> Result<(PathBuf, i32, Option<String>), Box<dyn std
     // CARGO_MANIFEST_DIR is the path where filtergateway's Cargo.toml is located
     // To change to a relative path based on pullpiri (project root), move to parent directory
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")?;
-    let settings_path = PathBuf::from(manifest_dir)
-        .parent() // filtergateway -> pullpiri
+    let settings_path = PathBuf::from(&manifest_dir)
+        .parent() // go up to 'player'
+        .and_then(|p| p.parent()) // go up to 'src'
+        .and_then(|p| p.parent()) // go up to 'pullpiri'
         .map(|p| p.join("src/settings.yaml"))
         .ok_or("Failed to resolve project root for settings.yaml")?;
  
@@ -57,15 +59,27 @@ pub fn load_dds_settings() -> Result<(PathBuf, i32, Option<String>), Box<dyn std
 
     println!("Domain ID from settings: {}", domain_id);
 
-    // Check for custom OUT_DIR value (absolute path or relative path based on project root)
+    // Check for custom OUT_DIR value 
+    // If relative, convert to absolute path within target directory
     let out_dir = settings
         .get("dds")
         .and_then(|dds| dds.get("out_dir"))
         .and_then(|path| path.as_str())
-        .map(String::from);
+        .and_then(|dir| {
+            // If directory starts with / consider it absolute, otherwise make it relative to build directory
+            if dir.starts_with('/') {
+                Some(dir.to_string())
+            } else {
+                // Use the standard cargo OUT_DIR as the base directory
+                std::env::var("OUT_DIR").ok().map(|out_dir| {
+                    println!("Converting relative path '{}' to absolute within build directory", dir);
+                    format!("{}", out_dir)
+                })
+            }
+        });
 
     if let Some(dir) = &out_dir {
-        println!("Output directory from settings: {}", dir);
+        println!("Output directory (absolute): {}", dir);
     }
 
     Ok((idl_path, domain_id, out_dir))

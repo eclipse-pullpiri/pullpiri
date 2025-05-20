@@ -15,7 +15,7 @@ pub struct Filter {
     /// Flag to indicate if the filter is active
     is_active: bool,
     /// gRPC sender for action controller
-    sender: Arc<FilterGatewaySender>,
+    sender: FilterGatewaySender,
 }
 
 impl Filter {
@@ -35,7 +35,7 @@ impl Filter {
         scenario_name: String,
         scenario: Scenario,
         is_active: bool,
-        sender: Arc<FilterGatewaySender>,
+        sender: FilterGatewaySender,
     ) -> Self {
         Self {
             scenario_name,
@@ -57,7 +57,7 @@ impl Filter {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn meet_scenario_condition(&self, data: &DdsData) -> Result<()> {
+    pub async fn meet_scenario_condition(&mut self, data: &DdsData) -> Result<()> {
         let condition = self.scenario.get_conditions().unwrap();
         let topic = condition.get_operand_value();
         let value_name = condition.get_operand_name();
@@ -170,7 +170,7 @@ impl Filter {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn process_data(&self, data: &DdsData) -> Result<()> {
+    pub async fn process_data(&mut self, data: &DdsData) -> Result<()> {
         // Do not process inactive filters
         if !self.is_active {
             return Ok(());

@@ -31,7 +31,7 @@ pub struct FilterGatewayManager {
     /// Active filters for scenarios
     filters: Arc<Mutex<Vec<Filter>>>,
     /// gRPC sender for action controller
-    sender: Arc<FilterGatewaySender>,
+    sender: Arc<Mutex<FilterGatewaySender>>,
     /// Vehicle manager for handling vehicle data
     vehicle_manager: Arc<Mutex<VehicleManager>>,
 }
@@ -48,8 +48,7 @@ impl FilterGatewayManager {
     /// A new FilterGatewayManager instance
 
     pub async fn new(rx_grpc: mpsc::Receiver<ScenarioParameter>) -> Self {
-        let (tx_dds, rx_dds) = mpsc::channel::<DdsData>(10);
-        let sender = Arc::new(FilterGatewaySender::new());
+        let (tx_dds, rx_dds) = mpsc::channel::<DdsData>(10);        
         let mut vehicle_manager = VehicleManager::new(tx_dds);
         
         // Improved error handling: explicit error handling instead of unwrap()
@@ -62,7 +61,7 @@ impl FilterGatewayManager {
             rx_grpc: Arc::new(Mutex::new(rx_grpc)),
             rx_dds: Arc::new(Mutex::new(rx_dds)),
             filters: Arc::new(Mutex::new(Vec::new())),
-            sender,
+            sender: Arc::new(Mutex::new(FilterGatewaySender::new())),
             vehicle_manager: Arc::new(Mutex::new(vehicle_manager)),
         }
     }
@@ -89,8 +88,8 @@ impl FilterGatewayManager {
                     println!("Received DDS data: topic={}, value={}", dds_data.name, dds_data.value);
                     
                     // Forward data to all active filters
-                    let filters = self.filters.lock().await;
-                    for filter in filters.iter() {
+                    let mut filters = self.filters.lock().await;
+                    for filter in filters.iter_mut() {
                         if filter.is_active() {
                             // Pass DDS data to filter
                             if let Err(e) = filter.process_data(&dds_data).await {
@@ -272,18 +271,22 @@ impl FilterGatewayManager {
         // Check if the scenario has conditions
         if scenario.get_conditions().is_none() {
             println!("No conditions for scenario: {}", scenario.get_name());
-            self.sender
+            let mut sender = self.sender.lock().await;
+            sender
                 .trigger_action(scenario.get_name().clone())
                 .await?;
             return Ok(());
         }
 
-        // Create a new filter for the scenario
+        let sender = {
+            let sender_guard = self.sender.lock().await;
+            sender_guard.clone()
+        };
         let filter = Filter::new(
             scenario.get_name().to_string(),
             scenario,
             true,
-            self.sender.clone(),
+            sender,
         );
 
         // Add the filter to our managed collection

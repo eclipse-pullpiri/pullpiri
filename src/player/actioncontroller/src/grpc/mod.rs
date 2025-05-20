@@ -21,17 +21,23 @@ use tonic::transport::Server;
 /// - Server address binding fails
 /// - Client connection establishment fails
 pub async fn init(manager: crate::manager::ActionControllerManager) -> common::Result<()> {
-    // TODO: Implementation
     let arc_manager = Arc::new(manager);
     let grpc_server = receiver::ActionControllerReceiver::new(arc_manager.clone());
-
-    Server::builder()
-        .add_service(grpc_server.into_service())
-        .serve(common::actioncontroller::open_server().parse()?)
-        .await?;
-
-    println!("gRPC server started on");
-
+    
+    let addr = common::actioncontroller::open_server().parse()?;
+    println!("Starting gRPC server on {}", addr);
+    
+    tokio::spawn(async move {
+        if let Err(e) = Server::builder()
+            .add_service(grpc_server.into_service())
+            .serve(addr)
+            .await {
+            eprintln!("gRPC server error: {}", e);
+        }
+    });
+    
+    println!("gRPC server started and listening");
+    
     Ok(())
 }
 

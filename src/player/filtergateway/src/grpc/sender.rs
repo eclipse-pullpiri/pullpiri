@@ -1,5 +1,10 @@
 use common::Result;
-use tonic::transport::Channel;
+
+
+// Import the generated protobuf code from actioncontroller.proto
+
+use common::actioncontroller::connect_server;
+
 
 // Import the generated protobuf code from actioncontroller.proto
 use common::actioncontroller::action_controller_connection_client::ActionControllerConnectionClient;
@@ -7,7 +12,6 @@ use common::actioncontroller::action_controller_connection_client::ActionControl
 /// Sender for making gRPC requests to ActionController
 #[derive(Clone)]
 pub struct FilterGatewaySender {
-    client: Option<ActionControllerConnectionClient<Channel>>,
 }
 
 impl FilterGatewaySender {
@@ -17,17 +21,8 @@ impl FilterGatewaySender {
     ///
     /// A new FilterGatewaySender instance
     pub fn new() -> Self {
-        Self { client: None }
-    }
-
-    /// Initialize the gRPC connection to ActionController
-    ///
-    /// # Returns
-    ///
-    /// * `Result<()>` - Success or error result
-    pub async fn init(&mut self) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
+        Self {
+        }
     }
 
     /// Trigger an action for a scenario
@@ -39,9 +34,20 @@ impl FilterGatewaySender {
     /// # Returns
     ///
     /// * `Result<()>` - Success or error result
-    pub async fn trigger_action(&self, scenario_name: String) -> Result<()> {
-        let _ = scenario_name; // Suppress unused variable warning
-                               // TODO: Implementation
+    pub async fn trigger_action(&mut self, scenario_name: String) -> Result<()> {
+        use common::actioncontroller::TriggerActionRequest;
+        let mut client 
+        = ActionControllerConnectionClient::connect(connect_server()).await.unwrap();
+
+        let request = TriggerActionRequest {
+            scenario_name
+        };
+
+        client.trigger_action(request).await.map_err(|e| {
+            log::error!("Failed to trigger action: {:?}", e);
+            anyhow::anyhow!("Failed to trigger action: {:?}", e)
+        })?;
+
         Ok(())
     }
 }

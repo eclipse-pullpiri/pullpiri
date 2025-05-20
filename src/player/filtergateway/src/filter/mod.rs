@@ -11,7 +11,7 @@ pub struct Filter {
     /// Name of the scenario
     pub scenario_name: String,
     /// Full scenario definition
-    pub scenario: common::spec::artifact::Scenario,
+    pub scenario: Scenario,
     /// Flag to indicate if the filter is active
     is_active: bool,
     /// gRPC sender for action controller
@@ -33,7 +33,7 @@ impl Filter {
     /// A new Filter instance
     pub fn new(
         scenario_name: String,
-        scenario: common::spec::artifact::Scenario,
+        scenario: Scenario,
         is_active: bool,
         sender: Arc<FilterGatewaySender>,
     ) -> Self {
@@ -60,34 +60,46 @@ impl Filter {
     pub async fn meet_scenario_condition(&self, data: &DdsData) -> Result<()> {
         let condition = self.scenario.get_conditions().unwrap();
         let topic = condition.get_operand_value();
+        let value_name = condition.get_operand_name();
         let target_value = condition.get_value();
         let express = condition.get_express();
+
+        print!(
+            "Checking condition for scenario: {}\nTopic: {}\nTarget Value: {}\nValue Name: {}\nExpression: {}\n",
+            self.scenario_name, topic, target_value, value_name, express
+        );
 
         if !data.name.eq(&topic) {
             return Err("data topic does not match".into());
         }
 
+        // fields에서 value_name과 일치하는 key를 찾고, 해당 value와 target_value를 비교
+        let field_value = match data.fields.get(&value_name) {
+            Some(v) => v,
+            None => return Err(format!("field '{}' not found in data.fields", value_name).into()),
+        };
+
         let check: bool = match express.as_str() {
-            "eq" => target_value.to_lowercase() == data.value.to_lowercase(),
+            "eq" => target_value.to_lowercase() == field_value.to_lowercase(),
             "lt" => {
-                let target_v = target_value.parse::<f32>().unwrap();
-                let current_v = data.value.parse::<f32>().unwrap();
-                target_v < current_v
+            let target_v = target_value.parse::<f32>().map_err(|_| "target_value parse error")?;
+            let current_v = field_value.parse::<f32>().map_err(|_| "field_value parse error")?;
+            current_v < target_v
             }
             "le" => {
-                let target_v = target_value.parse::<f32>().unwrap();
-                let current_v = data.value.parse::<f32>().unwrap();
-                target_v <= current_v
+            let target_v = target_value.parse::<f32>().map_err(|_| "target_value parse error")?;
+            let current_v = field_value.parse::<f32>().map_err(|_| "field_value parse error")?;
+            current_v <= target_v
             }
             "ge" => {
-                let target_v = target_value.parse::<f32>().unwrap();
-                let current_v = data.value.parse::<f32>().unwrap();
-                target_v >= current_v
+            let target_v = target_value.parse::<f32>().map_err(|_| "target_value parse error")?;
+            let current_v = field_value.parse::<f32>().map_err(|_| "field_value parse error")?;
+            current_v >= target_v
             }
             "gt" => {
-                let target_v = target_value.parse::<f32>().unwrap();
-                let current_v = data.value.parse::<f32>().unwrap();
-                target_v > current_v
+            let target_v = target_value.parse::<f32>().map_err(|_| "target_value parse error")?;
+            let current_v = field_value.parse::<f32>().map_err(|_| "field_value parse error")?;
+            current_v > target_v
             }
             _ => return Err("wrong expression in condition".into()),
         };
@@ -163,6 +175,11 @@ impl Filter {
         if !self.is_active {
             return Ok(());
         }
+
+        print!(
+            "process data for scenario: {}\nTopic: {}\nTarget Name: {}\nTarget Value: {}\n",
+             data.name, data.value, data.fields
+        );
         
         // 필터 조건에 맞는 토픽인지 확인
         let condition = match self.scenario.get_conditions() {

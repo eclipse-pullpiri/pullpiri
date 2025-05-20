@@ -4,6 +4,7 @@ use std::io::Error;
 use crate::manager::ScenarioParameter;
 use crate::vehicle::dds::DdsData;
 
+
 use common::spec::artifact::{Artifact, Scenario};
 use common::Result;
 use tokio::sync::mpsc::{self, error::SendError};
@@ -61,18 +62,8 @@ impl FilterGatewayReceiver {
         let scenario = serde_yaml::from_str::<Scenario>(&scenario_yaml_str)?;
 
         let param = ScenarioParameter {
-            action: action ,
-            vehicle_message: DdsData {
-                name: scenario.get_conditions()
-                    .as_ref()
-                    .map(|cond| cond.get_operand_value())
-                    .unwrap_or_default(),
-                value: scenario.get_conditions()
-                    .as_ref()
-                    .map(|cond| cond.get_operand_value())
-                    .unwrap_or_default(),
-                fields: std::collections::HashMap::new(),
-            },
+            action: action,
+            scenario: scenario,
         };
         
         self.tx.send(param).await.map_err(|e| {

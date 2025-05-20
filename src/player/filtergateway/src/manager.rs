@@ -4,6 +4,7 @@ use crate::vehicle::dds::DdsData;
 use crate::vehicle::VehicleManager;
 use common::spec::artifact::Scenario;
 use common::{spec::artifact::Artifact, Result};
+// use dust_dds::infrastructure::wait_set::Condition;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
@@ -14,12 +15,12 @@ use tokio::sync::{mpsc, Mutex};
 /// - Coordinating vehicle data subscriptions
 /// - Processing incoming scenario requests
 /// 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ScenarioParameter {
     /// Name of the scenario
     pub action: i32,
     /// Vehicle message information
-    pub vehicle_message: DdsData,
+    pub scenario: Scenario,
 }
 use std::sync::Weak;
 
@@ -132,22 +133,32 @@ impl FilterGatewayManager {
                     match param.action {
                         0 => { // Allow
                             // Subscribe to vehicle data
+                            let topic_name = param.scenario.get_conditions()
+                                .as_ref()
+                                .map(|cond| cond.get_operand_value())
+                                .unwrap_or_default();
+                            let data_type_name = param.scenario.get_conditions()
+                                .as_ref()
+                                .map(|cond| cond.get_operand_value())
+                                .unwrap_or_default();
                             let mut vehicle_manager = self.vehicle_manager.lock().await;
                             if let Err(e) = vehicle_manager.subscribe_topic(
-                                param.vehicle_message.name.clone(),
-                                param.vehicle_message.value.clone()
+                                topic_name,
+                                data_type_name
                             ).await {
                                 eprintln!("Error subscribing to vehicle data: {:?}", e);
                             }
+                            self.launch_scenario_filter(param.scenario).await?;
                         }
                         1 => { // Withdraw
                             // Unsubscribe from vehicle data
                             let mut vehicle_manager = self.vehicle_manager.lock().await;
                             if let Err(e) = vehicle_manager.unsubscribe_topic(
-                                param.vehicle_message.name.clone()
+                                param.scenario.get_name().clone()
                             ).await {
                                 eprintln!("Error unsubscribing from vehicle data: {:?}", e);
                             }
+                            self.remove_scenario_filter(param.scenario.get_name().clone()).await?;
                         }
                         _ => {}
                     }

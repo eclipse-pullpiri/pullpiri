@@ -334,12 +334,21 @@ impl<
                             let json_value = serde_json::to_string(&data)
                                 .map_err(|e| anyhow!("Failed to serialize data: {:?}", e))?;
 
+                            // json_value를 key, value로 파싱해서 fields에 추가
+                            let mut fields = HashMap::new();
+                            if let Ok(map) = serde_json::from_str::<serde_json::Map<String, Value>>(&json_value) {
+                                for (k, v) in map {
+                                    fields.insert(k, v.to_string());
+                                }
+                            }
+
                             // DdsData 객체 생성 및 전송
                             let dds_data = DdsData {
                                 name: data_type_name.clone(),
                                 value: json_value,
-                                fields: HashMap::new(), // 이 부분은 필요시 채울 수 있음
+                                fields,
                             };
+                            
 
                             // 채널로 데이터 전송
                             if tx.send(dds_data).await.is_err() {

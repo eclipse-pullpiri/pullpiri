@@ -1,9 +1,8 @@
 pub mod dds;
 
 use common::Result;
-use dds::{DdsData, DdsManager};
-use log::{debug, info};
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use dds::DdsData ;
+use tokio::sync::mpsc:: Sender;
 
 /// Vehicle data management module
 ///
@@ -70,7 +69,7 @@ impl VehicleManager {
     }
 
 
-    /// 사용 가능한 DDS 타입 목록 조회
+    /// Get list of available DDS types
     pub fn list_available_types(&self) -> Vec<String> {
         self.dds_manager.list_available_types()
     }

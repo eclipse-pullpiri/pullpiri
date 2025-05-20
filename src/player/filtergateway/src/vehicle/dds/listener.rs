@@ -1,9 +1,7 @@
 use crate::vehicle::dds::DdsData;
 use common::Result;
 use std::collections::HashMap;
-use std::mem;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+
 
 #[async_trait]
 pub trait DdsTopicListener: Send + Sync {
@@ -237,19 +235,19 @@ pub struct GenericTopicListener<
         + for<'de> DdsDeserialize<'de>
         + 'static,
 > {
-    /// 토픽 이름
+    /// Topic name
     topic_name: String,
-    /// 데이터 타입 이름
+    /// Data type name
     data_type_name: String,
-    /// 데이터 전송 채널
+    /// Data transmission channel
     tx: Sender<DdsData>,
-    /// DDS 도메인 ID
+    /// DDS domain ID
     domain_id: i32,
-    /// 리스너 태스크 핸들
+    /// Listener task handle
     listener_task: Option<JoinHandle<()>>,
-    /// 실행 상태
+    /// Running state
     is_running: bool,
-    /// 타입 마커 (제네릭 타입 지정용)
+    /// Type marker (for generic type specification)
     _marker: std::marker::PhantomData<T>,
 }
 
@@ -350,7 +348,7 @@ impl<
                             };
                             
 
-                            // 채널로 데이터 전송
+                            // Send data through channel
                             if tx.send(dds_data).await.is_err() {
                                 warn!("Channel closed, stopping listener for {}", topic_name);
                                 return Ok(());

@@ -22,7 +22,6 @@ pub struct ScenarioParameter {
     /// Vehicle message information
     pub scenario: Scenario,
 }
-use std::sync::Weak;
 
 pub struct FilterGatewayManager {
     /// Receiver for scenario information from gRPC
@@ -53,10 +52,10 @@ impl FilterGatewayManager {
         let sender = Arc::new(FilterGatewaySender::new());
         let mut vehicle_manager = VehicleManager::new(tx_dds);
         
-        // 오류 처리 개선: unwrap() 대신 명시적 에러 처리
+        // Improved error handling: explicit error handling instead of unwrap()
         if let Err(e) = vehicle_manager.init().await {
             println!("Warning: Failed to initialize vehicle manager: {:?}. Continuing with default settings.", e);
-            // 계속 진행 (이미 VehicleManager::init()에서 기본값 사용)
+            // Continue (already using default values in VehicleManager::init())
         }
         
         Self {
@@ -68,32 +67,32 @@ impl FilterGatewayManager {
         }
     }
 
-    /// 구독된 DDS 데이터를 수신하고 필터에 전달하는 함수
+    /// Function to receive subscribed DDS data and pass it to filters
     /// 
-    /// 이 함수는 별도의 태스크로 실행되어 DDS 데이터를 계속 수신하고 처리합니다.
+    /// This function runs as a separate task to continuously receive and process DDS data.
     /// 
     /// # Returns
     /// 
-    /// * `Result<()>` - 성공 또는 에러 결과
+    /// * `Result<()>` - Success or error result
     async fn process_dds_data(&self) -> Result<()> {
-        // 공유된 수신자의 클론 생성
+        // Create clone of shared receiver
         let rx_dds = Arc::clone(&self.rx_dds);
         
-        // 수신 루프
+        // Receive loop
         loop {
             let mut receiver = rx_dds.lock().await;
             
-            // DDS 데이터 수신
+            // Receive DDS data
             match receiver.recv().await {
                 Some(dds_data) => {
-                    // DDS 데이터 수신 로깅
+                    // Log DDS data reception
                     println!("Received DDS data: topic={}, value={}", dds_data.name, dds_data.value);
                     
-                    // 모든 활성 필터에 데이터 전달
+                    // Forward data to all active filters
                     let filters = self.filters.lock().await;
                     for filter in filters.iter() {
                         if filter.is_active() {
-                            // 필터에 DDS 데이터 전달
+                            // Pass DDS data to filter
                             if let Err(e) = filter.process_data(&dds_data).await {
                                 println!("Error processing DDS data in filter {}: {:?}", 
                                          filter.scenario_name, e);
@@ -102,7 +101,7 @@ impl FilterGatewayManager {
                     }
                 },
                 None => {
-                    // 채널 닫힘
+                    // Channel closed
                     println!("DDS data channel closed, stopping processor");
                     break;
                 }
@@ -112,13 +111,13 @@ impl FilterGatewayManager {
         Ok(())
     }
 
-    /// gRPC 요청을 처리하는 함수
+    /// Function to process gRPC requests
     /// 
-    /// 이 함수는 gRPC를 통해 들어오는 시나리오 요청을 처리합니다.
+    /// This function processes scenario requests coming through gRPC.
     /// 
     /// # Returns
     /// 
-    /// * `Result<()>` - 성공 또는 에러 결과
+    /// * `Result<()>` - Success or error result
     async fn process_grpc_requests(&self) -> Result<()> {
         loop {
             // Wait for scenario parameter from gRPC
@@ -164,7 +163,7 @@ impl FilterGatewayManager {
                     }
                 }
                 None => {
-                    // 채널 닫힘
+                    // Channel closed
                     println!("gRPC channel closed, stopping processor");
                     break;
                 }

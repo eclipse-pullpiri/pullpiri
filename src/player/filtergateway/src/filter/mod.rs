@@ -149,58 +149,58 @@ impl Filter {
         Ok(())
     }
 
-    /// 필터가 활성화되어 있는지 확인
+    /// Check if filter is active
     ///
     /// # Returns
     ///
-    /// * `bool` - 필터 활성화 상태
+    /// * `bool` - Filter active status
     pub fn is_active(&self) -> bool {
         self.is_active
     }
     
-    /// DDS 데이터 처리 및 조건 검사
+    /// Process DDS data and check conditions
     ///
-    /// 수신된 DDS 데이터를 처리하고 시나리오 조건을 검사합니다.
-    /// 조건이 충족되면 액션을 트리거합니다.
+    /// Processes received DDS data and checks scenario conditions.
+    /// Triggers an action if conditions are met.
     ///
     /// # Arguments
     ///
-    /// * `data` - 수신된 DDS 데이터
+    /// * `data` - Received DDS data
     ///
     /// # Returns
     ///
-    /// * `Result<()>` - 성공 또는 에러 결과
+    /// * `Result<()>` - Success or error result
     pub async fn process_data(&self, data: &DdsData) -> Result<()> {
-        // 비활성화된 필터는 처리하지 않음
+        // Do not process inactive filters
         if !self.is_active {
             return Ok(());
         }
 
         print!(
-            "process data for scenario: {}\nTopic: {}\nTarget Name: {}\nTarget Value: {}\n",
-             data.name, data.value, data.fields
+            "process data for scenario: {}\nTopic: {:?}\nTarget Name: {:?}\nTarget Value: {:?}\n",
+            self.scenario_name, data.name, data.value, data.fields
         );
         
-        // 필터 조건에 맞는 토픽인지 확인
+        // Check if topic matches filter condition
         let condition = match self.scenario.get_conditions() {
             Some(c) => c,
-            None => return Ok(()), // 조건이 없는 경우 (이미 처리됨)
+            None => return Ok(()), // No conditions case (already handled)
         };
         
         let topic = condition.get_operand_value();
         if !data.name.eq(&topic) {
-            return Ok(()); // 관련 없는 토픽은 무시
+            return Ok(()); // Ignore unrelated topics
         }
         
-        // 조건 검사 수행
+        // Perform condition check
         match self.meet_scenario_condition(data).await {
             Ok(_) => {
                 println!("Action triggered for scenario: {}", self.scenario_name);
-                // 조건 충족 후 필터 비활성화 (한 번만 실행)
-                // 필요시 self.is_active = false; 코드 추가
+                // Disable filter after condition is met (run only once)
+                // Add self.is_active = false; code if needed
             }
             Err(e) => {
-                // 조건 불충족은 정상적인 경우이므로 디버그 수준에서만 기록
+                // Condition not met is a normal case, only log at debug level
                 if e.to_string() != "cannot meet condition" {
                     println!("Error checking condition: {:?}", e);
                 }

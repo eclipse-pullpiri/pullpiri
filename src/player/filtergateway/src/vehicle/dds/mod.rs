@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::sync::Mutex;
@@ -15,7 +14,7 @@ mod listener;
 // Re-export the modules
 pub use listener::{create_idl_listener, DdsTopicListener};
 
-use crate::grpc::receiver;
+
 // DdsData structure to represent parsed IDL data
 #[derive(Debug,  Clone, Serialize, Deserialize)]
 pub struct DdsData {
@@ -25,21 +24,21 @@ pub struct DdsData {
 }
 
 
-/// DDS 관리자 - 여러 DDS 리스너를 관리
+/// DDS Manager - Manages multiple DDS listeners
 pub struct DdsManager {
-    /// 활성 리스너 맵 (토픽 이름 → 리스너)
+    /// Active listener map (topic name → listener)
     listeners: HashMap<String, Box<dyn DdsTopicListener>>,
-    /// DDS 데이터 송신용 채널
+    /// Channel for sending DDS data
     tx: Sender<DdsData>,
-    /// DDS 데이터 수신용 채널
+    /// Channel for receiving DDS data
     rx: Mutex<Receiver<DdsData>>,
-    /// DDS 도메인 ID
+    /// DDS domain ID
     domain_id: i32,
 
 }
 
 impl DdsManager {
-    /// 새 DDS 관리자 생성
+    /// Create new DDS manager
     pub fn new(tx:Sender<DdsData> ) -> Self {
         // let (tx, rx) = mpsc::channel(100);
 
@@ -50,12 +49,12 @@ impl DdsManager {
             domain_id: 100,
         }
     }
-    /// 런타임에 IDL 디렉토리 스캔 및 처리
+    /// Scan and process IDL directory at runtime
     pub async fn scan_idl_directory(&mut self, dir: &Path) -> Result<Vec<String>> {
         info!("Scanning IDL directory at runtime: {:?}", dir);
         let mut found_types = Vec::new();
         
-        // 디렉토리 존재 확인
+        // Check if directory exists
         if !dir.exists() {
             return Ok(found_types);
         }
@@ -109,32 +108,32 @@ impl DdsManager {
             return Ok(());
         }
         
-        // 타입별 리스너를 찾지 못한 경우 일반 리스너 생성
+        // Create generic listener if no type-specific listener is found
         warn!("No specific type handler for '{}', using generic listener", data_type_name);
         self.create_listener(topic_name, data_type_name).await
     }
     
-    /// 사용 가능한 DDS 타입 목록 조회
+    /// Get list of available DDS types
     pub fn list_available_types(&self) -> Vec<String> {
         dds_type_metadata::get_available_types()
     }
 
-    /// DDS 도메인 ID 설정
+    /// Set DDS domain ID
     pub fn set_domain_id(&mut self, domain_id: i32) {
         self.domain_id = domain_id;
     }
 
-    /// DDS 데이터 송신자 얻기
+    /// Get DDS data sender
     pub fn get_sender(&self) -> Sender<DdsData> {
         self.tx.clone()
     }
 
-    /// DDS 데이터 수신자 얻기
+    /// Get DDS data receiver
     pub async fn get_receiver(&mut self) -> &mut Mutex<Receiver<DdsData>> {
         &mut self.rx
     }
 
-    /// 리스너 생성 및 등록
+    /// Create and register listener
     pub async fn create_listener(
         &mut self,
         topic_name: String,
@@ -185,7 +184,7 @@ impl DdsManager {
     }
 
 
-    /// 모든 리스너 중지
+    /// Stop all listeners
     pub async fn stop_all(&mut self) -> Result<()> {
         for (_, mut listener) in std::mem::take(&mut self.listeners) {
             if let Err(e) = listener.stop().await {
@@ -197,7 +196,7 @@ impl DdsManager {
     }
 
 
-    /// DDS 관리자 초기화
+    /// Initialize DDS Manager
     pub async fn init(&mut self) -> Result<()> {
         info!("Initializing DDS Manager");
 
@@ -224,7 +223,7 @@ impl DdsManager {
 
         info!("Domain ID from settings: {}", domain_id);
 
-        // OUT_DIR 값 확인 (런타임에서는 사용하지 않으나 로깅용)
+        // Check OUT_DIR value (not used at runtime, only for logging)
         if let Some(out_dir) = settings
             .get("dds")
             .and_then(|dds| dds.get("out_dir"))

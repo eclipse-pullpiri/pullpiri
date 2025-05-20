@@ -23,7 +23,6 @@ pub struct DdsData {
     pub fields: HashMap<String, String>,
 }
 
-
 /// DDS Manager - Manages multiple DDS listeners
 pub struct DdsManager {
     /// Active listener map (topic name → listener)
@@ -156,7 +155,6 @@ impl DdsManager {
             self.domain_id,
         );
 
-
         // 리스너 시작
         listener
             .start()
@@ -231,8 +229,6 @@ impl DdsManager {
         {
             info!("Output directory from settings: {}", out_dir);
         }
-
- 
 
         self.domain_id = domain_id;
 

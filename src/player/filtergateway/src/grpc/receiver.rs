@@ -4,7 +4,6 @@ use std::io::Error;
 use crate::manager::ScenarioParameter;
 use crate::vehicle::dds::DdsData;
 
-
 use common::spec::artifact::{Artifact, Scenario};
 use common::Result;
 use tokio::sync::mpsc::{self, error::SendError};
@@ -71,7 +70,6 @@ impl FilterGatewayReceiver {
             Error::new(std::io::ErrorKind::Other, "Failed to send scenario")
         })?;
         
-
         Ok(())
     }
 }

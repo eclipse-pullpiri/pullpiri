@@ -1,14 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
-yaml_storage: /etc/piccolo
+yaml_storage: /etc/piccolo/yaml
 piccolo_cloud: http://0.0.0.0:41234
 host:
   name: HPC
   ip: 0.0.0.0
+  type: bluechi
 guest:
 #  - name: ZONE
 #    ip: 192.168.0.1
-
+#    type: nodeagent
 dds:
   idl_path: src/vehicle/dds/idl
   domain_id: 100

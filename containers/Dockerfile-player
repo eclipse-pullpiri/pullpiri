@@ -20,7 +20,6 @@ COPY ./src/settings.yaml .
 COPY --from=builder \
     /piccolo/player/target/release/actioncontroller \
     /piccolo/player/target/release/filtergateway \
-    /piccolo/player/target/release/nodeagent \
     /piccolo/player/target/release/statemanager \
     ./
 

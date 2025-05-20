@@ -20,7 +20,7 @@ spec:
     operands:
       type: DDS
       name: gear_state
-      value: "rt/piccolo/gear_state"
+      value: "rt/pullpiri/gear_state"
   actions:
     - operation: launch
   targets:

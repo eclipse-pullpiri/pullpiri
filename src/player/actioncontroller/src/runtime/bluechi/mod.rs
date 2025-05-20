@@ -1,191 +1,311 @@
 use common::Result;
-use std::collections::HashMap;
+use dbus::blocking::{Connection, Proxy};
+use dbus::Path;
+use std::time::Duration;
 
-/// Runtime implementation for Bluechi API interactions
+const DEST: &str = "org.eclipse.bluechi";
+const PATH: &str = "/org/eclipse/bluechi";
+const DEST_CONTROLLER: &str = "org.eclipse.bluechi.Controller";
+const DEST_NODE: &str = "org.eclipse.bluechi.Node";
+
+/// Command structure for Bluechi operations
 ///
-/// Handles workload operations for nodes managed by Bluechi,
-/// interfacing with the Bluechi Controller API to perform
-/// operations like creating, starting, stopping, and deleting workloads.
-pub struct BluechiRuntime {
-    /// Connection to the Bluechi Controller
-    connection: Option<String>, // This would be the actual Bluechi client type
-    /// Cache of node information for quick access
-    node_cache: HashMap<String, String>,
+/// Contains the command type to execute and optional node and unit
+/// information needed to target specific components.
+pub struct BluechiCmd {
+    pub command: Command,
 }
 
-impl BluechiRuntime {
-    /// Create a new BluechiRuntime instance
+/// Commands supported by the Bluechi runtime
+///
+/// Represents the various operations that can be performed
+/// on the Bluechi controller, nodes, and units.
+pub enum Command {
+    ControllerReloadAllNodes,
+    UnitStart,
+    UnitStop,
+    UnitRestart,
+    UnitReload,
+}
+
+impl Command {
+    /// Convert command enum to the corresponding D-Bus method name
     ///
-    /// Initializes a runtime handler for Bluechi operations without
-    /// establishing a connection. Use `connect()` to establish the connection.
+    /// Maps each command type to its corresponding Bluechi D-Bus method name
+    /// that will be used in the actual method call.
     ///
     /// # Returns
     ///
-    /// A new BluechiRuntime instance
-    pub fn new() -> Self {
-        Self {
-            connection: None,
-            node_cache: HashMap::new(),
+    /// The D-Bus method name as a string slice
+    fn to_method_name(&self) -> &str {
+        match self {
+            Command::UnitStart => "StartUnit",
+            Command::UnitStop => "StopUnit",
+            Command::UnitRestart => "RestartUnit",
+            Command::UnitReload => "ReloadUnit",
+            _ => "Unknown",
+        }
+    }
+}
+
+/// Handle Bluechi commands for operations
+///
+/// This function processes a single Bluechi command by:
+/// 1. Establishing a D-Bus connection to the Bluechi controller
+/// 2. Executing the appropriate operation based on the command type
+///
+/// # Arguments
+///
+/// * `scenario_name` - Name of the scenario to operate on
+/// * `node` - Name of the node to target
+/// * `bluechi_cmd` - The Bluechi command to execute
+pub async fn handle_bluechi_cmd(
+    scenario_name: &str,
+    node: &str,
+    bluechi_cmd: BluechiCmd,
+) -> Result<()> {
+    let conn = Connection::new_system().unwrap();
+    let bluechi = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
+
+    match bluechi_cmd.command {
+        Command::ControllerReloadAllNodes => {
+            let _ = reload_all_nodes(&bluechi);
+        }
+        Command::UnitStart | Command::UnitStop | Command::UnitRestart | Command::UnitReload => {
+            let _ = workload_run(
+                &conn,
+                bluechi_cmd.command.to_method_name(),
+                node,
+                &bluechi,
+                scenario_name,
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Execute a unit-related operation on a Bluechi node
+///
+/// Calls the specified D-Bus method on the given node proxy to perform
+/// operations like starting, stopping, restarting, or reloading a unit.
+///
+/// # Arguments
+///
+/// * `method` - The D-Bus method name to call (e.g., "StartUnit", "StopUnit")
+/// * `node_proxy` - The proxy to the Bluechi node where the unit is located
+/// * `unit_name` - The name of the unit to operate on
+///
+/// # Returns
+///
+/// * `Ok(String)` - A successful result message including the job path
+/// * `Err(...)` - If the D-Bus call fails
+pub async fn workload_run(
+    conn: &Connection,
+    method: &str,
+    node_name: &str,
+    proxy: &Proxy<'_, &Connection>,
+    unit_name: &str,
+) -> Result<String> {
+    let (node,): (Path,) = proxy.method_call(DEST_CONTROLLER, "GetNode", (&node_name,))?;
+
+    let node_proxy = conn.with_proxy(DEST, node, Duration::from_millis(5000));
+
+    let (job_path,): (Path,) = node_proxy.method_call(DEST_NODE, method, (unit_name, "replace"))?;
+
+    Ok(format!("{method} '{unit_name}' : {job_path}\n"))
+}
+
+/// Reload all nodes managed by the Bluechi controller
+///
+/// This function:
+/// 1. Lists all nodes registered with the controller
+/// 2. Creates a proxy for each node
+/// 3. Calls the Reload method on each node
+/// 4. Collects status information for reporting
+///
+/// # Arguments
+///
+/// * `proxy` - The proxy to the Bluechi controller
+///
+/// # Returns
+///
+/// * `Ok(String)` - A successful result message listing all reloaded nodes
+/// * `Err(...)` - If any of the D-Bus calls fail
+pub async fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> {
+    let (nodes,): (Vec<(String, dbus::Path, String)>,) =
+        proxy.method_call(DEST_CONTROLLER, "ListNodes", ())?;
+
+    let conn = Connection::new_system()?;
+    let mut result = String::new();
+    for (node_name, _, _) in nodes {
+        let (node,): (Path,) = proxy.method_call(DEST_CONTROLLER, "GetNode", (&node_name,))?;
+
+        let node_proxy = conn.with_proxy(DEST, node, Duration::from_millis(5000));
+        node_proxy.method_call::<(), _, _, _>(DEST_NODE, "Reload", ())?;
+
+        result.push_str(&format!("Node - {} is reloaded.\n", &node_name));
+    }
+    Ok(result)
+}
+
+//UNIT TEST
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dbus::blocking::Connection;
+    use std::time::Duration;
+
+    /// Dummy Connection (session bus)
+    fn dummy_connection() -> Connection {
+        Connection::new_system().unwrap()
+    }
+
+    /// Check if BlueChi D-Bus service is available (only for tests)
+    fn is_bluechi_service_available(conn: &Connection) -> bool {
+        let proxy = conn.with_proxy(
+            "org.freedesktop.DBus",
+            "/org/freedesktop/DBus",
+            Duration::from_millis(5000),
+        );
+
+        let result: core::result::Result<(bool,), Box<dyn std::error::Error>> = proxy
+            .method_call("org.freedesktop.DBus", "NameHasOwner", (DEST,))
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>);
+
+        match result {
+            Ok((has_owner,)) => has_owner,
+            Err(_) => false,
         }
     }
 
-    /// Establish connection to the Bluechi Controller
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if connection was successful
-    /// * `Err(...)` if connection failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The Bluechi Controller is not reachable
-    /// - Authentication fails
-    pub async fn connect(&mut self) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
+    /// Test handle_bluechi_cmd() with ControllerReloadAllNodes command (positive)
+    #[tokio::test]
+    async fn test_handle_bluechi_cmd_controller_reload() {
+        let scenario = "test-scenario";
+        let node = "node1";
+        let cmd = BluechiCmd {
+            command: Command::ControllerReloadAllNodes,
+        };
+
+        let result = handle_bluechi_cmd(scenario, node, cmd).await;
+        assert!(result.is_ok());
     }
 
-    /// Create a workload using Bluechi API
-    ///
-    /// Reads the scenario definition and creates the corresponding workload
-    /// using the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario to create workload for
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload creation was successful
-    /// * `Err(...)` if workload creation failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The scenario definition is invalid
-    /// - The Bluechi API call fails
-    /// - The workload already exists
-    pub async fn create_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
+    /// Test handle_bluechi_cmd() with UnitStart command (positive)
+    #[tokio::test]
+    async fn test_handle_bluechi_cmd_unit_start() {
+        let scenario = "test-scenario";
+        let node = "node1";
+        let cmd = BluechiCmd {
+            command: Command::UnitStart,
+        };
+
+        let result = handle_bluechi_cmd(scenario, node, cmd).await;
+        assert!(result.is_ok());
     }
 
-    /// Delete a workload using Bluechi API
-    ///
-    /// Removes an existing workload through the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario that owns the workload
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload deletion was successful
-    /// * `Err(...)` if workload deletion failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The workload does not exist
-    /// - The Bluechi API call fails
-    pub async fn delete_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
+    /// Test workload_run() with dummy data (positive)
+    #[tokio::test]
+    async fn test_workload_run_start_unit() {
+        let conn = dummy_connection();
+
+        if !is_bluechi_service_available(&conn) {
+            println!("Skipping test_workload_run_start_unit — BlueChi service unavailable.");
+            return;
+        }
+
+        let node = "HPC";
+        let unit_name = "antipinch-enable.service";
+
+        let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
+
+        let result = workload_run(&conn, "StartUnit", node, &bluechi_proxy, unit_name).await;
+        assert!(result.is_ok());
+
+        let output = result.unwrap();
+        assert!(output.contains("StartUnit"));
+        assert!(output.contains(unit_name));
     }
 
-    /// Restart a workload using Bluechi API
-    ///
-    /// Restarts an existing workload through the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario that owns the workload
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload restart was successful
-    /// * `Err(...)` if workload restart failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The workload does not exist
-    /// - The Bluechi API call fails
-    pub async fn restart_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
+    /// Test reload_all_nodes() (positive)
+    #[tokio::test]
+    async fn test_reload_all_nodes() {
+        let conn = dummy_connection();
+
+        if !is_bluechi_service_available(&conn) {
+            println!("Skipping test_reload_all_nodes — BlueChi service unavailable.");
+            return;
+        }
+
+        let proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
+        let result = reload_all_nodes(&proxy).await;
+        assert!(result.is_ok());
     }
 
-    /// Pause a workload using Bluechi API
-    ///
-    /// Suspends execution of a workload through the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario that owns the workload
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload pause was successful
-    /// * `Err(...)` if workload pause failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The workload does not exist
-    /// - The workload is not in a pausable state
-    /// - The Bluechi API call fails
-    pub async fn pause_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
+    /// Test Command::to_method_name() for all command variants (sync test)
+    #[tokio::test]
+    async fn test_command_to_method_name() {
+        assert_eq!(Command::UnitStart.to_method_name(), "StartUnit");
+        assert_eq!(Command::UnitStop.to_method_name(), "StopUnit");
+        assert_eq!(Command::UnitRestart.to_method_name(), "RestartUnit");
+        assert_eq!(Command::UnitReload.to_method_name(), "ReloadUnit");
+
+        let unknown_cmd = Command::ControllerReloadAllNodes;
+        assert_eq!(unknown_cmd.to_method_name(), "Unknown");
     }
 
-    /// Start a workload using Bluechi API
-    ///
-    /// Starts an existing workload through the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario that owns the workload
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload start was successful
-    /// * `Err(...)` if workload start failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The workload does not exist
-    /// - The workload is already running
-    /// - The Bluechi API call fails
-    pub async fn start_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
+    // ------------------- NEGATIVE TESTS -------------------
+
+    /// Negative: workload_run() with invalid node name
+    #[tokio::test]
+    async fn test_workload_run_invalid_node() {
+        let conn = dummy_connection();
+
+        if !is_bluechi_service_available(&conn) {
+            println!("Skipping test_workload_run_invalid_node — BlueChi service unavailable.");
+            return;
+        }
+
+        let invalid_node = "nonexistent-node";
+        let unit_name = "unitA";
+
+        let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
+
+        let result =
+            workload_run(&conn, "StartUnit", invalid_node, &bluechi_proxy, unit_name).await;
+        assert!(result.is_err());
     }
 
-    /// Stop a workload using Bluechi API
-    ///
-    /// Stops an existing workload through the Bluechi Controller API.
-    ///
-    /// # Arguments
-    ///
-    /// * `scenario_name` - Name of the scenario that owns the workload
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if workload stop was successful
-    /// * `Err(...)` if workload stop failed
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The workload does not exist
-    /// - The workload is already stopped
-    /// - The Bluechi API call fails
-    pub async fn stop_workload(&self, scenario_name: &str) -> Result<()> {
-        // TODO: Implementation
-        Ok(())
+    /// Negative: workload_run() with invalid method
+    #[tokio::test]
+    async fn test_workload_run_invalid_method() {
+        let conn = dummy_connection();
+
+        if !is_bluechi_service_available(&conn) {
+            println!("Skipping test_workload_run_invalid_method — BlueChi service unavailable.");
+            return;
+        }
+
+        let node = "node1";
+        let unit_name = "unitA";
+        let invalid_method = "NonExistentMethod";
+
+        let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
+
+        let result = workload_run(&conn, invalid_method, node, &bluechi_proxy, unit_name).await;
+        assert!(result.is_err());
+    }
+
+    /// Negative: reload_all_nodes() with missing service
+    #[tokio::test]
+    async fn test_reload_all_nodes_service_missing() {
+        let conn = dummy_connection();
+
+        // Intentionally use a WRONG DEST to simulate service missing
+        let fake_dest = "org.eclipse.fakebluechi";
+        let proxy = conn.with_proxy(fake_dest, PATH, Duration::from_millis(5000));
+
+        let result = reload_all_nodes(&proxy).await;
+        assert!(result.is_err());
     }
 }

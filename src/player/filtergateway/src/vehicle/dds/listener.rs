@@ -89,8 +89,6 @@ impl TopicListener {
         }
     }
 
-
-
     /// 파일 경로에서 IDL 타입을 추출하여 적절한 리스너 생성
     pub fn create_idl_listener(
         topic_name: String,

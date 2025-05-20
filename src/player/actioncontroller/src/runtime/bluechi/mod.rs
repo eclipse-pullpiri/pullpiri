@@ -152,12 +152,12 @@ pub async fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dbus::blocking::{Connection, Proxy};
+    use dbus::blocking::Connection;
     use std::time::Duration;
 
     /// Dummy Connection (session bus)
     fn dummy_connection() -> Connection {
-        Connection::new_session().unwrap()
+        Connection::new_system().unwrap()
     }
 
     /// Check if BlueChi D-Bus service is available (only for tests)
@@ -214,9 +214,8 @@ mod tests {
             return;
         }
 
-        let scenario = "test-scenario";
-        let node = "node1";
-        let unit_name = "unitA";
+        let node = "HPC";
+        let unit_name = "antipinch-enable.service";
 
         let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
 

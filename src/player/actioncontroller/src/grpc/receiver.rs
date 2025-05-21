@@ -290,13 +290,11 @@ mod tests {
             scenario_name: "antipinch-enable".to_string(),
         });
 
-        receiver.trigger_action(request).await.unwrap();
+        let response = receiver.trigger_action(request).await.unwrap();
+        assert_eq!(response.get_ref().status, 0);
 
         let _ = common::etcd::delete("scenario/antipinch-enable").await;
         let _ = common::etcd::delete("package/antipinch-enable").await;
-
-        let response = receiver.trigger_action(request).await.unwrap();
-        assert_eq!(response.get_ref().status, 0);
     }
 
     #[tokio::test]

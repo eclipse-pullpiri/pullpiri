@@ -13,7 +13,19 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 async fn launch_manager(rx_grpc: Receiver<ScenarioParameter>) {
     let mut manager = manager::FilterGatewayManager::new(rx_grpc).await;
-    let _= manager.run().await;
+    
+    match manager.initialize().await {
+        Ok(_) => {
+            println!("FilterGatewayManager successfully initialized");
+            // Only proceed to run if initialization was successful
+            if let Err(e) = manager.run().await {
+                eprintln!("Error running FilterGatewayManager: {:?}", e);
+            }
+        },
+        Err(e) => {
+            eprintln!("Failed to initialize FilterGatewayManager: {:?}", e);
+        }
+    }
 }
 
 /// Initialize FilterGateway
@@ -46,6 +58,8 @@ async fn initialize( tx_grpc: Sender<manager::ScenarioParameter>  )  {
 
     
 }
+
+
 
 
 #[tokio::main]

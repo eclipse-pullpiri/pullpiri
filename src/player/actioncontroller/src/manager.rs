@@ -521,7 +521,7 @@ mod tests {
 
         assert!(result.is_err());
     }
-
+ 
     #[test]
     fn test_manager_initializes_nodes() {
         // Ensures new() returns manager with non-empty nodes

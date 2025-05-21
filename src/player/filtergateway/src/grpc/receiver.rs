@@ -1,7 +1,9 @@
 use core::sync;
 use std::io::Error;
 
-use crate::manager::FilterGatewayManager;
+use crate::manager::ScenarioParameter;
+use crate::vehicle::dds::DdsData;
+
 use common::spec::artifact::{Artifact, Scenario};
 use common::Result;
 use tokio::sync::mpsc::{self, error::SendError};
@@ -15,8 +17,7 @@ use common::filtergateway::{
 
 /// FilterGateway gRPC service handler
 pub struct FilterGatewayReceiver {
-    tx: mpsc::Sender<Scenario>,
-    manager: FilterGatewayManager,
+    tx: mpsc::Sender<ScenarioParameter>
 }
 
 impl FilterGatewayReceiver {
@@ -24,13 +25,13 @@ impl FilterGatewayReceiver {
     ///
     /// # Arguments
     ///
-    /// * `tx` - Channel sender for scenario information
+    /// * `tx` - Channel sender for ScenarioParameter information
     ///
     /// # Returns
     ///
     /// A new FilterGatewayReceiver instance
-    pub fn new(tx: mpsc::Sender<Scenario>, manager: FilterGatewayManager) -> Self {
-        Self { tx, manager }
+    pub fn new(tx: mpsc::Sender<ScenarioParameter>) -> Self {
+        Self { tx }
     }
 
     /// Get the gRPC server for this receiver
@@ -57,24 +58,18 @@ impl FilterGatewayReceiver {
     /// * `Result<()>` - Success or error result
     pub async fn handle_scenario(&self, scenario_yaml_str: String, action: i32) -> Result<()> {
         // Parse the scenario YAML string into a Scenario struct
-        let mut scenario = serde_yaml::from_str::<Scenario>(&scenario_yaml_str)?;
+        let scenario = serde_yaml::from_str::<Scenario>(&scenario_yaml_str)?;
 
-        // Set the action based on the action code
-        match action {
-            0 => {
-                println!("Action: APPLY");
-                // Send the scenario to the FilterGateway manager
-                let _ = self.manager.launch_scenario_filter(scenario).await;
-            }
-            1 => {
-                println!("Action: WITHDRAW");
-                self.manager
-                    .remove_scenario_filter(scenario.get_name().to_string())
-                    .await?
-            }
-            _ => return Err(format!("Invalid action code: {}", action).into()),
-        }
-
+        let param = ScenarioParameter {
+            action: action,
+            scenario: scenario,
+        };
+        
+        self.tx.send(param).await.map_err(|e| {
+            eprintln!("Failed to send scenario: {}", e);
+            Error::new(std::io::ErrorKind::Other, "Failed to send scenario")
+        })?;
+        
         Ok(())
     }
 }

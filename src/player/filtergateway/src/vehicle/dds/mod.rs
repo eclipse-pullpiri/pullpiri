@@ -82,6 +82,7 @@ impl DdsManager {
     ) -> Result<()> {
         // 이미 존재하는 리스너인지 확인
         if self.listeners.contains_key(&topic_name) {
+            warn!("Listener for topic '{}' already exists", topic_name);
             return Ok(());
         }
         print!("DDSManager - Creating typed listener for topic '{}'", topic_name);

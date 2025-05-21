@@ -65,6 +65,41 @@ impl FilterGatewayManager {
             vehicle_manager: Arc::new(Mutex::new(vehicle_manager)),
         }
     }
+    /// Function to initialize the FilterGatewayManager
+    ///
+    ///
+    /// This function reads all scenarios from etcd and subscribes to the necessary vehicle data topics.
+    /// It also launches the scenario filters.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<()>` - Success or error result
+    pub async fn initialize(&self) -> Result<()> {
+        print!("FilterGatewayManager init\n");
+        // Initialize vehicle manager
+        let etcd_scenario = Self::read_all_scenario_from_etcd().await?;
+        for scenario in etcd_scenario {
+            let scenario: Scenario = serde_yaml::from_str(&scenario)?;
+            println!("Scenario: {:?}", scenario);
+            let topic_name = scenario.get_conditions()
+                .as_ref()
+                .map(|cond| cond.get_operand_value())
+                .unwrap_or_default();
+            let data_type_name = scenario.get_conditions()
+                .as_ref()
+                .map(|cond| cond.get_operand_value())
+                .unwrap_or_default();
+            let mut vehicle_manager = self.vehicle_manager.lock().await;
+            if let Err(e) = vehicle_manager.subscribe_topic(
+                topic_name,
+                data_type_name
+            ).await {
+                eprintln!("Error subscribing to vehicle data: {:?}", e);
+            }
+            self.launch_scenario_filter(scenario).await?;
+        }
+        Ok(())
+    }
 
     /// Function to receive subscribed DDS data and pass it to filters
     /// 
@@ -291,7 +326,12 @@ impl FilterGatewayManager {
 
         // Add the filter to our managed collection
         {
+            // Prevent duplicate filters for the same scenario
             let mut filters = self.filters.lock().await;
+            if filters.iter().any(|f| f.scenario_name == filter.scenario_name) {
+            println!("Filter for scenario '{}' already exists, skipping.", filter.scenario_name);
+            return Ok(());
+            }
             filters.push(filter);
         }
         Ok(())
@@ -320,5 +360,18 @@ impl FilterGatewayManager {
             filters.remove(i);
         }
         Ok(())
+    }
+
+    /// Read all scenario yaml string in etcd
+    ///
+    /// ### Parameters
+    /// * None
+    /// ### Return
+    /// * `Result<Vec<String>>` - `Ok(_)` contains scenario yaml string vector
+    async fn read_all_scenario_from_etcd() -> common::Result<Vec<String>> {
+        let kv_scenario = common::etcd::get_all_with_prefix("Scenario").await?;
+        let values = kv_scenario.into_iter().map(|kv| kv.value).collect();
+
+        Ok(values)
     }
 }

@@ -4,6 +4,12 @@ metadata:
   name: helloworld
 spec:
   condition:
+    express: eq
+    value: "1"
+    operands:
+      type: DDS
+      name: value
+      value: ADASObstacleDetectionIsWarning
   action: update
   target: helloworld
 ---

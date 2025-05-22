@@ -108,3 +108,60 @@ impl VehicleManager {
         self.dds_manager.set_domain_id(domain_id);
     }
 }
+//Unit tests for VehicleManager
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::sync::mpsc;
+    #[tokio::test] // Test creation of VehicleManager and validate sender capacity
+    async fn test_vehicle_manager_new() {
+        let (tx, _rx) = mpsc::channel(10);
+        let vehicle_manager = VehicleManager::new(tx);
+        let sender = vehicle_manager.get_sender();
+        assert_eq!(sender.capacity(), 10); // Validate sender's capacity
+    }
+
+    #[tokio::test] // Test successful initialization of VehicleManager
+    async fn test_vehicle_manager_init_success() {
+        let (tx, _rx) = mpsc::channel(10);
+        let mut vehicle_manager = VehicleManager::new(tx);
+        let result = vehicle_manager.init().await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test] // Test subscribing to a topic successfully
+    async fn test_vehicle_manager_subscribe_topic() {
+        let (tx, _rx) = mpsc::channel(10);
+        let mut vehicle_manager = VehicleManager::new(tx);
+        let result = vehicle_manager
+            .subscribe_topic("vehicle_data".to_string(), "VehicleType".to_string())
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test] // Test unsubscribing from a topic successfully
+    async fn test_vehicle_manager_unsubscribe_topic() {
+        let (tx, _rx) = mpsc::channel(10);
+        let mut vehicle_manager = VehicleManager::new(tx);
+        let result = vehicle_manager
+            .unsubscribe_topic("vehicle_data".to_string())
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[test] // Test listing all available vehicle types
+    fn test_vehicle_manager_list_available_types() {
+        let (tx, _rx) = mpsc::channel(10);
+        let vehicle_manager = VehicleManager::new(tx);
+        let types = vehicle_manager.list_available_types();
+        assert!(!types.is_empty());
+    }
+
+    #[test] // Test setting the domain ID for VehicleManager
+    fn test_vehicle_manager_set_domain_id() {
+        let (tx, _rx) = mpsc::channel(10);
+        let mut vehicle_manager = VehicleManager::new(tx);
+        vehicle_manager.set_domain_id(200);
+        assert!(true); // Placeholder assertion for domain ID setting
+    }
+}

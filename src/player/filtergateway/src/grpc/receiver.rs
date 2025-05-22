@@ -102,3 +102,138 @@ impl FilterGatewayConnection for FilterGatewayReceiver {
         }))
     }
 }
+//Unit Test Cases
+#[cfg(test)]
+mod tests {
+    use tokio::sync::mpsc;
+    use crate::grpc::receiver::FilterGatewayReceiver;
+    use serde_yaml;
+
+    // Test case for handling valid YAML input
+    #[tokio::test]
+    async fn test_handle_scenario_with_valid_yaml() {
+        let (tx, mut rx) = mpsc::channel(1);
+        let receiver = FilterGatewayReceiver::new(tx);
+
+        let scenario_yaml = r#"
+        apiVersion: v1
+        kind: Scenario
+        metadata:
+          name: helloworld
+        spec:
+          condition:
+          action: update
+          target: helloworld
+        "#;
+
+        let action = 0;
+
+        let result = receiver.handle_scenario(scenario_yaml.to_string(), action).await;
+        assert!(result.is_ok());
+
+        let received_param = rx.recv().await.unwrap();
+        assert_eq!(received_param.action, action);
+
+        let scenario: serde_yaml::Value = serde_yaml::from_str(&scenario_yaml).unwrap();
+        assert_eq!(scenario["metadata"]["name"], "helloworld");
+        assert_eq!(scenario["spec"]["action"], "update");
+        assert_eq!(scenario["spec"]["target"], "helloworld");
+    }
+
+    // Test case for handling invalid YAML input
+    #[tokio::test]
+    async fn test_handle_scenario_with_invalid_yaml() {
+        let (tx, _rx) = mpsc::channel(1);
+        let receiver = FilterGatewayReceiver::new(tx);
+
+        let invalid_yaml = r#"
+        apiVersion: v1
+        kind: Scenario
+        metadata:
+          name: helloworld
+        spec:
+          condition:
+          action: update
+          target: helloworld
+        ---
+        apiVersion: v1
+        kind: Package
+        metadata:
+          label: null
+          name: helloworld
+        spec:
+          pattern:
+            - type: plain
+          models:
+            - name: helloworld-core
+              node: HPC
+              resources:
+                volume:
+                network:
+        "#; // Invalid YAML due to missing resource definitions
+
+        let action = 0;
+
+        let result = receiver.handle_scenario(invalid_yaml.to_string(), action).await;
+        assert!(result.is_err());
+    }
+
+    // Test case for handling empty YAML input
+    #[tokio::test]
+    async fn test_handle_scenario_with_empty_yaml() {
+        let (tx, _rx) = mpsc::channel(1);
+        let receiver = FilterGatewayReceiver::new(tx);
+
+        let empty_yaml = "";
+
+        let action = 0;
+
+        let result = receiver.handle_scenario(empty_yaml.to_string(), action).await;
+        assert!(result.is_err());
+    }
+
+    // Test case for handling YAML with missing required fields
+    #[tokio::test]
+    async fn test_handle_scenario_with_missing_fields() {
+        let (tx, _rx) = mpsc::channel(1);
+        let receiver = FilterGatewayReceiver::new(tx);
+
+        let incomplete_yaml = r#"
+        apiVersion: v1
+        kind: Scenario
+        metadata:
+          name: helloworld
+        spec:
+          action: update
+        "#; // Missing "target" field
+
+        let action = 0;
+
+        let result = receiver.handle_scenario(incomplete_yaml.to_string(), action).await;
+        assert!(result.is_err());
+    }
+
+    // Negative test case for handling a scenario when the channel is closed
+    #[tokio::test]
+    async fn test_handle_scenario_with_closed_channel() {
+        let (tx, _rx) = mpsc::channel(1); // Use a buffer size greater than 0
+        drop(tx.clone()); // Explicitly close the channel
+        let receiver = FilterGatewayReceiver::new(tx);
+
+        let scenario_yaml = r#"
+        apiVersion: v1
+        kind: Scenario
+        metadata:
+          name: helloworld
+        spec:
+          condition:
+          action: update
+          target: helloworld
+        "#;
+
+        let action = 0;
+
+        let result = receiver.handle_scenario(scenario_yaml.to_string(), action).await;
+        assert!(result.is_ok());
+    }
+}

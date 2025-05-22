@@ -420,3 +420,76 @@ impl<
         self.topic_name == topic_name
     }
 }
+//Unit Test cases for the TopicListener
+#[cfg(test)]
+mod tests {
+    use tokio::sync::mpsc;
+    use crate::vehicle::dds::listener::{TopicListener};
+    use crate::vehicle::dds::listener::DdsTopicListener;
+
+    #[tokio::test] // Test creation of a TopicListener and its properties
+    async fn test_topic_listener_creation() {
+        let (tx, _rx) = mpsc::channel(10);
+        let topic_name = "test_topic".to_string();
+        let data_type_name = "test_type".to_string();
+        let domain_id = 0;
+
+        let listener = TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
+
+        assert_eq!(listener.get_topic_name(), topic_name); // Validate topic name
+        assert_eq!(listener.is_running(), false); // Validate initial running state
+        assert_eq!(listener.is_topic(&topic_name), true); // Validate topic matching
+        assert_eq!(listener.is_topic("other_topic"), false); // Validate non-matching topic
+    }
+
+    #[tokio::test] // Test starting and stopping a TopicListener
+    async fn test_topic_listener_start_and_stop() {
+        let (tx, _rx) = mpsc::channel(10);
+        let topic_name = "test_topic".to_string();
+        let data_type_name = "test_type".to_string();
+        let domain_id = 0;
+
+        let mut listener = TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
+
+        assert_eq!(listener.is_running(), false); // Validate initial running state
+
+        listener.start().await.unwrap(); // Start the listener
+        assert_eq!(listener.is_running(), true); // Validate running state after start
+
+        listener.stop().await.unwrap(); // Stop the listener
+        assert_eq!(listener.is_running(), false); // Validate running state after stop
+    }
+
+    #[tokio::test] // Test topic matching functionality
+    async fn test_topic_listener_is_topic() {
+        let (tx, _rx) = mpsc::channel(10);
+        let topic_name = "test_topic".to_string();
+        let data_type_name = "test_type".to_string();
+        let domain_id = 0;
+
+        let listener = TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
+
+        assert!(listener.is_topic(&topic_name)); // Validate matching topic
+        assert!(!listener.is_topic("non_existent_topic")); // Validate non-matching topic
+    }
+
+    #[tokio::test] // Test behavior when the channel is closed
+    async fn test_topic_listener_channel_closure() {
+        let (tx, rx) = mpsc::channel(1);
+        let topic_name = "test_topic".to_string();
+        let data_type_name = "test_type".to_string();
+        let domain_id = 0;
+
+        let mut listener = TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
+
+        listener.start().await.unwrap(); // Start the listener
+        drop(rx); // Close the receiver side of the channel
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await; // Wait for a short duration
+
+        assert_eq!(listener.is_running(), true); // Validate listener is still running
+
+        listener.stop().await.unwrap(); // Stop the listener
+        assert_eq!(listener.is_running, false); // Validate listener is no longer running
+    }
+}

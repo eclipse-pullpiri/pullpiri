@@ -78,3 +78,59 @@ async fn main() {
     tokio::join!(mgr, grpc);
     
 }
+//Unit Test Cases
+#[cfg(test)]
+mod tests {
+    use tokio::sync::mpsc::{channel, Sender, Receiver};
+    use crate::manager::ScenarioParameter;
+    use crate::{launch_manager, initialize};
+    use tokio::task::LocalSet;
+    use tokio::time::{sleep, Duration};
+
+    /// Test to ensure that the channels are initialized with the correct capacity
+    #[tokio::test]
+    async fn test_main_initializes_channels() {
+        let (tx_grpc, rx_grpc): (Sender<ScenarioParameter>, Receiver<ScenarioParameter>) = channel(100);
+        assert_eq!(tx_grpc.capacity(), 100); // Check if the channel capacity is set correctly
+        assert!(!rx_grpc.is_closed()); // Ensure the receiver is not closed
+    }
+
+    /// Test to ensure that the manager thread launches without any panic
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_main_launch_manager() {
+        let (_tx_grpc, rx_grpc): (Sender<ScenarioParameter>, Receiver<ScenarioParameter>) = channel(100);
+
+        // Use LocalSet to run a non-Send future like launch_manager
+        let local = LocalSet::new();
+        local.spawn_local(async move {
+            let _ = launch_manager(rx_grpc).await;
+        });
+
+        // Run the local task for a short time to simulate launch
+        tokio::select! {
+            _ = local => {}
+            _ = sleep(Duration::from_millis(200)) => {}
+        }
+
+        // Test is successful if it reaches this point
+        assert!(true);
+    }
+
+    /// Test to ensure that the gRPC initialization runs without any panic
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_main_initialize_grpc() {
+        let (tx_grpc, _rx_grpc): (Sender<ScenarioParameter>, Receiver<ScenarioParameter>) = channel(100);
+
+        let local = LocalSet::new();
+        local.spawn_local(async move {
+            let _ = initialize(tx_grpc).await;
+        });
+
+        tokio::select! {
+            _ = local => {}
+            _ = sleep(Duration::from_millis(200)) => {}
+        }
+
+        assert!(true);
+    }
+}

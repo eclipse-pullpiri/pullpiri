@@ -294,3 +294,128 @@ pub mod dds_type_registry {
         None
     }
 }
+//Unit Test Cases
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+    use tokio::sync::mpsc;
+
+    // Mock implementation of DdsTopicListener for testing purposes
+    struct MockDdsTopicListener {
+        running: bool,
+        topic_name: String,
+    }
+
+    #[async_trait::async_trait]
+    impl DdsTopicListener for MockDdsTopicListener {
+        // Simulates starting the listener
+        async fn start(&mut self) -> Result<()> {
+            self.running = true;
+            Ok(())
+        }
+
+        // Simulates stopping the listener
+        async fn stop(&mut self) -> Result<()> {
+            self.running = false;
+            Ok(())
+        }
+
+        // Checks if the listener is running
+        fn is_running(&self) -> bool {
+            self.running
+        }
+
+        // Returns the topic name associated with the listener
+        fn get_topic_name(&self) -> &str {
+            &self.topic_name
+        }
+
+        // Checks if the listener is associated with a specific topic
+        fn is_topic(&self, topic: &str) -> bool {
+            self.topic_name == topic
+        }
+    }
+
+    // Test scanning a non-existent IDL directory
+    #[tokio::test]
+    async fn test_scan_idl_directory_with_nonexistent_path() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let dir = Path::new("/nonexistent/path");
+        let result = manager.scan_idl_directory(dir).await.unwrap();
+        assert!(result.is_empty());
+    }
+
+    // Test scanning an empty IDL directory
+    #[tokio::test]
+    async fn test_scan_idl_directory_with_empty_directory() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let temp_dir = tempfile::tempdir().unwrap();
+        let result = manager.scan_idl_directory(temp_dir.path()).await.unwrap();
+        assert!(result.is_empty());
+    }
+
+    // Test creating a typed listener when one already exists
+    #[tokio::test]
+    async fn test_create_typed_listener_with_existing_listener() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let topic_name = "test_topic".to_string();
+        let data_type_name = "test_type".to_string();
+
+        // Insert a mock listener into the manager
+        manager.listeners.insert(
+            topic_name.clone(),
+            Box::new(MockDdsTopicListener {
+                running: false,
+                topic_name: topic_name.clone(),
+            }),
+        );
+
+        // Attempt to create a typed listener for the same topic
+        let result = manager.create_typed_listener(topic_name.clone(), data_type_name.clone()).await;
+        assert!(result.is_ok());
+    }
+
+    // Test removing a listener that does not exist
+    #[tokio::test]
+    async fn test_remove_listener_with_nonexistent_listener() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let topic_name = "nonexistent_topic";
+        let result = manager.remove_listener(topic_name).await;
+        assert!(result.is_ok());
+    }
+
+    // Test stopping all listeners when none exist
+    #[tokio::test]
+    async fn test_stop_all_with_no_listeners() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let result = manager.stop_all().await;
+        assert!(result.is_ok());
+    }
+
+    // Test initializing the manager with an invalid settings path
+    #[tokio::test]
+    async fn test_init_with_invalid_settings_path() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        manager.domain_id = 0;
+
+        // Attempt to initialize the manager
+        let result = manager.init().await;
+        assert!(result.is_err());
+    }
+
+    // Test retrieving the sender from the manager
+    #[tokio::test]
+    async fn test_get_sender() {
+        let (tx, _) = mpsc::channel(100);
+        let manager = DdsManager::new(tx.clone());
+        let sender = manager.get_sender();
+        assert_eq!(sender.capacity(), tx.capacity());
+    }
+}

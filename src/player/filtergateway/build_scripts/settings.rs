@@ -1,7 +1,7 @@
 // Module for loading DDS settings
+use serde_yaml;
 use std::fs;
 use std::path::PathBuf;
-use serde_yaml;
 
 /// Load DDS settings from settings.yaml (during build)
 pub fn load_dds_settings() -> Result<(PathBuf, i32, Option<String>), Box<dyn std::error::Error>> {
@@ -21,7 +21,6 @@ pub fn load_dds_settings() -> Result<(PathBuf, i32, Option<String>), Box<dyn std
         .and_then(|p| p.parent()) // go up to 'pullpiri'
         .map(|p| p.join("src/settings.yaml"))
         .ok_or("Failed to resolve project root for settings.yaml")?;
- 
 
     let mut settings_content = String::new();
 
@@ -29,14 +28,14 @@ pub fn load_dds_settings() -> Result<(PathBuf, i32, Option<String>), Box<dyn std
         println!("No settings file found, using defaults");
         return Ok((default_idl_dir, default_domain_id, default_out_dir));
     }
-    
+
     // Read settings file
     println!("Reading settings from: {:?}", settings_path);
     settings_content = fs::read_to_string(&settings_path)?;
 
     // Parse JSON or YAML
     let settings: serde_yaml::Value = serde_yaml::from_str(&settings_content)?;
- 
+
     println!("Settings content: {}", settings_content);
 
     // Extract DDS settings (relative path based on project root)
@@ -59,7 +58,7 @@ pub fn load_dds_settings() -> Result<(PathBuf, i32, Option<String>), Box<dyn std
 
     println!("Domain ID from settings: {}", domain_id);
 
-    // Check for custom OUT_DIR value 
+    // Check for custom OUT_DIR value
     // If relative, convert to absolute path within target directory
     let out_dir = settings
         .get("dds")
@@ -72,7 +71,10 @@ pub fn load_dds_settings() -> Result<(PathBuf, i32, Option<String>), Box<dyn std
             } else {
                 // Use the standard cargo OUT_DIR as the base directory
                 std::env::var("OUT_DIR").ok().map(|out_dir| {
-                    println!("Converting relative path '{}' to absolute within build directory", dir);
+                    println!(
+                        "Converting relative path '{}' to absolute within build directory",
+                        dir
+                    );
                     format!("{}", out_dir)
                 })
             }

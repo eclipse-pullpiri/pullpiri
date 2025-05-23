@@ -2,7 +2,6 @@ use crate::vehicle::dds::DdsData;
 use common::Result;
 use std::collections::HashMap;
 
-
 #[async_trait]
 pub trait DdsTopicListener: Send + Sync {
     fn is_running(&self) -> bool;
@@ -36,11 +35,11 @@ use serde_json::{json, Map, Value};
 
 use async_trait::async_trait;
 use clap::Parser;
+use common;
 use log::{debug, error, info, warn};
 use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use common;
 
 /// DDS topic listener
 ///
@@ -97,12 +96,7 @@ impl TopicListener {
         domain_id: i32,
     ) -> Box<dyn DdsTopicListener> {
         // 일반 토픽 리스너 생성
-        Box::new(TopicListener::new(
-            topic_name,
-            type_name,
-            tx,
-            domain_id,
-        ))
+        Box::new(TopicListener::new(topic_name, type_name, tx, domain_id))
     }
 }
 
@@ -113,7 +107,7 @@ pub fn create_idl_listener(
     tx: Sender<DdsData>,
     domain_id: i32,
 ) -> Box<dyn DdsTopicListener> {
-    TopicListener::create_idl_listener(topic_name, type_name,  tx, domain_id)
+    TopicListener::create_idl_listener(topic_name, type_name, tx, domain_id)
 }
 
 #[async_trait]
@@ -133,12 +127,9 @@ impl DdsTopicListener for TopicListener {
         let tx = self.tx.clone();
         let domain_id = self.domain_id;
 
-
         // Spawn the listener task
         let task = tokio::spawn(async move {
-            if let Err(e) =
-                Self::listener_loop(topic_name, data_type_name, tx, domain_id).await
-            {
+            if let Err(e) = Self::listener_loop(topic_name, data_type_name, tx, domain_id).await {
                 error!("Error in listener loop: {:?}", e);
             }
         });
@@ -332,7 +323,9 @@ impl<
 
                             // json_value를 key, value로 파싱해서 fields에 추가
                             let mut fields = HashMap::new();
-                            if let Ok(map) = serde_json::from_str::<serde_json::Map<String, Value>>(&json_value) {
+                            if let Ok(map) =
+                                serde_json::from_str::<serde_json::Map<String, Value>>(&json_value)
+                            {
                                 for (k, v) in map {
                                     fields.insert(k, v.to_string());
                                 }
@@ -344,7 +337,6 @@ impl<
                                 value: json_value,
                                 fields,
                             };
-                            
 
                             // Send data through channel
                             if tx.send(dds_data).await.is_err() {
@@ -423,9 +415,9 @@ impl<
 //Unit Test cases for the TopicListener
 #[cfg(test)]
 mod tests {
-    use tokio::sync::mpsc;
-    use crate::vehicle::dds::listener::{TopicListener};
     use crate::vehicle::dds::listener::DdsTopicListener;
+    use crate::vehicle::dds::listener::TopicListener;
+    use tokio::sync::mpsc;
 
     #[tokio::test] // Test creation of a TopicListener and its properties
     async fn test_topic_listener_creation() {
@@ -434,7 +426,8 @@ mod tests {
         let data_type_name = "test_type".to_string();
         let domain_id = 0;
 
-        let listener = TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
+        let listener =
+            TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
 
         assert_eq!(listener.get_topic_name(), topic_name); // Validate topic name
         assert_eq!(listener.is_running(), false); // Validate initial running state
@@ -449,7 +442,8 @@ mod tests {
         let data_type_name = "test_type".to_string();
         let domain_id = 0;
 
-        let mut listener = TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
+        let mut listener =
+            TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
 
         assert_eq!(listener.is_running(), false); // Validate initial running state
 
@@ -467,7 +461,8 @@ mod tests {
         let data_type_name = "test_type".to_string();
         let domain_id = 0;
 
-        let listener = TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
+        let listener =
+            TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
 
         assert!(listener.is_topic(&topic_name)); // Validate matching topic
         assert!(!listener.is_topic("non_existent_topic")); // Validate non-matching topic
@@ -480,7 +475,8 @@ mod tests {
         let data_type_name = "test_type".to_string();
         let domain_id = 0;
 
-        let mut listener = TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
+        let mut listener =
+            TopicListener::new(topic_name.clone(), data_type_name.clone(), tx, domain_id);
 
         listener.start().await.unwrap(); // Start the listener
         drop(rx); // Close the receiver side of the channel

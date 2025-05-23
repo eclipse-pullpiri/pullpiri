@@ -1,14 +1,15 @@
 // Refactored build.rs file - Modular structure
 use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::io::Write;
+use std::path::{Path, PathBuf};
 
 // Include modules
 mod build_scripts;
 
 use build_scripts::generator::{
-    create_empty_modules, generate_dds_module, generate_type_metadata_registry, generate_type_registry
+    create_empty_modules, generate_dds_module, generate_type_metadata_registry,
+    generate_type_registry,
 };
 use build_scripts::idl::collect_idl_files;
 use build_scripts::settings::load_dds_settings;
@@ -104,10 +105,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         generate_type_metadata_registry(&out_dir, &idl_files)?;
         // Generate DDS type registry based on IDL files
         generate_type_registry(&out_dir, &idl_files)?;
-        
+
         // Enable feature flag indicating type registry exists
         println!("cargo:rustc-cfg=feature=\"dds_type_registry_exists\"");
-        
+
         writeln!(info_file, "Found IDL Files: {}", idl_files.len())?;
         for file in &idl_files {
             writeln!(info_file, "  - {:?}", file)?;

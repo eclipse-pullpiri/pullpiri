@@ -17,7 +17,7 @@ use common::filtergateway::{
 
 /// FilterGateway gRPC service handler
 pub struct FilterGatewayReceiver {
-    tx: mpsc::Sender<ScenarioParameter>
+    tx: mpsc::Sender<ScenarioParameter>,
 }
 
 impl FilterGatewayReceiver {
@@ -64,12 +64,12 @@ impl FilterGatewayReceiver {
             action: action,
             scenario: scenario,
         };
-        
+
         self.tx.send(param).await.map_err(|e| {
             eprintln!("Failed to send scenario: {}", e);
             Error::new(std::io::ErrorKind::Other, "Failed to send scenario")
         })?;
-        
+
         Ok(())
     }
 }
@@ -105,9 +105,9 @@ impl FilterGatewayConnection for FilterGatewayReceiver {
 //Unit Test Cases
 #[cfg(test)]
 mod tests {
-    use tokio::sync::mpsc;
     use crate::grpc::receiver::FilterGatewayReceiver;
     use serde_yaml;
+    use tokio::sync::mpsc;
 
     // Test case for handling valid YAML input
     #[tokio::test]
@@ -128,7 +128,9 @@ mod tests {
 
         let action = 0;
 
-        let result = receiver.handle_scenario(scenario_yaml.to_string(), action).await;
+        let result = receiver
+            .handle_scenario(scenario_yaml.to_string(), action)
+            .await;
         assert!(result.is_ok());
 
         let received_param = rx.recv().await.unwrap();
@@ -174,7 +176,9 @@ mod tests {
 
         let action = 0;
 
-        let result = receiver.handle_scenario(invalid_yaml.to_string(), action).await;
+        let result = receiver
+            .handle_scenario(invalid_yaml.to_string(), action)
+            .await;
         assert!(result.is_err());
     }
 
@@ -188,7 +192,9 @@ mod tests {
 
         let action = 0;
 
-        let result = receiver.handle_scenario(empty_yaml.to_string(), action).await;
+        let result = receiver
+            .handle_scenario(empty_yaml.to_string(), action)
+            .await;
         assert!(result.is_err());
     }
 
@@ -209,7 +215,9 @@ mod tests {
 
         let action = 0;
 
-        let result = receiver.handle_scenario(incomplete_yaml.to_string(), action).await;
+        let result = receiver
+            .handle_scenario(incomplete_yaml.to_string(), action)
+            .await;
         assert!(result.is_err());
     }
 
@@ -233,7 +241,9 @@ mod tests {
 
         let action = 0;
 
-        let result = receiver.handle_scenario(scenario_yaml.to_string(), action).await;
+        let result = receiver
+            .handle_scenario(scenario_yaml.to_string(), action)
+            .await;
         assert!(result.is_ok());
     }
 }

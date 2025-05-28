@@ -64,7 +64,7 @@ impl ActionControllerConnection for ActionControllerReceiver {
         // TODO: Implementation
         println!("trigger_action in gprc receiver");
         let scenario_name = request.into_inner().scenario_name;
-
+        println!("trigger_action in gprc receiver : {}", scenario_name);
         match self.manager.trigger_manager_action(&scenario_name).await {
             Ok(_) => Ok(Response::new(TriggerActionResponse {
                 status: 0, // Success

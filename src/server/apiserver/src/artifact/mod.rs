@@ -113,12 +113,19 @@ metadata:
   name: helloworld
 spec:
   condition:
+    express: eq
+    value: "true"
+    operands:
+      type: DDS
+      name: value
+      value: ADASObstacleDetectionIsWarning
   action: update
   target: helloworld
 ---
 apiVersion: v1
 kind: Package
 metadata:
+  label: null
   name: helloworld
 spec:
   pattern:
@@ -127,19 +134,8 @@ spec:
     - name: helloworld-core
       node: HPC
       resources:
-        volume: []
-        network: []
----
-apiVersion: v1
-kind: Model
-metadata:
-  name: helloworld-core
-spec:
-  hostNetwork: true
-  containers:
-    - name: helloworld
-      image: helloworld
-  terminationGracePeriodSeconds: 0
+        volume:
+        network:
 "#;
 
     /// Invalid YAML — missing `action` in Scenario

@@ -117,7 +117,7 @@ containers:
         let pod = Pod::new("antipinch-disable-core", podspec);
 
         let storage_dir = "/etc/piccolo/yaml";
-
+        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
         let result = make_files_from_pod(vec![pod.clone()]).await;
 
         match result {
@@ -143,20 +143,16 @@ containers:
     /// Test that directory is created successfully
     #[tokio::test]
     async fn test_directory_creation() {
-        let storage_dir = "/etc/piccolo/yaml";
+        let storage_dir = "/etc/piccolo/yaml_test";
         let path = Path::new(storage_dir);
-
-        if !path.exists() {
-            fs::create_dir_all(path).expect("Failed to create directory");
-        }
-
+        std::fs::create_dir_all(path).expect("Failed to create directory");
         assert!(path.exists(), "Storage directory does not exist");
     }
 
     /// Test that make_kube_file() creates the .kube file with correct content
     #[tokio::test]
     async fn test_make_kube_file() {
-        let storage_dir = "/etc/piccolo/yaml";
+        let storage_dir = "/etc/piccolo/yaml_test";
         let pod_name = "antipinch-disable-core";
 
         let path = Path::new(storage_dir);
@@ -195,7 +191,7 @@ containers:
         let podspec = dummy_podspec();
         let pod = Pod::new("antipinch-disable-core1", podspec);
 
-        let storage_dir = "/etc/piccolo/yaml";
+        let storage_dir = "/etc/piccolo/yaml_test";
         let path = Path::new(storage_dir);
         if !path.exists() {
             fs::create_dir_all(path).expect("Failed to create directory for testing");

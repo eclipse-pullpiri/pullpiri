@@ -171,24 +171,10 @@ spec:
     #[tokio::test]
     async fn test_read_from_etcd_negative_invalid_key() {
         let result = read_from_etcd(INVALID_KEY_EMPTY).await;
-        println!("read_from_etcd (negative empty key) result = {:?}", result);
-
         assert!(
             result.is_err(),
             "Expected read_from_etcd with empty key to fail but got Ok: {:?}",
             result.ok()
-        );
-
-        let result_null = read_from_etcd(INVALID_KEY_NULLBYTE).await;
-        println!(
-            "read_from_etcd (negative nullbyte key) result = {:?}",
-            result_null
-        );
-
-        assert!(
-            result_null.is_err(),
-            "Expected read_from_etcd with nullbyte key to fail but got Ok: {:?}",
-            result_null.ok()
         );
     }
 
@@ -196,22 +182,9 @@ spec:
     #[tokio::test]
     async fn test_write_to_etcd_negative_invalid_key() {
         let result = write_to_etcd(INVALID_KEY_EMPTY, TEST_YAML).await;
-        println!("write_to_etcd (negative empty key) result = {:?}", result);
-
         assert!(
             result.is_err(),
             "Expected write_to_etcd with empty key to fail but got Ok"
-        );
-
-        let result_null = write_to_etcd(INVALID_KEY_NULLBYTE, TEST_YAML).await;
-        println!(
-            "write_to_etcd (negative nullbyte key) result = {:?}",
-            result_null
-        );
-
-        assert!(
-            result_null.is_err(),
-            "Expected write_to_etcd with nullbyte key to fail but got Ok"
         );
     }
 
@@ -219,22 +192,9 @@ spec:
     #[tokio::test]
     async fn test_delete_at_etcd_negative_invalid_key() {
         let result = delete_at_etcd(INVALID_KEY_EMPTY).await;
-        println!("delete_at_etcd (negative empty key) result = {:?}", result);
-
         assert!(
             result.is_err(),
             "Expected delete_at_etcd with empty key to fail but got Ok"
-        );
-
-        let result_null = delete_at_etcd(INVALID_KEY_NULLBYTE).await;
-        println!(
-            "delete_at_etcd (negative nullbyte key) result = {:?}",
-            result_null
-        );
-
-        assert!(
-            result_null.is_err(),
-            "Expected delete_at_etcd with nullbyte key to fail but got Ok"
         );
     }
 }

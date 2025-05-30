@@ -17,7 +17,7 @@ spec:
     command: ["/piccolo/apiserver"]
     volumeMounts:
     - name: piccolo-yaml
-      mountPath: /root/piccolo_yaml
+      mountPath: /etc/piccolo/yaml
     - name: config-path
       mountPath: /piccolo/settings.yaml
   - name: policymanager

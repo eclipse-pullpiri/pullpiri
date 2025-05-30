@@ -18,6 +18,15 @@ spec:
   - name: actioncontroller
     image: localhost/pullpiri-player:latest
     command: ["/piccolo/actioncontroller"]
+    volumeMounts:
+    - name: piccolo-yaml
+      mountPath: /root/piccolo_yaml
+    - name: dbus
+      mountPath: /run/dbus
+    - name: systemd
+      mountPath: /etc/containers/systemd
+    - name: config-path
+      mountPath: /piccolo/settings.yaml
   - name: statemanager
     image: localhost/pullpiri-player:latest
     command: ["/piccolo/statemanager"]

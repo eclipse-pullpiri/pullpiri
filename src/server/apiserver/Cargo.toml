@@ -20,3 +20,4 @@ tonic = "0.12.3"
 tokio = { version = "1.41.0", features = ["macros", "rt-multi-thread"] }
 tower-http ={ version = "0.6.1", features = ["cors"]}
 tower = "0.4"
+tokio-stream = "0.1"

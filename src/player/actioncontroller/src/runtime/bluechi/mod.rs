@@ -43,6 +43,7 @@ impl Command {
             Command::UnitStop => "StopUnit",
             Command::UnitRestart => "RestartUnit",
             Command::UnitReload => "ReloadUnit",
+            Command::ControllerReloadAllNodes => "ReloadAllNodes",
             _ => "Unknown",
         }
     }
@@ -66,7 +67,7 @@ pub async fn handle_bluechi_cmd(
 ) -> Result<()> {
     let conn = Connection::new_system().unwrap();
     let bluechi = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
-
+    print!("handle_bluechi_cmd ...\n");
     match bluechi_cmd.command {
         Command::ControllerReloadAllNodes => {
             let _ = reload_all_nodes(&bluechi);
@@ -99,13 +100,14 @@ pub async fn handle_bluechi_cmd(
 ///
 /// * `Ok(String)` - A successful result message including the job path
 /// * `Err(...)` - If the D-Bus call fails
-pub async fn workload_run(
+pub fn workload_run(
     conn: &Connection,
     method: &str,
     node_name: &str,
     proxy: &Proxy<'_, &Connection>,
     unit_name: &str,
 ) -> Result<String> {
+    print!("workload_run ...\n");
     let (node,): (Path,) = proxy.method_call(DEST_CONTROLLER, "GetNode", (&node_name,))?;
 
     let node_proxy = conn.with_proxy(DEST, node, Duration::from_millis(5000));
@@ -131,7 +133,8 @@ pub async fn workload_run(
 ///
 /// * `Ok(String)` - A successful result message listing all reloaded nodes
 /// * `Err(...)` - If any of the D-Bus calls fail
-pub async fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> {
+pub fn reload_all_nodes(proxy: &Proxy<'_, &Connection>) -> Result<String> {
+    print!("Reloading all nodes...\n");
     let (nodes,): (Vec<(String, dbus::Path, String)>,) =
         proxy.method_call(DEST_CONTROLLER, "ListNodes", ())?;
 
@@ -219,7 +222,7 @@ mod tests {
 
         let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
 
-        let result = workload_run(&conn, "StartUnit", node, &bluechi_proxy, unit_name).await;
+        let result = workload_run(&conn, "StartUnit", node, &bluechi_proxy, unit_name);
         assert!(result.is_ok());
 
         let output = result.unwrap();
@@ -238,7 +241,7 @@ mod tests {
         }
 
         let proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
-        let result = reload_all_nodes(&proxy).await;
+        let result = reload_all_nodes(&proxy);
         assert!(result.is_ok());
     }
 
@@ -271,8 +274,7 @@ mod tests {
 
         let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
 
-        let result =
-            workload_run(&conn, "StartUnit", invalid_node, &bluechi_proxy, unit_name).await;
+        let result = workload_run(&conn, "StartUnit", invalid_node, &bluechi_proxy, unit_name);
         assert!(result.is_err());
     }
 
@@ -292,7 +294,7 @@ mod tests {
 
         let bluechi_proxy = conn.with_proxy(DEST, PATH, Duration::from_millis(5000));
 
-        let result = workload_run(&conn, invalid_method, node, &bluechi_proxy, unit_name).await;
+        let result = workload_run(&conn, invalid_method, node, &bluechi_proxy, unit_name);
         assert!(result.is_err());
     }
 
@@ -305,7 +307,7 @@ mod tests {
         let fake_dest = "org.eclipse.fakebluechi";
         let proxy = conn.with_proxy(fake_dest, PATH, Duration::from_millis(5000));
 
-        let result = reload_all_nodes(&proxy).await;
+        let result = reload_all_nodes(&proxy);
         assert!(result.is_err());
     }
 }

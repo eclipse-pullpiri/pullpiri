@@ -1,9 +1,14 @@
+use std::{thread, time::Duration};
+
 use crate::runtime::bluechi;
 use common::{
     actioncontroller::Status,
     spec::artifact::{Package, Scenario},
     Result,
 };
+
+const SYSTEMD_PATH: &str = "/etc/containers/systemd/";
+
 /// Manager for coordinating scenario actions and workload operations
 ///
 /// Responsible for:
@@ -76,10 +81,11 @@ impl ActionControllerManager {
     /// - The scenario is not allowed by policy
     /// - The runtime operation fails
     pub async fn trigger_manager_action(&self, scenario_name: &str) -> Result<()> {
+        println!("trigger_manager_action in manager {:?}", scenario_name);
         if scenario_name.trim().is_empty() {
             return Err("Invalid scenario name: cannot be empty".into());
         }
-        let etcd_scenario_key = format!("scenario/{}", scenario_name);
+        let etcd_scenario_key = format!("Scenario/{}", scenario_name);
         let scenario_str: String = match common::etcd::get(&etcd_scenario_key).await {
             Ok(value) => value,
             Err(e) => {
@@ -90,7 +96,7 @@ impl ActionControllerManager {
 
         let action: String = scenario.get_actions();
 
-        let etcd_package_key: String = format!("package/{}", scenario.get_targets());
+        let etcd_package_key: String = format!("Package/{}", scenario.get_targets());
         let package_str = common::etcd::get(&etcd_package_key).await?;
         let package: Package = serde_yaml::from_str(&package_str)?;
 
@@ -117,6 +123,17 @@ impl ActionControllerManager {
                 "update" | "rollback" => {
                     self.stop_workload(&model_name, &model_node, &node_type)
                         .await?;
+
+                    self.delete_symlink_and_reload(&mi.get_name(), &model_node)
+                        .await?;
+
+                    self.make_symlink_and_reload(
+                        &model_node,
+                        &mi.get_name(),
+                        &scenario.get_targets(),
+                    )
+                    .await?;
+
                     self.start_workload(&model_name, &model_node, &node_type)
                         .await?;
                 }
@@ -382,6 +399,48 @@ impl ActionControllerManager {
         }
         Ok(())
     }
+
+    pub async fn make_symlink_and_reload(
+        &self,
+        node_name: &str,
+        model_name: &str,
+        target_name: &str,
+    ) -> Result<()> {
+        println!(
+            "make_symlink_and_reload'{:?}' on host node '{:?}'",
+            model_name, node_name
+        );
+        let original: String = format!(
+            "{0}/{1}.kube",
+            common::setting::get_config().yaml_storage,
+            target_name,
+        );
+        let link = format!("{}{}.kube", SYSTEMD_PATH, model_name);
+
+        if node_name == common::setting::get_config().host.name {
+            std::os::unix::fs::symlink(original, link)?;
+        }
+        self.reload_all_node(model_name, node_name).await?;
+        Ok(())
+    }
+
+    pub async fn delete_symlink_and_reload(&self, model_name: &str, node_name: &str) -> Result<()> {
+        // host node
+        let kube_symlink_path = format!("{}{}.kube", SYSTEMD_PATH, model_name);
+        let _ = std::fs::remove_file(&kube_symlink_path);
+
+        self.reload_all_node(model_name, node_name).await?;
+        Ok(())
+    }
+
+    pub async fn reload_all_node(&self, model_name: &str, model_node: &str) -> Result<()> {
+        let cmd = bluechi::BluechiCmd {
+            command: bluechi::Command::ControllerReloadAllNodes,
+        };
+        bluechi::handle_bluechi_cmd(model_name, model_node, cmd).await?;
+        thread::sleep(Duration::from_millis(100));
+        Ok(())
+    }
 }
 
 //UNIT TEST SKELTON
@@ -389,7 +448,6 @@ impl ActionControllerManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::runtime::bluechi::handle_bluechi_cmd;
     use common::actioncontroller::Status;
     use std::error::Error;
 
@@ -521,7 +579,7 @@ mod tests {
 
         assert!(result.is_err());
     }
- 
+
     #[test]
     fn test_manager_initializes_nodes() {
         // Ensures new() returns manager with non-empty nodes
@@ -543,5 +601,3 @@ mod tests {
         assert!(manager.pause_workload("test".into()).await.is_ok());
     }
 }
-
-

@@ -313,7 +313,7 @@ impl FilterGatewayManager {
     /// * `Result<()>` - Success or error result
     pub async fn launch_scenario_filter(&self, scenario: Scenario) -> Result<()> {
         // Check if the scenario has conditions
-        if scenario.get_conditions().is_none() {
+        if scenario.get_conditions().is_some() {
             println!("No conditions for scenario: {}", scenario.get_name());
             let mut sender = self.sender.lock().await;
             sender.trigger_action(scenario.get_name().clone()).await?;

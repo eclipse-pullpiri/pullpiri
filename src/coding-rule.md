@@ -40,16 +40,16 @@ Function names should be written in lowercase with underscores (_).
    d. normal comments use // or /* ... */, and
    
    e. document comments use ///, //! or /** ... **/
-7. **Modularization**: Modularize functionality to improve readability and reusability.
-8. **Error Handling**: Handle errors thoroughly to enhance stability.
+4. **Modularization**: Modularize functionality to improve readability and reusability.
+5. **Error Handling**: Handle errors thoroughly to enhance stability.
 
     a. recoverable - use Result<T, E>
    
     b. unrecoverable errors - use panic!
    
-9. **Write Tests**: Write test code to ensure the reliability of the code.
-10. **Use Standard Library**: Use the Rust standard library whenever possible to improve efficiency.
-11. **Add License information and dependencies to Cargo.toml conventions**: This helps in build and performing static check 
+6. **Write Tests**: Write test code to ensure the reliability of the code.
+7. **Use Standard Library**: Use the Rust standard library whenever possible to improve efficiency.
+8. **Add License information and dependencies to Cargo.toml conventions**: This helps in build and performing static check 
 
     The license field must contain a valid SPDX expression, using valid SPDX license names. (As an exception, by widespread convention, the license field may use / in place of OR; for example, MIT/Apache-2.0.)
 

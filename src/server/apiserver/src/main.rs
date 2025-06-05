@@ -21,6 +21,7 @@ mod manager;
 mod route;
 
 /// Main function of Piccolo API Server
+#[cfg(not(tarpaulin_include))]
 #[tokio::main]
 async fn main() {
     manager::initialize().await

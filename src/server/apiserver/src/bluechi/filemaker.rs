@@ -138,6 +138,10 @@ containers:
                 panic!("make_files_from_pod failed: {:?}", e);
             }
         }
+        // Remove the directory to force re-creation
+        if std::path::Path::new(storage_dir).exists() {
+            std::fs::remove_dir_all(storage_dir).unwrap();
+        }
     }
 
     /// Test that directory is created successfully

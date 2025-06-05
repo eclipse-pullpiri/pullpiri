@@ -52,14 +52,37 @@ pub async fn get_complete_model(p: Package) -> common::Result<Vec<Model>> {
 }
 
 //UNIT TEST CASES
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // Helper function to create a dummy Package object from a YAML string
-    fn create_dummy_package() -> Package {
-        let yaml = r#"
+    use serde::de::Deserialize;
+    use serde_yaml::Deserializer;
+    /// Helper function to extract a `Package` from a multi-document YAML
+    fn extract_package_from_multi_yaml(yaml: &str) -> Option<Package> {
+        let deserializer = Deserializer::from_str(yaml);
+        for doc in deserializer {
+            let maybe_value: Result<serde_yaml::Value, _> = serde_yaml::Value::deserialize(doc);
+            if let Ok(value) = maybe_value {
+                if let Some(kind) = value.get("kind").and_then(|k| k.as_str()) {
+                    if kind == "Package" {
+                        let pkg: Result<Package, _> = serde_yaml::from_value(value);
+                        return pkg.ok();
+                    }
+                }
+            }
+        }
+        None
+    }
+    const VALID_ARTIFACT_YAML: &str = r#"
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: helloworld
+spec:
+  condition:
+  action: update
+  target: helloworld
+---
 apiVersion: v1
 kind: Package
 metadata:
@@ -74,21 +97,112 @@ spec:
       resources:
         volume:
         network:
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: helloworld-core
+  annotations:
+    io.piccolo.annotations.package-type: helloworld-core
+    io.piccolo.annotations.package-name: helloworld
+    io.piccolo.annotations.package-network: default
+  labels:
+    app: helloworld-core
+spec:
+  hostNetwork: true
+  containers:
+    - name: helloworld
+      image: helloworld
+  terminationGracePeriodSeconds: 0
 "#;
-        serde_yaml::from_str(yaml).unwrap()
-    }
 
+    #[tokio::test]
+    async fn test_volume_and_network_resolution() {
+        // Insert Volume YAML
+        let volume_yaml = r#"
+apiVersion: v1
+kind: Volume
+metadata:
+  name: test-volume
+spec:
+  volume:
+    - name: data
+      emptyDir: {}
+"#;
+        common::etcd::put("Volume/test-volume", volume_yaml)
+            .await
+            .unwrap();
+
+        // Insert Network YAML
+        let network_yaml = r#"
+apiVersion: v1
+kind: Network
+metadata:
+  name: test-network
+spec:
+  interfaces:
+    - name: eth0
+      bridge: br0
+"#;
+        common::etcd::put("Network/test-network", network_yaml)
+            .await
+            .unwrap();
+
+        // Create a valid Package referencing above Volume and Network
+        let pkg_yaml = r#"
+apiVersion: v1
+kind: Package
+metadata:
+  name: test
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: test-model
+      node: node1
+      resources:
+        volume: test-volume
+        network: test-network
+"#;
+
+        let model_yaml = r#"
+apiVersion: v1
+kind: Model
+metadata:
+  name: test-model
+spec:
+  containers:
+    - name: app
+      image: test
+"#;
+
+        common::etcd::put("Model/test-model", model_yaml)
+            .await
+            .unwrap();
+
+        // Deserialize and test
+        let package: Package = serde_yaml::from_str(pkg_yaml).unwrap();
+        let result = get_complete_model(package).await;
+
+        assert!(result.is_ok());
+        let models = result.unwrap();
+        assert_eq!(models.len(), 1);
+    }
     // Test case for a valid scenario where get_complete_model works correctly
     #[tokio::test]
     async fn test_get_complete_model_success() {
         // Create a dummy package with valid data
-        let package = create_dummy_package();
+        let package = extract_package_from_multi_yaml(VALID_ARTIFACT_YAML);
 
         // Call get_complete_model and check if it returns Ok
-        let result = get_complete_model(package).await;
+        let result = get_complete_model(package.expect("REASON")).await;
 
         // If result is an error, print the error for debugging
-        assert!(result.is_ok() || result.err().is_some());
+        assert!(
+            result.is_ok(),
+            "get_complete_model failed: {:?}",
+            result.err()
+        );
     }
 
     // Test case for invalid YAML, ensuring deserialization fails

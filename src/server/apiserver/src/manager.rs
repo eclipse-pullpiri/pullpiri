@@ -851,15 +851,18 @@ spec:
     // Test for `send_download_request()` - currently unimplemented (but we can still test its existence)
     #[tokio::test]
     async fn test_send_download_request() {
-        let result =
-            tokio::time::timeout(std::time::Duration::from_secs(5), send_download_request()).await;
+        let result = tokio::time::timeout(
+            std::time::Duration::from_millis(50),
+            send_download_request(),
+        )
+        .await;
         assert!(result.is_ok(), "send_download_request() failed to execute");
     }
 
     // Test for `reload()` - successful case
     #[tokio::test]
     async fn test_reload_success() {
-        let result = tokio::time::timeout(std::time::Duration::from_secs(5), reload()).await;
+        let result = tokio::time::timeout(std::time::Duration::from_millis(500), reload()).await;
         assert!(result.is_ok(), "reload() failed to complete in time");
     }
 }

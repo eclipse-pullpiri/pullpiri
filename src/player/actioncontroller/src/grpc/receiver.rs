@@ -78,21 +78,16 @@ impl ActionControllerConnection for ActionControllerReceiver {
 
                 // Decide gRPC error code based on error content
                 let grpc_status = if err_msg.contains("Invalid scenario name") {
-                    println!("cannot be empty");
                     Status::invalid_argument(err_msg)
                 } else if err_msg.contains("not found") {
-                    println!("not found");
                     Status::not_found(err_msg)
                 } else if err_msg.contains("Failed to parse") {
-                    println!("Failed to parse");
                     Status::invalid_argument(err_msg)
                 } else if err_msg.contains("Failed to start workload")
                     || err_msg.contains("Failed to stop workload")
                 {
-                    println!("Failed to start workload");
                     Status::internal(err_msg)
                 } else {
-                    println!("unknown");
                     // fallback to Unknown error code
                     Status::unknown(err_msg)
                 };

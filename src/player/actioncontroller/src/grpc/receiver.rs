@@ -62,18 +62,39 @@ impl ActionControllerConnection for ActionControllerReceiver {
         request: Request<TriggerActionRequest>,
     ) -> Result<Response<TriggerActionResponse>, Status> {
         // TODO: Implementation
-        println!("trigger_action in gprc receiver");
+        println!("trigger_action in grpc receiver");
+
         let scenario_name = request.into_inner().scenario_name;
-        println!("trigger_action in gprc receiver : {}", scenario_name);
+        println!("trigger_action scenario: {}", scenario_name);
+
         match self.manager.trigger_manager_action(&scenario_name).await {
             Ok(_) => Ok(Response::new(TriggerActionResponse {
-                status: 0, // Success
+                status: 0,
                 desc: "Action triggered successfully".to_string(),
             })),
-            Err(e) => Ok(Response::new(TriggerActionResponse {
-                status: 1, // Error
-                desc: format!("Failed to trigger action: {}", e),
-            })),
+
+            Err(e) => {
+                let err_msg = e.to_string();
+
+                // Decide gRPC error code based on error content
+                let grpc_status = if err_msg.contains("Invalid scenario name") {
+                    Status::invalid_argument(err_msg)
+                } else if err_msg.contains("not found") {
+                    Status::not_found(err_msg)
+                } else if err_msg.contains("Failed to parse") {
+                    Status::invalid_argument(err_msg)
+                } else if err_msg.contains("Failed to start workload")
+                    || err_msg.contains("Failed to stop workload")
+                {
+                    Status::internal(err_msg)
+                } else {
+                    // fallback to Unknown error code
+                    Status::unknown(err_msg)
+                };
+
+                // Return the gRPC error status instead of success response with error status code
+                Err(grpc_status)
+            }
         }
     }
 

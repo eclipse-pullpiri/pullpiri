@@ -83,7 +83,7 @@ impl ActionControllerManager {
     pub async fn trigger_manager_action(&self, scenario_name: &str) -> Result<()> {
         println!("trigger_manager_action in manager {:?}", scenario_name);
         if scenario_name.trim().is_empty() {
-            return Err("Invalid scenario name: cannot be empty".into());
+            return Err(format!("Scenario '{}' is invalid: cannot be empty", scenario_name).into());
         }
         let etcd_scenario_key = format!("Scenario/{}", scenario_name);
         let scenario_str: String = match common::etcd::get(&etcd_scenario_key).await {
@@ -92,13 +92,26 @@ impl ActionControllerManager {
                 return Err(format!("Scenario '{}' not found: {}", scenario_name, e).into());
             }
         };
-        let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;
+        let scenario: Scenario = serde_yaml::from_str(&scenario_str)
+            .map_err(|e| format!("Failed to parse scenario '{}': {}", scenario_name, e))?;
 
         let action: String = scenario.get_actions();
 
-        let etcd_package_key: String = format!("Package/{}", scenario.get_targets());
-        let package_str = common::etcd::get(&etcd_package_key).await?;
-        let package: Package = serde_yaml::from_str(&package_str)?;
+        let etcd_package_key = format!("Package/{}", scenario.get_targets());
+        let package_str = match common::etcd::get(&etcd_package_key).await {
+            Ok(value) => value,
+            Err(e) => {
+                return Err(format!("Package key '{}' not found: {}", etcd_package_key, e).into());
+            }
+        };
+
+        let package: Package = serde_yaml::from_str(&package_str).map_err(|e| {
+            format!(
+                "Failed to parse package '{}': {}",
+                scenario.get_targets(),
+                e
+            )
+        })?;
 
         for mi in package.get_models() {
             let model_name = format!("{}.service", mi.get_name());
@@ -108,36 +121,49 @@ impl ActionControllerManager {
             } else if self.nodeagent_nodes.contains(&model_node) {
                 "nodeagent"
             } else {
-                continue; // Skip if node type is unknown
+                continue; // Skip unknown node types
             };
 
             match action.as_str() {
                 "launch" => {
                     self.start_workload(&model_name, &model_node, &node_type)
-                        .await?;
+                        .await
+                        .map_err(|e| format!("Failed to start workload '{}': {}", model_name, e))?;
                 }
                 "terminate" => {
                     self.stop_workload(&model_name, &model_node, &node_type)
-                        .await?;
+                        .await
+                        .map_err(|e| format!("Failed to stop workload '{}': {}", model_name, e))?;
                 }
                 "update" | "rollback" => {
                     self.stop_workload(&model_name, &model_node, &node_type)
-                        .await?;
+                        .await
+                        .map_err(|e| format!("Failed to stop workload '{}': {}", model_name, e))?;
 
                     self.delete_symlink_and_reload(&mi.get_name(), &model_node)
-                        .await?;
+                        .await
+                        .map_err(|e| {
+                            format!("Failed to delete symlink for '{}': {}", mi.get_name(), e)
+                        })?;
 
                     self.make_symlink_and_reload(
                         &model_node,
                         &mi.get_name(),
                         &scenario.get_targets(),
                     )
-                    .await?;
+                    .await
+                    .map_err(|e| {
+                        format!("Failed to create symlink for '{}': {}", mi.get_name(), e)
+                    })?;
 
                     self.start_workload(&model_name, &model_node, &node_type)
-                        .await?;
+                        .await
+                        .map_err(|e| format!("Failed to start workload '{}': {}", model_name, e))?;
                 }
-                _ => {}
+                _ => {
+                    // Ignore unknown action for now, or optionally return error:
+                    // return Err(format!("Unknown action '{}'", action).into());
+                }
             }
         }
 
@@ -413,7 +439,7 @@ impl ActionControllerManager {
         let original: String = format!(
             "{0}/{1}.kube",
             common::setting::get_config().yaml_storage,
-            target_name,
+            target_name
         );
         let link = format!("{}{}.kube", SYSTEMD_PATH, model_name);
 
@@ -466,40 +492,42 @@ mod tests {
 
     #[tokio::test]
     async fn test_trigger_manager_action_with_valid_data() {
+        // Insert mock Scenario YAML into etcd
         common::etcd::put(
-            "scenario/antipinch-enable",
+            "Scenario/antipinch-enable",
             r#"
-        apiVersion: v1
-        kind: Scenario
-        metadata:
-            name: antipinch-enable
-        spec:
-            condition:
-            action: update
-            target: antipinch-enable
-        "#,
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: antipinch-enable
+spec:
+  condition:
+  action: update
+  target: antipinch-enable
+"#,
         )
         .await
         .unwrap();
 
+        // Insert mock Package YAML into etcd
         common::etcd::put(
-            "package/antipinch-enable",
+            "Package/antipinch-enable",
             r#"
-        apiVersion: v1
-        kind: Package
-        metadata:
-            label: null
-            name: antipinch-enable
-        spec:
-            pattern:
-              - type: plain
-            models:
-              - name: antipinch-enable-core
-                node: HPC
-                resources:
-                    volume: antipinch-volume
-                    network: antipinch-network
-        "#,
+apiVersion: v1
+kind: Package
+metadata:
+  label: null
+  name: antipinch-enable
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: helloworld-core
+      node: HPC
+      resources:
+        volume:
+        network:
+"#,
         )
         .await
         .unwrap();
@@ -510,17 +538,20 @@ mod tests {
         };
 
         let result = manager.trigger_manager_action("antipinch-enable").await;
+
         if let Err(ref e) = result {
             println!("Error in trigger_manager_action: {:?}", e);
         } else {
             println!("trigger_manager_action successful");
         }
+
         assert!(result.is_ok());
 
-        common::etcd::delete("scenario/antipinch-enable")
+        // Cleanup after test
+        common::etcd::delete("Scenario/antipinch-enable")
             .await
             .unwrap();
-        common::etcd::delete("package/antipinch-enable")
+        common::etcd::delete("Package/antipinch-enable")
             .await
             .unwrap();
     }

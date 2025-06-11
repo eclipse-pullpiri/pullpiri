@@ -25,21 +25,46 @@ use tonic::Request;
 ///
 /// Returns an error if:
 /// - The connection to PolicyManager is not established
-/// - The gRPC request fails
-/// - The policy check fails
-pub async fn check_policy(scenario_name: String) -> Result<i32> {
+/// - The gRPC request fails (e.g., PolicyManager returns a gRPC Status error)
+/// - The policy check fails (application-level failure indicated by gRPC Status)
+pub async fn check_policy(scenario_name: String) -> Result<()> {
+    // Change return type
     if scenario_name.trim().is_empty() {
         return Err("Invalid scenario name: cannot be empty".into());
     }
 
     let addr = common::policymanager::connect_server();
-    let mut client = PolicyManagerConnectionClient::connect(addr).await.unwrap();
-    let request = Request::new(CheckPolicyRequest { scenario_name });
+    let mut client = PolicyManagerConnectionClient::connect(addr)
+        .await
+        .map_err(|e| format!("Failed to connect to PolicyManager: {}", e))?;
+    let request = tonic::Request::new(CheckPolicyRequest {
+        scenario_name: scenario_name.clone(),
+    }); // Clone scenario_name if needed later for error messages
     let response = client.check_policy(request).await?;
     let response_inner = response.into_inner();
 
-    println!("Error: {}", response_inner.desc);
-    Ok(response_inner.status)
+    // Check application-level status from the response payload *only if* the gRPC call was successful
+    if response_inner.status == 0 {
+        println!(
+            "Policy check successful for '{}': {}",
+            scenario_name, response_inner.desc
+        );
+        Ok(()) // Policy passed
+    } else {
+        // This block would only be reached if the server sent a successful gRPC status (OK)
+        // but included an application-level error code (non-0 status) in the payload.
+        // Given our recommended `receiver.rs`, this path should ideally not be taken for errors.
+        // It's more robust to rely on the gRPC `Status` for errors.
+        println!(
+            "Policy check failed for '{}' (Application Status: {}): {}",
+            scenario_name, response_inner.status, response_inner.desc
+        );
+        Err(format!(
+            "Policy check failed for scenario '{}' with status {}: {}",
+            scenario_name, response_inner.status, response_inner.desc
+        )
+        .into())
+    }
 }
 
 /// Send a workload handling request to NodeAgent

@@ -31,6 +31,9 @@ impl FilterGatewaySender {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn trigger_action(&mut self, scenario_name: String) -> Result<()> {
+        if scenario_name.trim().is_empty() {
+            return Err("Invalid scenario name: cannot be empty".into());
+        }
         use common::actioncontroller::TriggerActionRequest;
         let mut client = ActionControllerConnectionClient::connect(connect_server())
             .await

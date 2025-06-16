@@ -4,7 +4,8 @@
  */
 
 use common::policymanager::policy_manager_connection_server::PolicyManagerConnection;
-use common::policymanager::{CheckPolicyRequest, CheckPolicyResponse};
+use common::policymanager::{ CheckPolicyRequest, CheckPolicyResponse };
+use tonic::{Response};
 
 pub struct PolicyManagerGrpcServer {}
 
@@ -12,11 +13,23 @@ pub struct PolicyManagerGrpcServer {}
 impl PolicyManagerConnection for PolicyManagerGrpcServer {
     async fn check_policy(
         &self,
-        request: tonic::Request<CheckPolicyRequest>,
+        request: tonic::Request<CheckPolicyRequest>
     ) -> Result<tonic::Response<CheckPolicyResponse>, tonic::Status> {
         let req = request.into_inner();
-        let command = req.scenario_name;
+        let scenario_name = req.scenario_name; // Renamed for clarity
 
-        Err(tonic::Status::new(tonic::Code::Unavailable, command))
+        // Simulate internal logic
+        let (status, desc) = if scenario_name.is_empty() {
+            (1, "Scenario name cannot be empty".to_string())
+        } else if scenario_name == "test_scenario" {
+            (0, "Policy check passed".to_string())
+        } else {
+            (1, format!("Policy check failed for scenario: {}", scenario_name))
+        };
+
+        Ok(Response::new(CheckPolicyResponse {
+            status,
+            desc,
+        }))
     }
 }

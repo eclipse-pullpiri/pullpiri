@@ -17,28 +17,18 @@ impl PolicyManagerConnection for PolicyManagerGrpcServer {
         let req = request.into_inner();
         let scenario_name = req.scenario_name; // Renamed for clarity
 
-        // --- Simulate Policy Check Logic ---
-        // In a real application, we'd perform our policy check here.
-        // For demonstration, let's say 'test_scenario' passes, others fail.
-        if scenario_name == "test_scenario" {
-            // Policy check passed
-            Ok(
-                tonic::Response::new(CheckPolicyResponse {
-                    status: 0, // Success status
-                    desc: "Policy check passed for test_scenario".to_string(),
-                })
-            )
-        } else if scenario_name.trim().is_empty() {
-            // Example: Specific gRPC status for invalid argument
-            Err(tonic::Status::invalid_argument("Scenario name cannot be empty".to_string()))
+        // Simulate internal logic
+        let (status, desc) = if scenario_name.is_empty() {
+            (1, "Scenario name cannot be empty".to_string())
+        } else if scenario_name == "test_scenario" {
+            (0, "Policy check passed".to_string())
         } else {
-            // Policy check failed for other scenarios
-            // Return a gRPC protocol-level error to the client
-            Err(
-                tonic::Status::permission_denied(
-                    format!("Policy check failed for scenario: {}", scenario_name)
-                )
-            )
-        }
+            (1, format!("Policy check failed for scenario: {}", scenario_name))
+        };
+
+        Ok(Response::new(CheckPolicyResponse {
+            status,
+            desc,
+        }))
     }
 }

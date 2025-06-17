@@ -233,9 +233,9 @@ adder
 │   └── lib.rs
 └── tests
     └── integration_test.rs
-
+```
 **Filename: src/lib.rs**
-
+```rust
 pub fn add_two(a: usize) -> usize {
     internal_adder(a, 2)
 }
@@ -255,10 +255,9 @@ mod tests {
     }
 }
 ```
-
 **Filename: tests/integration_test.rs**
 
-```bash
+```rust
 use adder::add_two;
 
 #[test]
@@ -337,8 +336,10 @@ We just wanted to share some code with the other integration test files. we’ll
 Naming the file this way tells Rust not to treat the common module as an integration test file. Where we move the setup function code into tests/common/mod.rs . Files in subdirectories of the tests directory don’t get compiled as separate crates or have sections in the test output.
 
 After we’ve created tests/common/mod.rs, we can use it from any of the integration test files as a module. Here’s an example of calling the setup function from the it_adds_two test in tests/integration_test.rs:
+
 **Filename: tests/integration_test.rs**
-```bash
+
+```rust
 use adder::add_two;
 
 mod common;
@@ -350,7 +351,8 @@ fn it_adds_two() {
     let result = add_two(2);
     assert_eq!(result, 4);
 }
-
+```
+```bash
 $ cargo test
    Compiling adder v0.1.0 (file:///projects/adder)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.89s
@@ -387,7 +389,7 @@ To use cargo-tarpaulin you need to install it on your system. This can be done e
 ```bash
 cargo install cargo-tarpaulin
 
-Once installed, you can run the tool in your project by using the following command:
+#Once installed, you can run the tool in your project by using the following command:
 
 cargo tarpaulin
 ```
@@ -415,9 +417,10 @@ This section documents how to exclude certain files or functions from code cover
 **Method A: Using `Cargo.toml` Configuration**
 
 Add this to your `Cargo.toml`:
-
+```rust
 [package.metadata.tarpaulin]
 exclude-files = ["src/main.rs"]
+```
 
 Command to Run:
 ```bash
@@ -436,7 +439,7 @@ cargo tarpaulin --exclude-files src/main.rs
 **Using Conditional Compilation**
 
 Annotate functions to exclude them from coverage:
-```bash
+```rust
 #[cfg(not(tarpaulin_include))]
 
 fn main() {
@@ -455,14 +458,14 @@ fn main() {
 Using `#[tarpaulin::skip]` (Alternative)
 
 If you prefer explicit macros:
-```bash
-1. Enable the feature in `Cargo.toml`:
 
+1. Enable the feature in `Cargo.toml`:
+```rust
    [dev-dependencies]
    tarpaulin = { version = "0.26", features = ["skip"] }
-
+```
 2. Annotate functions:
-
+```rust
    #[tarpaulin::skip]
 
    fn main() {

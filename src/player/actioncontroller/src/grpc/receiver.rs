@@ -135,10 +135,12 @@ impl ActionControllerConnection for ActionControllerReceiver {
                 status: 0, // Success
                 desc: "Reconciliation completed successfully".to_string(),
             })),
-            Err(e) => Ok(Response::new(ReconcileResponse {
-                status: 1, // Error
-                desc: format!("Failed to reconcile: {}", e),
-            })),
+            // If reconcile_do returns an error, convert it into a gRPC Status::internal error
+            // and propagate it. This allows gRPC clients to receive a proper error status.
+            Err(e) => {
+                eprintln!("Reconciliation failed: {:?}", e); // Log the error for debugging
+                Err(Status::internal(format!("Failed to reconcile: {}", e)))
+            }
         }
     }
 }

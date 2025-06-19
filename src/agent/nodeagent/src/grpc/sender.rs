@@ -14,3 +14,5 @@ pub async fn _send(condition: Action) -> Result<tonic::Response<Response>, Statu
         .unwrap();
     client.send_action(Request::new(condition)).await
 }
+
+//To Do: Implement the logic for sending Network parsed data to pharos

@@ -6,6 +6,7 @@ use filtergateway::FilterGatewaySender;
 use filtergateway::{initialize, launch_manager};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::mpsc;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::task::LocalSet;

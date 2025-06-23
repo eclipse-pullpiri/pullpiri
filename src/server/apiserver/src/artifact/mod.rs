@@ -26,6 +26,7 @@ pub async fn apply(body: &str) -> common::Result<(String, String)> {
     let docs: Vec<&str> = body.split("---").collect();
     let mut scenario_str = String::new();
     let mut package_str = String::new();
+    let mut network_str = String::new();
 
     for doc in docs {
         let value: serde_yaml::Value = serde_yaml::from_str(doc)?;
@@ -49,6 +50,7 @@ pub async fn apply(body: &str) -> common::Result<(String, String)> {
             match kind {
                 "Scenario" => scenario_str = artifact_str,
                 "Package" => package_str = artifact_str,
+                //"Network" => network_str = artifact_str,
                 _ => continue,
             };
         }
@@ -60,7 +62,7 @@ pub async fn apply(body: &str) -> common::Result<(String, String)> {
         //Missing Check is Added for Package
         Err("There is not any package in yaml string".into())
     } else {
-        Ok((scenario_str, package_str))
+        Ok((scenario_str, package_str)) //, network_str))
     }
 }
 

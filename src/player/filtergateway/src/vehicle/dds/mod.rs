@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::sync::Mutex;
 
-mod listener;
+pub mod listener;
 
 // Re-export the modules
 pub use listener::{create_idl_listener, DdsTopicListener};
@@ -196,14 +196,26 @@ impl DdsManager {
         Ok(())
     }
 
-    /// Initialize DDS Manager
+    /// Backward-compatible `init()` that uses no path
     pub async fn init(&mut self) -> Result<()> {
-        info!("Initializing DDS Manager");
+        self.init_with_path(None).await
+    }
 
+    /// Flexible version with optional path param
+    pub async fn init_with_path<P: Into<Option<PathBuf>>>(
+        &mut self,
+        settings_path: P,
+    ) -> Result<()> {
+        info!("Initializing DDS Manager");
         let default_domain_id = 0;
 
-        // 프로젝트 루트 기준 설정 파일 경로 검색
-        let mut settings_path = PathBuf::from("/home/edo/2025/projects/pullpiri/src/settings.yaml");
+        let settings_path = settings_path.into().unwrap_or_else(|| {
+            env::var("PICCOLO_SETTINGS_PATH")
+                .map(PathBuf::from)
+                .unwrap_or_else(|_| {
+                    PathBuf::from("/home/edo/2025/projects/pullpiri/src/settings.yaml")
+                })
+        });
 
         info!("Reading settings from {:?}", settings_path);
         let content = fs::read_to_string(&settings_path)?;
@@ -300,7 +312,7 @@ mod tests {
     use std::path::Path;
     use tokio::sync::mpsc;
 
-    // Mock implementation of DdsTopicListener for testing purposes
+    // Mock implementation of DdsTopicListener for testing
     struct MockDdsTopicListener {
         running: bool,
         topic_name: String,
@@ -308,35 +320,29 @@ mod tests {
 
     #[async_trait::async_trait]
     impl DdsTopicListener for MockDdsTopicListener {
-        // Simulates starting the listener
         async fn start(&mut self) -> Result<()> {
             self.running = true;
             Ok(())
         }
 
-        // Simulates stopping the listener
         async fn stop(&mut self) -> Result<()> {
             self.running = false;
             Ok(())
         }
 
-        // Checks if the listener is running
         fn is_running(&self) -> bool {
             self.running
         }
 
-        // Returns the topic name associated with the listener
         fn get_topic_name(&self) -> &str {
             &self.topic_name
         }
 
-        // Checks if the listener is associated with a specific topic
         fn is_topic(&self, topic: &str) -> bool {
             self.topic_name == topic
         }
     }
 
-    // Test scanning a non-existent IDL directory
     #[tokio::test]
     async fn test_scan_idl_directory_with_nonexistent_path() {
         let (tx, _) = mpsc::channel(100);
@@ -346,7 +352,6 @@ mod tests {
         assert!(result.is_empty());
     }
 
-    // Test scanning an empty IDL directory
     #[tokio::test]
     async fn test_scan_idl_directory_with_empty_directory() {
         let (tx, _) = mpsc::channel(100);
@@ -356,7 +361,6 @@ mod tests {
         assert!(result.is_empty());
     }
 
-    // Test creating a typed listener when one already exists
     #[tokio::test]
     async fn test_create_typed_listener_with_existing_listener() {
         let (tx, _) = mpsc::channel(100);
@@ -364,7 +368,6 @@ mod tests {
         let topic_name = "test_topic".to_string();
         let data_type_name = "test_type".to_string();
 
-        // Insert a mock listener into the manager
         manager.listeners.insert(
             topic_name.clone(),
             Box::new(MockDdsTopicListener {
@@ -373,14 +376,12 @@ mod tests {
             }),
         );
 
-        // Attempt to create a typed listener for the same topic
         let result = manager
             .create_typed_listener(topic_name.clone(), data_type_name.clone())
             .await;
         assert!(result.is_ok());
     }
 
-    // Test removing a listener that does not exist
     #[tokio::test]
     async fn test_remove_listener_with_nonexistent_listener() {
         let (tx, _) = mpsc::channel(100);
@@ -390,7 +391,25 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    // Test stopping all listeners when none exist
+    #[tokio::test]
+    async fn test_remove_listener_existing() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let topic = "existing_topic";
+
+        manager.listeners.insert(
+            topic.to_string(),
+            Box::new(MockDdsTopicListener {
+                running: true,
+                topic_name: topic.to_string(),
+            }),
+        );
+
+        let result = manager.remove_listener(topic).await;
+        assert!(result.is_ok());
+        assert!(!manager.listeners.contains_key(topic));
+    }
+
     #[tokio::test]
     async fn test_stop_all_with_no_listeners() {
         let (tx, _) = mpsc::channel(100);
@@ -399,24 +418,263 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    // Test initializing the manager with an invalid settings path
     #[tokio::test]
-    async fn test_init_with_invalid_settings_path() {
+    async fn test_stop_all_with_multiple_listeners() {
         let (tx, _) = mpsc::channel(100);
         let mut manager = DdsManager::new(tx);
-        manager.domain_id = 0;
 
-        // Attempt to initialize the manager
-        let result = manager.init().await;
-        assert!(result.is_err());
+        for i in 0..3 {
+            let topic = format!("topic_{}", i);
+            manager.listeners.insert(
+                topic.clone(),
+                Box::new(MockDdsTopicListener {
+                    running: true,
+                    topic_name: topic,
+                }),
+            );
+        }
+
+        let result = manager.stop_all().await;
+        assert!(result.is_ok());
+        assert!(manager.listeners.is_empty());
     }
 
-    // Test retrieving the sender from the manager
     #[tokio::test]
     async fn test_get_sender() {
         let (tx, _) = mpsc::channel(100);
         let manager = DdsManager::new(tx.clone());
         let sender = manager.get_sender();
         assert_eq!(sender.capacity(), tx.capacity());
+    }
+
+    #[tokio::test]
+    async fn test_get_receiver_returns_mutex_ref() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let receiver = manager.get_receiver().await;
+        let _lock = receiver.lock().await;
+    }
+
+    #[tokio::test]
+    async fn test_create_listener_creates_and_starts_listener() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let topic = "new_topic".to_string();
+        let data_type = "new_type".to_string();
+
+        let result = manager.create_listener(topic.clone(), data_type).await;
+        assert!(result.is_ok());
+        assert!(manager.listeners.contains_key(&topic));
+    }
+
+    #[tokio::test]
+    async fn test_create_listener_skips_existing() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let topic = "existing_topic".to_string();
+
+        manager.listeners.insert(
+            topic.clone(),
+            Box::new(MockDdsTopicListener {
+                running: false,
+                topic_name: topic.clone(),
+            }),
+        );
+
+        let result = manager
+            .create_listener(topic.clone(), "any_type".to_string())
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_list_available_types_returns_vec() {
+        let types = dds_type_metadata::get_available_types();
+        assert!(types.is_empty() || types.iter().all(|t| t.is_ascii()));
+    }
+
+    #[tokio::test]
+    async fn test_init_with_invalid_settings_path() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let result = manager.init().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_init_reads_domain_id() {
+        let (tx, _) = tokio::sync::mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+
+        let temp_file = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(
+            temp_file.path(),
+            r#"
+{
+    "dds": {
+        "domain_id": 42,
+        "out_dir": "/tmp/output"
+    }
+}
+"#,
+        )
+        .unwrap();
+
+        let result = manager.init_with_path(Some(temp_file.path().into())).await;
+        assert!(result.is_ok(), "Init failed: {:?}", result.unwrap_err());
+        assert_eq!(manager.domain_id, 42);
+    }
+
+    #[tokio::test]
+    async fn test_create_typed_listener_falls_back_to_generic() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+        let result = manager
+            .create_typed_listener("unknown_topic".to_string(), "UnknownType".to_string())
+            .await;
+        assert!(result.is_ok());
+    }
+    #[tokio::test]
+    async fn test_scan_idl_directory_with_idl_files() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        // Create a few .idl files and some non-idl files
+        std::fs::write(temp_dir.path().join("example1.idl"), "").unwrap();
+        std::fs::write(temp_dir.path().join("example2.idl"), "").unwrap();
+        std::fs::write(temp_dir.path().join("ignore.txt"), "").unwrap();
+
+        let result = manager.scan_idl_directory(temp_dir.path()).await.unwrap();
+
+        // Should include only the idl file stems
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&"example1".to_string()));
+        assert!(result.contains(&"example2".to_string()));
+        assert!(!result.contains(&"ignore".to_string()));
+    }
+    struct DummyListener {
+        running: bool,
+        topic_name: String,
+    }
+
+    #[async_trait::async_trait]
+    impl DdsTopicListener for DummyListener {
+        async fn start(&mut self) -> Result<()> {
+            self.running = true;
+            Ok(())
+        }
+        async fn stop(&mut self) -> Result<()> {
+            self.running = false;
+            Ok(())
+        }
+        fn is_running(&self) -> bool {
+            self.running
+        }
+        fn get_topic_name(&self) -> &str {
+            &self.topic_name
+        }
+        fn is_topic(&self, topic: &str) -> bool {
+            self.topic_name == topic
+        }
+    }
+
+    // Override the dds_type_registry::create_typed_listener temporarily for testing
+    mod dds_type_registry {
+        use super::{DdsTopicListener, DummyListener};
+        use crate::vehicle::DdsData;
+        use anyhow::Result;
+        use std::boxed::Box;
+        use tokio::sync::mpsc::Sender;
+
+        pub fn create_typed_listener(
+            type_name: &str,
+            topic_name: String,
+            _tx: Sender<DdsData>,
+            _domain_id: i32,
+        ) -> Option<Box<dyn DdsTopicListener>> {
+            if type_name == "KnownType" {
+                Some(Box::new(DummyListener {
+                    running: false,
+                    topic_name,
+                }))
+            } else {
+                None
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_create_typed_listener_with_registry_some() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+
+        // Use KnownType to get Some(listener)
+        let topic = "topic_known".to_string();
+        let data_type = "KnownType".to_string();
+
+        let result = manager
+            .create_typed_listener(topic.clone(), data_type)
+            .await;
+        assert!(result.is_ok());
+        assert!(manager.listeners.contains_key(&topic));
+        // The inserted listener should be running after start
+        let listener = manager.listeners.get(&topic).unwrap();
+        assert!(listener.is_running());
+    }
+    struct FailingStopListener {
+        topic_name: String,
+    }
+
+    #[async_trait::async_trait]
+    impl DdsTopicListener for FailingStopListener {
+        async fn start(&mut self) -> Result<()> {
+            Ok(())
+        }
+        async fn stop(&mut self) -> Result<()> {
+            Err(anyhow!("Forced stop error").into())
+        }
+        fn is_running(&self) -> bool {
+            true
+        }
+        fn get_topic_name(&self) -> &str {
+            &self.topic_name
+        }
+        fn is_topic(&self, topic: &str) -> bool {
+            self.topic_name == topic
+        }
+    }
+
+    #[tokio::test]
+    async fn test_stop_all_with_failing_listener() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+
+        let topic = "fail_stop_topic".to_string();
+
+        manager.listeners.insert(
+            topic.clone(),
+            Box::new(FailingStopListener {
+                topic_name: topic.clone(),
+            }),
+        );
+
+        let result = manager.stop_all().await;
+        // It should return Ok even though stop() failed internally
+        assert!(result.is_ok());
+        // listeners map should be empty after stop_all
+        assert!(manager.listeners.is_empty());
+    }
+    #[tokio::test]
+    async fn test_init_with_path_default_domain_id() {
+        let (tx, _) = mpsc::channel(100);
+        let mut manager = DdsManager::new(tx);
+
+        let temp_file = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(temp_file.path(), r#"{"dds":{}}"#).unwrap();
+
+        let result = manager.init_with_path(Some(temp_file.path().into())).await;
+        assert!(result.is_ok());
+        assert_eq!(manager.domain_id, 0); // default domain_id
     }
 }

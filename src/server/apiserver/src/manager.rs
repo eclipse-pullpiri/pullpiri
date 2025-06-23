@@ -6,6 +6,7 @@
 //! Controls the flow of data between each module.
 
 use common::filtergateway::{Action, HandleScenarioRequest};
+use common::nodeagent::HandleWorkloadRequest;
 
 /// Launch REST API listener and reload scenario data in etcd
 pub async fn initialize() {
@@ -55,13 +56,18 @@ async fn reload() {
 pub async fn apply_artifact(body: &str) -> common::Result<()> {
     let (scenario, package) = crate::artifact::apply(body).await?;
 
-    crate::bluechi::parse(package).await?;
-
-    let req = HandleScenarioRequest {
+    let req: HandleScenarioRequest = HandleScenarioRequest {
         action: Action::Apply.into(),
-        scenario,
+        scenario: scenario,
     };
     crate::grpc::sender::filtergateway::send(req).await?;
+
+    let workload_request = HandleWorkloadRequest {
+        workload_name: package,
+        action: Action::Apply.into(),
+        description: String::new(),
+    };
+    crate::grpc::sender::nodeagent::send(workload_request).await?;
 
     Ok(())
 }

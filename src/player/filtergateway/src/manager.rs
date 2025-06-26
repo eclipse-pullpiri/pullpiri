@@ -25,15 +25,15 @@ pub struct ScenarioParameter {
 
 pub struct FilterGatewayManager {
     /// Receiver for scenario information from gRPC
-    rx_grpc: Arc<Mutex<mpsc::Receiver<ScenarioParameter>>>,
+    pub rx_grpc: Arc<Mutex<mpsc::Receiver<ScenarioParameter>>>,
     /// Receiver for DDS data
-    rx_dds: Arc<Mutex<mpsc::Receiver<DdsData>>>,
+    pub rx_dds: Arc<Mutex<mpsc::Receiver<DdsData>>>,
     /// Active filters for scenarios
-    filters: Arc<Mutex<Vec<Filter>>>,
+    pub filters: Arc<Mutex<Vec<Filter>>>,
     /// gRPC sender for action controller
-    sender: Arc<Mutex<FilterGatewaySender>>,
+    pub sender: Arc<Mutex<FilterGatewaySender>>,
     /// Vehicle manager for handling vehicle data
-    vehicle_manager: Arc<Mutex<VehicleManager>>,
+    pub vehicle_manager: Arc<Mutex<VehicleManager>>,
 }
 
 impl FilterGatewayManager {

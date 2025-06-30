@@ -1,64 +1,29 @@
-use manager::ScenarioParameter;
-
 mod filter;
 mod grpc;
 mod manager;
 mod vehicle;
 
+// Moved `launch_manager` and `initialize` function from `main.rs` to `lib.rs` to:
+// 1. Enable code reuse and better modularity.
+// 2. Facilitate integration and unit testing by making it publicly accessible.
+// 3. Avoid duplicating logic and allow tests to directly call this async function.
+// 4. Simplify the main entry point by keeping `main.rs` focused on orchestration.
+//
+// This approach helps maintain a clean separation between application logic
+// (in the library crate) and the binary entry point (in `main.rs`).
+//
+// Note: The `ScenarioParameter` type is re-exported from the manager module
+// via `lib.rs` to ensure a single source of truth and prevent type mismatches.
+use filtergateway::ScenarioParameter;
+use filtergateway::{initialize, launch_manager};
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
-async fn launch_manager(rx_grpc: Receiver<ScenarioParameter>) {
-    let mut manager = manager::FilterGatewayManager::new(rx_grpc).await;
-
-    match manager.initialize().await {
-        Ok(_) => {
-            println!("FilterGatewayManager successfully initialized");
-            // Only proceed to run if initialization was successful
-            if let Err(e) = manager.run().await {
-                eprintln!("Error running FilterGatewayManager: {:?}", e);
-            }
-        }
-        Err(e) => {
-            eprintln!("Failed to initialize FilterGatewayManager: {:?}", e);
-        }
-    }
-}
-
-/// Initialize FilterGateway
-///
-/// Sets up the manager thread, gRPC services, and DDS listeners.
-/// This is the main initialization function for the FilterGateway component.
-///
-/// # Returns
-///
-async fn initialize(tx_grpc: Sender<manager::ScenarioParameter>) {
-    // Set up logging
-
-    // let mut manager = manager::FilterGatewayManager::new(rx_grpc, tx_dds, rx_dds);
-    // manager.run().await;
-
-    use common::filtergateway::filter_gateway_connection_server::FilterGatewayConnectionServer;
-    use tonic::transport::Server;
-
-    let server = crate::grpc::receiver::FilterGatewayReceiver::new(tx_grpc);
-    let addr = common::filtergateway::open_server()
-        .parse()
-        .expect("gateway address parsing error");
-
-    println!("Piccolod gateway listening on {}", addr);
-
-    let _ = Server::builder()
-        .add_service(FilterGatewayConnectionServer::new(server))
-        .serve(addr)
-        .await;
-}
-
+#[cfg(not(tarpaulin_include))]
 #[tokio::main]
 async fn main() {
     // Initialize tracing subscriber for logging
 
     let (tx_grpc, rx_grpc): (Sender<ScenarioParameter>, Receiver<ScenarioParameter>) = channel(100);
-
     // Launch the manager thread
     let mgr = launch_manager(rx_grpc);
 
@@ -70,9 +35,7 @@ async fn main() {
 //Unit Test Cases
 #[cfg(test)]
 mod tests {
-    use crate::manager::ScenarioParameter;
-    use crate::{initialize, launch_manager};
-    use tokio::sync::mpsc::{channel, Receiver, Sender};
+    use super::*;
     use tokio::task::LocalSet;
     use tokio::time::{sleep, Duration};
 

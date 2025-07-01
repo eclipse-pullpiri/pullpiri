@@ -8,12 +8,12 @@ syntax = "proto3";
 package monitoringclient;
 
 service MonitoringClientConnection {
-  rpc SendImageList (ImageList) returns (Response);
-  rpc SendContainerList (ContainerList) returns (Response);
-  rpc SendPodList (PodList) returns (Response);
+  rpc SendImageList (ImageList) returns (McResponse);
+  rpc SendContainerList (ContainerList) returns (McResponse);
+  rpc SendPodList (PodList) returns (McResponse);
 }
 
-message Response {
+message McResponse {
   string resp = 1;
 }
 

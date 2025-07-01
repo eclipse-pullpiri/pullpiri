@@ -8,9 +8,21 @@ use common::statemanager::{
 };
 use tonic::{Request, Status};
 
-pub async fn _send(condition: Action) -> Result<tonic::Response<Response>, Status> {
-    let mut client = StateManagerConnectionClient::connect(connect_server())
-        .await
-        .unwrap();
-    client.send_action(Request::new(condition)).await
+/// Sender for making gRPC requests to Monitoring Server
+#[derive(Clone)]
+pub struct NodeAgentSender {}
+
+impl NodeAgentSender {
+    /// Create a new NodeAgentSender
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    /// Trigger an action for a scenario
+    pub async fn trigger_action(&mut self, action: Action) -> Result<tonic::Response<Response>, Status> {
+        let mut client = StateManagerConnectionClient::connect(connect_server())
+            .await
+            .unwrap();
+        client.send_action(Request::new(action)).await
+    }
 }

@@ -21,8 +21,8 @@ struct MetaData {
 #[cfg(test)]
 mod tests {
     use super::*; // Import the MetaData struct from the parent module
-    use tokio; // Use tokio for async runtime
-    use serde_json; // For serialization and deserialization
+    use serde_json;
+    use tokio; // Use tokio for async runtime // For serialization and deserialization
 
     #[tokio::test]
     async fn test_metadata_creation() {
@@ -49,9 +49,10 @@ mod tests {
         // Positive test: Serialization of MetaData to JSON
         let metadata = MetaData {
             name: String::from("TestObject"),
-            labels: Some(HashMap::from([
-                (String::from("key1"), String::from("value1")),
-            ])),
+            labels: Some(HashMap::from([(
+                String::from("key1"),
+                String::from("value1"),
+            )])),
             annotations: None,
         };
 
@@ -81,17 +82,19 @@ mod tests {
         // Positive test: Equality between two MetaData instances
         let metadata1 = MetaData {
             name: String::from("TestObject"),
-            labels: Some(HashMap::from([
-                (String::from("key1"), String::from("value1")),
-            ])),
+            labels: Some(HashMap::from([(
+                String::from("key1"),
+                String::from("value1"),
+            )])),
             annotations: None,
         };
 
         let metadata2 = MetaData {
             name: String::from("TestObject"),
-            labels: Some(HashMap::from([
-                (String::from("key1"), String::from("value1")),
-            ])),
+            labels: Some(HashMap::from([(
+                String::from("key1"),
+                String::from("value1"),
+            )])),
             annotations: None,
         };
 
@@ -156,9 +159,10 @@ mod tests {
         // Negative test: Attempting to serialize invalid MetaData (e.g., invalid types)
         let metadata = MetaData {
             name: String::from("TestObject"),
-            labels: Some(HashMap::from([
-                (String::from("key1"), String::from("value1")),
-            ])),
+            labels: Some(HashMap::from([(
+                String::from("key1"),
+                String::from("value1"),
+            )])),
             annotations: None,
         };
 

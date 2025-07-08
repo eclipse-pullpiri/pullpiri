@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
+use crate::manager::NodeAgentParameter;
 use common::monitoringclient::monitoring_client_connection_server::MonitoringClientConnection;
-use common::monitoringclient::{ContainerList, ImageList, PodList, McResponse};
+use common::monitoringclient::{ContainerList, ImageList, McResponse, PodList};
 use common::nodeagent::node_agent_connection_server::{
     NodeAgentConnection, NodeAgentConnectionServer,
 };
 use common::nodeagent::{HandleWorkloadRequest, HandleWorkloadResponse};
-use crate::manager::NodeAgentParameter;
-use tonic::{Request, Response, Status};
 use tokio::sync::mpsc;
+use tonic::{Request, Response, Status};
 
 /// MonitoringClient gRPC service handler
 pub struct MonitoringClientGrpcServer {}
@@ -74,7 +74,10 @@ impl NodeAgentReceiver {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Failed to parse scenario: {}", e);
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Failed to parse scenario YAML"));
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Failed to parse scenario YAML",
+                ));
             }
         };
         let param = NodeAgentParameter {

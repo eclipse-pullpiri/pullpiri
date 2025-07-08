@@ -181,8 +181,8 @@ mod tests {
         // Verify that the piccolo_cloud URL is valid
         let settings = parse_settings_yaml();
         assert!(
-            settings.piccolo_cloud.starts_with("http://") ||
-                settings.piccolo_cloud.starts_with("https://")
+            settings.piccolo_cloud.starts_with("http://")
+                || settings.piccolo_cloud.starts_with("https://")
         );
     }
 
@@ -234,10 +234,7 @@ mod tests {
         // Verify that guest IPs are unique
         let settings = parse_settings_yaml();
         if let Some(guests) = settings.guest {
-            let mut ips: Vec<String> = guests
-                .iter()
-                .map(|guest| guest.ip.clone())
-                .collect();
+            let mut ips: Vec<String> = guests.iter().map(|guest| guest.ip.clone()).collect();
             ips.sort();
             ips.dedup();
             assert_eq!(ips.len(), guests.len());

@@ -17,7 +17,7 @@ axum = "0.7.7"
 serde = { version = "1.0.214", features = ["derive"] }
 serde_yaml = "0.9"
 tonic = "0.12.3"
-tokio = { version = "1.41.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.43.1", features = ["macros", "rt-multi-thread"] }
 tower-http ={ version = "0.6.1", features = ["cors"]}
 tower = "0.4"
 tokio-stream = "0.1"

@@ -34,9 +34,9 @@ mod tests {
     async fn test_get_name_valid() {
         let volume = Volume {
             apiVersion: String::from("v1"), // Required field for Volume struct
-            kind: String::from("Volume"),  // Required field for Volume struct
+            kind: String::from("Volume"),   // Required field for Volume struct
             metadata: MetaData {
-                name: String::from("test-volume"), // Valid name
+                name: String::from("test-volume"),                   // Valid name
                 annotations: Some(std::collections::HashMap::new()), // Empty annotations
                 labels: Some(std::collections::HashMap::new()),      // Empty labels
             },
@@ -50,9 +50,9 @@ mod tests {
     async fn test_get_name_empty() {
         let volume = Volume {
             apiVersion: String::from("v1"), // Required field for Volume struct
-            kind: String::from("Volume"),  // Required field for Volume struct
+            kind: String::from("Volume"),   // Required field for Volume struct
             metadata: MetaData {
-                name: String::from(""), // Empty name
+                name: String::from(""),                              // Empty name
                 annotations: Some(std::collections::HashMap::new()), // Empty annotations
                 labels: Some(std::collections::HashMap::new()),      // Empty labels
             },
@@ -66,9 +66,9 @@ mod tests {
     async fn test_get_spec_none() {
         let volume = Volume {
             apiVersion: String::from("v1"), // Required field for Volume struct
-            kind: String::from("Volume"),  // Required field for Volume struct
+            kind: String::from("Volume"),   // Required field for Volume struct
             metadata: MetaData {
-                name: String::from("test-volume"), // Valid name
+                name: String::from("test-volume"),                   // Valid name
                 annotations: Some(std::collections::HashMap::new()), // Empty annotations
                 labels: Some(std::collections::HashMap::new()),      // Empty labels
             },
@@ -85,9 +85,9 @@ mod tests {
         };
         let volume = Volume {
             apiVersion: String::from("v1"), // Required field for Volume struct
-            kind: String::from("Volume"),  // Required field for Volume struct
+            kind: String::from("Volume"),   // Required field for Volume struct
             metadata: MetaData {
-                name: String::from("test-volume"), // Valid name
+                name: String::from("test-volume"),                   // Valid name
                 annotations: Some(std::collections::HashMap::new()), // Empty annotations
                 labels: Some(std::collections::HashMap::new()),      // Empty labels
             },
@@ -128,9 +128,9 @@ mod tests {
         };
         let volume = Volume {
             apiVersion: String::from("v1"), // Required field for Volume struct
-            kind: String::from("Volume"),  // Required field for Volume struct
+            kind: String::from("Volume"),   // Required field for Volume struct
             metadata: MetaData {
-                name: String::from("test-volume"), // Valid name
+                name: String::from("test-volume"),                   // Valid name
                 annotations: Some(std::collections::HashMap::new()), // Empty annotations
                 labels: Some(std::collections::HashMap::new()),      // Empty labels
             },

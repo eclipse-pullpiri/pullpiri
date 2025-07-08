@@ -169,7 +169,7 @@ ActionController/
 
 ```text
 common = {workspace = true}
-tokio = { version = "1.36.0", features = ["full"] }
+tokio = { version = "1.43.1", features = ["full"] }
 tonic = "0.12.3"
 prost = "0.13.3"
 serde = { version = "1.0.214", features = ["derive"] }

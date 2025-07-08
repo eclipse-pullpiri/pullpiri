@@ -19,7 +19,10 @@ impl NodeAgentSender {
     }
 
     /// Trigger an action for a scenario
-    pub async fn trigger_action(&mut self, action: Action) -> Result<tonic::Response<Response>, Status> {
+    pub async fn trigger_action(
+        &mut self,
+        action: Action,
+    ) -> Result<tonic::Response<Response>, Status> {
         let mut client = StateManagerConnectionClient::connect(connect_server())
             .await
             .unwrap();

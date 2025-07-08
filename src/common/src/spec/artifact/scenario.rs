@@ -117,7 +117,7 @@ mod tests {
     fn test_get_conditions() {
         let scenario = create_test_scenario();
         let conditions = scenario.get_conditions().unwrap();
-        
+
         assert_eq!(conditions.get_express(), "eq");
         assert_eq!(conditions.get_value(), "ready");
         assert_eq!(conditions.get_operand_name(), "test-pod");

@@ -97,7 +97,9 @@ impl PodSpec {
     /// Returns the image of the first container in the PodSpec.
     /// If no containers are present, returns `None`.
     pub fn get_image(&self) -> Option<&str> {
-        self.containers.get(0).map(|container| container.image.as_str())
+        self.containers
+            .get(0)
+            .map(|container| container.image.as_str())
     }
 
     pub fn get_volume(&mut self) -> &Option<Vec<Volume>> {
@@ -216,20 +218,23 @@ mod tests {
             hostIpc: None,
             runtimeClassName: None,
         };
-        assert_eq!(podspec.get_volume(), &Some(vec![
-            Volume {
-                name: String::from("volume-1"),
-                hostPath: HostPath {
-                    path: String::from("/path/1"),
+        assert_eq!(
+            podspec.get_volume(),
+            &Some(vec![
+                Volume {
+                    name: String::from("volume-1"),
+                    hostPath: HostPath {
+                        path: String::from("/path/1"),
+                    },
                 },
-            },
-            Volume {
-                name: String::from("volume-2"),
-                hostPath: HostPath {
-                    path: String::from("/path/2"),
+                Volume {
+                    name: String::from("volume-2"),
+                    hostPath: HostPath {
+                        path: String::from("/path/2"),
+                    },
                 },
-            },
-        ]));
+            ])
+        );
     }
 
     // Negative Test: Validate that `get_volume` returns `None` when no volumes are present.
@@ -283,12 +288,15 @@ mod tests {
             hostIpc: None,
             runtimeClassName: None,
         };
-        assert_eq!(podspec.get_volume(), &Some(vec![Volume {
-            name: String::from(""),
-            hostPath: HostPath {
-                path: String::from(""),
-            },
-        }]));
+        assert_eq!(
+            podspec.get_volume(),
+            &Some(vec![Volume {
+                name: String::from(""),
+                hostPath: HostPath {
+                    path: String::from(""),
+                },
+            }])
+        );
     }
 
     // Positive Test: Validate that `get_image` correctly handles container image names

@@ -3,15 +3,15 @@
 //! This file sets up the asynchronous runtime, initializes the manager and gRPC server,
 //! and launches both concurrently. It also provides unit tests for initialization.
 
-use manager::NodeAgentParameter;
 use grpc::sender::NodeAgentSender;
+use manager::NodeAgentParameter;
 
 mod bluechi;
 pub mod grpc;
 pub mod manager;
 
-use tokio::sync::mpsc::{channel, Receiver, Sender};
 use common::nodeagent::node_agent_connection_server::NodeAgentConnectionServer;
+use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 /// Launches the NodeAgentManager in an asynchronous task.
 ///
@@ -59,7 +59,8 @@ async fn initialize(tx_grpc: Sender<manager::NodeAgentParameter>) {
 #[tokio::main]
 async fn main() {
     // Initialize tracing subscriber for logging (if needed)
-    let (tx_grpc, rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) = channel(100);
+    let (tx_grpc, rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) =
+        channel(100);
 
     // Launch the manager thread (handles business logic)
     let mgr = launch_manager(rx_grpc);
@@ -81,14 +82,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_main_initializes_channels() {
-        let (tx_grpc, rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) = channel(100);
+        let (tx_grpc, rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) =
+            channel(100);
         assert_eq!(tx_grpc.capacity(), 100);
         assert!(!rx_grpc.is_closed());
     }
 
     #[tokio::test(flavor = "multi_thread")]
     async fn test_main_launch_manager() {
-        let (_tx_grpc, rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) = channel(100);
+        let (_tx_grpc, rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) =
+            channel(100);
         let local = LocalSet::new();
         local.spawn_local(async move {
             let _ = launch_manager(rx_grpc).await;
@@ -102,7 +105,8 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn test_main_initialize_grpc() {
-        let (tx_grpc, _rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) = channel(100);
+        let (tx_grpc, _rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) =
+            channel(100);
         let local = LocalSet::new();
         local.spawn_local(async move {
             let _ = initialize(tx_grpc).await;

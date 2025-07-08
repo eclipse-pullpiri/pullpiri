@@ -92,7 +92,7 @@ mod tests {
         let model_name = "conversion-test";
         let model = create_test_model(model_name);
         let pod_name = model.get_name();
-        
+
         assert_eq!(pod_name, model_name);
     }
 }

@@ -164,7 +164,7 @@ mod tests {
 
         assert_eq!(model.get_name(), "test-model");
         assert_eq!(model.get_node(), "test-node");
-        
+
         let resources = model.get_resources();
         assert_eq!(resources.get_volume(), Some("test-vol".to_string()));
         assert_eq!(resources.get_network(), Some("test-net".to_string()));
@@ -176,12 +176,12 @@ mod tests {
             volume: Some("vol1".to_string()),
             network: Some("net1".to_string()),
         };
-        
+
         let resource_with_volume_only = Resource {
             volume: Some("vol2".to_string()),
             network: None,
         };
-        
+
         let resource_with_nothing = Resource {
             volume: None,
             network: None,
@@ -189,10 +189,13 @@ mod tests {
 
         assert_eq!(resource_with_both.get_volume(), Some("vol1".to_string()));
         assert_eq!(resource_with_both.get_network(), Some("net1".to_string()));
-        
-        assert_eq!(resource_with_volume_only.get_volume(), Some("vol2".to_string()));
+
+        assert_eq!(
+            resource_with_volume_only.get_volume(),
+            Some("vol2".to_string())
+        );
         assert_eq!(resource_with_volume_only.get_network(), None);
-        
+
         assert_eq!(resource_with_nothing.get_volume(), None);
         assert_eq!(resource_with_nothing.get_network(), None);
     }
@@ -213,7 +216,7 @@ mod tests {
             },
             status: None,
         };
-        
+
         assert_eq!(package.get_name(), "no-status-package");
         assert!(package.get_models().is_empty());
     }
@@ -234,7 +237,7 @@ mod tests {
             },
             status: None,
         };
-        
+
         assert_eq!(package.get_name(), "empty-package");
         assert_eq!(package.get_models().len(), 0);
     }

@@ -75,7 +75,7 @@ mod tests {
         }"#;
 
         let scenario: Scenario = serde_json::from_str(scenario_json).unwrap();
-        
+
         assert_eq!(scenario.get_name(), "test-scenario");
         assert_eq!(scenario.get_actions(), "test-action");
         assert_eq!(scenario.get_targets(), "test-target");
@@ -106,14 +106,20 @@ mod tests {
         }"#;
 
         let package: Package = serde_json::from_str(package_json).unwrap();
-        
+
         assert_eq!(package.get_name(), "test-package");
         let models = package.get_models();
         assert_eq!(models.len(), 1);
         assert_eq!(models[0].get_name(), "model1");
         assert_eq!(models[0].get_node(), "node1");
-        assert_eq!(models[0].get_resources().get_volume(), Some("vol1".to_string()));
-        assert_eq!(models[0].get_resources().get_network(), Some("net1".to_string()));
+        assert_eq!(
+            models[0].get_resources().get_volume(),
+            Some("vol1".to_string())
+        );
+        assert_eq!(
+            models[0].get_resources().get_network(),
+            Some("net1".to_string())
+        );
     }
 
     #[test]
@@ -128,7 +134,7 @@ mod tests {
         }"#;
 
         let volume: Volume = serde_json::from_str(volume_json).unwrap();
-        
+
         assert_eq!(volume.get_name(), "test-volume");
         assert!(volume.get_spec().is_none());
     }
@@ -145,7 +151,7 @@ mod tests {
         }"#;
 
         let network: Network = serde_json::from_str(network_json).unwrap();
-        
+
         assert_eq!(network.get_name(), "test-network");
         assert!(network.get_spec().is_none());
     }
@@ -165,7 +171,7 @@ mod tests {
         }"#;
 
         let model: Model = serde_json::from_str(model_json).unwrap();
-        
+
         assert_eq!(model.get_name(), "test-model");
         let _podspec = model.get_podspec();
     }

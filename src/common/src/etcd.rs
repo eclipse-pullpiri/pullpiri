@@ -32,14 +32,16 @@ pub struct KV {
 pub async fn put(key: &str, value: &str) -> Result<(), Error> {
     // Validate key length
     if key.len() > 1024 {
-        return Err(
-            Error::InvalidArgs("Key exceeds maximum allowed length of 1024 characters".to_string())
-        );
+        return Err(Error::InvalidArgs(
+            "Key exceeds maximum allowed length of 1024 characters".to_string(),
+        ));
     }
 
     // Validate key for invalid special characters
     if key.contains(['<', '>', '?', '{', '}']) {
-        return Err(Error::InvalidArgs("Key contains invalid special characters".to_string()));
+        return Err(Error::InvalidArgs(
+            "Key contains invalid special characters".to_string(),
+        ));
     }
 
     let mut client = get_client().await?;
@@ -54,14 +56,16 @@ pub async fn get(key: &str) -> Result<String, Error> {
     }
 
     if key.len() > 1024 {
-        return Err(
-            Error::InvalidArgs("Key exceeds maximum allowed length of 1024 characters".to_string())
-        );
+        return Err(Error::InvalidArgs(
+            "Key exceeds maximum allowed length of 1024 characters".to_string(),
+        ));
     }
 
     // Validate key for invalid special characters
     if key.contains(['<', '>', '?', '{', '}']) {
-        return Err(Error::InvalidArgs("Key contains invalid special characters".to_string()));
+        return Err(Error::InvalidArgs(
+            "Key contains invalid special characters".to_string(),
+        ));
     }
 
     let mut client = get_client().await?;
@@ -97,14 +101,16 @@ pub async fn delete(key: &str) -> Result<(), Error> {
     let mut client = get_client().await?;
     // Validate key length
     if key.len() > 1024 {
-        return Err(
-            Error::InvalidArgs("Key exceeds maximum allowed length of 1024 characters".to_string())
-        );
+        return Err(Error::InvalidArgs(
+            "Key exceeds maximum allowed length of 1024 characters".to_string(),
+        ));
     }
 
     // Validate key for invalid special characters
     if key.contains(['<', '>', '?', '{', '}']) {
-        return Err(Error::InvalidArgs("Key contains invalid special characters".to_string()));
+        return Err(Error::InvalidArgs(
+            "Key contains invalid special characters".to_string(),
+        ));
     }
 
     // Perform the delete operation with error wrapping
@@ -122,9 +128,9 @@ pub async fn delete_all_with_prefix(key: &str) -> Result<(), Error> {
 //Unit Test Cases
 #[cfg(test)]
 mod tests {
-    use etcd_client::{ Client, Error };
-    use etcd_client::DeleteOptions;
     use crate::etcd::KV;
+    use etcd_client::DeleteOptions;
+    use etcd_client::{Client, Error};
     use std::collections::HashMap;
     // Centralized error messages
     const ERR_KEY_EMPTY: &str = "Key cannot be empty";
@@ -147,9 +153,7 @@ mod tests {
     // Mock implementation of `get_config`
     fn mock_get_config(ip: &str) -> Config {
         Config {
-            host: Host {
-                ip: ip.to_string(),
-            },
+            host: Host { ip: ip.to_string() },
         }
     }
 
@@ -222,7 +226,7 @@ mod tests {
         async fn delete(
             &mut self,
             key: &str,
-            _options: Option<DeleteOptions>
+            _options: Option<DeleteOptions>,
         ) -> Result<(), Error> {
             validate_key(key)?;
             self.store.remove(key);
@@ -232,7 +236,7 @@ mod tests {
         async fn delete_all_with_prefix(
             &mut self,
             prefix: &str,
-            _options: Option<DeleteOptions>
+            _options: Option<DeleteOptions>,
         ) -> Result<(), Error> {
             validate_prefix(prefix)?;
             self.store.retain(|key, _| !key.starts_with(prefix));
@@ -250,7 +254,8 @@ mod tests {
 
         async fn get_all_with_prefix(&self, prefix: &str) -> Result<Vec<KV>, Error> {
             validate_prefix(prefix)?;
-            let kvs: Vec<KV> = self.store
+            let kvs: Vec<KV> = self
+                .store
                 .iter()
                 .filter(|(key, _)| key.starts_with(prefix))
                 .map(|(key, value)| KV {
@@ -268,7 +273,7 @@ mod tests {
 
     async fn get_all_with_prefix_with_mock_client(
         client: &MockClient,
-        prefix: &str
+        prefix: &str,
     ) -> Result<Vec<KV>, Error> {
         validate_prefix(prefix)?;
         client.get_all_with_prefix(prefix).await
@@ -282,7 +287,7 @@ mod tests {
     async fn put_with_mock_client(
         client: &mut MockClient,
         key: &str,
-        value: &str
+        value: &str,
     ) -> Result<(), Error> {
         validate_key(key)?;
         validate_key(value)?; // Value validation added for consistency
@@ -296,10 +301,12 @@ mod tests {
 
     async fn delete_all_with_prefix_with_mock_client(
         client: &mut MockClient,
-        prefix: &str
+        prefix: &str,
     ) -> Result<(), Error> {
         validate_prefix(prefix)?;
-        client.delete_all_with_prefix(prefix, Some(DeleteOptions::new().with_prefix())).await
+        client
+            .delete_all_with_prefix(prefix, Some(DeleteOptions::new().with_prefix()))
+            .await
     }
 
     /// Test cases for `get`
@@ -308,11 +315,17 @@ mod tests {
     #[tokio::test]
     async fn test_get_valid_key() {
         let mut client = MockClient::new();
-        client.store.insert("valid_key".to_string(), "valid_value".to_string());
+        client
+            .store
+            .insert("valid_key".to_string(), "valid_value".to_string());
 
         let result = get_with_mock_client(&client, "valid_key").await;
         assert!(result.is_ok(), "Expected Ok(String) for valid key.");
-        assert_eq!(result.unwrap(), "valid_value", "Expected value 'valid_value'.");
+        assert_eq!(
+            result.unwrap(),
+            "valid_value",
+            "Expected value 'valid_value'."
+        );
     }
 
     /// Positive Test Case: Valid special characters in key
@@ -320,11 +333,21 @@ mod tests {
     #[tokio::test]
     async fn test_get_valid_special_characters_in_key() {
         let mut client = MockClient::new();
-        client.store.insert("key_with_special_!@#$%^&*()".to_string(), "special_value".to_string());
+        client.store.insert(
+            "key_with_special_!@#$%^&*()".to_string(),
+            "special_value".to_string(),
+        );
 
         let result = get_with_mock_client(&client, "key_with_special_!@#$%^&*()").await;
-        assert!(result.is_ok(), "Expected Ok(String) for key with valid special characters.");
-        assert_eq!(result.unwrap(), "special_value", "Expected value 'special_value'.");
+        assert!(
+            result.is_ok(),
+            "Expected Ok(String) for key with valid special characters."
+        );
+        assert_eq!(
+            result.unwrap(),
+            "special_value",
+            "Expected value 'special_value'."
+        );
     }
 
     /// Negative Test Case: Panic on empty key
@@ -343,7 +366,9 @@ mod tests {
         let client = MockClient::new();
         let excessively_long_key = "a".repeat(2048); // Exceeds the maximum allowed length
 
-        let _ = get_with_mock_client(&client, &excessively_long_key).await.unwrap();
+        let _ = get_with_mock_client(&client, &excessively_long_key)
+            .await
+            .unwrap();
     }
 
     /// Negative Test Case: Panic on invalid special characters in key
@@ -352,7 +377,9 @@ mod tests {
     async fn test_get_panic_on_invalid_special_characters_in_key() {
         let client = MockClient::new();
 
-        let _ = get_with_mock_client(&client, "key_with_invalid_<>?{}").await.unwrap();
+        let _ = get_with_mock_client(&client, "key_with_invalid_<>?{}")
+            .await
+            .unwrap();
     }
 
     /// Negative Test Case: Panic on non-existing key
@@ -361,7 +388,9 @@ mod tests {
     async fn test_get_panic_on_non_existing_key() {
         let client = MockClient::new();
 
-        let _ = get_with_mock_client(&client, "non_existing_key").await.unwrap();
+        let _ = get_with_mock_client(&client, "non_existing_key")
+            .await
+            .unwrap();
     }
 
     /// Test cases for `get_all_with_prefix`
@@ -371,9 +400,15 @@ mod tests {
     async fn test_get_all_with_prefix_valid_prefix() {
         // Arrange: Create a mock client and insert key-value pairs
         let mut client = MockClient::new();
-        client.store.insert("prefix_key1".to_string(), "value1".to_string());
-        client.store.insert("prefix_key2".to_string(), "value2".to_string());
-        client.store.insert("other_key".to_string(), "value3".to_string());
+        client
+            .store
+            .insert("prefix_key1".to_string(), "value1".to_string());
+        client
+            .store
+            .insert("prefix_key2".to_string(), "value2".to_string());
+        client
+            .store
+            .insert("other_key".to_string(), "value3".to_string());
 
         // Act: Call the function with a valid prefix
         let result = get_all_with_prefix_with_mock_client(&client, "prefix_").await;
@@ -389,14 +424,21 @@ mod tests {
     async fn test_get_all_with_prefix_special_characters_in_prefix() {
         // Arrange: Create a mock client and insert key-value pairs
         let mut client = MockClient::new();
-        client.store.insert("special_prefix_key1".to_string(), "value1".to_string());
-        client.store.insert("special_prefix_key2".to_string(), "value2".to_string());
+        client
+            .store
+            .insert("special_prefix_key1".to_string(), "value1".to_string());
+        client
+            .store
+            .insert("special_prefix_key2".to_string(), "value2".to_string());
 
         // Act: Call the function with a prefix containing valid special characters
         let result = get_all_with_prefix_with_mock_client(&client, "special_prefix_").await;
 
         // Assert: Ensure the function returns the correct key-value pairs
-        assert!(result.is_ok(), "Expected Ok(Vec<KV>) for prefix with special characters.");
+        assert!(
+            result.is_ok(),
+            "Expected Ok(Vec<KV>) for prefix with special characters."
+        );
         let kvs = result.unwrap();
         assert_eq!(kvs.len(), 2, "Expected 2 key-value pairs.");
     }
@@ -435,13 +477,14 @@ mod tests {
         let client = MockClient::new();
 
         // Act: Call the function with a prefix containing invalid special characters
-        let result = get_all_with_prefix_with_mock_client(
-            &client,
-            "prefix_with_invalid_<>?{}"
-        ).await;
+        let result =
+            get_all_with_prefix_with_mock_client(&client, "prefix_with_invalid_<>?{}").await;
 
         // Assert: Ensure the function returns an error
-        assert!(result.is_err(), "Expected Err for prefix with invalid special characters.");
+        assert!(
+            result.is_err(),
+            "Expected Err for prefix with invalid special characters."
+        );
     }
 
     /// Negative Test Case: No matching keys
@@ -449,14 +492,21 @@ mod tests {
     async fn test_get_all_with_prefix_no_matching_keys() {
         // Arrange: Create a mock client and insert key-value pairs
         let mut client = MockClient::new();
-        client.store.insert("other_key1".to_string(), "value1".to_string());
-        client.store.insert("other_key2".to_string(), "value2".to_string());
+        client
+            .store
+            .insert("other_key1".to_string(), "value1".to_string());
+        client
+            .store
+            .insert("other_key2".to_string(), "value2".to_string());
 
         // Act: Call the function with a prefix that does not match any keys
         let result = get_all_with_prefix_with_mock_client(&client, "nonexistent_prefix_").await;
 
         // Assert: Ensure the function returns an empty list
-        assert!(result.is_ok(), "Expected Ok(Vec<KV>) for nonexistent prefix.");
+        assert!(
+            result.is_ok(),
+            "Expected Ok(Vec<KV>) for nonexistent prefix."
+        );
         let kvs = result.unwrap();
         assert_eq!(kvs.len(), 0, "Expected 0 key-value pairs.");
     }
@@ -483,10 +533,8 @@ mod tests {
     async fn test_delete_all_with_prefix_excessively_long_prefix() {
         let mut client = get_mock_client().await;
         let excessively_long_prefix = "a".repeat(2048); // Exceeds the maximum allowed length
-        let result = delete_all_with_prefix_with_mock_client(
-            &mut client,
-            &excessively_long_prefix
-        ).await;
+        let result =
+            delete_all_with_prefix_with_mock_client(&mut client, &excessively_long_prefix).await;
         assert!(result.is_err(), "Expected Err for excessively long prefix.");
     }
 
@@ -494,22 +542,25 @@ mod tests {
     #[tokio::test]
     async fn test_delete_all_with_prefix_special_characters_in_prefix() {
         let mut client = get_mock_client().await;
-        let result = delete_all_with_prefix_with_mock_client(
-            &mut client,
-            "prefix_with_special_!@#$%^&*()"
-        ).await;
-        assert!(result.is_ok(), "Expected Ok(()) for prefix with special characters.");
+        let result =
+            delete_all_with_prefix_with_mock_client(&mut client, "prefix_with_special_!@#$%^&*()")
+                .await;
+        assert!(
+            result.is_ok(),
+            "Expected Ok(()) for prefix with special characters."
+        );
     }
 
     /// Negative test case for deleting keys with a prefix containing invalid special characters. Should fail.
     #[tokio::test]
     async fn test_delete_all_with_prefix_invalid_special_characters_in_prefix() {
         let mut client = get_mock_client().await;
-        let result = delete_all_with_prefix_with_mock_client(
-            &mut client,
-            "prefix_with_invalid_<>?{}"
-        ).await;
-        assert!(result.is_err(), "Expected Err for prefix with invalid special characters.");
+        let result =
+            delete_all_with_prefix_with_mock_client(&mut client, "prefix_with_invalid_<>?{}").await;
+        assert!(
+            result.is_err(),
+            "Expected Err for prefix with invalid special characters."
+        );
     }
     // Test cases for `open_server`
 
@@ -600,7 +651,10 @@ mod tests {
     async fn test_put_empty_value() {
         let mut client = get_mock_client().await;
         let result = put_with_mock_client(&mut client, "test_key", "").await;
-        assert!(result.is_ok() || result.is_err(), "Expected Ok(()) or ERR for empty value.");
+        assert!(
+            result.is_ok() || result.is_err(),
+            "Expected Ok(()) or ERR for empty value."
+        );
     }
 
     /// Test case for storing a key that exceeds the maximum length. Should succeed.
@@ -643,48 +697,48 @@ mod tests {
     #[tokio::test]
     async fn test_put_special_characters_in_key() {
         let mut client = get_mock_client().await;
-        let result = put_with_mock_client(
-            &mut client,
-            "key_with_special_!@#$%^&*()",
-            "test_value"
-        ).await;
-        assert!(result.is_ok(), "Expected Ok(()) for key with special characters.");
+        let result =
+            put_with_mock_client(&mut client, "key_with_special_!@#$%^&*()", "test_value").await;
+        assert!(
+            result.is_ok(),
+            "Expected Ok(()) for key with special characters."
+        );
     }
 
     /// Negative test case for storing a key with invalid special characters. Should fail.
     #[tokio::test]
     async fn test_put_invalid_special_characters_in_key() {
         let mut client = get_mock_client().await;
-        let result = put_with_mock_client(
-            &mut client,
-            "key_with_invalid_<>?{}",
-            "test_value"
-        ).await;
-        assert!(result.is_err(), "Expected Err for key with invalid special characters.");
+        let result =
+            put_with_mock_client(&mut client, "key_with_invalid_<>?{}", "test_value").await;
+        assert!(
+            result.is_err(),
+            "Expected Err for key with invalid special characters."
+        );
     }
 
     /// Test case for storing a value with special characters. Should succeed.
     #[tokio::test]
     async fn test_put_special_characters_in_value() {
         let mut client = get_mock_client().await;
-        let result = put_with_mock_client(
-            &mut client,
-            "test_key",
-            "value_with_special_!@#$%^&*()"
-        ).await;
-        assert!(result.is_ok(), "Expected Ok(()) for value with special characters.");
+        let result =
+            put_with_mock_client(&mut client, "test_key", "value_with_special_!@#$%^&*()").await;
+        assert!(
+            result.is_ok(),
+            "Expected Ok(()) for value with special characters."
+        );
     }
 
     /// Negative test case for storing a value with invalid special characters. Should fail.
     #[tokio::test]
     async fn test_put_invalid_special_characters_in_value() {
         let mut client = get_mock_client().await;
-        let result = put_with_mock_client(
-            &mut client,
-            "test_key",
-            "value_with_invalid_<>?{}"
-        ).await;
-        assert!(result.is_err(), "Expected Err for value with invalid special characters.");
+        let result =
+            put_with_mock_client(&mut client, "test_key", "value_with_invalid_<>?{}").await;
+        assert!(
+            result.is_err(),
+            "Expected Err for value with invalid special characters."
+        );
     }
 
     // Test cases for `delete`
@@ -719,7 +773,10 @@ mod tests {
     async fn test_delete_special_characters_in_key() {
         let mut client = get_mock_client().await;
         let result = delete_with_mock_client(&mut client, "key_with_special_!@#$%^&*()").await;
-        assert!(result.is_ok(), "Expected Ok(()) for key with special characters.");
+        assert!(
+            result.is_ok(),
+            "Expected Ok(()) for key with special characters."
+        );
     }
 
     /// Negative test case for deleting a key with invalid special characters. Should fail.
@@ -727,6 +784,9 @@ mod tests {
     async fn test_delete_invalid_special_characters_in_key() {
         let mut client = get_mock_client().await;
         let result = delete_with_mock_client(&mut client, "key_with_invalid_<>?{}").await;
-        assert!(result.is_err(), "Expected Err for key with invalid special characters.");
+        assert!(
+            result.is_err(),
+            "Expected Err for key with invalid special characters."
+        );
     }
 }

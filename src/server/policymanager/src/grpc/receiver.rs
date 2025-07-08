@@ -4,8 +4,8 @@
  */
 
 use common::policymanager::policy_manager_connection_server::PolicyManagerConnection;
-use common::policymanager::{ CheckPolicyRequest, CheckPolicyResponse };
-use tonic::{Response};
+use common::policymanager::{CheckPolicyRequest, CheckPolicyResponse};
+use tonic::Response;
 
 pub struct PolicyManagerGrpcServer {}
 
@@ -13,7 +13,7 @@ pub struct PolicyManagerGrpcServer {}
 impl PolicyManagerConnection for PolicyManagerGrpcServer {
     async fn check_policy(
         &self,
-        request: tonic::Request<CheckPolicyRequest>
+        request: tonic::Request<CheckPolicyRequest>,
     ) -> Result<tonic::Response<CheckPolicyResponse>, tonic::Status> {
         let req = request.into_inner();
         let scenario_name = req.scenario_name; // Renamed for clarity
@@ -24,12 +24,12 @@ impl PolicyManagerConnection for PolicyManagerGrpcServer {
         } else if scenario_name == "test_scenario" {
             (0, "Policy check passed".to_string())
         } else {
-            (1, format!("Policy check failed for scenario: {}", scenario_name))
+            (
+                1,
+                format!("Policy check failed for scenario: {}", scenario_name),
+            )
         };
 
-        Ok(Response::new(CheckPolicyResponse {
-            status,
-            desc,
-        }))
+        Ok(Response::new(CheckPolicyResponse { status, desc }))
     }
 }

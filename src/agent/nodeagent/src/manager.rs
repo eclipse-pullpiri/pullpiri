@@ -4,19 +4,19 @@
 //! a gRPC sender for communicating with the monitoring server or other services.
 //! It is designed to be thread-safe and run in an async context.
 
+use crate::grpc::sender::NodeAgentSender;
 use common::{
     spec::artifact::{Package, Scenario},
     Result,
 };
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-use crate::grpc::sender::NodeAgentSender;
 
 /// Parameter struct for scenario actions received via gRPC.
 #[derive(Debug)]
 pub struct NodeAgentParameter {
-    pub action: i32,           // Action code (e.g., allow, withdraw, etc.)
-    pub scenario: Scenario,    // Scenario details
+    pub action: i32,        // Action code (e.g., allow, withdraw, etc.)
+    pub scenario: Scenario, // Scenario details
 }
 
 /// Main manager struct for NodeAgent.
@@ -99,4 +99,3 @@ impl NodeAgentManager {
         Ok(())
     }
 }
-

@@ -9,7 +9,7 @@ build = "build.rs"
 
 [dependencies]
 dust_dds = "0.12.0"
-tokio = { version = "1.36.0", features = ["full"] }
+tokio = { version = "1.43.1", features = ["full"] }
 tonic = "0.12.3"
 prost = "0.13.3"
 serde = { version = "1.0.214", features = ["derive"] }
@@ -31,7 +31,7 @@ dust_dds_derive = "0.12.0"
 
 [build-dependencies]
 dust_dds = "0.12.0"
-tokio = { version = "1.36.0", features = ["full"] }
+tokio = { version = "1.43.1", features = ["full"] }
 tonic = "0.12.3"
 prost = "0.13.3"
 serde = { version = "1.0.214", features = ["derive"] }

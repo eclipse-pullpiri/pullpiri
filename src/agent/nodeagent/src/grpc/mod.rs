@@ -1,9 +1,9 @@
 pub mod receiver;
 pub mod sender;
 
-use tonic::transport::Server;
-use tokio::sync::mpsc::Sender;
 use crate::manager::NodeAgentParameter;
+use tokio::sync::mpsc::Sender;
+use tonic::transport::Server;
 
 /// Initializes the gRPC server for NodeAgent.
 ///

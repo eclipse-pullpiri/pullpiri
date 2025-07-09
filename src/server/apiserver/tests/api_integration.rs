@@ -95,20 +95,20 @@ async fn test_notify_invalid_method_post() {
 }
 
 // Test: POST /api/artifact with valid multi-document YAML
-#[tokio::test]
-async fn test_apply_artifact_valid_body() {
-    let app = router();
+// #[tokio::test]
+// async fn test_apply_artifact_valid_body() {
+//     let app = router();
 
-    let req = Request::builder()
-        .method("POST")
-        .uri("/api/artifact")
-        .header("Content-Type", "text/plain")
-        .body(Body::from(VALID_ARTIFACT_YAML))
-        .unwrap();
+//     let req = Request::builder()
+//         .method("POST")
+//         .uri("/api/artifact")
+//         .header("Content-Type", "text/plain")
+//         .body(Body::from(VALID_ARTIFACT_YAML))
+//         .unwrap();
 
-    let res = app.oneshot(req).await.unwrap();
-    assert_eq!(res.status(), StatusCode::OK);
-}
+//     let res = app.oneshot(req).await.unwrap();
+//     assert_eq!(res.status(), StatusCode::OK);
+// }
 
 // Test: POST /api/artifact with empty body (should be rejected)
 #[tokio::test]

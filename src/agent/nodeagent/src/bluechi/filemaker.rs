@@ -7,6 +7,7 @@
 
 use common::spec::k8s::Pod;
 use std::io::Write;
+const SYSTEMD_PATH: &str = "/etc/containers/systemd/";
 
 /// Make files about bluechi for Pod
 ///
@@ -14,21 +15,47 @@ use std::io::Write;
 /// * `pods: Vec<Pod>` - Vector of pods
 /// ### Description
 /// Make `.kube`, `.yaml` files for bluechi
-pub async fn make_files_from_pod(pods: Vec<Pod>) -> common::Result<Vec<String>> {
+pub async fn make_files_from_pod(pods: Vec<Pod>, node: String) -> common::Result<()> {
     let storage_directory = &common::setting::get_config().yaml_storage;
     if !std::path::Path::new(storage_directory).exists() {
         std::fs::create_dir_all(storage_directory)?;
     }
-
-    let mut file_names: Vec<String> = Vec::new();
-
     for pod in pods {
-        file_names.push(pod.get_name());
         make_kube_file(storage_directory, &pod.get_name())?;
-        make_yaml_file(storage_directory, pod)?;
+        make_yaml_file(storage_directory, pod.clone())?;
+        delete_symlink(&pod.get_name())
+            .await
+            .map_err(|e| format!("Failed to delete symlink for '{}': {}", pod.get_name(), e))?;
+        make_symlink(&node, &pod.get_name())
+            .await
+            .map_err(|e| format!("Failed to create symlink for '{}': {}", pod.get_name(), e))?;
     }
+    Ok(())
+}
 
-    Ok(file_names)
+pub async fn make_symlink(node_name: &str, model_name: &str) -> common::Result<()> {
+    println!(
+        "make_symlink_and_reload'{:?}' on host node '{:?}'",
+        model_name, node_name
+    );
+    let original: String = format!(
+        "{0}/{1}.kube",
+        common::setting::get_config().yaml_storage,
+        model_name
+    );
+    let link = format!("{}{}.kube", SYSTEMD_PATH, model_name);
+
+    let _ = std::os::unix::fs::symlink(original, link)?;
+
+    Ok(())
+}
+
+pub async fn delete_symlink(model_name: &str) -> common::Result<()> {
+    // host node
+    let kube_symlink_path = format!("{}{}.kube", SYSTEMD_PATH, model_name);
+    let _ = std::fs::remove_file(&kube_symlink_path);
+
+    Ok(())
 }
 
 /// Make .kube files for Pod
@@ -118,11 +145,11 @@ containers:
 
         let storage_dir = "/etc/piccolo/yaml";
         tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-        let result = make_files_from_pod(vec![pod.clone()]).await;
+        let result = make_files_from_pod(vec![pod.clone()], "HPC".to_string()).await;
 
         match result {
             Ok(created_files) => {
-                assert_eq!(created_files, vec![pod.get_name()]);
+                //assert_eq!(created_files, vec![pod.get_name()]);
 
                 let kube_path = format!("{}/{}.kube", storage_dir, pod.get_name());
                 let yaml_path = format!("{}/{}.yaml", storage_dir, pod.get_name());

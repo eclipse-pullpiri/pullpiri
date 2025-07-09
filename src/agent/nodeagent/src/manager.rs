@@ -3,31 +3,22 @@
 //! This struct manages scenario requests received via gRPC, and provides
 //! a gRPC sender for communicating with the monitoring server or other services.
 //! It is designed to be thread-safe and run in an async context.
-
 use crate::grpc::sender::NodeAgentSender;
-use common::{
-    spec::artifact::{Package, Scenario},
-    Result,
-};
+use common::nodeagent::HandleYamlRequest;
+use common::Result;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-
-/// Parameter struct for scenario actions received via gRPC.
-#[derive(Debug)]
-pub struct NodeAgentParameter {
-    pub action: i32,        // Action code (e.g., allow, withdraw, etc.)
-    pub scenario: Scenario, // Scenario details
-}
 
 /// Main manager struct for NodeAgent.
 ///
 /// Holds the gRPC receiver and sender, and manages the main event loop.
 pub struct NodeAgentManager {
     /// Receiver for scenario information from gRPC
-    rx_grpc: Arc<Mutex<mpsc::Receiver<NodeAgentParameter>>>,
+    rx_grpc: Arc<Mutex<mpsc::Receiver<HandleYamlRequest>>>,
     /// gRPC sender for monitoring server
     sender: Arc<Mutex<NodeAgentSender>>,
     // Add other shared state as needed
+    hostname: String,
 }
 
 impl NodeAgentManager {
@@ -35,10 +26,11 @@ impl NodeAgentManager {
     ///
     /// # Arguments
     /// * `rx_grpc` - Channel receiver for scenario information
-    pub async fn new(rx_grpc: mpsc::Receiver<NodeAgentParameter>) -> Self {
+    pub async fn new(rx: mpsc::Receiver<HandleYamlRequest>, hostname: String) -> Self {
         Self {
-            rx_grpc: Arc::new(Mutex::new(rx_grpc)),
+            rx_grpc: Arc::new(Mutex::new(rx)),
             sender: Arc::new(Mutex::new(NodeAgentSender::new())),
+            hostname,
         }
     }
 
@@ -49,11 +41,9 @@ impl NodeAgentManager {
         Ok(())
     }
 
-    // pub async fn handle_workload(&self, workload_name: &String) -> Result<()> {
-    //     crate::bluechi::parse(workload_name.to_string()).await?;
-    //     // Handle the workload request
-    //     println!("Handling workload request: {:?}", workload_name);
-    //     //ToDo : Implement the logic  1. extart etcd Network. 2. using extracted data to control the node
+    // pub async fn handle_yaml(&self, whole_yaml: &String) -> Result<()> {
+    //     crate::bluechi::parse(whole_yaml.to_string()).await?;
+    //     println!("Handling yaml request nodeagent manager: {:?}", whole_yaml);
     //     Ok(())
     // }
 
@@ -61,25 +51,14 @@ impl NodeAgentManager {
     ///
     /// This function continuously receives scenario parameters from the gRPC channel
     /// and handles them (e.g., triggers actions, updates state, etc.).
-    async fn process_grpc_requests(&self) -> Result<()> {
-        loop {
-            let scenario_parameter = {
-                let mut rx_grpc = self.rx_grpc.lock().await;
-                rx_grpc.recv().await
-            };
-            match scenario_parameter {
-                Some(param) => {
-                    println!("Received scenario: {:?}", param);
-                    // Example usage of sender:
-                    // let mut sender = self.sender.lock().await;
-                    // sender.trigger_action(...).await?;
-                }
-                None => {
-                    println!("gRPC channel closed");
-                    break;
-                }
-            }
+    pub async fn process_grpc_requests(&self) -> Result<()> {
+        let arc_rx_grpc = Arc::clone(&self.rx_grpc);
+        let mut rx_grpc: tokio::sync::MutexGuard<'_, mpsc::Receiver<HandleYamlRequest>> =
+            arc_rx_grpc.lock().await;
+        while let Some(yaml_data) = rx_grpc.recv().await {
+            crate::bluechi::parse(yaml_data.yaml, self.hostname.clone()).await?;
         }
+
         Ok(())
     }
 

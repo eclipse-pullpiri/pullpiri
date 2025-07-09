@@ -6,7 +6,7 @@
 //! Controls the flow of data between each module.
 
 use common::filtergateway::{Action, HandleScenarioRequest};
-use common::nodeagent::HandleWorkloadRequest;
+use common::nodeagent::HandleYamlRequest;
 
 /// Launch REST API listener and reload scenario data in etcd
 pub async fn initialize() {
@@ -54,7 +54,7 @@ async fn reload() {
 /// (optional) make yaml, kube files for Bluechi
 /// send a gRPC message to gateway
 pub async fn apply_artifact(body: &str) -> common::Result<()> {
-    let (scenario, package) = crate::artifact::apply(body).await?;
+    let scenario = crate::artifact::apply(body).await?;
 
     let req: HandleScenarioRequest = HandleScenarioRequest {
         action: Action::Apply.into(),
@@ -62,12 +62,12 @@ pub async fn apply_artifact(body: &str) -> common::Result<()> {
     };
     crate::grpc::sender::filtergateway::send(req).await?;
 
-    let workload_request = HandleWorkloadRequest {
-        workload_name: package,
-        action: Action::Apply.into(),
-        description: String::new(),
+    let handle_yaml = HandleYamlRequest {
+        yaml: body.to_string(),
     };
-    crate::grpc::sender::nodeagent::send(workload_request).await?;
+
+    crate::grpc::sender::nodeagent::send(handle_yaml.clone()).await?;
+    crate::grpc::sender::nodeagent::send_guest(handle_yaml).await?;
 
     Ok(())
 }
@@ -599,7 +599,7 @@ spec:
         body: &str,
         grpc_addr: SocketAddr,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (scenario, package) = crate::artifact::apply(body).await?;
+        let scenario = crate::artifact::apply(body).await?;
 
         // Prepare the gRPC request with Apply action
         let req = HandleScenarioRequest {

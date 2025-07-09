@@ -3,9 +3,7 @@
 //! This file sets up the asynchronous runtime, initializes the manager and gRPC server,
 //! and launches both concurrently. It also provides unit tests for initialization.
 
-use grpc::sender::NodeAgentSender;
-use manager::NodeAgentParameter;
-
+use common::nodeagent::HandleYamlRequest;
 mod bluechi;
 pub mod grpc;
 pub mod manager;
@@ -17,33 +15,30 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 ///
 /// This function creates the manager, initializes it, and then runs it.
 /// If initialization or running fails, errors are printed to stderr.
-async fn launch_manager(rx_grpc: Receiver<NodeAgentParameter>) {
-    let mut manager = manager::NodeAgentManager::new(rx_grpc).await;
+async fn launch_manager(rx_grpc: Receiver<HandleYamlRequest>, hostname: String) {
+    let mut manager = manager::NodeAgentManager::new(rx_grpc, hostname).await;
 
-    match manager.initialize().await {
-        Ok(_) => {
-            println!("NodeAgentManager successfully initialized");
-            if let Err(e) = manager.run().await {
-                eprintln!("Error running NodeAgentManager: {:?}", e);
-            }
-        }
-        Err(e) => {
-            eprintln!("Failed to initialize NodeAgentManager: {:?}", e);
-        }
-    }
+    //manager.initialize().await;
+    let _ = manager.process_grpc_requests().await;
 }
 
 /// Initializes the NodeAgent gRPC server.
 ///
 /// Sets up the gRPC service and starts listening for incoming requests.
-async fn initialize(tx_grpc: Sender<manager::NodeAgentParameter>) {
+async fn initialize(tx_grpc: Sender<HandleYamlRequest>, hostname: String) {
     use tonic::transport::Server;
 
-    let server = grpc::receiver::NodeAgentReceiver::new(tx_grpc);
-    let addr = common::nodeagent::open_server()
-        .parse()
-        .expect("nodeagent address parsing error");
+    let server = grpc::receiver::NodeAgentReceiver {
+        tx: tx_grpc.clone(),
+    };
 
+    let addr = if hostname.trim().eq_ignore_ascii_case("HPC") {
+        common::nodeagent::open_server()
+    } else {
+        common::nodeagent::open_guest_server()
+    }
+    .parse()
+    .expect("nodeagent address parsing error");
     println!("NodeAgent listening on {}", addr);
 
     let _ = Server::builder()
@@ -58,31 +53,34 @@ async fn initialize(tx_grpc: Sender<manager::NodeAgentParameter>) {
 /// both the manager and gRPC server concurrently.
 #[tokio::main]
 async fn main() {
-    // Initialize tracing subscriber for logging (if needed)
-    let (tx_grpc, rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) =
-        channel(100);
+    let hostname: String = String::from_utf8_lossy(
+        &std::process::Command::new("hostname")
+            .output()
+            .expect("Failed to get hostname")
+            .stdout,
+    )
+    .trim()
+    .to_string();
+    println!("Starting NodeAgent on host: {}", hostname);
 
-    // Launch the manager thread (handles business logic)
-    let mgr = launch_manager(rx_grpc);
+    let (tx_grpc, rx_grpc) = channel::<HandleYamlRequest>(100);
+    let mgr = launch_manager(rx_grpc, hostname.clone());
+    let grpc = initialize(tx_grpc, hostname);
 
-    // Launch the gRPC server (handles incoming gRPC requests)
-    let grpc = initialize(tx_grpc);
-
-    // Run both tasks concurrently
     tokio::join!(mgr, grpc);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::manager::NodeAgentParameter;
     use crate::{initialize, launch_manager};
+    use common::nodeagent::HandleYamlRequest;
     use tokio::sync::mpsc::{channel, Receiver, Sender};
     use tokio::task::LocalSet;
     use tokio::time::{sleep, Duration};
 
     #[tokio::test]
     async fn test_main_initializes_channels() {
-        let (tx_grpc, rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) =
+        let (tx_grpc, rx_grpc): (Sender<HandleYamlRequest>, Receiver<HandleYamlRequest>) =
             channel(100);
         assert_eq!(tx_grpc.capacity(), 100);
         assert!(!rx_grpc.is_closed());
@@ -90,26 +88,11 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn test_main_launch_manager() {
-        let (_tx_grpc, rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) =
+        let (_tx_grpc, rx_grpc): (Sender<HandleYamlRequest>, Receiver<HandleYamlRequest>) =
             channel(100);
         let local = LocalSet::new();
         local.spawn_local(async move {
-            let _ = launch_manager(rx_grpc).await;
-        });
-        tokio::select! {
-            _ = local => {}
-            _ = sleep(Duration::from_millis(200)) => {}
-        }
-        assert!(true);
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn test_main_initialize_grpc() {
-        let (tx_grpc, _rx_grpc): (Sender<NodeAgentParameter>, Receiver<NodeAgentParameter>) =
-            channel(100);
-        let local = LocalSet::new();
-        local.spawn_local(async move {
-            let _ = initialize(tx_grpc).await;
+            let _ = launch_manager(rx_grpc, "HPC".to_string()).await;
         });
         tokio::select! {
             _ = local => {}

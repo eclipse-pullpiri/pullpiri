@@ -1,0 +1,58 @@
+name: CI Dispatcher
+
+on:
+  push:
+    branches: [ "main", "release", "debug" ]
+  pull_request:
+    branches: [ "refactoring","main", "release", "debug" ]
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      rust_changed: ${{ steps.filter.outputs.rust }}
+      doc_changed: ${{ steps.filter.outputs.docs }}
+      yaml_changed: ${{ steps.filter.outputs.yaml }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rust:
+              - '**/*.rs'
+              - '**/*.toml'
+              - 'Cargo.lock'
+              - 'scripts/**'
+            docs:
+              - '**/*.md'
+            yaml:
+              - '.github/workflows/*.yml'
+
+  run-rust-ci:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.rust_changed == 'true'
+    uses: ./.github/workflows/run-ci.yml
+
+  run-doc-lint:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.doc_changed == 'true'
+    uses: ./.github/workflows/run-doc.yml
+
+  run-yaml-validation:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.yaml_changed == 'true'
+    uses: ./.github/workflows/run-validate.yml
+
+  # Final job for branch protection
+  ci-summary:
+    name: CI Complete Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - run-rust-ci
+      - run-doc-lint
+      - run-yaml-validation
+    steps:
+      - run: echo "All CI jobs (if triggered) have completed."

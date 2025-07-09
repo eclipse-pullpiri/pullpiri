@@ -1,0 +1,25 @@
+name: Rust CI Core
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  rust_ci:
+    runs-on: ubuntu-latest
+    container:
+      image: rust:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: ./scripts/installdeps.sh
+      - name: Build
+        run: ./scripts/buildNparse.sh
+      - name: Test
+        run: ./scripts/testNparse.sh
+      - name: Lint
+        run: ./scripts/clippy_check.sh
+      - name: Format
+        run: ./scripts/fmt_check.sh
+      - name: Cargo Deny (License, Advisories, Bans)
+        run: ./scripts/deny_check.sh

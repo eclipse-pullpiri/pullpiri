@@ -63,9 +63,9 @@ install:
 	-cp -r ./src/settings.yaml /etc/containers/systemd/piccolo/
 	-cp -r ./containers/piccolo-*.* /etc/containers/systemd/piccolo/
 	systemctl daemon-reload
+	systemctl start piccolo-server
 	systemctl start piccolo-agent
 	systemctl start piccolo-player
-	systemctl start piccolo-server
 
 .PHONY: uninstall
 uninstall:

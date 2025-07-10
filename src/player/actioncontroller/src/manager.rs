@@ -7,8 +7,6 @@ use common::{
     Result,
 };
 
-const SYSTEMD_PATH: &str = "/etc/containers/systemd/";
-
 /// Manager for coordinating scenario actions and workload operations
 ///
 /// Responsible for:
@@ -117,45 +115,38 @@ impl ActionControllerManager {
             let model_name = format!("{}.service", mi.get_name());
             let model_node = mi.get_node();
             let node_type = if self.bluechi_nodes.contains(&model_node) {
+                println!("Node {} is bluechi", model_node);
                 "bluechi"
             } else if self.nodeagent_nodes.contains(&model_node) {
+                println!("Node {} is nodeagent", model_node);
                 "nodeagent"
             } else {
                 continue; // Skip unknown node types
             };
-
+            println!(
+                "Processing model '{}' on node '{}' with action '{}'",
+                model_name, model_node, action
+            );
             match action.as_str() {
                 "launch" => {
+                    self.reload_all_node(&model_name, &model_node).await?;
                     self.start_workload(&model_name, &model_node, &node_type)
                         .await
                         .map_err(|e| format!("Failed to start workload '{}': {}", model_name, e))?;
                 }
                 "terminate" => {
+                    self.reload_all_node(&model_name, &model_node).await?;
                     self.stop_workload(&model_name, &model_node, &node_type)
                         .await
                         .map_err(|e| format!("Failed to stop workload '{}': {}", model_name, e))?;
                 }
                 "update" | "rollback" => {
+                    self.reload_all_node(&model_name, &model_node).await?;
                     self.stop_workload(&model_name, &model_node, &node_type)
                         .await
                         .map_err(|e| format!("Failed to stop workload '{}': {}", model_name, e))?;
 
-                    self.delete_symlink_and_reload(&mi.get_name(), &model_node)
-                        .await
-                        .map_err(|e| {
-                            format!("Failed to delete symlink for '{}': {}", mi.get_name(), e)
-                        })?;
-
-                    self.make_symlink_and_reload(
-                        &model_node,
-                        &mi.get_name(),
-                        &scenario.get_targets(),
-                    )
-                    .await
-                    .map_err(|e| {
-                        format!("Failed to create symlink for '{}': {}", mi.get_name(), e)
-                    })?;
-
+                    self.reload_all_node(&model_name, &model_node).await?;
                     self.start_workload(&model_name, &model_node, &node_type)
                         .await
                         .map_err(|e| format!("Failed to start workload '{}': {}", model_name, e))?;
@@ -423,39 +414,6 @@ impl ActionControllerManager {
                 .into());
             }
         }
-        Ok(())
-    }
-
-    pub async fn make_symlink_and_reload(
-        &self,
-        node_name: &str,
-        model_name: &str,
-        target_name: &str,
-    ) -> Result<()> {
-        println!(
-            "make_symlink_and_reload'{:?}' on host node '{:?}'",
-            model_name, node_name
-        );
-        let original: String = format!(
-            "{0}/{1}.kube",
-            common::setting::get_config().yaml_storage,
-            target_name
-        );
-        let link = format!("{}{}.kube", SYSTEMD_PATH, model_name);
-
-        if node_name == common::setting::get_config().host.name {
-            std::os::unix::fs::symlink(original, link)?;
-        }
-        self.reload_all_node(model_name, node_name).await?;
-        Ok(())
-    }
-
-    pub async fn delete_symlink_and_reload(&self, model_name: &str, node_name: &str) -> Result<()> {
-        // host node
-        let kube_symlink_path = format!("{}{}.kube", SYSTEMD_PATH, model_name);
-        let _ = std::fs::remove_file(&kube_symlink_path);
-
-        self.reload_all_node(model_name, node_name).await?;
         Ok(())
     }
 

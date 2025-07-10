@@ -1,5 +1,5 @@
 use common::nodeagent::{
-    node_agent_connection_client::NodeAgentConnectionClient, HandleWorkloadRequest,
+    node_agent_connection_client::NodeAgentConnectionClient, HandleYamlRequest,
 };
 use common::policymanager::{
     policy_manager_connection_client::PolicyManagerConnectionClient, CheckPolicyRequest,
@@ -89,26 +89,18 @@ pub async fn check_policy(scenario_name: String) -> Result<()> {
 /// - The connection to NodeAgent is not established
 /// - The gRPC request fails
 /// - The workload handling operation fails
-pub async fn handle_workload(
-    workload_name: String,
-    action: i32,
-    description: String,
-) -> Result<i32> {
-    if workload_name.trim().is_empty() || description.trim().is_empty() {
+pub async fn handle_yaml(workload_name: String) -> Result<bool> {
+    if workload_name.trim().is_empty() {
         return Err("Invalid input: workload name and description cannot be empty".into());
-    }
-    if action < 0 {
-        return Err("Invalid action: must be a non-negative integer".into());
     }
 
     let addr = common::nodeagent::connect_server();
     let mut client = NodeAgentConnectionClient::connect(addr).await.unwrap();
-    let request = Request::new(HandleWorkloadRequest {
-        workload_name,
-        action,
-        description,
+    let request = Request::new(HandleYamlRequest {
+        yaml: workload_name,
     });
-    let response = client.handle_workload(request).await?;
+    let response: tonic::Response<common::nodeagent::HandleYamlResponse> =
+        client.handle_yaml(request).await?;
     let response_inner = response.into_inner();
 
     println!("Error: {}", response_inner.desc);

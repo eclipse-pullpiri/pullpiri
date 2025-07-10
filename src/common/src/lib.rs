@@ -13,8 +13,30 @@ fn open_server(port: u16) -> String {
     format!("{}:{}", crate::setting::get_config().host.ip, port)
 }
 
+fn open_guest_server(port: u16) -> String {
+    let guest_ip = crate::setting::get_config()
+        .guest
+        .as_ref()
+        .and_then(|guests| guests.first())
+        .map(|guest: &setting::GuestSettings| guest.ip.as_str())
+        .unwrap();
+
+    format!("{}:{}", guest_ip, port)
+}
+
 fn connect_server(port: u16) -> String {
     format!("http://{}:{}", crate::setting::get_config().host.ip, port)
+}
+
+fn connect_guest_server(port: u16) -> String {
+    let guest_ip = crate::setting::get_config()
+        .guest
+        .as_ref()
+        .and_then(|guests| guests.first())
+        .map(|guest: &setting::GuestSettings| guest.ip.as_str())
+        .unwrap();
+
+    format!("http://{}:{}", guest_ip, port)
 }
 
 pub mod actioncontroller {
@@ -66,8 +88,16 @@ pub mod nodeagent {
         super::open_server(47004)
     }
 
+    pub fn open_guest_server() -> String {
+        super::open_guest_server(47004)
+    }
+
     pub fn connect_server() -> String {
         super::connect_server(47004)
+    }
+
+    pub fn connect_guest_server() -> String {
+        super::connect_guest_server(47004)
     }
 }
 

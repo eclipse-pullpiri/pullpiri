@@ -8,22 +8,14 @@ syntax = "proto3";
 package nodeagent;
 
 service NodeAgentConnection {
-  rpc HandleWorkload(HandleWorkloadRequest) returns (HandleWorkloadResponse);
+  rpc HandleYaml(HandleYamlRequest) returns (HandleYamlResponse);
 }
 
-message HandleWorkloadRequest {
-  string workload_name = 1;
-  Action action = 2;
-  string description = 3;
+message HandleYamlRequest {
+  string yaml = 1;
 }
 
-message HandleWorkloadResponse {
-  int32 status = 1;
+message HandleYamlResponse {
+  bool status = 1;
   string desc = 2;
-}
-
-enum Action {
-  ACTION_START = 0;
-  ACTION_STOP = 1;
-  ACTION_CHANGE = 2;
 }

@@ -22,7 +22,7 @@ use common::spec::artifact::Volume;
 /// * `Result(String, String)` - scenario and package yaml in downloaded artifact
 /// ### Description
 /// Write artifact in etcd
-pub async fn apply(body: &str) -> common::Result<(String, String)> {
+pub async fn apply(body: &str) -> common::Result<String> {
     let docs: Vec<&str> = body.split("---").collect();
     let mut scenario_str = String::new();
     let mut package_str = String::new();
@@ -62,7 +62,7 @@ pub async fn apply(body: &str) -> common::Result<(String, String)> {
         //Missing Check is Added for Package
         Err("There is not any package in yaml string".into())
     } else {
-        Ok((scenario_str, package_str)) //, network_str))
+        Ok(scenario_str) //, network_str))
     }
 }
 
@@ -193,9 +193,8 @@ spec:
         );
 
         // Assert: scenario and package strings should not be empty
-        let (scenario, package) = result.unwrap();
+        let scenario = result.unwrap();
         assert!(!scenario.is_empty(), "Scenario YAML should not be empty");
-        assert!(!package.is_empty(), "Package YAML should not be empty");
     }
 
     /// Test apply() with missing `action` field (invalid Scenario)

@@ -145,11 +145,11 @@ containers:
 
         let storage_dir = "/etc/piccolo/yaml";
         tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-        let result = make_files_from_pod(vec![pod.clone()], "HPC".to_string()).await;
+        let result = make_files_from_pod(vec![pod.clone()]).await;
 
         match result {
             Ok(created_files) => {
-                //assert_eq!(created_files, vec![pod.get_name()]);
+                assert_eq!(created_files, vec![pod.get_name()]);
 
                 let kube_path = format!("{}/{}.kube", storage_dir, pod.get_name());
                 let yaml_path = format!("{}/{}.yaml", storage_dir, pod.get_name());

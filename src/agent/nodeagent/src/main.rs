@@ -92,7 +92,7 @@ mod tests {
             channel(100);
         let local = LocalSet::new();
         local.spawn_local(async move {
-            let _ = launch_manager(rx_grpc, "HPC".to_string()).await;
+            let _ = launch_manager(rx_grpc).await;
         });
         tokio::select! {
             _ = local => {}

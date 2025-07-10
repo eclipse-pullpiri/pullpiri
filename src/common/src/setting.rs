@@ -33,11 +33,12 @@ fn parse_settings_yaml() -> Settings {
             ip: String::from("0.0.0.0"),
             r#type: String::from("bluechi"),
         },
-        guest: Some(vec![GuestSettings {
-            name: String::from("ZONE"),
-            ip: String::from("192.168.50.214"),
-            r#type: String::from("bluechi"),
-        }]), //guest: None,
+        // guest: Some(vec![GuestSettings {
+        //     name: String::from("ZONE"),
+        //     ip: String::from("192.168.50.214"),
+        //     r#type: String::from("bluechi"),
+        // }]),
+        guest: None,
     };
 
     let settings = config::Config::builder()

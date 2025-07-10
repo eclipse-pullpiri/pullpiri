@@ -56,19 +56,25 @@ async fn reload() {
 pub async fn apply_artifact(body: &str) -> common::Result<()> {
     let scenario = crate::artifact::apply(body).await?;
 
-    let req: HandleScenarioRequest = HandleScenarioRequest {
-        action: Action::Apply.into(),
-        scenario: scenario,
-    };
-    crate::grpc::sender::filtergateway::send(req).await?;
-
     let handle_yaml = HandleYamlRequest {
         yaml: body.to_string(),
     };
 
     crate::grpc::sender::nodeagent::send(handle_yaml.clone()).await?;
-    crate::grpc::sender::nodeagent::send_guest(handle_yaml).await?;
 
+    if let Some(guests) = &common::setting::get_config().guest {
+        if !guests.is_empty() {
+            crate::grpc::sender::nodeagent::send_guest(handle_yaml).await?;
+        }
+    } else {
+        println!("Guest configuration not found, skipping guest node");
+    }
+
+    let req: HandleScenarioRequest = HandleScenarioRequest {
+        action: Action::Apply.into(),
+        scenario: scenario,
+    };
+    crate::grpc::sender::filtergateway::send(req).await?;
     Ok(())
 }
 

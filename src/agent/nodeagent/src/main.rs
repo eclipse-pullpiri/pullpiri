@@ -32,7 +32,9 @@ async fn initialize(tx_grpc: Sender<HandleYamlRequest>, hostname: String) {
         tx: tx_grpc.clone(),
     };
 
-    let addr = if hostname.trim().eq_ignore_ascii_case("HPC") {
+    let hostname_in_setting = common::setting::get_config().host.name.clone();
+
+    let addr = if hostname.trim().eq_ignore_ascii_case(&hostname_in_setting) {
         common::nodeagent::open_server()
     } else {
         common::nodeagent::open_guest_server()
@@ -92,7 +94,7 @@ mod tests {
             channel(100);
         let local = LocalSet::new();
         local.spawn_local(async move {
-            let _ = launch_manager(rx_grpc).await;
+            let _ = launch_manager(rx_grpc, "hostname".to_string()).await;
         });
         tokio::select! {
             _ = local => {}

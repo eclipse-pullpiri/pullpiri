@@ -332,9 +332,8 @@ mod tests {
             desired: 3,
         });
 
-        let response = receiver.reconcile(request).await.unwrap();
-        assert_eq!(response.get_ref().status, 1);
-        assert!(response.get_ref().desc.contains("Failed to reconcile"));
+        let response = receiver.reconcile(request).await.unwrap_err();
+        assert!(response.message().contains("Failed to reconcile"));
     }
 
     #[test]

@@ -250,6 +250,7 @@ spec:
         let models = result.unwrap();
         assert_eq!(models.len(), 1);
     }
+
     // Test case for a valid scenario where get_complete_model works correctly
     #[tokio::test]
     async fn test_get_complete_model_success() {
@@ -319,14 +320,36 @@ spec:
                 network: antipinch-network
         "#;
 
+        let models_yaml = r#"
+        apiVersion: v1
+        kind: Model
+        metadata:
+          name: antipinch-enable-core
+          annotations:
+            io.piccolo.annotations.package-type: test
+            io.piccolo.annotations.package-name: test
+            io.piccolo.annotations.package-network: test
+          labels:
+            app: antipinch-enable-core
+        spec:
+          hostNetwork: true
+          containers:
+            - name: antipinch-enable-core
+              image: localhost/antipinch:1.0
+          terminationGracePeriodSeconds: 0
+        "#;
+
         // Try to deserialize the package
         let package_missing_volume: Result<Package, _> =
             serde_yaml::from_str(package_yaml_missing_volume);
         assert!(package_missing_volume.is_ok()); // Package should still parse correctly
 
+        let model: Result<Model, _> = serde_yaml::from_str(models_yaml);
+        let m: Vec<Model> = vec![model.unwrap()];
+
         // Call get_complete_model and check if it returns an error due to missing volume
         let package = package_missing_volume.unwrap();
-        let result = get_complete_model(package).await;
+        let result = get_complete_model(package, "HPC".to_string(), m).await;
         assert!(result.is_err()); // Should fail due to missing volume
     }
 
@@ -350,14 +373,36 @@ spec:
                 volume: antipinch-volume
         "#;
 
+        let models_yaml = r#"
+        apiVersion: v1
+        kind: Model
+        metadata:
+          name: antipinch-enable-core
+          annotations:
+            io.piccolo.annotations.package-type: test
+            io.piccolo.annotations.package-name: test
+            io.piccolo.annotations.package-network: test
+          labels:
+            app: antipinch-enable-core
+        spec:
+          hostNetwork: true
+          containers:
+            - name: antipinch-enable-core
+              image: localhost/antipinch:1.0
+          terminationGracePeriodSeconds: 0
+        "#;
+
         // Try to deserialize the package
         let package_missing_network: Result<Package, _> =
             serde_yaml::from_str(package_yaml_missing_network);
         assert!(package_missing_network.is_ok()); // Package should still parse correctly
 
+        let model: Result<Model, _> = serde_yaml::from_str(models_yaml);
+        let m: Vec<Model> = vec![model.unwrap()];
+
         // Call get_complete_model and check if it returns an error due to missing network
         let package = package_missing_network.unwrap();
-        let result = get_complete_model(package).await;
+        let result = get_complete_model(package, "HPC".to_string(), m).await;
         assert!(result.is_err()); // Should fail due to missing network
     }
 }

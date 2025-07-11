@@ -9,15 +9,10 @@ use common::statemanager::{
 use tonic::{Request, Status};
 
 /// Sender for making gRPC requests to Monitoring Server
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct NodeAgentSender {}
 
 impl NodeAgentSender {
-    /// Create a new NodeAgentSender
-    pub fn new() -> Self {
-        Self {}
-    }
-
     /// Trigger an action for a scenario
     pub async fn trigger_action(
         &mut self,

@@ -14,6 +14,10 @@ fn open_server(port: u16) -> String {
 }
 
 fn open_guest_server(port: u16) -> String {
+    if crate::setting::get_config().guest.is_none() {
+        // If no guest is configured, return the host server address
+        return open_server(port);
+    }
     let guest_ip = crate::setting::get_config()
         .guest
         .as_ref()

@@ -254,7 +254,7 @@ mod tests {
         assert_eq!(Command::UnitReload.to_method_name(), "ReloadUnit");
 
         let unknown_cmd = Command::ControllerReloadAllNodes;
-        assert_eq!(unknown_cmd.to_method_name(), "Unknown");
+        assert_eq!(unknown_cmd.to_method_name(), "ReloadAllNodes");
     }
 
     // ------------------- NEGATIVE TESTS -------------------

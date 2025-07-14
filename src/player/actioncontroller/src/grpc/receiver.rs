@@ -245,9 +245,8 @@ mod tests {
             scenario_name: "invalid_scenario".to_string(),
         });
 
-        let response = receiver.trigger_action(request).await.unwrap();
-        assert_eq!(response.get_ref().status, 1);
-        assert!(response.get_ref().desc.contains("Failed to trigger action"));
+        let response = receiver.trigger_action(request).await.unwrap_err();
+        assert!(response.message().contains("not found"));
     }
 
     #[tokio::test]

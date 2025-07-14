@@ -19,7 +19,7 @@ pub async fn yaml_split(body: &str) -> common::Result<(String, Vec<Model>)> {
         let artifact_str = serde_yaml::to_string(&value)?;
 
         if let Some(kind) = value.clone().get("kind").and_then(|k| k.as_str()) {
-            let name: String = match kind {
+            let _name: String = match kind {
                 "Scenario" => serde_yaml::from_value::<Scenario>(value.clone())?.get_name(),
                 "Package" => serde_yaml::from_value::<Package>(value.clone())?.get_name(),
                 "Volume" => serde_yaml::from_value::<Volume>(value.clone())?.get_name(),
@@ -67,12 +67,32 @@ pub async fn get_complete_model(
     models: Vec<Model>,
 ) -> common::Result<Vec<Model>> {
     let mut base_models: Vec<Model> = Vec::new();
-    let mut model_name: String = String::new();
     for mi in p.get_models() {
         if mi.get_node() == node {
-            model_name = mi.get_name();
+            let model_name = mi.get_name();
             for model in models.iter() {
                 if model.get_name() == model_name {
+                    if let Some(volume_name) = mi.get_resources().get_volume() {
+                        let key = format!("Volume/{}", volume_name);
+                        let volume_str: String = common::etcd::get(&key).await?;
+                        let volume: Volume = serde_yaml::from_str(&volume_str)?;
+
+                        if let Some(volume_spec) = volume.get_spec() {
+                            model
+                                .get_podspec()
+                                .volumes
+                                .clone_from(volume_spec.get_volume());
+                        }
+                    }
+                    if let Some(network_name) = mi.get_resources().get_network() {
+                        let key = format!("Network/{}", network_name);
+                        let network_str = common::etcd::get(&key).await?;
+                        let network: Network = serde_yaml::from_str(&network_str)?;
+
+                        if let Some(_network_spec) = network.get_spec() {
+                            // TODO
+                        }
+                    }
                     base_models.push(model.clone());
                 } else {
                     println!("Model {} is not for this node {}", model.get_name(), node);
@@ -83,32 +103,6 @@ pub async fn get_complete_model(
             println!("Model {} is not for this node {}", mi.get_name(), node);
             continue;
         }
-        //let mut key = format!("Model/{}", mi.get_name());
-        //let base_model_str = common::etcd::get(&key).await?;
-        //let model: Model = serde_yaml::from_str(&base_model_str)?;
-
-        // if let Some(volume_name) = mi.get_resources().get_volume() {
-        //     key = format!("Volume/{}", volume_name);
-        //     let volume_str: String = common::etcd::get(&key).await?;
-        //     let volume: Volume = serde_yaml::from_str(&volume_str)?;
-
-        //     if let Some(volume_spec) = volume.get_spec() {
-        //         model
-        //             .get_podspec()
-        //             .volumes
-        //             .clone_from(volume_spec.get_volume());
-        //     }
-        // }
-
-        // if let Some(network_name) = mi.get_resources().get_network() {
-        //     key = format!("Network/{}", network_name);
-        //     let network_str = common::etcd::get(&key).await?;
-        //     let network: Network = serde_yaml::from_str(&network_str)?;
-
-        //     if let Some(network_spec) = network.get_spec() {
-        //         // TODO
-        //     }
-        //}
     }
     Ok(base_models)
 }
@@ -244,7 +238,9 @@ spec:
 
         // Deserialize and test
         let package: Package = serde_yaml::from_str(pkg_yaml).unwrap();
-        let result = get_complete_model(package).await;
+        let model: Model = serde_yaml::from_str(model_yaml).unwrap();
+        let models = vec![model];
+        let result = get_complete_model(package, "node1".to_string(), models).await;
 
         assert!(result.is_ok());
         let models = result.unwrap();
@@ -254,11 +250,32 @@ spec:
     // Test case for a valid scenario where get_complete_model works correctly
     #[tokio::test]
     async fn test_get_complete_model_success() {
+        let model_yaml = r#"
+apiVersion: v1
+kind: Model
+metadata:
+  name: helloworld-core
+  annotations:
+    io.piccolo.annotations.package-type: helloworld-core
+    io.piccolo.annotations.package-name: helloworld
+    io.piccolo.annotations.package-network: default
+  labels:
+    app: helloworld-core
+spec:
+  hostNetwork: true
+  containers:
+    - name: helloworld
+      image: helloworld
+  terminationGracePeriodSeconds: 0
+"#;
+
         // Create a dummy package with valid data
-        let package = extract_package_from_multi_yaml(VALID_ARTIFACT_YAML);
+        let package = extract_package_from_multi_yaml(VALID_ARTIFACT_YAML).unwrap();
+        let model: Model = serde_yaml::from_str(model_yaml).unwrap();
+        let models = vec![model];
 
         // Call get_complete_model and check if it returns Ok
-        let result = get_complete_model(package.expect("REASON")).await;
+        let result = get_complete_model(package, "HPC".to_string(), models).await;
 
         // If result is an error, print the error for debugging
         assert!(

@@ -16,7 +16,7 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 /// This function creates the manager, initializes it, and then runs it.
 /// If initialization or running fails, errors are printed to stderr.
 async fn launch_manager(rx_grpc: Receiver<HandleYamlRequest>, hostname: String) {
-    let mut manager = manager::NodeAgentManager::new(rx_grpc, hostname).await;
+    let manager = manager::NodeAgentManager::new(rx_grpc, hostname).await;
 
     //manager.initialize().await;
     let _ = manager.process_grpc_requests().await;
@@ -74,7 +74,7 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{initialize, launch_manager};
+    use crate::launch_manager;
     use common::nodeagent::HandleYamlRequest;
     use tokio::sync::mpsc::{channel, Receiver, Sender};
     use tokio::task::LocalSet;

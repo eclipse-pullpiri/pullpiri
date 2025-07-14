@@ -31,7 +31,7 @@ pub async fn parse(yaml_str: String, nodename: String) -> common::Result<()> {
         parser::get_complete_model(package, nodename.clone(), models_str).await?;
     let pods: Vec<Pod> = models.into_iter().map(Pod::from).collect();
 
-    let _ = filemaker::make_files_from_pod(pods, nodename).await?;
+    filemaker::make_files_from_pod(pods, nodename).await?;
 
     // filemaker::delete_symlink_and_reload(&mi.get_name(), &model_node)
     // .await

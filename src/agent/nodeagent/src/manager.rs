@@ -29,7 +29,7 @@ impl NodeAgentManager {
     pub async fn new(rx: mpsc::Receiver<HandleYamlRequest>, hostname: String) -> Self {
         Self {
             rx_grpc: Arc::new(Mutex::new(rx)),
-            sender: Arc::new(Mutex::new(NodeAgentSender::new())),
+            sender: Arc::new(Mutex::new(NodeAgentSender::default())),
             hostname,
         }
     }

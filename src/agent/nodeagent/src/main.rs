@@ -7,6 +7,7 @@ use common::nodeagent::HandleYamlRequest;
 mod bluechi;
 pub mod grpc;
 pub mod manager;
+pub mod resource;
 
 use common::nodeagent::node_agent_connection_server::NodeAgentConnectionServer;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -16,10 +17,23 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 /// This function creates the manager, initializes it, and then runs it.
 /// If initialization or running fails, errors are printed to stderr.
 async fn launch_manager(rx_grpc: Receiver<HandleYamlRequest>, hostname: String) {
-    let manager = manager::NodeAgentManager::new(rx_grpc, hostname).await;
+    let mut manager = manager::NodeAgentManager::new(rx_grpc, hostname).await;
 
     //manager.initialize().await;
-    let _ = manager.process_grpc_requests().await;
+    // let _ = manager.process_grpc_requests().await;
+
+    match manager.initialize().await {
+        Ok(_) => {
+            println!("NodeAgentManager successfully initialized");
+            // Only proceed to run if initialization was successful
+            if let Err(e) = manager.run().await {
+                eprintln!("Error running NodeAgentManager: {:?}", e);
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to initialize NodeAgentManager: {:?}", e);
+        }
+    }
 }
 
 /// Initializes the NodeAgent gRPC server.
@@ -101,5 +115,11 @@ mod tests {
             _ = sleep(Duration::from_millis(200)) => {}
         }
         assert!(true);
+    }
+
+    #[tokio::test]
+    async fn test_inspect() {
+        let r = crate::resource::container::inspect().await;
+        println!("{:#?}", r);
     }
 }

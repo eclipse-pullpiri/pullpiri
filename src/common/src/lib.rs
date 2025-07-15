@@ -73,8 +73,8 @@ pub mod filtergateway {
     }
 }
 
-pub mod monitoringclient {
-    tonic::include_proto!("monitoringclient");
+pub mod monitoringserver {
+    tonic::include_proto!("monitoringserver");
 
     pub fn open_server() -> String {
         super::open_server(47003)

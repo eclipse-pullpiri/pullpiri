@@ -1,47 +1,10 @@
-use common::monitoringclient::monitoring_client_connection_server::MonitoringClientConnection;
-use common::monitoringclient::{ContainerList, ImageList, McResponse, PodList};
 use common::nodeagent::node_agent_connection_server::NodeAgentConnection;
 use common::nodeagent::{HandleYamlRequest, HandleYamlResponse};
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
 
-/// MonitoringClient gRPC service handler
-pub struct MonitoringClientGrpcServer {}
-
-#[tonic::async_trait]
-impl MonitoringClientConnection for MonitoringClientGrpcServer {
-    async fn send_image_list(
-        &self,
-        request: tonic::Request<ImageList>,
-    ) -> Result<tonic::Response<McResponse>, tonic::Status> {
-        let req = request.into_inner();
-        let command = req.node_name;
-
-        Err(tonic::Status::new(tonic::Code::Unavailable, command))
-    }
-
-    async fn send_container_list(
-        &self,
-        request: tonic::Request<ContainerList>,
-    ) -> Result<tonic::Response<McResponse>, tonic::Status> {
-        let req = request.into_inner();
-        let command = req.node_name;
-
-        Err(tonic::Status::new(tonic::Code::Unavailable, command))
-    }
-
-    async fn send_pod_list(
-        &self,
-        request: tonic::Request<PodList>,
-    ) -> Result<tonic::Response<McResponse>, tonic::Status> {
-        let req = request.into_inner();
-        let command = req.node_name;
-
-        Err(tonic::Status::new(tonic::Code::Unavailable, command))
-    }
-}
-
 /// NodeAgent gRPC service handler
+#[derive(Clone)]
 pub struct NodeAgentReceiver {
     pub tx: mpsc::Sender<HandleYamlRequest>,
 }
@@ -63,9 +26,9 @@ impl NodeAgentConnection for NodeAgentReceiver {
                 status: true,
                 desc: "Successfully processed YAML".to_string(),
             })),
-            Err(_) => Err(tonic::Status::new(
+            Err(e) => Err(tonic::Status::new(
                 tonic::Code::Unavailable,
-                "cannot send condition",
+                format!("cannot send condition: {}", e),
             )),
         }
     }

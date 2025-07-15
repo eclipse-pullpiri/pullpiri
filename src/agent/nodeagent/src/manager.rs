@@ -9,7 +9,6 @@ use common::Result;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 use common::monitoringserver::ContainerList;
-use std::env;
 
 /// Main manager struct for NodeAgent.
 ///
@@ -72,7 +71,7 @@ impl NodeAgentManager {
         use tokio::time::{sleep, Duration};
         loop {
             let container_list = inspect().await.unwrap_or_default();
-            let node = env::var("HOST_NAME").unwrap_or("Unknown".to_string());
+            let node = self.hostname.clone();
 
             // Send the container info to the monitoring server
             let mut sender = self.sender.lock().await;

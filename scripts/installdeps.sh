@@ -1,13 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
+# Enable JSON test output even on stable Rust
+export RUSTC_BOOTSTRAP=1
+
 echo "🛠️ Updating package lists..."
-apt-get update -y
+sudo apt-get update -y
 
 echo "📦 Installing common development packages..."
 common_packages=(
   libdbus-1-dev
-  git-all
+  git
   make
   gcc
   protobuf-compiler
@@ -16,15 +19,14 @@ common_packages=(
   curl
   libssl-dev
   nodejs
-  npm
+  jq
 )
-DEBIAN_FRONTEND=noninteractive apt-get install -y "${common_packages[@]}"
-echo "✅ Base packages installed successfully."
+DEBIAN_FRONTEND=noninteractive sudo apt-get install -y "${common_packages[@]}"
+echo "✅ Base packages installed successfully"
 
 # ----------------------------------------
 # 🦀 Install rustup, Clippy, Rustfmt, and cargo-deny
 # ----------------------------------------
-
 echo "🦀 Installing Rust toolchain..."
 if ! command -v rustup &>/dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -43,6 +45,12 @@ rustup component add rustfmt
 if ! command -v cargo-deny &>/dev/null; then
   echo "🔐 Installing cargo-deny..."
   cargo install cargo-deny
+fi
+
+# Install cargo2junit
+if ! command -v cargo2junit &>/dev/null; then
+  echo "🔐 Installing cargo2junit..."
+  cargo install cargo2junit
 fi
 
 # Show installed versions
@@ -64,9 +72,9 @@ ETCD_URL="https://github.com/etcd-io/etcd/releases/download/${ETCD_VER}/${ETCD_P
 
 curl -L "$ETCD_URL" -o etcd.tar.gz
 tar xzvf etcd.tar.gz
-cp "${ETCD_PKG}/etcd" /usr/local/bin/
-cp "${ETCD_PKG}/etcdctl" /usr/local/bin/
-chmod +x /usr/local/bin/etcd /usr/local/bin/etcdctl
+sudo cp "${ETCD_PKG}/etcd" /usr/local/bin/
+sudo cp "${ETCD_PKG}/etcdctl" /usr/local/bin/
+sudo chmod +x /usr/local/bin/etcd /usr/local/bin/etcdctl
 rm -rf etcd.tar.gz "${ETCD_PKG}"
 
 echo "✅ etcd and etcdctl installed."
@@ -108,5 +116,39 @@ if ! etcdctl --endpoints=http://localhost:2379 endpoint health &>/dev/null; then
   cat etcd.log
   exit 1
 fi
+
+# ----------------------------------------
+# 🐳 Install Docker and Docker Compose
+# ----------------------------------------
+
+echo "🐳 Installing Docker CLI and Docker Compose..."
+
+# Install Docker dependencies
+sudo apt-get update -y
+sudo apt-get install -y \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+# Add Docker’s official GPG key
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# Set up Docker stable repository for Ubuntu Jammy
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu jammy stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Update and install Docker packages
+sudo apt-get update -y
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Verify installation
+docker --version
+docker compose version
+
+echo "✅ Docker and Docker Compose installed."
 
 echo "🎉 All dependencies installed and etcd is running!"

@@ -6,20 +6,84 @@ on:
 
 jobs:
   rust_ci:
-    runs-on: ubuntu-latest
-    container:
-      image: rust:latest
+    runs-on: ubuntu-latest  # Use GitHub-hosted runner with Docker installed
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Install deps
+      # Step 1: Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install Rust toolchain
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      # Step 3: Install Docker Compose dependencies (if needed)
+      - name: Install Docker Compose and utilities
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y docker-compose jq curl lsb-release
+
+      # Step 4: Make all scripts executable
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      # Step 5: Install Rust project dependencies
+      - name: Install project dependencies
         run: ./scripts/installdeps.sh
-      - name: Build
+
+      # Step 6: Create output folders for reports
+      - name: Create reports directory
+        run: |
+          mkdir -p dist/reports/fmt
+          mkdir -p dist/reports/deny
+          mkdir -p dist/tests
+          mkdir -p dist/licenses
+
+      # Step 7: Run project build and parse logs
+      - name: Build and parse project
         run: ./scripts/buildNparse.sh
-      - name: Test
+
+      # Step 8: Run all Rust unit/integration tests and generate reports
+      - name: Run tests and generate report
         run: ./scripts/testNparse.sh
-      - name: Lint
+
+      # Step 9: Linting (clippy)
+      - name: Run Clippy (lint)
         run: ./scripts/clippy_check.sh
-      - name: Format
+
+      # Step 10: Formatting check
+      - name: Run format check
         run: ./scripts/fmt_check.sh
-      - name: Cargo Deny (License, Advisories, Bans)
+
+      # Step 11: License, ban, and security checks with cargo-deny
+      - name: Run cargo-deny checks
         run: ./scripts/deny_check.sh
+
+      # === Upload All Reports ===
+
+      # Step 12: Upload deny report
+      - name: Upload deny report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deny-report
+          path: dist/reports/deny/deny_summary.md
+
+      # Step 13: Upload format report
+      - name: Upload fmt report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fmt-report
+          path: dist/reports/fmt/fmt_summary.md
+
+      # Step 14: Upload all test reports (JUnit-style)
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: dist/tests/*

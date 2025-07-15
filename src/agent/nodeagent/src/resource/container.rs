@@ -102,7 +102,9 @@ pub async fn get_list() -> Result<Vec<Container>> {
     Ok(containers)
 }
 
-pub async fn get_inspect(id: &str) -> std::result::Result<ContainerInspect, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn get_inspect(
+    id: &str,
+) -> std::result::Result<ContainerInspect, Box<dyn std::error::Error + Send + Sync>> {
     let path = &format!("/v1.0.0/libpod/containers/{}/json", id);
     let body = super::get(path).await?;
 

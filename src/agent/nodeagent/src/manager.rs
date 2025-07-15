@@ -8,6 +8,8 @@ use common::nodeagent::HandleYamlRequest;
 use common::Result;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+use common::monitoringserver::ContainerList;
+use std::env;
 
 /// Main manager struct for NodeAgent.
 ///
@@ -62,9 +64,31 @@ impl NodeAgentManager {
         Ok(())
     }
 
+    /// Background task: Periodically gathers container info using inspect().
+    ///
+    /// This runs in an infinite loop and logs or processes container info as needed.
+    async fn gather_container_info_loop(&self) {
+        use crate::resource::container::inspect;
+        use tokio::time::{sleep, Duration};
+        loop {
+            let container_list = inspect().await.unwrap_or_default();
+            let node = env::var("HOST_NAME").unwrap_or("Unknown".to_string());
+
+            // Send the container info to the monitoring server
+            let mut sender = self.sender.lock().await;
+            if let Err(e) = sender.send_container_list(ContainerList {
+                node_name: node.clone(),
+                containers: container_list,
+            }).await {
+                eprintln!("[NodeAgent] Error sending container info: {}", e);
+            }
+            sleep(Duration::from_secs(1)).await;
+        }
+    }
+
     /// Runs the NodeAgentManager event loop.
     ///
-    /// Spawns the gRPC processing task and waits for it to finish.
+    /// Spawns the gRPC processing task and the container info gatherer, and waits for them to finish.
     pub async fn run(self) -> Result<()> {
         let arc_self = Arc::new(self);
         let grpc_manager = Arc::clone(&arc_self);
@@ -73,7 +97,11 @@ impl NodeAgentManager {
                 eprintln!("Error in gRPC processor: {:?}", e);
             }
         });
-        let _ = tokio::try_join!(grpc_processor);
+        let container_manager = Arc::clone(&arc_self);
+        let container_gatherer = tokio::spawn(async move {
+            container_manager.gather_container_info_loop().await;
+        });
+        let _ = tokio::try_join!(grpc_processor, container_gatherer);
         println!("NodeAgentManager stopped");
         Ok(())
     }

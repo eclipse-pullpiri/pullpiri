@@ -113,7 +113,7 @@ jobs:
         id: upload_license_report
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: dist/licenses/apiserver_licenses.html
+          file: dist/licenses/*.html
           file_glob: true
           tag: ${{ github.ref }}
 

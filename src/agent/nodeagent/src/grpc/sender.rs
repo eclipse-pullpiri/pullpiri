@@ -3,11 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use common::monitoringserver::{ContainerList, SendContainerListResponse};
 use common::statemanager::{
     connect_server, state_manager_connection_client::StateManagerConnectionClient, Action, Response,
-};
-use common::monitoringserver::{
-    ContainerList, SendContainerListResponse, 
 };
 use tonic::{Request, Status};
 
@@ -30,10 +28,13 @@ impl NodeAgentSender {
     /// Send a ContainerList to the monitoring server via gRPC
     pub async fn send_container_list(
         &mut self,
-        container_list: ContainerList
+        container_list: ContainerList,
     ) -> Result<tonic::Response<SendContainerListResponse>, Status> {
         // TODO : temporary debug print, remove or replace with proper logging
-        println!("Sending container list to monitoring server: {:?}", container_list);
+        println!(
+            "Sending container list to monitoring server: {:?}",
+            container_list
+        );
         // TODO : uncomment this code when ready
         // let mut client = MonitoringServerConnectionClient::connect(common::monitoringserver::connect_server())
         //     .await

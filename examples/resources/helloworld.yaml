@@ -27,11 +27,6 @@ spec:
       resources:
         volume:
         network:
-    - name: helloworld2
-      node: ZONE
-      resources:
-        volume:
-        network:
 ---
 apiVersion: v1
 kind: Model
@@ -47,24 +42,6 @@ spec:
   hostNetwork: true
   containers:
     - name: helloworld
-      image: sdv.lge.com/bms/blis:1.0
+      image: quay.io/podman/hello:latest
   terminationGracePeriodSeconds: 0
-  restartPolicy: Never
----
-apiVersion: v1
-kind: Model
-metadata:
-  name: helloworld2
-  annotations:
-    io.piccolo.annotations.package-type: helloworld2
-    io.piccolo.annotations.package-name: helloworld2
-    io.piccolo.annotations.package-network: default
-  labels:
-    app: helloworld2
-spec:
-  hostNetwork: true
-  containers:
-    - name: helloworld2
-      image: sdv.lge.com/bms/frism:1.0
-  terminationGracePeriodSeconds: 0
-  restartPolicy: Never
+  restartPolicy: Always

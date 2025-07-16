@@ -144,6 +144,11 @@ containers:
         let pod = Pod::new("antipinch-disable-core", podspec);
 
         let storage_dir = "/etc/piccolo/yaml";
+        let path = Path::new(storage_dir);
+        if !path.exists() {
+            fs::create_dir_all(path).expect("Failed to create directory");
+        }
+
         tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
         let result = make_files_from_pod(vec![pod.clone()], "node1".to_string()).await;
 

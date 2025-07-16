@@ -15,3 +15,15 @@ spec:
   - name: nodeagent
     image: localhost/pullpiri-agent:latest
     command: ["/piccolo/nodeagent"]
+    volumeMounts:
+    - name: piccolo-yaml
+      mountPath: /etc/piccolo/yaml
+    - name: systemd
+      mountPath: /etc/containers/systemd
+  volumes:
+  - name: piccolo-yaml
+    hostPath:
+      path: /etc/piccolo/yaml
+  - name: systemd
+    hostPath:
+      path: /etc/containers/systemd

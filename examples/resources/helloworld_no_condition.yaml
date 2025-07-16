@@ -38,4 +38,4 @@ spec:
     - name: helloworld
       image: quay.io/podman/hello:latest
   terminationGracePeriodSeconds: 0
-  restartPolicy: Never
+  restartPolicy: Always

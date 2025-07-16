@@ -41,6 +41,7 @@ builder:
 	podman build -t localhost/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
 	podman build -t localhost/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
 
+# DO NOT USE THIS COMMAND IN PRODUCTION
 .PHONY: pushbuilder
 pushbuilder:
 	docker buildx create --name container-builder --driver docker-container --bootstrap --use

@@ -1,4 +1,5 @@
-FROM ghcr.io/eclipse-pullpiri/pullpiribuilder:latest AS builder
+# FROM ghcr.io/eclipse-pullpiri/pullpiribuilder:latest AS builder
+FROM localhost/pullpiribuilder:latest AS builder
 ARG TARGETARCH
 WORKDIR /dummy
 

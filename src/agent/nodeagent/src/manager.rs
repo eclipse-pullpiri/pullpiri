@@ -4,11 +4,11 @@
 //! a gRPC sender for communicating with the monitoring server or other services.
 //! It is designed to be thread-safe and run in an async context.
 use crate::grpc::sender::NodeAgentSender;
+use common::monitoringserver::ContainerList;
 use common::nodeagent::HandleYamlRequest;
 use common::Result;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-use common::monitoringserver::ContainerList;
 
 /// Main manager struct for NodeAgent.
 ///
@@ -75,10 +75,13 @@ impl NodeAgentManager {
 
             // Send the container info to the monitoring server
             let mut sender = self.sender.lock().await;
-            if let Err(e) = sender.send_container_list(ContainerList {
-                node_name: node.clone(),
-                containers: container_list,
-            }).await {
+            if let Err(e) = sender
+                .send_container_list(ContainerList {
+                    node_name: node.clone(),
+                    containers: container_list,
+                })
+                .await
+            {
                 eprintln!("[NodeAgent] Error sending container info: {}", e);
             }
             sleep(Duration::from_secs(1)).await;

@@ -1,0 +1,70 @@
+name: Build and Push Container Images
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  packages: write
+
+env:
+  ContainerRegistry: "ghcr.io"
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up QEMU for cross-platform builds
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Set up Docker Buildx for multi-arch builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Log in to GitHub Container Registry (GHCR)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # -------- Build and Push: Server --------
+      - name: Build and push Server multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: COMPONENT=server
+          tags: ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}-server:${{ github.ref_name }}
+
+      # -------- Build and Push: Agent --------
+      - name: Build and push Agent multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: COMPONENT=agent
+          tags: ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}-agent:${{ github.ref_name }}
+
+      # -------- Build and Push: Player --------
+      - name: Build and push Player multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: COMPONENT=player
+          tags: ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}-player:${{ github.ref_name }}

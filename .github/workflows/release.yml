@@ -1,85 +1,82 @@
 name: Release
 
-# Trigger the workflow only when a new tag starting with "v" is pushed (e.g., v1.0.0)
+# 🔁 Trigger this workflow only when a new Git tag starting with 'v' is pushed (e.g., v1.0.0)
 on:
   push:
     tags:
       - v*
 
-# Prevent duplicate jobs running for same tag; cancel in-progress if newer tag is pushed
+# 🚦 Cancel any in-progress runs if a new tag is pushed for the same release group
 concurrency:
   group: "release-${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
-  # Run the main Rust CI checks (tests, formatting, lint, etc.)
+  # ✅ Step 1: Run full CI to validate Rust codebase (formatting, clippy, tests)
   run-rust-ci:
     uses: ./.github/workflows/run-ci.yml
 
-  # Run Rust documentation lint checks
+  # 📚 Step 2: Validate Markdown and documentation formatting
   run-doc-lint:
     uses: ./.github/workflows/run-doc.yml
 
-  # Run YAML syntax and structure validation
+  # 🧾 Step 3: Validate all YAML syntax (configs, workflows, etc.)
   run-yaml-validation:
     uses: ./.github/workflows/run-validate.yml
 
-  # Generate license reports using cargo-about
+  # 📄 Step 4: Generate open source license metadata via `cargo-about`
   run-license-report:
     uses: ./.github/workflows/run-license-check.yml
 
-  # Main job to gather reports and publish artifacts to the GitHub release
+  # 📦 Step 5: Collect all generated artifacts and publish to GitHub Release
   tag_release_artifacts:
-    # Run this job only for version tag pushes
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     name: Collect and upload release artifacts
     runs-on: ubuntu-latest
 
-    # Ensure all upstream jobs complete successfully before running this one
+    # ✅ Only run this if triggered by a version tag push
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    # 📋 Wait for all required jobs to complete successfully
     needs:
       - run-rust-ci
       - run-doc-lint
       - run-yaml-validation
       - run-license-report
 
-    # Grant full write access for upload operations
     permissions: write-all
 
     steps:
-      # Checkout code and all submodules
+      # ⬇️ Checkout code with submodules
       - uses: actions/checkout@v4
         with:
           submodules: "recursive"
 
-      # Download deny-check report generated in prior jobs
+      # 🧾 Download all reports generated in prior steps
       - name: Download deny report
         uses: actions/download-artifact@v4
         with:
           name: deny-report
           path: dist/reports/deny/
 
-      # Download formatting (cargo fmt) report
       - name: Download fmt report
         uses: actions/download-artifact@v4
         with:
           name: fmt-report
           path: dist/reports/fmt/
 
-      # Download test reports (Junit XML)
       - name: Download test report
         uses: actions/download-artifact@v4
         with:
           name: test-report
           path: dist/tests/
-      
-      # Download license HTML report
+
       - name: Download license report
         uses: actions/download-artifact@v4
         with:
           name: license-report
           path: dist/licenses/
 
-      # Upload deny report to the GitHub release assets
+      # 📤 Upload all reports as GitHub Release assets
       - name: Upload deny report to release
         uses: svenstaro/upload-release-action@v2
         id: upload_deny_report
@@ -88,7 +85,6 @@ jobs:
           file: dist/reports/deny/deny_summary.md
           tag: ${{ github.ref }}
 
-      # Upload formatting (cargo fmt) report
       - name: Upload fmt report to release
         uses: svenstaro/upload-release-action@v2
         id: upload_fmt_report
@@ -97,7 +93,6 @@ jobs:
           file: dist/reports/fmt/fmt_summary.md
           tag: ${{ github.ref }}
 
-      # Upload the combined JUnit test report XML
       - name: Upload test report to release
         uses: svenstaro/upload-release-action@v2
         id: upload_test_report
@@ -106,8 +101,7 @@ jobs:
           file: dist/tests/test_summary.xml
           file_glob: true
           tag: ${{ github.ref }}
-      
-      # Upload license HTML report (e.g., for apiserver)
+
       - name: Upload license report to release
         uses: svenstaro/upload-release-action@v2
         id: upload_license_report
@@ -117,14 +111,14 @@ jobs:
           file_glob: true
           tag: ${{ github.ref }}
 
-      # Fetch details of the latest release (needed for quevee)
+      # ℹ️ Fetch latest release metadata (used by quality manifest tool)
       - name: Gets latest created release info
         id: latest_release_info
         uses: joutvhu/get-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      # Upload README file to release assets
+
+      # 📘 Upload helpful documentation and compliance files
       - name: Upload README to release
         uses: svenstaro/upload-release-action@v2
         id: upload_readme
@@ -133,7 +127,6 @@ jobs:
           file: README.md
           tag: ${{ github.ref }}
 
-      # Upload coding rules or guidelines to release assets
       - name: Upload Coding Guidelines to release
         uses: svenstaro/upload-release-action@v2
         id: upload_coding_guidelines
@@ -142,7 +135,6 @@ jobs:
           file: src/coding-rule.md
           tag: ${{ github.ref }}
 
-      # Upload release process to release assets
       - name: Upload Release Process to release
         uses: svenstaro/upload-release-action@v2
         id: upload_release_process
@@ -150,15 +142,13 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: .github/workflows/release.yml
           tag: ${{ github.ref }}
-      
-      # Step to create a compressed archive of the entire 'doc/' folder
+
+      # 📦 Archive the entire doc folder for easy release viewing
       - name: Archive doc folder
         shell: bash
         run: |
-          # Create a tar.gz archive named 'doc-archive.tar.gz' containing everything in 'doc/'
           tar czf doc-archive.tar.gz doc/
 
-      # Step to upload the archived docs as a release asset to the current Git tag release
       - name: Upload doc archive to release
         uses: svenstaro/upload-release-action@v2
         id: upload_doc
@@ -167,7 +157,7 @@ jobs:
           file: doc-archive.tar.gz
           tag: ${{ github.ref }}
 
-      # Generate a quality manifest (quality metadata file) using Eclipse Dash QueVee
+      # 🧠 Generate quality manifest using Eclipse Dash QueVee
       - name: Collect quality artifacts with quevee
         id: quevee_manifest
         uses: eclipse-dash/quevee@v1
@@ -178,12 +168,25 @@ jobs:
           artifacts_release_process: ${{ steps.upload_release_process.outputs.browser_download_url }} 
           artifacts_documentation: ${{ steps.upload_doc.outputs.browser_download_url }}
           artifacts_requirements: ${{ steps.upload_doc.outputs.browser_download_url }}
-          artifacts_testing: ${{ steps.upload_test_report.outputs.browser_download_url }}, ${{ steps.upload_license_report.outputs.browser_download_url }}, ${{ steps.upload_fmt_report.outputs.browser_download_url }}, ${{ steps.upload_deny_report.outputs.browser_download_url }} 
+          artifacts_testing: >
+            ${{ steps.upload_test_report.outputs.browser_download_url }},
+            ${{ steps.upload_license_report.outputs.browser_download_url }},
+            ${{ steps.upload_fmt_report.outputs.browser_download_url }},
+            ${{ steps.upload_deny_report.outputs.browser_download_url }}
 
-      # Upload the final manifest file (produced by quevee) to the GitHub release
+      # 📤 Upload the generated quality manifest to GitHub Release
       - name: Upload quality manifest to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ steps.quevee_manifest.outputs.manifest_file }}
           tag: ${{ github.ref }}
+
+  # 🐳 Final Step: Build and push multi-arch container images to GHCR
+  build-and-push-container:
+    name: Build and Push Container Image
+    uses: ./.github/workflows/build-container.yml
+    needs:
+      - tag_release_artifacts
+    permissions:
+      packages: write

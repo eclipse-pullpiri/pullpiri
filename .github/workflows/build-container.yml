@@ -16,19 +16,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Set up QEMU for cross-platform builds
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # Set up Docker Buildx for multi-arch builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Log in to GitHub Container Registry (GHCR)
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -44,7 +40,9 @@ jobs:
           file: containers/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: COMPONENT=server
+          build-args: |
+            COMPONENT=server
+            TARGETARCH
           tags: ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}-server:${{ github.ref_name }}
 
       # -------- Build and Push: Agent --------
@@ -55,7 +53,9 @@ jobs:
           file: containers/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: COMPONENT=agent
+          build-args: |
+            COMPONENT=agent
+            TARGETARCH
           tags: ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}-agent:${{ github.ref_name }}
 
       # -------- Build and Push: Player --------
@@ -66,5 +66,7 @@ jobs:
           file: containers/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: COMPONENT=player
+          build-args: |
+            COMPONENT=player
+            TARGETARCH
           tags: ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}-player:${{ github.ref_name }}

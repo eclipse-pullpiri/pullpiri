@@ -2,7 +2,7 @@
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Structure
+# (Deprecated) Structure
 
 <img alt="Pullpiri overview" src="../images/overview.png"
 width="75%"

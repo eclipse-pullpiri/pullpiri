@@ -1,42 +1,42 @@
 name: Release
 
-# 🔁 Trigger this workflow only when a new Git tag starting with 'v' is pushed (e.g., v1.0.0)
+# Trigger this workflow only when a new Git tag starting with 'v' is pushed (e.g., v1.0.0)
 on:
   push:
     tags:
       - v*
 
-# 🚦 Cancel any in-progress runs if a new tag is pushed for the same release group
+# Cancel any in-progress runs if a new tag is pushed for the same release group
 concurrency:
   group: "release-${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
-  # ✅ Step 1: Run full CI to validate Rust codebase (formatting, clippy, tests)
+  # Step 1: Run full CI to validate Rust codebase (formatting, clippy, tests)
   run-rust-ci:
     uses: ./.github/workflows/run-ci.yml
 
-  # 📚 Step 2: Validate Markdown and documentation formatting
+  # Step 2: Validate Markdown and documentation formatting
   run-doc-lint:
     uses: ./.github/workflows/run-doc.yml
 
-  # 🧾 Step 3: Validate all YAML syntax (configs, workflows, etc.)
+  # Step 3: Validate all YAML syntax (configs, workflows, etc.)
   run-yaml-validation:
     uses: ./.github/workflows/run-validate.yml
 
-  # 📄 Step 4: Generate open source license metadata via `cargo-about`
+  # Step 4: Generate open source license metadata via `cargo-about`
   run-license-report:
     uses: ./.github/workflows/run-license-check.yml
 
-  # 📦 Step 5: Collect all generated artifacts and publish to GitHub Release
+  # Step 5: Collect all generated artifacts and publish to GitHub Release
   tag_release_artifacts:
     name: Collect and upload release artifacts
     runs-on: ubuntu-latest
 
-    # ✅ Only run this if triggered by a version tag push
+    # Only run this if triggered by a version tag push
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
-    # 📋 Wait for all required jobs to complete successfully
+    # Wait for all required jobs to complete successfully
     needs:
       - run-rust-ci
       - run-doc-lint
@@ -46,12 +46,12 @@ jobs:
     permissions: write-all
 
     steps:
-      # ⬇️ Checkout code with submodules
+      # Checkout code with submodules
       - uses: actions/checkout@v4
         with:
           submodules: "recursive"
 
-      # 🧾 Download all reports generated in prior steps
+      # Download all reports generated in prior steps
       - name: Download deny report
         uses: actions/download-artifact@v4
         with:
@@ -76,7 +76,7 @@ jobs:
           name: license-report
           path: dist/licenses/
 
-      # 📤 Upload all reports as GitHub Release assets
+      # Upload all reports as GitHub Release assets
       - name: Upload deny report to release
         uses: svenstaro/upload-release-action@v2
         id: upload_deny_report
@@ -111,14 +111,14 @@ jobs:
           file_glob: true
           tag: ${{ github.ref }}
 
-      # ℹ️ Fetch latest release metadata (used by quality manifest tool)
+      # Fetch latest release metadata (used by quality manifest tool)
       - name: Gets latest created release info
         id: latest_release_info
         uses: joutvhu/get-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 📘 Upload helpful documentation and compliance files
+      # Upload helpful documentation and compliance files
       - name: Upload README to release
         uses: svenstaro/upload-release-action@v2
         id: upload_readme
@@ -143,7 +143,7 @@ jobs:
           file: .github/workflows/release.yml
           tag: ${{ github.ref }}
 
-      # 📦 Archive the entire doc folder for easy release viewing
+      # Archive the entire doc folder for easy release viewing
       - name: Archive doc folder
         shell: bash
         run: |
@@ -157,7 +157,7 @@ jobs:
           file: doc-archive.tar.gz
           tag: ${{ github.ref }}
 
-      # 🧠 Generate quality manifest using Eclipse Dash QueVee
+      # Generate quality manifest using Eclipse Dash QueVee
       - name: Collect quality artifacts with quevee
         id: quevee_manifest
         uses: eclipse-dash/quevee@v1
@@ -174,7 +174,7 @@ jobs:
             ${{ steps.upload_fmt_report.outputs.browser_download_url }},
             ${{ steps.upload_deny_report.outputs.browser_download_url }}
 
-      # 📤 Upload the generated quality manifest to GitHub Release
+      # Upload the generated quality manifest to GitHub Release
       - name: Upload quality manifest to release
         uses: svenstaro/upload-release-action@v2
         with:
@@ -182,7 +182,7 @@ jobs:
           file: ${{ steps.quevee_manifest.outputs.manifest_file }}
           tag: ${{ github.ref }}
 
-  # 🐳 Final Step: Build and push multi-arch container images to GHCR
+  # Final Step: Build and push multi-arch container images to GHCR
   build-and-push-container:
     name: Build and Push Container Image
     uses: ./.github/workflows/build-container.yml

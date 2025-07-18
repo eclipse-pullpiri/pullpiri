@@ -1,0 +1,68 @@
+//! MonitoringServerManager: Asynchronous manager for MonitoringServer
+//!
+//! This struct manages scenario requests received via gRPC, and provides
+//! a gRPC sender for communicating with the nodeagent or other services.
+//! It is designed to be thread-safe and run in an async context.
+use common::monitoringserver::ContainerList;
+use common::Result;
+use std::sync::Arc;
+use tokio::sync::{mpsc, Mutex};
+
+/// Main manager struct for MonitoringServer.
+///
+/// Holds the gRPC receiver and sender, and manages the main event loop.
+pub struct MonitoringServerManager {
+    /// Receiver for scenario information from gRPC
+    rx_grpc: Arc<Mutex<mpsc::Receiver<ContainerList>>>,
+}
+
+impl MonitoringServerManager {
+    /// Creates a new MonitoringServerManager instance.
+    ///
+    /// # Arguments
+    /// * `rx_grpc` - Channel receiver for scenario information
+    pub async fn new(rx: mpsc::Receiver<ContainerList>) -> Self {
+        Self {
+            rx_grpc: Arc::new(Mutex::new(rx)),
+        }
+    }
+
+    /// Initializes the MonitoringServerManager (e.g., loads scenarios, prepares state).
+    pub async fn initialize(&mut self) -> Result<()> {
+        println!("MonitoringServerManager init");
+        // Add initialization logic here (e.g., read scenarios, subscribe, etc.)
+        Ok(())
+    }
+
+    /// Main loop for processing incoming gRPC ContainerList messages.
+    ///
+    /// This function continuously receives ContainerList from the gRPC channel
+    /// and handles them (e.g., triggers actions, updates state, etc.).
+    pub async fn process_grpc_requests(&self) -> Result<()> {
+        let arc_rx_grpc = Arc::clone(&self.rx_grpc);
+        let mut rx_grpc: tokio::sync::MutexGuard<'_, mpsc::Receiver<ContainerList>> =
+            arc_rx_grpc.lock().await;
+        while let Some(container_list) = rx_grpc.recv().await {
+            // Handle the received ContainerList
+            println!("Received ContainerList from nodeagent: node_name={}, containers={:?}", container_list.node_name, container_list.containers);
+            // TODO: Add your processing logic here
+        }
+        Ok(())
+    }
+
+    /// Runs the MonitoringServerManager event loop.
+    ///
+    /// Spawns the gRPC processing task and waits for it to finish.
+    pub async fn run(self) -> Result<()> {
+        let arc_self = Arc::new(self);
+        let grpc_manager = Arc::clone(&arc_self);
+        let grpc_processor = tokio::spawn(async move {
+            if let Err(e) = grpc_manager.process_grpc_requests().await {
+                eprintln!("Error in gRPC processor: {:?}", e);
+            }
+        });
+        let _ = grpc_processor.await;
+        println!("MonitoringServerManager stopped");
+        Ok(())
+    }
+}

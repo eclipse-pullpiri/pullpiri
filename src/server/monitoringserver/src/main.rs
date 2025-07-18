@@ -53,15 +53,7 @@ async fn initialize(tx_grpc: Sender<ContainerList>) {
 
 #[tokio::main]
 async fn main() {
-    let hostname: String = String::from_utf8_lossy(
-        &std::process::Command::new("hostname")
-            .output()
-            .expect("Failed to get hostname")
-            .stdout,
-    )
-    .trim()
-    .to_string();
-    println!("Starting MonitoringServer on host: {}", hostname);
+    println!("Starting MonitoringServer...");
 
     let (tx_grpc, rx_grpc) = channel::<ContainerList>(100);
     let mgr = launch_manager(rx_grpc);

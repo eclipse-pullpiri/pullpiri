@@ -18,7 +18,6 @@ pub enum ContainerError {
 }
 
 pub async fn inspect() -> std::result::Result<Vec<ContainerInfo>, ContainerError> {
-    println!("start container inspect\n");
     let list = get_list().await?;
     let infos: Vec<ContainerInfo> = try_join_all(list.iter().map(|container| {
         let id = container.Id.clone();

@@ -36,7 +36,5 @@ impl NodeAgentSender {
             .await
             .unwrap();
         client.send_container_list(Request::new(container_list)).await
-        // TODO : temporary return value, replace with proper error handling
-        // Result::Ok(tonic::Response::new(SendContainerListResponse::default()))
     }
 }

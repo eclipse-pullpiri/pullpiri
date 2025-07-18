@@ -39,9 +39,7 @@ impl MonitoringServerManager {
     /// This function continuously receives ContainerList from the gRPC channel
     /// and handles them (e.g., triggers actions, updates state, etc.).
     pub async fn process_grpc_requests(&self) -> Result<()> {
-        let arc_rx_grpc = Arc::clone(&self.rx_grpc);
-        let mut rx_grpc: tokio::sync::MutexGuard<'_, mpsc::Receiver<ContainerList>> =
-            arc_rx_grpc.lock().await;
+        let mut rx_grpc = self.rx_grpc.lock().await;
         while let Some(container_list) = rx_grpc.recv().await {
             // Handle the received ContainerList
             println!("Received ContainerList from nodeagent: node_name={}, containers={:?}", container_list.node_name, container_list.containers);

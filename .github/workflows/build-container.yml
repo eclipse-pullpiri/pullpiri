@@ -8,7 +8,7 @@ permissions:
   packages: write
 
 env:
-  ContainerRegistry: "ghcr.io"
+  ContainerRegistry: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
@@ -32,41 +32,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # -------- Build and Push: Server --------
-      - name: Build and push Server multi-arch image
+      - name: Build and push multi-arch image (agent + server + player)
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: containers/Dockerfile
+          file: containers/Dockerfile1 # Your updated Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           build-args: |
-            COMPONENT=server
             TARGETARCH
-          tags: ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}-server:${{ github.ref_name }}
-
-      # -------- Build and Push: Agent --------
-      - name: Build and push Agent multi-arch image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: containers/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          build-args: |
-            COMPONENT=agent
-            TARGETARCH
-          tags: ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}-agent:${{ github.ref_name }}
-
-      # -------- Build and Push: Player --------
-      - name: Build and push Player multi-arch image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: containers/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          build-args: |
-            COMPONENT=player
-            TARGETARCH
-          tags: ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}-player:${{ github.ref_name }}
+          tags: |
+            ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}

@@ -39,11 +39,18 @@ impl MonitoringServerManager {
     /// This function continuously receives ContainerList from the gRPC channel
     /// and handles them (e.g., triggers actions, updates state, etc.).
     pub async fn process_grpc_requests(&self) -> Result<()> {
-        let mut rx_grpc = self.rx_grpc.lock().await;
-        while let Some(container_list) = rx_grpc.recv().await {
-            // Handle the received ContainerList
-            println!("Received ContainerList from nodeagent: node_name={}, containers={:?}", container_list.node_name, container_list.containers);
-            // TODO: Add your processing logic here
+        loop {
+            let container_list_opt = {
+                let mut rx_grpc = self.rx_grpc.lock().await;
+                rx_grpc.recv().await
+            };
+            if let Some(container_list) = container_list_opt {
+                // Handle the received ContainerList
+                println!("Received ContainerList from nodeagent: node_name={}, containers={:?}", container_list.node_name, container_list.containers);
+                // TODO: Add your processing logic here
+            } else {
+                break;
+            }
         }
         Ok(())
     }

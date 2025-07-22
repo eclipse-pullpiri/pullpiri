@@ -12,7 +12,7 @@ pub fn open_server() -> String {
     }
 
     // Validate the IP format
-    if !config.host.ip.parse::<std::net::IpAddr>().is_ok() {
+    if config.host.ip.parse::<std::net::IpAddr>().is_err() {
         panic!("Invalid IP address format: {}", config.host.ip);
     }
 
@@ -21,7 +21,39 @@ pub fn open_server() -> String {
 }
 
 async fn get_client() -> Result<Client, Error> {
-    Client::connect([open_server()], None).await
+    const MAX_RETRIES: u32 = 10;
+    const RETRY_DELAY_MS: u64 = 1000;
+
+    let mut attempt = 0;
+    let mut last_error = None;
+
+    while attempt < MAX_RETRIES {
+        match Client::connect([open_server()], None).await {
+            Ok(client) => {
+                return Ok(client);
+            }
+            Err(err) => {
+                println!(
+                    "Failed to get etcd client (attempt {}/{}): {:?}",
+                    attempt + 1,
+                    MAX_RETRIES,
+                    err
+                );
+                last_error = Some(err);
+                attempt += 1;
+
+                if attempt < MAX_RETRIES {
+                    // Wait before the next retry
+                    tokio::time::sleep(tokio::time::Duration::from_millis(RETRY_DELAY_MS)).await;
+                }
+            }
+        }
+    }
+
+    // If we've exhausted all retries, return the last error
+    Err(last_error.unwrap_or_else(|| {
+        std::io::Error::other("Failed to get etcd client after multiple attempts").into()
+    }))
 }
 
 pub struct KV {

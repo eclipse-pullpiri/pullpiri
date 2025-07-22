@@ -41,8 +41,8 @@ async fn initialize(tx_grpc: Sender<ContainerList>) {
     };
 
     let addr = common::monitoringserver::open_server()
-    .parse()
-    .expect("monitoringserver address parsing error");
+        .parse()
+        .expect("monitoringserver address parsing error");
     println!("MonitoringServer listening on {}", addr);
 
     let _ = Server::builder()

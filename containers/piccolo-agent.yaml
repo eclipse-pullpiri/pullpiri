@@ -13,7 +13,7 @@ spec:
   hostPid: true
   containers:
   - name: nodeagent
-    image: localhost/pullpiri-agent:latest
+    image: localhost/pullpiri:latest
     command: ["/piccolo/nodeagent"]
     volumeMounts:
     - name: piccolo-yaml

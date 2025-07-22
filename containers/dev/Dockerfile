@@ -6,9 +6,20 @@ FROM localhost/pullpiribuilder:latest AS builder
 WORKDIR /piccolo
 
 COPY ./src/common/ /piccolo/common
-COPY ./src/server/ /piccolo/server
+COPY ./src/agent/ /piccolo/agent
+COPY ./src/server/ /piccolo/server/
+COPY ./src/player/ /piccolo/player
 
+# Build server binaries
 WORKDIR /piccolo/server
+RUN cargo build --release
+
+# Build agent binaries
+WORKDIR /piccolo/agent
+RUN cargo build --release
+
+# Build player binaries
+WORKDIR /piccolo/player
 RUN cargo build --release
 
 
@@ -21,6 +32,9 @@ COPY --from=builder \
     /piccolo/server/target/release/apiserver \
     /piccolo/server/target/release/monitoringserver \
     /piccolo/server/target/release/policymanager \
-    ./
+    /piccolo/agent/target/release/nodeagent \
+    /piccolo/player/target/release/actioncontroller \
+    /piccolo/player/target/release/statemanager \
+    /piccolo/player/target/release/filtergateway ./
 
 CMD [ "sh" ]

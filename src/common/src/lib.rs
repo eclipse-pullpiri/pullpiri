@@ -25,7 +25,7 @@ fn open_guest_server(port: u16) -> String {
         .map(|guest: &setting::GuestSettings| guest.ip.as_str())
         .unwrap();
 
-    format!("{}:{}", guest_ip, port)
+    format!("{guest_ip}:{port}")
 }
 
 fn connect_server(port: u16) -> String {
@@ -40,7 +40,7 @@ fn connect_guest_server(port: u16) -> String {
         .map(|guest: &setting::GuestSettings| guest.ip.as_str())
         .unwrap();
 
-    format!("http://{}:{}", guest_ip, port)
+    format!("http://{guest_ip}:{port}")
 }
 
 pub mod actioncontroller {

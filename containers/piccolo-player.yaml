@@ -13,10 +13,10 @@ spec:
   hostPid: true
   containers:
   - name: filtergateway
-    image: localhost/pullpiri-player:latest
+    image: localhost/pullpiri:latest
     command: ["/piccolo/filtergateway"]
   - name: actioncontroller
-    image: localhost/pullpiri-player:latest
+    image: localhost/pullpiri:latest
     command: ["/piccolo/actioncontroller"]
     volumeMounts:
     - name: piccolo-yaml
@@ -28,7 +28,7 @@ spec:
     - name: config-path
       mountPath: /piccolo/settings.yaml
   - name: statemanager
-    image: localhost/pullpiri-player:latest
+    image: localhost/pullpiri:latest
     command: ["/piccolo/statemanager"]
     volumeMounts:
     - name: piccolo-yaml

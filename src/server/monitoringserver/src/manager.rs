@@ -46,7 +46,10 @@ impl MonitoringServerManager {
             };
             if let Some(container_list) = container_list_opt {
                 // Handle the received ContainerList
-                println!("Received ContainerList from nodeagent: node_name={}, containers={:?}", container_list.node_name, container_list.containers);
+                println!(
+                    "Received ContainerList from nodeagent: node_name={}, containers={:?}",
+                    container_list.node_name, container_list.containers
+                );
                 // TODO: Add your processing logic here
             } else {
                 break;

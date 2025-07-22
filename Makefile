@@ -27,27 +27,30 @@ clean:
 
 .PHONY: image
 image:
-	podman build -t localhost/pullpiri-agent:latest -f containers/Dockerfile-agent .
-	podman build -t localhost/pullpiri-player:latest -f containers/Dockerfile-player .
-	podman build -t localhost/pullpiri-server:latest -f containers/Dockerfile-server .
+	podman build -t localhost/pullpiri:latest -f containers/Dockerfile .
 
-# command for dev
-
+# command for DEVELOPMENT ONLY
 .PHONY: builder
 builder:
 #	podman run --privileged --rm tonistiigi/binfmt --install all
 #	podman buildx build --platform linux/amd64,linux/arm64 -t localhost/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
 #	podman buildx build --platform linux/amd64,linux/arm64 -t localhost/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
-	podman build -t localhost/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
-	podman build -t localhost/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
+	podman build -t localhost/pullpiribuilder:latest -f containers/dev/Dockerfile-pullpiribuilder .
+	podman build -t localhost/pullpirirelease:latest -f containers/dev/Dockerfile-pullpirirelease .
+
+# command for DEVELOPMENT ONLY
+.PHONY: devimage
+devimage:
+	podman build -t localhost/pullpiri:dev -f containers/dev/Dockerfile .
 
 # DO NOT USE THIS COMMAND IN PRODUCTION
-.PHONY: pushbuilder
-pushbuilder:
-	docker buildx create --name container-builder --driver docker-container --bootstrap --use
-	docker run --privileged --rm tonistiigi/binfmt --install all
-	docker buildx build --push --platform linux/amd64,linux/arm64 -t ghcr.io/eclipse-pullpiri/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
-	docker buildx build --push --platform linux/amd64,linux/arm64 -t ghcr.io/eclipse-pullpiri/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
+# command for project owner
+#.PHONY: pushbuilder
+#pushbuilder:
+#	docker buildx create --name container-builder --driver docker-container --bootstrap --use
+#	docker run --privileged --rm tonistiigi/binfmt --install all
+#	docker buildx build --push --platform linux/amd64,linux/arm64 -t ghcr.io/eclipse-pullpiri/pullpiribuilder:latest -f containers/builder/Dockerfile-pullpiribuilder .
+#	docker buildx build --push --platform linux/amd64,linux/arm64 -t ghcr.io/eclipse-pullpiri/pullpirirelease:latest -f containers/builder/Dockerfile-pullpirirelease .
 
 #.PHONY: pre
 #pre:

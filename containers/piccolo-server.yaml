@@ -20,7 +20,7 @@ spec:
     - name: etcd-data
       mountPath: /etcd-data
   - name: apiserver
-    image: localhost/pullpiri-server:latest
+    image: localhost/pullpiri:latest
     command: ["/piccolo/apiserver"]
     volumeMounts:
     - name: piccolo-yaml
@@ -28,10 +28,10 @@ spec:
     - name: config-path
       mountPath: /piccolo/settings.yaml
   - name: policymanager
-    image: localhost/pullpiri-server:latest
+    image: localhost/pullpiri:latest
     command: ["/piccolo/policymanager"]
   - name: monitoringserver
-    image: localhost/pullpiri-server:latest
+    image: localhost/pullpiri:latest
     command: ["/piccolo/monitoringserver"]
   volumes:
   - name: piccolo-yaml

@@ -32,9 +32,12 @@ impl NodeAgentSender {
         &mut self,
         container_list: ContainerList,
     ) -> Result<tonic::Response<SendContainerListResponse>, Status> {
-        let mut client = MonitoringServerConnectionClient::connect(common::monitoringserver::connect_server())
+        let mut client =
+            MonitoringServerConnectionClient::connect(common::monitoringserver::connect_server())
+                .await
+                .unwrap();
+        client
+            .send_container_list(Request::new(container_list))
             .await
-            .unwrap();
-        client.send_container_list(Request::new(container_list)).await
     }
 }

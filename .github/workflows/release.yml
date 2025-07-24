@@ -52,24 +52,64 @@ jobs:
           submodules: "recursive"
 
       # Download all reports generated in prior steps
+
+      # Optional: coverage report for the agent component (commented out)
+      # - name: Download coverage report for agent
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: code-coverage-html-agent
+      #     path: dist/coverage/agent/
+
+      # Optional: coverage report for the player component (commented out)
+      # - name: Download coverage report for player
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: code-coverage-html-player
+      #     path: dist/coverage/player/
+      
+      # Code coverage HTML report for the server component
+      - name: Download coverage report for server
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage-html-server
+          path: dist/coverage/server/
+
+      # Code coverage HTML report for the tools component
+      - name: Download coverage report for tools
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage-html-tools
+          path: dist/coverage/tools/
+
+      # Code coverage HTML report for the common component
+      - name: Download coverage report for common
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage-html-common
+          path: dist/coverage/common/
+      
+      # Deny-check report (license allowlist violations)
       - name: Download deny report
         uses: actions/download-artifact@v4
         with:
           name: deny-report
           path: dist/reports/deny/
-
+      
+      # Formatting report (rustfmt summary)
       - name: Download fmt report
         uses: actions/download-artifact@v4
         with:
           name: fmt-report
           path: dist/reports/fmt/
 
+      # Test result report (JUnit XML format)
       - name: Download test report
         uses: actions/download-artifact@v4
         with:
           name: test-report
           path: dist/tests/
-
+      
+      # License HTML report from cargo-about
       - name: Download license report
         uses: actions/download-artifact@v4
         with:
@@ -77,6 +117,54 @@ jobs:
           path: dist/licenses/
 
       # Upload all reports as GitHub Release assets
+
+      # Optional: upload coverage for player component
+      # - name: Upload test coverage report for player to release
+      #   uses: svenstaro/upload-release-action@v2
+      #   id: upload_test_coverage_report_player
+      #   with:
+      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
+      #     file: dist/coverage/player/*.html
+      #     file_glob: true
+      #     tag: ${{ github.ref }}
+
+      # Optional: upload coverage for agent component
+      # - name: Upload test coverage report for agent to release
+      #   uses: svenstaro/upload-release-action@v2
+      #   id: upload_test_coverage_report_agent
+      #   with:
+      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
+      #     file: dist/coverage/agent/*.html
+      #     file_glob: true
+      #     tag: ${{ github.ref }}
+
+      - name: Upload test coverage report for server to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_test_coverage_report_server
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/coverage/server/*.html
+          file_glob: true
+          tag: ${{ github.ref }}
+
+      - name: Upload test coverage report for tools to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_test_coverage_report_tools
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/coverage/tools/*.html
+          file_glob: true
+          tag: ${{ github.ref }}
+
+      - name: Upload test coverage report for common to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_test_coverage_report_common
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/coverage/common/*.html
+          file_glob: true
+          tag: ${{ github.ref }}
+
       - name: Upload deny report to release
         uses: svenstaro/upload-release-action@v2
         id: upload_deny_report
@@ -110,13 +198,6 @@ jobs:
           file: dist/licenses/*.html
           file_glob: true
           tag: ${{ github.ref }}
-
-      # Fetch latest release metadata (used by quality manifest tool)
-      - name: Gets latest created release info
-        id: latest_release_info
-        uses: joutvhu/get-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Upload helpful documentation and compliance files
       - name: Upload README to release
@@ -156,6 +237,13 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: doc-archive.tar.gz
           tag: ${{ github.ref }}
+      
+      # Fetch latest release metadata (used by quality manifest tool)
+      - name: Gets latest created release info
+        id: latest_release_info
+        uses: joutvhu/get-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Generate quality manifest using Eclipse Dash QueVee
       - name: Collect quality artifacts with quevee
@@ -172,7 +260,12 @@ jobs:
             ${{ steps.upload_test_report.outputs.browser_download_url }},
             ${{ steps.upload_license_report.outputs.browser_download_url }},
             ${{ steps.upload_fmt_report.outputs.browser_download_url }},
-            ${{ steps.upload_deny_report.outputs.browser_download_url }}
+            ${{ steps.upload_deny_report.outputs.browser_download_url }},
+            ${{ steps.upload_test_coverage_report_common.outputs.browser_download_url }},
+            ${{ steps.upload_test_coverage_report_tools.outputs.browser_download_url }},
+            ${{ steps.upload_test_coverage_report_server.outputs.browser_download_url }}
+
+
 
       # Upload the generated quality manifest to GitHub Release
       - name: Upload quality manifest to release

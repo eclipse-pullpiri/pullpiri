@@ -30,11 +30,7 @@ jobs:
       - name: Make scripts executable
         run: chmod +x scripts/*.sh
 
-      # Step 5: Install Rust project dependencies
-      - name: Install project dependencies
-        run: ./scripts/installdeps.sh
-
-      # Step 6: Create output folders for reports
+      # Step 5: Create output folders for reports
       - name: Create reports directory
         run: |
           mkdir -p dist/reports/fmt
@@ -48,33 +44,33 @@ jobs:
           mkdir -p dist/coverage/tools
           mkdir -p dist/coverage/agent
 
-      # Step 7: Run project build and parse logs
+      # Step 6: Run project build and parse logs
       - name: Build and parse project
         run: ./scripts/buildNparse.sh
 
-      # Step 8: Run all Rust unit/integration tests and generate reports
+      # Step 7: Run all Rust unit/integration tests and generate reports
       - name: Run tests and generate report
         run: ./scripts/testNparse.sh
 
-      # Step 9: Linting (clippy)
+      # Step 8: Linting (clippy)
       - name: Run Clippy (lint)
         run: ./scripts/clippy_check.sh
 
-      # Step 10: Formatting check
+      # Step 9: Formatting check
       - name: Run format check
         run: ./scripts/fmt_check.sh
 
-      # Step 11: License, ban, and security checks with cargo-deny
+      # Step 10: License, ban, and security checks with cargo-deny
       - name: Run cargo-deny checks
         run: ./scripts/deny_check.sh
 
-      # Step 12: Run test coverage script
+      # Step 11: Run test coverage script
       - name: Run test coverage script
         run: ./scripts/test_coverage.sh
 
       # === Upload All Reports ===
 
-      # Step 13: Upload deny report
+      # Step 12: Upload deny report
       - name: Upload deny report
         if: always()
         uses: actions/upload-artifact@v4
@@ -82,7 +78,7 @@ jobs:
           name: deny-report
           path: dist/reports/deny/deny_summary.md
 
-      # Step 14: Upload format report
+      # Step 13: Upload format report
       - name: Upload fmt report
         if: always()
         uses: actions/upload-artifact@v4
@@ -90,7 +86,7 @@ jobs:
           name: fmt-report
           path: dist/reports/fmt/fmt_summary.md
 
-      # Step 15: Upload all test reports (JUnit-style)
+      # Step 14: Upload all test reports (JUnit-style)
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -98,7 +94,7 @@ jobs:
           name: test-report
           path: dist/tests/*
 
-      # Step 16: Upload test coverage reports
+      # Step 15: Upload test coverage reports
       - name: Upload Overall coverage reports
         if: always()
         uses: actions/upload-artifact@v4

@@ -36,7 +36,11 @@ jobs:
               - '**/*.md'         # Markdown docs (README, etc.)
             yaml:
               - '.github/workflows/*.yml'  # GitHub workflow YAMLs
-
+  
+  # Step: Install Rust project dependencies
+      - name: Install project dependencies
+        run: ./scripts/installdeps.sh
+    
   #  Job 2: Trigger full Rust CI workflow if Rust files or configs changed
   run-rust-ci:
     needs: detect-changes

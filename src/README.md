@@ -12,7 +12,6 @@ For `Pullpiri` build, try following in the project root folder
 
 ```bash
 # in pullpiri folder
-make builder
 make image
 ```
 
@@ -27,7 +26,7 @@ only 1 node
 
 ## player
 
-only 1 node (can server + player in 1 node)
+only 1 node (server + player can be located in 1 node)
 
 1. filtergateway
 1. actioncontroller
@@ -41,8 +40,8 @@ all nodes
 
 ## common
 
-hello
+common resources like gRPC proto, pullpiri artifact, ...
 
 ## tools
 
-hi
+Additional tools will be added to aid development.

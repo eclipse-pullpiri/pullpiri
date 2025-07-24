@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # 🧠 Job 1: Detect file changes and conditionally trigger jobs based on them
+  #  Job 1: Detect file changes and conditionally trigger jobs based on them
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -37,25 +37,25 @@ jobs:
             yaml:
               - '.github/workflows/*.yml'  # GitHub workflow YAMLs
 
-  # 🚀 Job 2: Trigger full Rust CI workflow if Rust files or configs changed
+  #  Job 2: Trigger full Rust CI workflow if Rust files or configs changed
   run-rust-ci:
     needs: detect-changes
     if: needs.detect-changes.outputs.rust_changed == 'true'
     uses: ./.github/workflows/run-ci.yml  # Reuse centralized Rust CI logic
 
-  # 📚 Job 3: Run markdown/documentation linter if only docs changed
+  #  Job 3: Run markdown/documentation linter if only docs changed
   run-doc-lint:
     needs: detect-changes
     if: needs.detect-changes.outputs.doc_changed == 'true'
     uses: ./.github/workflows/run-doc.yml
 
-  # ⚙️ Job 4: Validate GitHub YAML workflows (lint schema or check logic)
+  #  Job 4: Validate GitHub YAML workflows (lint schema or check logic)
   run-yaml-validation:
     needs: detect-changes
     if: needs.detect-changes.outputs.yaml_changed == 'true'
     uses: ./.github/workflows/run-validate.yml
 
-  # 📦 Job 5: Always run this last to print a clean summary in Actions UI
+  #  Job 5: Always run this last to print a clean summary in Actions UI
   ci-summary:
     name: CI Complete Summary
     runs-on: ubuntu-latest
@@ -65,4 +65,4 @@ jobs:
       - run-doc-lint
       - run-yaml-validation
     steps:
-      - run: echo "✅ All CI jobs (if triggered) have completed."
+      - run: echo "All CI jobs (if triggered) have completed."

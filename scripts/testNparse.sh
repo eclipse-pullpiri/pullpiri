@@ -124,6 +124,7 @@ cleanup  # Stop background services
 
 # Step 4: Start `actioncontroller` before testing `filtergateway`
 start_service "$ACTIONCONTROLLER_MANIFEST" "actioncontroller"
+etcdctl del "" --prefix
 sleep 3
 [[ -f "$FILTERGATEWAY_MANIFEST" ]] && run_tests "$FILTERGATEWAY_MANIFEST" "filtergateway" || echo "::warning ::$FILTERGATEWAY_MANIFEST missing."
 cleanup  # Stop actioncontroller

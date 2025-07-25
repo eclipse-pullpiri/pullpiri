@@ -18,7 +18,6 @@ impl MonitoringServerConnection for MonitoringServerReceiver {
         &'life self,
         request: Request<ContainerList>,
     ) -> Result<Response<SendContainerListResponse>, Status> {
-        println!("Got a ContainerList from nodeagent");
         let req: ContainerList = request.into_inner();
 
         match self.tx.send(req).await {

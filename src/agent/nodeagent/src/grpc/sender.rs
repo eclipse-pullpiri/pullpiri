@@ -40,4 +40,18 @@ impl NodeAgentSender {
             .send_container_list(Request::new(container_list))
             .await
     }
+
+    /// Send a changed ContainerList to the state manager via gRPC
+    pub async fn send_changed_container_list(
+        &mut self,
+        container_list: ContainerList,
+    ) -> Result<tonic::Response<SendContainerListResponse>, Status> {
+        let mut client =
+            StateManagerConnectionClient::connect(common::statemanager::connect_server())
+                .await
+                .unwrap();
+        client
+            .send_changed_container_list(Request::new(container_list))
+            .await
+    }
 }

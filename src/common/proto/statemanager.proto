@@ -3,15 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// TBD
-
 syntax = "proto3";
 
 package statemanager;
 
+import "monitoringserver.proto";
+
 service StateManagerConnection {
   rpc SendAction (Action) returns (Response);
+  rpc SendChangedContainerList (monitoringserver.ContainerList) returns (monitoringserver.SendContainerListResponse);
 }
+
 
 message Action {
   string action = 1;

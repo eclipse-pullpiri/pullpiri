@@ -10,6 +10,7 @@ package actioncontroller;
 service ActionControllerConnection {
   rpc TriggerAction(TriggerActionRequest) returns (TriggerActionResponse);
   rpc Reconcile(ReconcileRequest) returns (ReconcileResponse);
+  rpc CompleteNetworkSetting(CompleteNetworkSettingRequest) returns (CompleteNetworkSettingResponse);
 }
 
 message TriggerActionRequest {
@@ -31,6 +32,21 @@ message ReconcileResponse {
   int32 status = 1;
   string desc = 2;
 }
+
+message CompleteNetworkSettingRequest {
+  string request_id = 1;
+  enum Status {
+    OK = 0;
+    ERROR = 1;
+    TIMEOUT = 2;
+  }
+  Status status = 2;
+  string details = 3;
+}
+message CompleteNetworkSettingResponse {
+  bool acknowledged = 1;
+}
+ 
 
 enum Status {
   NONE = 0;

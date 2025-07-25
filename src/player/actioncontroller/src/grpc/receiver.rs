@@ -6,8 +6,8 @@ use common::actioncontroller::{
     action_controller_connection_server::{
         ActionControllerConnection, ActionControllerConnectionServer,
     },
-    ReconcileRequest, ReconcileResponse, Status as ActionStatus, TriggerActionRequest,
-    TriggerActionResponse,
+    CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, ReconcileRequest,
+    ReconcileResponse, Status as ActionStatus, TriggerActionRequest, TriggerActionResponse,
 };
 
 /// Receiver for handling incoming gRPC requests for ActionController
@@ -142,6 +142,20 @@ impl ActionControllerConnection for ActionControllerReceiver {
                 Err(Status::internal(format!("Failed to reconcile: {}", e)))
             }
         }
+    }
+
+    async fn complete_network_setting(
+        &self,
+        request: Request<CompleteNetworkSettingRequest>,
+    ) -> Result<Response<CompleteNetworkSettingResponse>, Status> {
+        let req = request.into_inner();
+        println!(
+            "CompleteNetworkSettingRequest: request_id={}, status={:?}, details={}",
+            req.request_id, req.status, req.details
+        );
+
+        let response = CompleteNetworkSettingResponse { acknowledged: true };
+        Ok(Response::new(response))
     }
 }
 

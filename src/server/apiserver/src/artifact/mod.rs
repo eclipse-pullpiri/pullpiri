@@ -10,6 +10,7 @@ pub mod data;
 use common::spec::artifact::Artifact;
 use common::spec::artifact::Model;
 use common::spec::artifact::Network;
+use common::spec::artifact::Node;
 use common::spec::artifact::Package;
 use common::spec::artifact::Scenario;
 use common::spec::artifact::Volume;
@@ -26,7 +27,6 @@ pub async fn apply(body: &str) -> common::Result<String> {
     let docs: Vec<&str> = body.split("---").collect();
     let mut scenario_str = String::new();
     let mut package_str = String::new();
-    let mut network_str = String::new();
 
     for doc in docs {
         let value: serde_yaml::Value = serde_yaml::from_str(doc)?;
@@ -38,6 +38,7 @@ pub async fn apply(body: &str) -> common::Result<String> {
                 "Package" => serde_yaml::from_value::<Package>(value)?.get_name(),
                 "Volume" => serde_yaml::from_value::<Volume>(value)?.get_name(),
                 "Network" => serde_yaml::from_value::<Network>(value)?.get_name(),
+                "Node" => serde_yaml::from_value::<Node>(value)?.get_name(),
                 "Model" => serde_yaml::from_value::<Model>(value)?.get_name(),
                 _ => {
                     println!("unknown artifact");
@@ -50,7 +51,6 @@ pub async fn apply(body: &str) -> common::Result<String> {
             match kind {
                 "Scenario" => scenario_str = artifact_str,
                 "Package" => package_str = artifact_str,
-                //"Network" => network_str = artifact_str,
                 _ => continue,
             };
         }

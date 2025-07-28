@@ -7,7 +7,7 @@ use common::actioncontroller::{
         ActionControllerConnection, ActionControllerConnectionServer,
     },
     CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, ReconcileRequest,
-    ReconcileResponse, Status as ActionStatus, TriggerActionRequest, TriggerActionResponse,
+    ReconcileResponse, PodStatus as ActionStatus, NetworkStatus, TriggerActionRequest, TriggerActionResponse,
 };
 
 /// Receiver for handling incoming gRPC requests for ActionController
@@ -150,8 +150,8 @@ impl ActionControllerConnection for ActionControllerReceiver {
     ) -> Result<Response<CompleteNetworkSettingResponse>, Status> {
         let req = request.into_inner();
         println!(
-            "CompleteNetworkSettingRequest: request_id={}, status={:?}, details={}",
-            req.request_id, req.status, req.details
+            "CompleteNetworkSettingRequest: request_id={}, network_status={:?}, pod_status={:?}, details={}",
+            req.request_id, req.network_status, req.pod_status, req.details
         );
 
         let response = CompleteNetworkSettingResponse { acknowledged: true };

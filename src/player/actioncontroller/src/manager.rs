@@ -2,7 +2,7 @@ use std::{thread, time::Duration};
 
 use crate::{grpc::sender::pharos::request_network_pod, runtime::bluechi};
 use common::{
-    actioncontroller::Status,
+    actioncontroller::PodStatus as Status,
     spec::artifact::{Network, Node, Package, Scenario},
     Result,
 };

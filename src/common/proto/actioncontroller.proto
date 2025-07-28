@@ -24,8 +24,8 @@ message TriggerActionResponse {
 
 message ReconcileRequest {
   string scenario_name = 1;
-  Status current = 2;
-  Status desired = 3;
+  PodStatus current = 2;
+  PodStatus desired = 3;
 }
 
 message ReconcileResponse {
@@ -35,20 +35,21 @@ message ReconcileResponse {
 
 message CompleteNetworkSettingRequest {
   string request_id = 1;
-  enum Status {
-    OK = 0;
-    ERROR = 1;
-    TIMEOUT = 2;
-  }
-  Status status = 2;
-  string details = 3;
+  NetworkStatus network_status = 2;
+  PodStatus pod_status = 3;
+  string details = 4;
 }
 message CompleteNetworkSettingResponse {
   bool acknowledged = 1;
 }
  
+enum NetworkStatus {
+  OK = 0;
+  ERROR = 1;
+  TIMEOUT = 2;
+}
 
-enum Status {
+enum PodStatus {
   NONE = 0;
   INIT = 1;
   READY = 2;

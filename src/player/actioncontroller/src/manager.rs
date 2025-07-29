@@ -1,6 +1,11 @@
-use common::Result;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use std::{thread, time::Duration};
+
+use crate::{grpc::sender::pharos::request_network_pod, runtime::bluechi};
+use common::{
+    actioncontroller::PodStatus as Status,
+    spec::artifact::{Network, Node, Package, Scenario},
+    Result,
+};
 
 /// Manager for coordinating scenario actions and workload operations
 ///
@@ -11,9 +16,9 @@ use tokio::sync::Mutex;
 /// - Handling state reconciliation for scenario workloads
 pub struct ActionControllerManager {
     /// List of nodes managed by Bluechi
-    bluechi_nodes: Vec<String>,
+    pub bluechi_nodes: Vec<String>,
     /// List of nodes managed by NodeAgent
-    nodeagent_nodes: Vec<String>,
+    pub nodeagent_nodes: Vec<String>,
     // Add other fields as needed
 }
 
@@ -27,10 +32,29 @@ impl ActionControllerManager {
     ///
     /// A new ActionControllerManager instance
     pub fn new() -> Self {
+        let mut bluechi_nodes = Vec::new();
+        let mut nodeagent_nodes = Vec::new();
+        let settings = common::setting::get_config();
+
+        if settings.host.r#type == "bluechi" {
+            bluechi_nodes.push(settings.host.name.clone());
+        } else if settings.host.r#type == "nodeagent" {
+            nodeagent_nodes.push(settings.host.name.clone());
+        }
+
+        if let Some(guests) = &settings.guest {
+            for guest in guests {
+                if guest.r#type == "bluechi" {
+                    bluechi_nodes.push(guest.name.clone());
+                } else if guest.r#type == "nodeagent" {
+                    nodeagent_nodes.push(guest.name.clone());
+                }
+            }
+        }
+
         Self {
-            bluechi_nodes: Vec::new(),
-            nodeagent_nodes: Vec::new(),
-            // Initialize other fields
+            bluechi_nodes,
+            nodeagent_nodes,
         }
     }
 
@@ -54,8 +78,112 @@ impl ActionControllerManager {
     /// - The scenario does not exist
     /// - The scenario is not allowed by policy
     /// - The runtime operation fails
-    pub async fn trigger_manager_action(&self, scenario_name: String) -> Result<()> {
-        // TODO: Implementation
+    pub async fn trigger_manager_action(&self, scenario_name: &str) -> Result<()> {
+        println!("trigger_manager_action in manager {:?}", scenario_name);
+        if scenario_name.trim().is_empty() {
+            return Err(format!("Scenario '{}' is invalid: cannot be empty", scenario_name).into());
+        }
+        let etcd_scenario_key = format!("Scenario/{}", scenario_name);
+        let scenario_str: String = match common::etcd::get(&etcd_scenario_key).await {
+            Ok(value) => value,
+            Err(e) => {
+                return Err(format!("Scenario '{}' not found: {}", scenario_name, e).into());
+            }
+        };
+        let scenario: Scenario = serde_yaml::from_str(&scenario_str)
+            .map_err(|e| format!("Failed to parse scenario '{}': {}", scenario_name, e))?;
+
+        let action: String = scenario.get_actions();
+
+        let etcd_package_key = format!("Package/{}", scenario.get_targets());
+        let package_str = match common::etcd::get(&etcd_package_key).await {
+            Ok(value) => value,
+            Err(e) => {
+                return Err(format!("Package key '{}' not found: {}", etcd_package_key, e).into());
+            }
+        };
+
+        let package: Package = serde_yaml::from_str(&package_str).map_err(|e| {
+            format!(
+                "Failed to parse package '{}': {}",
+                scenario.get_targets(),
+                e
+            )
+        })?;
+
+        // To Do.. network, node yaml extract from etcd.
+        let etcd_network_key = format!("Network/{}", scenario_name);
+        let network_str = match common::etcd::get(&etcd_network_key).await {
+            Ok(value) => value,
+            Err(e) => {
+                return Err(format!("Network key '{}' not found: {}", etcd_network_key, e).into());
+            }
+        };
+
+        let etcd_node_key = format!("Node/{}", scenario_name);
+        let node_str = match common::etcd::get(&etcd_node_key).await {
+            Ok(value) => value,
+            Err(e) => {
+                return Err(format!("Network key '{}' not found: {}", etcd_node_key, e).into());
+            }
+        };
+
+        for mi in package.get_models() {
+            let model_name = format!("{}.service", mi.get_name());
+            let model_node = mi.get_node();
+            let node_type = if self.bluechi_nodes.contains(&model_node) {
+                println!("Node {} is bluechi", model_node);
+                "bluechi"
+            } else if self.nodeagent_nodes.contains(&model_node) {
+                println!("Node {} is nodeagent", model_node);
+                "nodeagent"
+            } else {
+                continue; // Skip unknown node types
+            };
+            println!(
+                "Processing model '{}' on node '{}' with action '{}'",
+                model_name, model_node, action
+            );
+            match action.as_str() {
+                "launch" => {
+                    self.reload_all_node(&model_name, &model_node).await?;
+                    self.start_workload(&model_name, &model_node, &node_type)
+                        .await
+                        .map_err(|e| format!("Failed to start workload '{}': {}", model_name, e))?;
+                    request_network_pod(
+                        node_str.clone(),
+                        scenario_name.to_string(),
+                        network_str.clone(),
+                    )
+                    .await
+                    .map_err(|e| {
+                        format!("Failed to request network pod for '{}': {}", model_name, e)
+                    })?;
+                }
+                "terminate" => {
+                    self.reload_all_node(&model_name, &model_node).await?;
+                    self.stop_workload(&model_name, &model_node, &node_type)
+                        .await
+                        .map_err(|e| format!("Failed to stop workload '{}': {}", model_name, e))?;
+                }
+                "update" | "rollback" => {
+                    self.reload_all_node(&model_name, &model_node).await?;
+                    self.stop_workload(&model_name, &model_node, &node_type)
+                        .await
+                        .map_err(|e| format!("Failed to stop workload '{}': {}", model_name, e))?;
+
+                    self.reload_all_node(&model_name, &model_node).await?;
+                    self.start_workload(&model_name, &model_node, &node_type)
+                        .await
+                        .map_err(|e| format!("Failed to start workload '{}': {}", model_name, e))?;
+                }
+                _ => {
+                    // Ignore unknown action for now, or optionally return error:
+                    // return Err(format!("Unknown action '{}'", action).into());
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -83,10 +211,54 @@ impl ActionControllerManager {
     pub async fn reconcile_do(
         &self,
         scenario_name: String,
-        current: i32,
-        desired: i32,
+        current: Status,
+        desired: Status,
     ) -> Result<()> {
-        // TODO: Implementation
+        if current == desired {
+            return Ok(());
+        }
+
+        if matches!(current, Status::None | Status::Failed | Status::Unknown) {
+            return Err(format!(
+                "Invalid current status: {:?}. Cannot reconcile from this state",
+                current
+            )
+            .into());
+        }
+
+        if matches!(desired, Status::None | Status::Failed | Status::Unknown) {
+            return Err(format!(
+                "Invalid desired status: {:?}. Cannot set this as target state",
+                desired
+            )
+            .into());
+        }
+
+        let etcd_scenario_key: String = format!("scenario/{}", scenario_name);
+        let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
+        let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;
+
+        let etcd_package_key = format!("package/{}", scenario.get_targets());
+        let package_str = common::etcd::get(&etcd_package_key).await?;
+        let package: Package = serde_yaml::from_str(&package_str)?;
+
+        for mi in package.get_models() {
+            let model_name = format!("{}.service", mi.get_name());
+            let model_node = mi.get_node();
+            let node_type = if self.bluechi_nodes.contains(&model_node) {
+                "bluechi"
+            } else if self.nodeagent_nodes.contains(&model_node) {
+                "nodeagent"
+            } else {
+                continue; // Skip if node type is unknown
+            };
+
+            if desired == Status::Running {
+                self.start_workload(&model_name, &model_node, &node_type)
+                    .await?;
+            }
+        }
+
         Ok(())
     }
 
@@ -197,8 +369,31 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is not in a startable state
     /// - The runtime operation fails
-    pub async fn start_workload(&self, scenario_name: String) -> Result<()> {
-        // TODO: Implementation
+    pub async fn start_workload(
+        &self,
+        model_name: &str,
+        node_name: &str,
+        node_type: &str,
+    ) -> Result<()> {
+        match node_type {
+            "bluechi" => {
+                let cmd = bluechi::BluechiCmd {
+                    command: bluechi::Command::UnitStart,
+                };
+                bluechi::handle_bluechi_cmd(&model_name, &node_name, cmd).await?;
+            }
+            "nodeagent" => {
+                // let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
+                // runtime.start_workload(model_name).await?;
+            }
+            _ => {
+                return Err(format!(
+                    "Unsupported node type '{}' for workload '{}' on node '{}'",
+                    node_type, model_name, node_name
+                )
+                .into());
+            }
+        }
         Ok(())
     }
 
@@ -220,8 +415,204 @@ impl ActionControllerManager {
     /// - The workload does not exist
     /// - The workload is already stopped
     /// - The runtime operation fails
-    pub async fn stop_workload(&self, scenario_name: String) -> Result<()> {
-        // TODO: Implementation
+    pub async fn stop_workload(
+        &self,
+        model_name: &str,
+        node_name: &str,
+        node_type: &str,
+    ) -> Result<()> {
+        match node_type {
+            "bluechi" => {
+                let cmd = bluechi::BluechiCmd {
+                    command: bluechi::Command::UnitStop,
+                };
+                bluechi::handle_bluechi_cmd(&model_name, &node_name, cmd).await?;
+            }
+            "nodeagent" => {
+                // let runtime = crate::runtime::nodeagent::NodeAgentRuntime::new();
+                // runtime.start_workload(model_name).await?;
+            }
+            _ => {
+                return Err(format!(
+                    "Unsupported node type '{}' for workload '{}' on node '{}'",
+                    node_type, model_name, node_name
+                )
+                .into());
+            }
+        }
         Ok(())
+    }
+
+    pub async fn reload_all_node(&self, model_name: &str, model_node: &str) -> Result<()> {
+        let cmd = bluechi::BluechiCmd {
+            command: bluechi::Command::ControllerReloadAllNodes,
+        };
+        bluechi::handle_bluechi_cmd(model_name, model_node, cmd).await?;
+        thread::sleep(Duration::from_millis(100));
+        Ok(())
+    }
+}
+
+//UNIT TEST SKELTON
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use common::actioncontroller::Status;
+    use std::error::Error;
+
+    #[tokio::test]
+    async fn test_reconcile_do_with_valid_status() {
+        // Valid scenario where reconcile_do transitions status successfully
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
+            nodeagent_nodes: vec![],
+        };
+        let result = manager
+            .reconcile_do("antipinch-enable".into(), Status::Running, Status::Running)
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_trigger_manager_action_with_valid_data() {
+        // Insert mock Scenario YAML into etcd
+        common::etcd::put(
+            "Scenario/antipinch-enable",
+            r#"
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: antipinch-enable
+spec:
+  condition:
+  action: update
+  target: antipinch-enable
+"#,
+        )
+        .await
+        .unwrap();
+
+        // Insert mock Package YAML into etcd
+        common::etcd::put(
+            "Package/antipinch-enable",
+            r#"
+apiVersion: v1
+kind: Package
+metadata:
+  label: null
+  name: antipinch-enable
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: helloworld-core
+      node: HPC
+      resources:
+        volume:
+        network:
+"#,
+        )
+        .await
+        .unwrap();
+
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager.trigger_manager_action("antipinch-enable").await;
+
+        if let Err(ref e) = result {
+            println!("Error in trigger_manager_action: {:?}", e);
+        } else {
+            println!("trigger_manager_action successful");
+        }
+
+        assert!(result.is_ok());
+
+        // Cleanup after test
+        common::etcd::delete("Scenario/antipinch-enable")
+            .await
+            .unwrap();
+        common::etcd::delete("Package/antipinch-enable")
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_trigger_manager_action_invalid_scenario() {
+        // Negative case: nonexistent scenario key
+        let manager: ActionControllerManager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager.trigger_manager_action("invalid_scenario").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_reconcile_do_invalid_scenario_key() {
+        // Negative case: nonexistent scenario key returns error
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager
+            .reconcile_do("invalid_scenario".into(), Status::None, Status::Running)
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_start_workload_invalid_node_type() {
+        // Negative case: unknown node type returns Ok but does nothing
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result: std::result::Result<(), Box<dyn Error>> = manager
+            .start_workload("antipinch-enable", "HPC", "invalid_type")
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_stop_workload_invalid_node_type() {
+        // Negative case: unknown node type returns Ok but does nothing
+        let manager: ActionControllerManager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
+            nodeagent_nodes: vec![],
+        };
+
+        let result = manager
+            .stop_workload("antipinch-enable", "HPC", "invalid_type")
+            .await;
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_manager_initializes_nodes() {
+        // Ensures new() returns manager with non-empty nodes
+        let manager = ActionControllerManager::new();
+        assert!(!manager.bluechi_nodes.is_empty() || !manager.nodeagent_nodes.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_create_delete_restart_pause_are_noops() {
+        // All of these are currently no-op, so they should succeed regardless of input
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec![],
+            nodeagent_nodes: vec![],
+        };
+
+        assert!(manager.create_workload("test".into()).await.is_ok());
+        assert!(manager.delete_workload("test".into()).await.is_ok());
+        assert!(manager.restart_workload("test".into()).await.is_ok());
+        assert!(manager.pause_workload("test".into()).await.is_ok());
     }
 }

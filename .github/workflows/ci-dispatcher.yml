@@ -1,0 +1,68 @@
+name: CI Dispatcher
+
+on:
+  push:
+    branches: [ "main", "release", "debug" ]
+  pull_request:
+    branches: [ "refactoring","main", "release", "debug" ]
+  workflow_dispatch:
+
+jobs:
+  #  Job 1: Detect file changes and conditionally trigger jobs based on them
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      rust_changed: ${{ steps.filter.outputs.rust }}  # Set to true if any Rust-relevant files changed
+      doc_changed: ${{ steps.filter.outputs.docs }}   # True if docs (Markdown) changed
+      yaml_changed: ${{ steps.filter.outputs.yaml }}  # True if GitHub workflow YAMLs changed
+    steps:
+      # Step 1: Checkout repo contents
+      - uses: actions/checkout@v4
+
+      # Step 2: Use `dorny/paths-filter` to detect what kinds of files changed
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rust:
+              - '**/*.rs'         # All Rust source files
+              - '**/*.toml'       # Cargo.toml or other TOML configs
+              - 'Cargo.lock'      # Cargo.lock for dependency changes
+              - 'scripts/**'      # Shell scripts that might affect build/test
+              - 'Makefile'        # Dev tooling changes
+              - '**/*.yaml'       # Scenario or config YAMLs
+              - '**/*.sh'         # Bash scripts
+            docs:
+              - '**/*.md'         # Markdown docs (README, etc.)
+            yaml:
+              - '.github/workflows/*.yml'  # GitHub workflow YAMLs
+
+  #  Job 2: Trigger full Rust CI workflow if Rust files or configs changed
+  run-rust-ci:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.rust_changed == 'true'
+    uses: ./.github/workflows/run-ci.yml  # Reuse centralized Rust CI logic
+
+  #  Job 3: Run markdown/documentation linter if only docs changed
+  run-doc-lint:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.doc_changed == 'true'
+    uses: ./.github/workflows/run-doc.yml
+
+  #  Job 4: Validate GitHub YAML workflows (lint schema or check logic)
+  run-yaml-validation:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.yaml_changed == 'true'
+    uses: ./.github/workflows/run-validate.yml
+
+  #  Job 5: Always run this last to print a clean summary in Actions UI
+  ci-summary:
+    name: CI Complete Summary
+    runs-on: ubuntu-latest
+    if: always()  # Run even if earlier jobs were skipped or failed
+    needs:
+      - run-rust-ci
+      - run-doc-lint
+      - run-yaml-validation
+    steps:
+      - run: echo " All CI jobs (if triggered) have completed."

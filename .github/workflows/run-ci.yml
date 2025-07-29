@@ -1,0 +1,222 @@
+name: Rust CI Core
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  rust_ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install Rust toolchain
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      # Step 3: Install Docker Compose dependencies (if needed)
+      - name: Install Docker Compose and utilities
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y docker-compose jq curl lsb-release
+
+      # Step 4: Make all scripts executable
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      # Step 5: Install Rust project dependencies
+      - name: Install project dependencies
+        run: ./scripts/installdeps.sh
+
+      # Step 6: Create output folders for reports
+      - name: Create reports directory
+        run: |
+          mkdir -p dist/reports/fmt
+          mkdir -p dist/reports/deny
+          mkdir -p dist/tests
+          mkdir -p dist/licenses
+          mkdir -p dist/coverage
+          mkdir -p dist/coverage/common
+          mkdir -p dist/coverage/server
+          mkdir -p dist/coverage/player
+          mkdir -p dist/coverage/tools
+          mkdir -p dist/coverage/agent
+
+      # Step 7: Run project build and parse logs
+      - name: Build and parse project
+        run: ./scripts/buildNparse.sh
+
+      # Step 8: Run all Rust unit/integration tests and generate reports
+      - name: Run tests and generate report
+        run: ./scripts/testNparse.sh
+
+      # Step 9: Linting (clippy)
+      - name: Run Clippy (lint)
+        run: ./scripts/clippy_check.sh
+
+      # Step 10: Formatting check
+      - name: Run format check
+        run: ./scripts/fmt_check.sh
+
+      # Step 11: License, ban, and security checks with cargo-deny
+      - name: Run cargo-deny checks
+        run: ./scripts/deny_check.sh
+
+      # Step 12: Run test coverage script
+      - name: Run test coverage script
+        run: ./scripts/test_coverage.sh
+
+      # === Upload All Reports ===
+
+      # Step 13: Upload deny report
+      - name: Upload deny report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deny-report
+          path: dist/reports/deny/deny_summary.md
+
+      # Step 14: Upload format report
+      - name: Upload fmt report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fmt-report
+          path: dist/reports/fmt/fmt_summary.md
+
+      # Step 15: Upload all test reports (JUnit-style)
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: dist/tests/*
+
+      # Step 16: Upload test coverage reports
+      - name: Upload Overall coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: dist/coverage/*
+      
+      - name: Upload coverage report for server (lcov)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-lcov-server
+          path: dist/coverage/server/lcov.info
+
+      - name: Upload coverage report for server (xml)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-xml-server
+          path: dist/coverage/server/cobertura.xml
+    
+      - name: Upload coverage report for server (html)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-html-server
+          path: dist/coverage/server/tarpaulin-report-server.html
+      
+      - name: Upload coverage report for tools (lcov)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-lcov-tools
+          path: dist/coverage/tools/lcov.info
+
+      - name: Upload coverage report for tools (xml)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-xml-tools
+          path: dist/coverage/tools/cobertura.xml
+    
+      - name: Upload coverage report for tools (html)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-html-tools
+          path: dist/coverage/tools/tarpaulin-report-tools.html
+
+      - name: Upload coverage report for common (lcov)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-lcov-common
+          path: dist/coverage/common/lcov.info
+
+      - name: Upload coverage report for common (xml)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-xml-common
+          path: dist/coverage/common/cobertura.xml
+    
+      - name: Upload coverage report for common (html)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-html-common
+          path: dist/coverage/common/tarpaulin-report-common.html
+      
+      # Test Cases are not proper and passing so code coverage report will not generate as of now
+      # - name: Upload coverage report for agent (lcov)
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: code-coverage-lcov-agent
+      #     path: dist/coverage/agent/lcov.info
+
+      # - name: Upload coverage report for agent (xml)
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: code-coverage-xml-agent
+      #     path: dist/coverage/agent/cobertura.xml
+    
+      # - name: Upload coverage report for agent (html)
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: code-coverage-html-agent
+      #     path: dist/coverage/agent/tarpaulin-report-agent.html
+      
+      # - name: Upload coverage report for player (lcov)
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: code-coverage-lcov-player
+      #     path: dist/coverage/player/lcov.info
+
+      # - name: Upload coverage report for player (xml)
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: code-coverage-xml-player
+      #     path: dist/coverage/player/cobertura.xml
+    
+      # - name: Upload coverage report for player (html)
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: code-coverage-html-player
+      #     path: dist/coverage/player/tarpaulin-report-player.html
+    
+      # # Step 17: Upload to Codecov
+      # - name: Upload to Codecov
+      #   if: env.CODECOV_TOKEN != ''
+      #   uses: codecov/codecov-action@v4.0.1
+      #   with:
+      #     token: ${{ env.CODECOV_TOKEN }}
+      #     slug: ${{ github.repository }}
+      #     files: dist/coverage/lcov.info

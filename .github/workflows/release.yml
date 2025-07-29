@@ -1,0 +1,285 @@
+name: Release
+
+# Trigger this workflow only when a new Git tag starting with 'v' is pushed (e.g., v1.0.0)
+on:
+  push:
+    tags:
+      - v*
+
+# Cancel any in-progress runs if a new tag is pushed for the same release group
+concurrency:
+  group: "release-${{ github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  # Step 1: Run full CI to validate Rust codebase (formatting, clippy, tests)
+  run-rust-ci:
+    uses: ./.github/workflows/run-ci.yml
+
+  # Step 2: Validate Markdown and documentation formatting
+  run-doc-lint:
+    uses: ./.github/workflows/run-doc.yml
+
+  # Step 3: Validate all YAML syntax (configs, workflows, etc.)
+  run-yaml-validation:
+    uses: ./.github/workflows/run-validate.yml
+
+  # Step 4: Generate open source license metadata via `cargo-about`
+  run-license-report:
+    uses: ./.github/workflows/run-license-check.yml
+
+  # Step 5: Collect all generated artifacts and publish to GitHub Release
+  tag_release_artifacts:
+    name: Collect and upload release artifacts
+    runs-on: ubuntu-latest
+
+    # Only run this if triggered by a version tag push
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    # Wait for all required jobs to complete successfully
+    needs:
+      - run-rust-ci
+      - run-doc-lint
+      - run-yaml-validation
+      - run-license-report
+
+    permissions: write-all
+
+    steps:
+      # Checkout code with submodules
+      - uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      # Download all reports generated in prior steps
+
+      # Optional: coverage report for the agent component (commented out)
+      # - name: Download coverage report for agent
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: code-coverage-html-agent
+      #     path: dist/coverage/agent/
+
+      # Optional: coverage report for the player component (commented out)
+      # - name: Download coverage report for player
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: code-coverage-html-player
+      #     path: dist/coverage/player/
+      
+      # Code coverage HTML report for the server component
+      - name: Download coverage report for server
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage-html-server
+          path: dist/coverage/server/
+
+      # Code coverage HTML report for the tools component
+      - name: Download coverage report for tools
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage-html-tools
+          path: dist/coverage/tools/
+
+      # Code coverage HTML report for the common component
+      - name: Download coverage report for common
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage-html-common
+          path: dist/coverage/common/
+      
+      # Deny-check report (license allowlist violations)
+      - name: Download deny report
+        uses: actions/download-artifact@v4
+        with:
+          name: deny-report
+          path: dist/reports/deny/
+      
+      # Formatting report (rustfmt summary)
+      - name: Download fmt report
+        uses: actions/download-artifact@v4
+        with:
+          name: fmt-report
+          path: dist/reports/fmt/
+
+      # Test result report (JUnit XML format)
+      - name: Download test report
+        uses: actions/download-artifact@v4
+        with:
+          name: test-report
+          path: dist/tests/
+      
+      # License HTML report from cargo-about
+      - name: Download license report
+        uses: actions/download-artifact@v4
+        with:
+          name: license-report
+          path: dist/licenses/
+
+      # Upload all reports as GitHub Release assets
+
+      # Optional: upload coverage for player component
+      # - name: Upload test coverage report for player to release
+      #   uses: svenstaro/upload-release-action@v2
+      #   id: upload_test_coverage_report_player
+      #   with:
+      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
+      #     file: dist/coverage/player/*.html
+      #     file_glob: true
+      #     tag: ${{ github.ref }}
+
+      # Optional: upload coverage for agent component
+      # - name: Upload test coverage report for agent to release
+      #   uses: svenstaro/upload-release-action@v2
+      #   id: upload_test_coverage_report_agent
+      #   with:
+      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
+      #     file: dist/coverage/agent/*.html
+      #     file_glob: true
+      #     tag: ${{ github.ref }}
+
+      - name: Upload test coverage report for server to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_test_coverage_report_server
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/coverage/server/*.html
+          file_glob: true
+          tag: ${{ github.ref }}
+
+      - name: Upload test coverage report for tools to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_test_coverage_report_tools
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/coverage/tools/*.html
+          file_glob: true
+          tag: ${{ github.ref }}
+
+      - name: Upload test coverage report for common to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_test_coverage_report_common
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/coverage/common/*.html
+          file_glob: true
+          tag: ${{ github.ref }}
+
+      - name: Upload deny report to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_deny_report
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/reports/deny/deny_summary.md
+          tag: ${{ github.ref }}
+
+      - name: Upload fmt report to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_fmt_report
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/reports/fmt/fmt_summary.md
+          tag: ${{ github.ref }}
+
+      - name: Upload test report to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_test_report
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/tests/test_summary.xml
+          file_glob: true
+          tag: ${{ github.ref }}
+
+      - name: Upload license report to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_license_report
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/licenses/*.html
+          file_glob: true
+          tag: ${{ github.ref }}
+
+      # Upload helpful documentation and compliance files
+      - name: Upload README to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_readme
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: README.md
+          tag: ${{ github.ref }}
+
+      - name: Upload Coding Guidelines to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_coding_guidelines
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: src/coding-rule.md
+          tag: ${{ github.ref }}
+
+      - name: Upload Release Process to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_release_process
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: .github/workflows/release.yml
+          tag: ${{ github.ref }}
+
+      # Archive the entire doc folder for easy release viewing
+      - name: Archive doc folder
+        shell: bash
+        run: |
+          tar czf doc-archive.tar.gz doc/
+
+      - name: Upload doc archive to release
+        uses: svenstaro/upload-release-action@v2
+        id: upload_doc
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: doc-archive.tar.gz
+          tag: ${{ github.ref }}
+      
+      # Fetch latest release metadata (used by quality manifest tool)
+      - name: Gets latest created release info
+        id: latest_release_info
+        uses: joutvhu/get-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Generate quality manifest using Eclipse Dash QueVee
+      - name: Collect quality artifacts with quevee
+        id: quevee_manifest
+        uses: eclipse-dash/quevee@v1
+        with:
+          release_url: ${{ steps.latest_release_info.outputs.html_url }}
+          artifacts_readme: ${{ steps.upload_readme.outputs.browser_download_url }} 
+          artifacts_coding_guidelines: ${{ steps.upload_coding_guidelines.outputs.browser_download_url }}
+          artifacts_release_process: ${{ steps.upload_release_process.outputs.browser_download_url }} 
+          artifacts_documentation: ${{ steps.upload_doc.outputs.browser_download_url }}
+          artifacts_requirements: ${{ steps.upload_doc.outputs.browser_download_url }}
+          artifacts_testing: >
+            ${{ steps.upload_test_report.outputs.browser_download_url }},
+            ${{ steps.upload_license_report.outputs.browser_download_url }},
+            ${{ steps.upload_fmt_report.outputs.browser_download_url }},
+            ${{ steps.upload_deny_report.outputs.browser_download_url }},
+            ${{ steps.upload_test_coverage_report_common.outputs.browser_download_url }},
+            ${{ steps.upload_test_coverage_report_tools.outputs.browser_download_url }},
+            ${{ steps.upload_test_coverage_report_server.outputs.browser_download_url }}
+
+
+
+      # Upload the generated quality manifest to GitHub Release
+      - name: Upload quality manifest to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ steps.quevee_manifest.outputs.manifest_file }}
+          tag: ${{ github.ref }}
+
+  # Final Step: Build and push multi-arch container images to GHCR
+  build-and-push-container:
+    name: Build and Push Container Image
+    uses: ./.github/workflows/build-container.yml
+    needs:
+      - tag_release_artifacts
+    permissions:
+      packages: write

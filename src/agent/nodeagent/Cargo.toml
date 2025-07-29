@@ -1,0 +1,17 @@
+[package]
+name = "nodeagent"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common = { workspace = true }
+tonic = "0.12.3"
+tokio = { version = "1.43.1", features = ["full"] }
+serde = { version = "1.0.214", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+futures = "0.3.31"
+hyper = { version = "0.14", features = ["full"] }
+hyperlocal = { version = "0.8", features = ["client"] }
+thiserror = "1.0"
+

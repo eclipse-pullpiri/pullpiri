@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# DO NOT USE this file if you can see this comment.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: piccolo-agent
+spec:
+  hostNetwork: true
+  hostPid: true
+  containers:
+  - name: nodeagent
+    image: localhost/pullpiri:latest
+    command: ["/piccolo/nodeagent"]
+    volumeMounts:
+    - name: piccolo-yaml
+      mountPath: /etc/piccolo/yaml
+    - name: systemd
+      mountPath: /etc/containers/systemd
+  volumes:
+  - name: piccolo-yaml
+    hostPath:
+      path: /etc/piccolo/yaml
+  - name: systemd
+    hostPath:
+      path: /etc/containers/systemd

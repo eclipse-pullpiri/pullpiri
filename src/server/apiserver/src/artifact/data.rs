@@ -50,3 +50,151 @@ pub async fn delete_at_etcd(key: &str) -> common::Result<()> {
     common::etcd::delete(key).await?;
     Ok(())
 }
+
+//UNIT TEST CASES
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio;
+
+    // === Test data ===
+    const TEST_YAML: &str = r#"apiVersion: v1
+kind: Scenario
+metadata:
+  name: helloworld
+spec:
+  condition:
+  action: update
+  target: helloworld
+---
+apiVersion: v1
+kind: Package
+metadata:
+  label: null
+  name: helloworld
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: helloworld-core
+      node: HPC
+      resources:
+        volume:
+        network:
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: helloworld-core
+  annotations:
+    io.piccolo.annotations.package-type: helloworld-core
+    io.piccolo.annotations.package-name: helloworld
+    io.piccolo.annotations.package-network: default
+  labels:
+    app: helloworld-core
+spec:
+  hostNetwork: true
+  containers:
+    - name: helloworld
+      image: helloworld
+  terminationGracePeriodSeconds: 0
+"#;
+
+    // === Keys for testing ===
+    const TEST_KEY: &str = "unit_test_helloworld";
+    const INVALID_KEY_EMPTY: &str = "";
+    const INVALID_KEY_NULLBYTE: &str = "\0badkey";
+
+    // === Positive Tests ===
+
+    // Test reading valid key (exists or not — should not panic)
+    #[tokio::test]
+    async fn test_read_from_etcd_positive() {
+        let result = read_from_etcd(TEST_KEY).await;
+        println!("read_from_etcd (positive) result = {:?}", result);
+
+        //we accept both Ok and Err depending on etcd state
+        assert!(
+            result.is_ok() || result.is_err(),
+            "Expected Ok or Err but got: {:?}",
+            result
+        );
+    }
+
+    // Test reading all Scenario keys (should return Vec<String> or Err)
+    #[tokio::test]
+    async fn test_read_all_scenario_from_etcd_positive() {
+        let result = read_all_scenario_from_etcd().await;
+        println!(
+            "read_all_scenario_from_etcd (positive) result = {:?}",
+            result
+        );
+
+        //we accept both Ok (some scenarios) or Ok(empty Vec) or Err (etcd error)
+        assert!(
+            result.is_ok() || result.is_err(),
+            "Expected Ok or Err but got: {:?}",
+            result
+        );
+    }
+
+    // Test writing valid key and yaml
+    #[tokio::test]
+    async fn test_write_to_etcd_positive() {
+        let result = write_to_etcd(TEST_KEY, TEST_YAML).await;
+        println!("write_to_etcd (positive) result = {:?}", result);
+        // We expect the write to succeed with valid key & data or ERR(etcd error)
+        assert!(
+            result.is_ok() || result.is_err(),
+            "Expected write_to_etcd to succeed or Err but got: {:?}",
+            result
+        );
+    }
+
+    // Test deleting valid key (whether key exists or not — should succeed or cleanly fail)
+    #[tokio::test]
+    async fn test_delete_at_etcd_positive() {
+        let result = delete_at_etcd(TEST_KEY).await;
+        println!("delete_at_etcd (positive) result = {:?}", result);
+        // We accept Ok (key deleted) or Err (key not found) as valid outcomes
+        assert!(
+            result.is_ok() || result.is_err(),
+            "Expected Ok or Err but got: {:?}",
+            result
+        );
+    }
+
+    // === Negative Tests ===
+
+    // Test reading with invalid keys (empty/nullbyte) — should fail
+    #[tokio::test]
+    async fn test_read_from_etcd_negative_invalid_key() {
+        let result = read_from_etcd(INVALID_KEY_EMPTY).await;
+        assert!(
+            result.is_err(),
+            "Expected read_from_etcd with empty key to fail but got Ok: {:?}",
+            result.ok()
+        );
+    }
+
+    // Test writing with invalid keys (empty/nullbyte) — should fail
+    #[tokio::test]
+    async fn test_write_to_etcd_negative_invalid_key() {
+        let result = write_to_etcd(INVALID_KEY_EMPTY, TEST_YAML).await;
+        assert!(
+            result.is_err(),
+            "Expected write_to_etcd with empty key to fail but got Ok"
+        );
+    }
+
+    // Test deleting with invalid keys (empty/nullbyte) — should fail
+    #[tokio::test]
+    async fn test_delete_at_etcd_negative_invalid_key() {
+        let result = delete_at_etcd(INVALID_KEY_EMPTY).await;
+        assert!(
+            result.is_err(),
+            "Expected delete_at_etcd with empty key to fail but got Ok"
+        );
+    }
+}

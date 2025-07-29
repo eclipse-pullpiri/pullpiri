@@ -2,9 +2,9 @@
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Structure
+# (Deprecated) Structure
 
-<img alt="piccolo overview" src="../images/overview.png"
+<img alt="Pullpiri overview" src="../images/overview.png"
 width="75%"
 height="75%"
 />
@@ -40,9 +40,9 @@ We are also developing to collect metrics for monitoring.
 
 ## importer
 
-Importer is responsible for parsing resource files into the necessary items for piccolo.
+Importer is responsible for parsing resource files into the necessary items for Pullpiri.
 
-Specifically, create a `.kube` file and a `.yaml` file in the PICCOLO_YAML path, separate the scenario and package into condition and action and target, and pass it to the apiserver.
+Specifically, create a `.kube` file and a `.yaml` file in the `yaml_storage` path, separate the scenario and package into condition and action and target, and pass it to the apiserver.
 
 ## gateway
 
@@ -59,13 +59,13 @@ In addition to the API calls, the complexity increases for reconcile tasks, etc.
 
 ## etcd
 
-The etcd stores data that is commonly used by each Piccolo module.
+The etcd stores data that is commonly used by each Pullpiri module.
 Writes are made only from the apiserver, and the gateway and statemanager read them to perform the necessary actions.
 
 ## others (will be updated)
 
 - metric-notifier : We will provide a dashboard to monitor the status of each package and scenario.
 - tools - dds-idl-gen : Vehicle messages sent via DDS use the IDL file format. This is a tool that converts IDL into a struct used in Rust modules.
-- tools - workloadconverter : A tool to convert resources used in other orchestrators such as k8s to Piccolo resources. However, it is currently deprecated.
+- tools - workloadconverter : A tool to convert resources used in other orchestrators such as k8s to Pullpiri resources. However, it is currently deprecated.
 
 <!-- markdownlint-disable-file MD033 no-inline-html -->

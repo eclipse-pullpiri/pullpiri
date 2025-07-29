@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 <div align="center">
     <img alt="Shows Pullpiri logo" src="doc/images/Pullpiri.svg"
         width="50%"
-        height="50%"
     />
 </div>
 <br>
@@ -65,7 +64,7 @@ Refer to [Development](/doc/docs/developments.md).
 
 The [LICENSES](/LICENSES) directory contains all the licenses used by the
 PULLPIRI Project.  
-Piccolo itself uses the [Apache-2.0](/LICENSES/Apache-2.0.txt) license.
+Pullpiri itself uses the [Apache-2.0](/LICENSES/Apache-2.0.txt) license.
 
 For detail, refer to [license-readme](/LICENSES/README.md).
 

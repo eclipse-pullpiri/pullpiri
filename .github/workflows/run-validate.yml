@@ -1,0 +1,23 @@
+name: Validate Workflow YAML
+
+# This workflow is reusable and can also be triggered manually
+on:
+  workflow_call:         # Allows this workflow to be called from other workflows
+  workflow_dispatch:     # Enables manual trigger via GitHub UI
+
+jobs:
+  validate_yaml:
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+
+    steps:
+      # Step 1: Checkout the repository so we can access workflow files
+      - uses: actions/checkout@v4
+
+      # Step 2: Validate all .yml workflow files using `yq`
+      - name: Validate workflows
+        run: |
+          # Loop through each workflow file in .github/workflows
+          for file in .github/workflows/*.yml; do
+            # Use `yq` to parse the YAML; exit non-zero if invalid
+            yq eval '.' "$file" > /dev/null
+          done

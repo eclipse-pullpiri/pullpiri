@@ -4,6 +4,12 @@ metadata:
   name: helloworld
 spec:
   condition:
+   express: eq
+   value: "true"
+   operands:
+     type: DDS
+     name: value
+     value: ADASObstacleDetectionIsWarning
   action: update
   target: helloworld
 ---
@@ -16,7 +22,7 @@ spec:
   pattern:
     - type: plain
   models:
-    - name: helloworld-core
+    - name: helloworld
       node: HPC
       resources:
         volume:
@@ -25,16 +31,17 @@ spec:
 apiVersion: v1
 kind: Model
 metadata:
-  name: helloworld-core
+  name: helloworld
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
+    io.piccolo.annotations.package-type: helloworld
     io.piccolo.annotations.package-name: helloworld
     io.piccolo.annotations.package-network: default
   labels:
-    app: helloworld-core
+    app: helloworld
 spec:
   hostNetwork: true
   containers:
     - name: helloworld
-      image: helloworld
+      image: quay.io/podman/hello:latest
   terminationGracePeriodSeconds: 0
+  restartPolicy: Always

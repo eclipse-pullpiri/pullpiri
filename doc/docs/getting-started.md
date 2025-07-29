@@ -8,49 +8,52 @@ SPDX-License-Identifier: Apache-2.0
 
 ## System requirements
 
-Piccolo has been tested with CentOS Stream 9.
+Pullpiri has been tested with CentOS Stream 9.
 
-[Bluechi](https://github.com/eclipse-bluechi/bluechi/tree/main) is required for Piccolo.  
+[Bluechi](https://github.com/eclipse-bluechi/bluechi/tree/main) is required for Pullpiri.  
 [Podman](https://podman.io/) needs to be installed as this is used as container runtime (Maybe podman is already installed in CentOS Stream 9).  
 Also, [Rust](https://www.rust-lang.org) is required to test without using a container.
 
 ## Preliminary Info
 
-### Piccolo Configuration
+### Pullpiri Configuration
 
 There is a [settings.yaml](/src/settings.yaml) for configuration. Modify this to suit your system.
 
 ```yaml
-yaml_storage: /etc/piccolo
+yaml_storage: /etc/piccolo/yaml
 piccolo_cloud: http://0.0.0.0:41234
 host:
   name: HPC
   ip: 0.0.0.0
+  type: bluechi
 guest:
 #  - name: ZONE
-#    ip: 192.168.10.11
-#    ssh_port: 22
-#    id: root
-#    pw: rootpassword
+#    ip: 192.168.0.1
+#    type: nodeagent
+dds:
+  idl_path: src/vehicle/dds/idl
+  domain_id: 100
+  # Removed out_dir - will use Cargo's default OUT_DIR
 ```
 
-- yaml_storage : For making systemd service with podman, we need `.kube` and `.yaml` files. Lib `importer` makes these files in this directory.
+- yaml_storage : For making systemd service with podman, we need `.kube` and `.yaml` files.
 - piccolo_cloud : The repository address saving `Packages` and `scenarios`.
-- host.name : To deliver systemd command with `bluechi`, we need node name.
-- guest : Bluechi agent node information. ID/PW is required for `.kube`, `.yaml` files transfers.
+- host : To deliver systemd command with `bluechi`, we need node name.
+- guest : Bluechi agent node information.
+- dds : will be updated.
 
-### Piccolo modules
+### Pullpiri modules
 
-Piccolo consists of many modules.
+Pullpiri consists of many modules.
 For each modules, refer to [Structure](/doc/docs/developments.md#structure).  
-~~And the [example](/examples/version-display/README.md) would be helpful.~~
-Examples will be updated.
+And the [example](/examples/README.md) would be helpful.
 
 ## Limitations
 
 - Multi-node system and the resulting node-selectors have not yet been fully considered.
 - For better operation, recommend operating with `root` user with selinux permissive mode.
-- `/etc/containers/systemd` folder is used for piccolo systemd service files. This cannot be changed.
+- `/etc/containers/systemd` folder is used for pullpiri systemd service files. This cannot be changed.
 - Because it is still an early version, it may sometimes take a lot of time to start/stop/update the container.
 - There may be other issues as well.
 
@@ -70,50 +73,54 @@ dnf install git-all make gcc -y
 setenforce 0
 ```
 
-For modifying configuration, see [configuration](#piccolo-configuration).
+For modifying configuration, see [configuration](#pullpiri-configuration).
 
 ### Install process
 
-All Piccolo applications with test app will start in container.
+All Pullpiri applications with test app will start in container.
 If you are familiar with container, you will find it easy to use.
-`Piccolo` also uses `podman play` by default.
-If this is your first time, I recommend following [Example](/examples/version-display/README.md) first.
+`Pullpiri` also uses `podman play` by default.
+If this is your first time, I recommend following [Example](/examples/README.md) first.
 
-Before starting, you must build Piccolo container image,
+Before starting, you must build Pullpiri container image,
 
 ```sh
+make builder
 make image
 ```
+
+*CAUTION* - A successful build requires at least 20GB of disk space.
 
 If you have errors during `apt update`, then check dns nameserver.
 
 For starting,
 
 ```sh
-make pre install
+make install
 ```
 
 For stoping,
 
 ```sh
-make uninstall post
+make uninstall
 ```
 
-You can see container list via `podman ps`.
+You can see container list via `podman ps`. (infra container is omitted.)
 
 ```Text
-[root@master piccolo-bluechi]# podman ps
-CONTAINER ID  IMAGE                                    COMMAND               CREATED         STATUS         PORTS       NAMES
-a89293d15b18  localhost/podman-pause:5.1.2-1720678294                        20 seconds ago  Up 21 seconds              a13f3aa439f3-service
-ebce43e479be  localhost/podman-pause:5.1.2-1720678294                        20 seconds ago  Up 21 seconds              55f9dda92972-infra
-53b9a1631df9  localhost/piccolo:1.0                                          20 seconds ago  Up 20 seconds              piccolo-apiserver
-cd0683bb5675  localhost/piccolo:1.0                                          20 seconds ago  Up 21 seconds              piccolo-statemanager
-eb8f60534077  gcr.io/etcd-development/etcd:v3.5.11     --data-dir=/etcd-...  20 seconds ago  Up 21 seconds              piccolo-etcd
-9771320d5fee  localhost/piccolo:1.0                                          20 seconds ago  Up 21 seconds              piccolo-gateway
+[root@master pullpiri]# podman ps
+CONTAINER ID  IMAGE                                 COMMAND               CREATED         STATUS         PORTS          NAMES
+fd03b211e2ac  gcr.io/etcd-development/etcd:v3.5.11  --data-dir=/etcd-...  32 seconds ago  Up 32 seconds  2379-2380/tcp  piccolo-server-etcd
+c6fbbb6feca5  localhost/pullpiri-server:latest                            32 seconds ago  Up 31 seconds                 piccolo-server-apiserver
+341edada2c33  localhost/pullpiri-agent:latest                             31 seconds ago  Up 31 seconds                 piccolo-agent-nodeagent
+eee2153bb581  localhost/pullpiri-player:latest                            31 seconds ago  Up 30 seconds                 piccolo-player-filtergateway
+8d8011a24b43  localhost/pullpiri-player:latest                            31 seconds ago  Up 30 seconds                 piccolo-player-actioncontroller
 
 [root@master images]# podman pod ps
-POD ID        NAME         STATUS      CREATED        INFRA ID      # OF CONTAINERS
-55f9dda92972  piccolo      Running     6 minutes ago  ebce43e479be  5
+POD ID        NAME            STATUS      CREATED             INFRA ID      # OF CONTAINERS
+cc169812bd3e  piccolo-player  Degraded    About a minute ago  fb8974d9ba47  4
+85eeff5e07cf  piccolo-agent   Running     About a minute ago  518c9482ae00  2
+809508bfdc46  piccolo-server  Degraded    About a minute ago  1a738d6106f0  5
 ```
 
 Also refer to [Makefile](/Makefile).

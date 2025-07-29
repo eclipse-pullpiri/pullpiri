@@ -1,0 +1,45 @@
+name: Build and Push Container Images
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  packages: write
+
+env:
+  ContainerRegistry: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push multi-arch image (agent + server + player)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/Dockerfile # updated Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            TARGETARCH
+          tags: |
+            ${{ env.ContainerRegistry }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}

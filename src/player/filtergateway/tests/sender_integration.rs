@@ -25,6 +25,31 @@ spec:
     .await
     .unwrap();
 
+    common::etcd::put(
+        "Node/antipinch-enable",
+        r#"
+apiVersion: v1
+kind: Network
+metadata:
+  label: null
+  name: antipinch-enable
+"#,
+    )
+    .await
+    .unwrap();
+    common::etcd::put(
+        "Network/antipinch-enable",
+        r#"
+apiVersion: v1
+kind: Network
+metadata:
+  label: null
+  name: antipinch-enable
+"#,
+    )
+    .await
+    .unwrap();
+
     // Insert mock Package YAML into etcd
     common::etcd::put(
         "Package/antipinch-enable",
@@ -41,8 +66,8 @@ spec:
     - name: helloworld-core
       node: HPC
       resources:
-        volume:
-        network:
+        volume: antipinch-volume
+        network: antipinch-enable
 "#,
     )
     .await
@@ -62,6 +87,10 @@ spec:
     common::etcd::delete("Package/antipinch-enable")
         .await
         .unwrap();
+    common::etcd::delete("Network/antipinch-enable")
+        .await
+        .unwrap();
+    common::etcd::delete("Node/antipinch-enable").await.unwrap();
 }
 
 /// Test Case: Empty Scenario Name

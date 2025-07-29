@@ -54,6 +54,8 @@ impl FilterGatewaySender {
 mod tests {
     use super::*;
     use anyhow::Error;
+    use common::actioncontroller::CompleteNetworkSettingRequest;
+    use common::actioncontroller::CompleteNetworkSettingResponse;
     use common::actioncontroller::{
         action_controller_connection_server::{
             ActionControllerConnection, ActionControllerConnectionServer,
@@ -95,6 +97,15 @@ mod tests {
             _request: Request<ReconcileRequest>,
         ) -> std::result::Result<Response<ReconcileResponse>, Status> {
             Ok(Response::new(ReconcileResponse::default()))
+        }
+
+        async fn complete_network_setting(
+            &self,
+            _request: Request<CompleteNetworkSettingRequest>,
+        ) -> std::result::Result<Response<CompleteNetworkSettingResponse>, Status> {
+            Ok(Response::new(CompleteNetworkSettingResponse {
+                acknowledged: true, // or false, depending on test needs
+            }))
         }
     }
 

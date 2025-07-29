@@ -75,7 +75,7 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn initialize(&self) -> Result<()> {
-        print!("FilterGatewayManager init\n");
+        println!("FilterGatewayManager init");
         // Initialize vehicle manager
         let etcd_scenario = Self::read_all_scenario_from_etcd().await?;
         for scenario in etcd_scenario {
@@ -267,7 +267,7 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn subscribe_vehicle_data(&self, vehicle_message: DdsData) -> Result<()> {
-        print!("subscribe vehicle data {}\n", vehicle_message.name);
+        println!("subscribe vehicle data {}", vehicle_message.name);
         println!("subscribe vehicle data {}", vehicle_message.value);
         let mut vehicle_manager = self.vehicle_manager.lock().await;
         vehicle_manager
@@ -290,7 +290,7 @@ impl FilterGatewayManager {
     ///
     /// * `Result<()>` - Success or error result
     pub async fn unsubscribe_vehicle_data(&self, vehicle_message: DdsData) -> Result<()> {
-        print!("unsubscribe vehicle data {}\n", vehicle_message.name);
+        println!("unsubscribe vehicle data {}", vehicle_message.name);
         let mut vehicle_manager = self.vehicle_manager.lock().await;
         vehicle_manager
             .unsubscribe_topic(vehicle_message.name)

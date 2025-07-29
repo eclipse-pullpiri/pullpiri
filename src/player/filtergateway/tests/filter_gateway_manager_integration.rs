@@ -127,8 +127,16 @@ spec:
     - name: helloworld_dds-core1
       node: HPC
       resources:
-        volume:
-        network:
+        volume: helloworld_dds1
+        network: helloworld_dds1
+"#;
+
+static VALID_NETWORK_YAML_SINGLE1: &str = r#"
+apiVersion: v1
+kind: Network
+metadata:
+  label: null
+  name: helloworld_dds1
 "#;
 
 #[tokio::test]
@@ -140,6 +148,12 @@ async fn test_run_manager_with_withdraw_action() {
         .await
         .unwrap();
     common::etcd::put("Package/helloworld_dds1", VALID_PACKAGE_YAML_SINGLE1)
+        .await
+        .unwrap();
+    common::etcd::put("Network/helloworld_dds1", VALID_NETWORK_YAML_SINGLE1)
+        .await
+        .unwrap();
+    common::etcd::put("Node/helloworld_dds1", VALID_NETWORK_YAML_SINGLE1)
         .await
         .unwrap();
     let scenario: Scenario = serde_yaml::from_str(VALID_SCENARIO_YAML1).unwrap();
@@ -165,6 +179,10 @@ async fn test_run_manager_with_withdraw_action() {
     common::etcd::delete("Package/helloworld_dds1")
         .await
         .unwrap();
+    common::etcd::delete("Network/helloworld_dds1")
+        .await
+        .unwrap();
+    common::etcd::delete("Node/helloworld_dds1").await.unwrap();
     handle.abort();
 }
 
@@ -191,8 +209,16 @@ spec:
     - name: helloworld_dds-core2
       node: HPC
       resources:
-        volume:
-        network:
+        volume: helloworld_dds2
+        network: helloworld_dds2
+"#;
+
+static VALID_NETWORK_YAML_SINGLE2: &str = r#"
+apiVersion: v1
+kind: Network
+metadata:
+  label: null
+  name: helloworld_dds2
 "#;
 
 #[tokio::test]
@@ -206,7 +232,12 @@ async fn test_run_manager_with_withdraw_action_none() {
     common::etcd::put("Package/helloworld_dds2", VALID_PACKAGE_YAML_SINGLE2)
         .await
         .unwrap();
-
+    common::etcd::put("Node/helloworld_dds2", VALID_NETWORK_YAML_SINGLE2)
+        .await
+        .unwrap();
+    common::etcd::put("Network/helloworld_dds2", VALID_NETWORK_YAML_SINGLE2)
+        .await
+        .unwrap();
     let scenario: Scenario = serde_yaml::from_str(VALID_SCENARIO_YAML2).unwrap();
     manager.launch_scenario_filter(scenario).await.unwrap();
     let scenario: Scenario = serde_yaml::from_str(VALID_SCENARIO_YAML2).unwrap();
@@ -230,6 +261,10 @@ async fn test_run_manager_with_withdraw_action_none() {
     common::etcd::delete("Package/helloworld_dds2")
         .await
         .unwrap();
+    common::etcd::delete("Network/helloworld_dds2")
+        .await
+        .unwrap();
+    common::etcd::delete("Node/helloworld_dds2").await.unwrap();
 }
 
 #[tokio::test]

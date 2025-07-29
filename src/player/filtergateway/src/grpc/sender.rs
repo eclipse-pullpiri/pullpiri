@@ -54,8 +54,8 @@ impl FilterGatewaySender {
 mod tests {
     use super::*;
     use anyhow::Error;
-    use common::actioncontroller::CompleteNetworkSettingResponse;
     use common::actioncontroller::CompleteNetworkSettingRequest;
+    use common::actioncontroller::CompleteNetworkSettingResponse;
     use common::actioncontroller::{
         action_controller_connection_server::{
             ActionControllerConnection, ActionControllerConnectionServer,

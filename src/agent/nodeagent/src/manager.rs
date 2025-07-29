@@ -90,7 +90,7 @@ impl NodeAgentManager {
                     eprintln!("[NodeAgent] Error sending container info: {}", e);
                 }
             }
-            
+
             // Check if the container list is changed from the previous one
             if previous_container_list != container_list {
                 println!(

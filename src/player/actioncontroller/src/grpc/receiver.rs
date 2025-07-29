@@ -6,8 +6,9 @@ use common::actioncontroller::{
     action_controller_connection_server::{
         ActionControllerConnection, ActionControllerConnectionServer,
     },
-    CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, ReconcileRequest,
-    ReconcileResponse, PodStatus as ActionStatus, NetworkStatus, TriggerActionRequest, TriggerActionResponse,
+    CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, NetworkStatus,
+    PodStatus as ActionStatus, ReconcileRequest, ReconcileResponse, TriggerActionRequest,
+    TriggerActionResponse,
 };
 
 /// Receiver for handling incoming gRPC requests for ActionController

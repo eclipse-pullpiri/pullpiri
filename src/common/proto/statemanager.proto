@@ -3,14 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// TBD
-
 syntax = "proto3";
 
 package statemanager;
 
+// Reusing ContainerList and SendContainerListResponse messages from monitoringserver.proto to avoid unnecessary struct copying.
+import "monitoringserver.proto";
+
 service StateManagerConnection {
   rpc SendAction (Action) returns (Response);
+  rpc SendChangedContainerList (monitoringserver.ContainerList) returns (monitoringserver.SendContainerListResponse);
 }
 
 message Action {

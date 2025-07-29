@@ -69,21 +69,51 @@ impl NodeAgentManager {
     async fn gather_container_info_loop(&self) {
         use crate::resource::container::inspect;
         use tokio::time::{sleep, Duration};
+
+        // This is the previous container list for comparison
+        let mut previous_container_list = Vec::new();
+
         loop {
             let container_list = inspect().await.unwrap_or_default();
             let node = self.hostname.clone();
 
             // Send the container info to the monitoring server
-            let mut sender = self.sender.lock().await;
-            if let Err(e) = sender
-                .send_container_list(ContainerList {
-                    node_name: node.clone(),
-                    containers: container_list,
-                })
-                .await
             {
-                eprintln!("[NodeAgent] Error sending container info: {}", e);
+                let mut sender = self.sender.lock().await;
+                if let Err(e) = sender
+                    .send_container_list(ContainerList {
+                        node_name: node.clone(),
+                        containers: container_list.clone(),
+                    })
+                    .await
+                {
+                    eprintln!("[NodeAgent] Error sending container info: {}", e);
+                }
             }
+            
+            // Check if the container list is changed from the previous one
+            if previous_container_list != container_list {
+                println!(
+                    "Container list changed for node: {}. Previous: {:?}, Current: {:?}",
+                    node, previous_container_list, container_list
+                );
+
+                // Save the previous container list for comparison
+                previous_container_list = container_list.clone();
+
+                // Send the changed container list to the state manager
+                let mut sender = self.sender.lock().await;
+                if let Err(e) = sender
+                    .send_changed_container_list(ContainerList {
+                        node_name: node.clone(),
+                        containers: container_list,
+                    })
+                    .await
+                {
+                    eprintln!("[NodeAgent] Error sending changed container list: {}", e);
+                }
+            }
+
             sleep(Duration::from_secs(1)).await;
         }
     }

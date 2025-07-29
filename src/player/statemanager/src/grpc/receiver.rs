@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use common::statemanager::state_manager_connection_server::StateManagerConnection;
 use common::monitoringserver::{ContainerList, SendContainerListResponse};
+use common::statemanager::state_manager_connection_server::StateManagerConnection;
 use common::statemanager::Action;
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
@@ -19,12 +19,12 @@ pub struct StateManagerReceiver {
 impl StateManagerConnection for StateManagerReceiver {
     async fn send_action(
         &self,
-        request: tonic::Request<Action>,
-    ) -> Result<tonic::Response<common::statemanager::Response>, tonic::Status> {
+        request: Request<Action>,
+    ) -> Result<Response<common::statemanager::Response>, Status> {
         let req = request.into_inner();
         let command = req.action;
 
-        Err(tonic::Status::new(tonic::Code::Unavailable, command))
+        Err(Status::new(tonic::Code::Unavailable, command))
     }
 
     /// Handle a ContainerList message from nodeagent

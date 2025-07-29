@@ -41,8 +41,8 @@ async fn initialize(tx_grpc: Sender<ContainerList>) {
     };
 
     let addr = common::statemanager::open_server()
-    .parse()
-    .expect("statemanager address parsing error");
+        .parse()
+        .expect("statemanager address parsing error");
     println!("StateManager listening on {}", addr);
 
     let _ = Server::builder()

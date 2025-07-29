@@ -458,7 +458,7 @@ impl ActionControllerManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::actioncontroller::Status;
+    use crate::manager::Status;
     use std::error::Error;
 
     #[tokio::test]

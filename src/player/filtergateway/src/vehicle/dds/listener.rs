@@ -113,7 +113,7 @@ pub fn create_idl_listener(
 #[async_trait]
 impl DdsTopicListener for TopicListener {
     fn is_running(&self) -> bool {
-        return self.is_running;
+        self.is_running
     }
 
     async fn start(&mut self) -> Result<()> {

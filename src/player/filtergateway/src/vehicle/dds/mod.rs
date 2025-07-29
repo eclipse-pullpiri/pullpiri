@@ -61,7 +61,7 @@ impl DdsManager {
             let entry = entry?;
             let path = entry.path();
 
-            if path.is_file() && path.extension().map_or(false, |ext| ext == "idl") {
+            if path.is_file() && path.extension().is_some_and(|ext| ext == "idl") {
                 if let Some(stem) = path.file_stem() {
                     let type_name = stem.to_string_lossy().to_string();
                     found_types.push(type_name);

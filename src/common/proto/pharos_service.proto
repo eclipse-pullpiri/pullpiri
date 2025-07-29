@@ -1,0 +1,22 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+package pharos.api.v1;
+
+service PharosNetworkServiceConnection {
+  rpc RequestNetworkPod(RequestNetworkPodRequest) returns (RequestNetworkPodResponse);
+}
+
+message RequestNetworkPodRequest {
+  string node_yaml = 1;
+  string pod_name = 2;
+  string networkYamls = 3;
+}
+message RequestNetworkPodResponse {
+  string request_id = 1;
+  bool accepted = 2;
+  string message = 3;
+}

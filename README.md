@@ -13,6 +13,8 @@ SPDX-License-Identifier: Apache-2.0
 
 # PULLPIRI
 
+![Build Status](https://github.com/eclipse-pullpiri/pullpiri/actions/workflows/ci.yml/badge.svg)
+
 The main goal of PULLPIRI project is to develop an efficient vehicle service
 orchestrator framework to realize the potential benefits of cloud native
 technologies for in-vehicle services and applications. In this direction,

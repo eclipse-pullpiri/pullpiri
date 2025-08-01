@@ -67,6 +67,7 @@ async fn initialize(tx_grpc: Sender<HandleYamlRequest>, hostname: String) {
 ///
 /// Sets up the async runtime, creates the communication channel, and launches
 /// both the manager and gRPC server concurrently.
+#[cfg(not(tarpaulin_include))]
 #[tokio::main]
 async fn main() {
     let hostname: String = String::from_utf8_lossy(

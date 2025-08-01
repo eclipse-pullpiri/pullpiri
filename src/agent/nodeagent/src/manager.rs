@@ -138,3 +138,107 @@ impl NodeAgentManager {
         Ok(())
     }
 }
+
+//unit test cases
+#[cfg(test)]
+mod tests {
+    const VALID_ARTIFACT_YAML: &str = r#"
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: helloworld
+spec:
+  condition:
+  action: update
+  target: helloworld
+---
+apiVersion: v1
+kind: Package
+metadata:
+  label: null
+  name: helloworld
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: helloworld-core
+      node: HPC
+      resources:
+        volume:
+        network:
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: helloworld-core
+  annotations:
+    io.piccolo.annotations.package-type: helloworld-core
+    io.piccolo.annotations.package-name: helloworld
+    io.piccolo.annotations.package-network: default
+  labels:
+    app: helloworld-core
+spec:
+  hostNetwork: true
+  containers:
+    - name: helloworld
+      image: helloworld
+  terminationGracePeriodSeconds: 0
+"#;
+    use crate::manager::NodeAgentManager;
+    use common::nodeagent::HandleYamlRequest;
+    use std::sync::Arc;
+    use tokio::sync::mpsc;
+    use tokio::sync::Mutex;
+
+    #[tokio::test]
+    async fn test_new_creates_instance_with_correct_hostname() {
+        let (_tx, rx) = mpsc::channel(1);
+        let hostname = "test-host".to_string();
+
+        let manager = NodeAgentManager::new(rx, hostname.clone()).await;
+
+        assert_eq!(manager.hostname, hostname);
+    }
+
+    #[tokio::test]
+    async fn test_initialize_returns_ok() {
+        let (_tx, rx) = mpsc::channel(1);
+        let hostname = "test-host".to_string();
+
+        let mut manager = NodeAgentManager::new(rx, hostname).await;
+        let result = manager.initialize().await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_process_grpc_requests_handles_empty_channel() {
+        let (_tx, rx) = mpsc::channel(1);
+        drop(_tx); // close sender so recv returns None immediately
+        let hostname = "test-host".to_string();
+
+        let manager = NodeAgentManager::new(rx, hostname).await;
+        let result = manager.process_grpc_requests().await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_process_grpc_requests_receives_and_parses_yaml() {
+        let (tx, rx) = mpsc::channel(1);
+        let hostname = "test-host".to_string();
+
+        let manager = NodeAgentManager::new(rx, hostname.clone()).await;
+
+        let yaml_string = VALID_ARTIFACT_YAML.to_string();
+        let request = HandleYamlRequest {
+            yaml: yaml_string.clone(),
+        };
+
+        tx.send(request).await.unwrap();
+        drop(tx);
+
+        let result = manager.process_grpc_requests().await;
+        assert!(result.is_ok());
+    }
+}

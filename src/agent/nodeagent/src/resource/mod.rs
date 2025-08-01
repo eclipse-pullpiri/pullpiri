@@ -20,3 +20,20 @@ async fn get(path: &str) -> Result<hyper::body::Bytes, Error> {
     let res = client.get(uri).await?;
     hyper::body::to_bytes(res).await
 }
+
+//Unit tets cases
+#[cfg(test)]
+mod tests {
+    use super::get;
+    use hyper::body::Bytes;
+    use hyper::Error;
+    use tokio;
+
+    #[tokio::test]
+    async fn test_get_with_valid_path() {
+        let result: Result<Bytes, Error> = get("/v1.0/version").await;
+        assert!(result.is_ok());
+        let bytes = result.unwrap();
+        assert!(!bytes.is_empty());
+    }
+}

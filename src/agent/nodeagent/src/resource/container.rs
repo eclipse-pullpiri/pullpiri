@@ -226,7 +226,6 @@ mod tests {
             assert!(info.state.contains_key("Status"));
             assert!(info.state.contains_key("Running"));
             assert!(info.config.contains_key("Hostname"));
-            assert!(info.annotation.is_empty() || info.annotation.len() >= 0);
         }
     }
 

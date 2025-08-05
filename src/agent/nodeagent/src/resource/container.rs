@@ -171,3 +171,86 @@ pub struct ContainerConfig {
     pub Labels: Option<HashMap<String, String>>,
     pub Annotations: Option<HashMap<String, String>>,
 }
+
+//Unit Test Cases
+#[cfg(test)]
+mod tests {
+    use super::{get_inspect, get_list, inspect, Container, ContainerError, ContainerInspect};
+    use common::monitoringserver::ContainerInfo;
+    use std::collections::HashMap;
+    use tokio;
+
+    #[tokio::test]
+    async fn test_get_list_success() {
+        let result = get_list().await;
+        assert!(result.is_ok());
+        let containers = result.unwrap();
+        for container in containers {
+            assert!(!container.Id.is_empty());
+            assert!(!container.Image.is_empty());
+            assert!(!container.State.is_empty());
+            assert!(!container.Status.is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_inspect_success() {
+        let list = get_list().await.unwrap();
+        if let Some(container) = list.first() {
+            let result = get_inspect(&container.Id).await;
+            assert!(result.is_ok());
+            let inspect = result.unwrap();
+            assert_eq!(inspect.Id, container.Id);
+            assert!(!inspect.Name.is_empty());
+            assert!(!inspect.Config.Image.is_empty());
+            assert!(!inspect.State.Status.is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_inspect_invalid_id() {
+        let invalid_id = "nonexistent_container_id_12345";
+        let result = get_inspect(invalid_id).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_inspect_contains_expected_keys() {
+        let result = inspect().await;
+        assert!(result.is_ok());
+        let infos = result.unwrap();
+        for info in infos {
+            assert!(!info.id.is_empty());
+            assert!(!info.names.is_empty());
+            assert!(!info.image.is_empty());
+            assert!(info.state.contains_key("Status"));
+            assert!(info.state.contains_key("Running"));
+            assert!(info.config.contains_key("Hostname"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_inspect_env_var_hostname() {
+        std::env::set_var("HOST_NAME", "test_host");
+        let result = inspect().await;
+        assert!(result.is_ok());
+        let infos = result.unwrap();
+        if !infos.is_empty() {
+            let config = &infos[0].config;
+            assert_eq!(config.get("Hostname").unwrap(), "test_host");
+        }
+        std::env::remove_var("HOST_NAME");
+    }
+
+    #[tokio::test]
+    async fn test_inspect_env_var_hostname_default() {
+        std::env::remove_var("HOST_NAME");
+        let result = inspect().await;
+        assert!(result.is_ok());
+        let infos = result.unwrap();
+        if !infos.is_empty() {
+            let config = &infos[0].config;
+            assert_eq!(config.get("Hostname").unwrap(), "Unknown");
+        }
+    }
+}

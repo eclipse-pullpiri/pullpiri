@@ -1,5 +1,5 @@
-name: Daily multi-arch Docker Build
-    
+name: Build
+
 on:
   schedule:
     - cron: '0 16 * * *'

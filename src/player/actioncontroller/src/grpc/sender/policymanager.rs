@@ -37,6 +37,7 @@ pub async fn check_policy(scenario_name: String) -> Result<()> {
     let mut client = PolicyManagerConnectionClient::connect(addr)
         .await
         .map_err(|e| format!("Failed to connect to PolicyManager: {}", e))?;
+
     let request = tonic::Request::new(CheckPolicyRequest {
         scenario_name: scenario_name.clone(),
     }); // Clone scenario_name if needed later for error messages
@@ -95,7 +96,10 @@ pub async fn handle_yaml(workload_name: String) -> Result<bool> {
     }
 
     let addr = common::nodeagent::connect_server();
-    let mut client = NodeAgentConnectionClient::connect(addr).await.unwrap();
+    let mut client = NodeAgentConnectionClient::connect(addr)
+        .await //.unwrap();
+        .map_err(|e| format!("Failed to connect to NodeAgent: {}", e))?;
+
     let request = Request::new(HandleYamlRequest {
         yaml: workload_name,
     });

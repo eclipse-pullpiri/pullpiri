@@ -5,7 +5,7 @@
 
 use common::monitoringserver::{ContainerList, SendContainerListResponse};
 use common::statemanager::{
-    connect_server, state_manager_connection_client::StateManagerConnectionClient, Action, Response,
+    state_manager_connection_client::StateManagerConnectionClient, Action, Response,
 };
 
 use common::monitoringserver::monitoring_server_connection_client::MonitoringServerConnectionClient;
@@ -21,10 +21,21 @@ impl NodeAgentSender {
         &mut self,
         action: Action,
     ) -> Result<tonic::Response<Response>, Status> {
-        let mut client = StateManagerConnectionClient::connect(connect_server())
-            .await
-            .unwrap();
-        client.send_action(Request::new(action)).await
+        let addr = common::statemanager::connect_server();
+        let client = StateManagerConnectionClient::connect(addr).await;
+        match client {
+            Ok(mut client) => {
+                // Send the action
+                client.send_action(Request::new(action)).await
+            }
+            Err(e) => {
+                // Handle connection error
+                return Err(Status::unknown(format!(
+                    "Failed to connect statemanager: {}",
+                    e
+                )));
+            }
+        }
     }
 
     /// Send a ContainerList to the monitoring server via gRPC
@@ -32,13 +43,22 @@ impl NodeAgentSender {
         &mut self,
         container_list: ContainerList,
     ) -> Result<tonic::Response<SendContainerListResponse>, Status> {
-        let mut client =
+        let client =
             MonitoringServerConnectionClient::connect(common::monitoringserver::connect_server())
-                .await
-                .unwrap();
-        client
-            .send_container_list(Request::new(container_list))
-            .await
+                .await;
+
+        match client {
+            Ok(mut client) => {
+                // Send the container list
+                client
+                    .send_container_list(Request::new(container_list))
+                    .await
+            }
+            Err(e) => {
+                // Handle connection error
+                Err(Status::unknown(format!("Failed to connect: {}", e)))
+            }
+        }
     }
 
     /// Send a changed ContainerList to the state manager via gRPC
@@ -46,13 +66,21 @@ impl NodeAgentSender {
         &mut self,
         container_list: ContainerList,
     ) -> Result<tonic::Response<SendContainerListResponse>, Status> {
-        let mut client =
-            StateManagerConnectionClient::connect(common::statemanager::connect_server())
-                .await
-                .unwrap();
-        client
-            .send_changed_container_list(Request::new(container_list))
-            .await
+        let client =
+            StateManagerConnectionClient::connect(common::statemanager::connect_server()).await;
+
+        match client {
+            Ok(mut client) => {
+                // Send the changed container list
+                client
+                    .send_changed_container_list(Request::new(container_list))
+                    .await
+            }
+            Err(e) => {
+                // Handle connection error
+                Err(Status::unknown(format!("Failed to connect: {}", e)))
+            }
+        }
     }
 }
 

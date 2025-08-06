@@ -77,7 +77,9 @@ impl FilterGatewayManager {
     pub async fn initialize(&self) -> Result<()> {
         println!("FilterGatewayManager init");
         // Initialize vehicle manager
-        let etcd_scenario = Self::read_all_scenario_from_etcd().await.unwrap_or_default();
+        let etcd_scenario = Self::read_all_scenario_from_etcd()
+            .await
+            .unwrap_or_default();
 
         for scenario in etcd_scenario {
             let scenario: Scenario = serde_yaml::from_str(&scenario)?;

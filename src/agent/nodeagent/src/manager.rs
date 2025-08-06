@@ -235,7 +235,7 @@ spec:
             yaml: yaml_string.clone(),
         };
 
-        tx.send(request).await.unwrap();
+        assert!(tx.send(request).await.is_ok());
         drop(tx);
 
         let result = manager.process_grpc_requests().await;

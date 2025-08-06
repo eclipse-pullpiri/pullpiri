@@ -10,12 +10,12 @@ pub use filter::Filter;
 pub use grpc::receiver::FilterGatewayReceiver;
 pub use grpc::sender::FilterGatewaySender;
 pub use manager::ScenarioParameter;
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::mpsc::{Receiver, Sender};
 pub use vehicle::dds::listener;
 pub use vehicle::dds::DdsData;
 pub use vehicle::dds::DdsTopicListener;
 pub async fn launch_manager(rx_grpc: Receiver<ScenarioParameter>) {
-    let mut manager = manager::FilterGatewayManager::new(rx_grpc).await;
+    let manager = manager::FilterGatewayManager::new(rx_grpc).await;
 
     match manager.initialize().await {
         Ok(_) => {

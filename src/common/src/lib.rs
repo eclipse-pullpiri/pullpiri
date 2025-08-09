@@ -2,10 +2,12 @@
  * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
  * SPDX-License-Identifier: Apache-2.0
  */
-pub use crate::error::Result;
+pub use crate::error::{Result, PullpiriError, ErrorReport};
 
 pub mod error;
+pub mod error_reporting;
 pub mod etcd;
+pub mod logging;
 pub mod setting;
 pub mod spec;
 

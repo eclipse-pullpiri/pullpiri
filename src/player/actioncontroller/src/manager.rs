@@ -574,7 +574,7 @@ spec:
             nodeagent_nodes: vec![],
         };
 
-        let result: std::result::Result<(), Box<dyn Error>> = manager
+        let result = manager
             .start_workload("antipinch-enable", "HPC", "invalid_type")
             .await;
         assert!(result.is_err());

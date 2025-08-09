@@ -2,8 +2,9 @@ pub mod receiver;
 pub mod sender;
 
 use std::sync::Arc;
-
 use tonic::transport::Server;
+use common::{Result, PullpiriError};
+use tracing::{info, error, warn};
 
 /// Initialize the gRPC communication system for ActionController
 ///
@@ -20,24 +21,35 @@ use tonic::transport::Server;
 /// Returns an error if:
 /// - Server address binding fails
 /// - Client connection establishment fails
-pub async fn init(manager: crate::manager::ActionControllerManager) -> common::Result<()> {
+pub async fn init(manager: crate::manager::ActionControllerManager) -> Result<()> {
+    common::log_operation_start!("grpc_server_initialization");
+    
     let arc_manager = Arc::new(manager);
     let grpc_server = receiver::ActionControllerReceiver::new(arc_manager.clone());
 
-    let addr = common::actioncontroller::open_server().parse()?;
-    println!("Starting gRPC server on {}", addr);
+    let addr_str = common::actioncontroller::open_server();
+    let addr = addr_str.parse()
+        .map_err(|e| PullpiriError::config(format!("Invalid server address '{}': {}", addr_str, e)))?;
+    
+    info!(address = %addr, "Starting gRPC server");
 
     tokio::spawn(async move {
-        if let Err(e) = Server::builder()
+        match Server::builder()
             .add_service(grpc_server.into_service())
             .serve(addr)
             .await
         {
-            eprintln!("gRPC server error: {}", e);
+            Ok(_) => {
+                info!("gRPC server stopped gracefully");
+            }
+            Err(e) => {
+                error!(error = %e, address = %addr, "gRPC server error");
+            }
         }
     });
 
-    println!("gRPC server started and listening");
+    info!(address = %addr, "gRPC server started and listening");
+    common::log_operation_success!("grpc_server_initialization", address = %addr);
 
     Ok(())
 }

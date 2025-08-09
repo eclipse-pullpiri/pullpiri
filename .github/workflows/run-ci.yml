@@ -13,18 +13,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Install Rust toolchain
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      # Step 3: Install Docker Compose dependencies (if needed)
-      - name: Install Docker Compose and utilities
+      # Step 2: Install essential dependencies including protobuf-compiler and dbus
+      - name: Install essential dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y docker-compose jq curl lsb-release
+          sudo apt-get install -y docker-compose jq curl lsb-release protobuf-compiler libdbus-1-dev pkg-config build-essential
+
+      # Step 3: Install Rust toolchain
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
       # Step 4: Make all scripts executable
       - name: Make scripts executable

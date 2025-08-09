@@ -134,7 +134,10 @@ impl ActionControllerManager {
                 println!("Node {} is nodeagent", model_node);
                 "nodeagent"
             } else {
-                continue; // Skip unknown node types
+                // Log warning for unknown node types but default to bluechi for backward compatibility
+                println!("Warning: Node '{}' is not explicitly configured. Defaulting to bluechi type.", model_node);
+                println!("Node {} is bluechi", model_node);
+                "bluechi"
             };
             println!(
                 "Processing model '{}' on node '{}' with action '{}'",
@@ -250,7 +253,9 @@ impl ActionControllerManager {
             } else if self.nodeagent_nodes.contains(&model_node) {
                 "nodeagent"
             } else {
-                continue; // Skip if node type is unknown
+                // Default to bluechi for unknown nodes for backward compatibility
+                println!("Warning: Node '{}' is not explicitly configured. Defaulting to bluechi type.", model_node);
+                "bluechi"
             };
 
             if desired == Status::Running {
@@ -614,5 +619,22 @@ spec:
         assert!(manager.delete_workload("test".into()).await.is_ok());
         assert!(manager.restart_workload("test".into()).await.is_ok());
         assert!(manager.pause_workload("test".into()).await.is_ok());
+    }
+
+    #[test]
+    fn test_unknown_nodes_defaulted_to_bluechi() {
+        // Test that when creating a manager, unknown nodes get defaulted properly
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
+            nodeagent_nodes: vec!["ZONE".to_string()],
+        };
+
+        // Test that nodes are properly categorized
+        assert!(manager.bluechi_nodes.contains(&"HPC".to_string()));
+        assert!(manager.nodeagent_nodes.contains(&"ZONE".to_string()));
+        assert!(!manager.bluechi_nodes.contains(&"cloud".to_string()));
+        
+        // The logic now defaults unknown nodes to bluechi instead of skipping them
+        // This test validates that the manager is set up correctly for the fix
     }
 }

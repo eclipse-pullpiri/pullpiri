@@ -1,0 +1,13 @@
+🔍 Running Cargo clippy...
+🧪 Running Clippy for common (src/common/Cargo.toml)
+✅ Clippy for common passed clean.
+🧪 Running Clippy for apiserver (src/server/apiserver/Cargo.toml)
+✅ Clippy for apiserver passed clean.
+🧪 Running Clippy for tools (src/tools/Cargo.toml)
+✅ Clippy for tools passed clean.
+🧪 Running Clippy for agent (src/agent/Cargo.toml)
+✅ Clippy for agent passed clean.
+🧪 Running Clippy for filtergateway (src/player/filtergateway/Cargo.toml)
+✅ Clippy for filtergateway passed clean.
+🧪 Running Clippy for actioncontroller (src/player/actioncontroller/Cargo.toml)
+✅ Clippy for actioncontroller passed clean.

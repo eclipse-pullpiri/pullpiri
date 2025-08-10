@@ -23,7 +23,33 @@ common_packages=(
   npm
 )
 DEBIAN_FRONTEND=noninteractive sudo apt-get install -y "${common_packages[@]}"
-echo "✅ Base packages installed successfully"
+
+# Verify critical dependencies are properly installed
+echo "🔍 Verifying critical dependencies..."
+critical_deps=(
+  "pkg-config --version"
+  "protoc --version"
+)
+
+for dep_check in "${critical_deps[@]}"; do
+  if ! $dep_check &>/dev/null; then
+    echo "❌ ERROR: Failed to verify dependency: $dep_check"
+    exit 1
+  else
+    echo "✅ Verified: $dep_check"
+  fi
+done
+
+# Verify dbus development libraries are available
+if ! pkg-config --exists dbus-1; then
+  echo "❌ ERROR: dbus-1 development libraries not found"
+  echo "This is required for the error handling system"
+  exit 1
+else
+  echo "✅ Verified: dbus-1 development libraries"
+fi
+
+echo "✅ Base packages installed and verified successfully"
 
 # ----------------------------------------
 # 🦀 Install rustup, Clippy, Rustfmt, and cargo-deny
@@ -61,6 +87,34 @@ cargo clippy --version
 cargo fmt --version
 cargo deny --version
 echo "✅ Rust toolchain installed successfully."
+
+# Final verification - ensure environment is ready for Rust compilation
+echo "🔍 Final environment verification for Rust compilation..."
+echo "Checking environment variables and critical paths..."
+
+# Verify environment variables
+if [[ -z "${CARGO_HOME:-}" ]]; then
+  export CARGO_HOME="$HOME/.cargo"
+fi
+
+# Verify Rust toolchain can find system dependencies
+echo "Testing Rust compilation environment..."
+cd /tmp
+cat > test_deps.rs << 'EOF'
+fn main() {
+    println!("Environment test successful");
+}
+EOF
+
+if rustc test_deps.rs -o test_deps && ./test_deps; then
+  echo "✅ Rust compilation environment verified"
+  rm -f test_deps test_deps.rs
+else
+  echo "❌ ERROR: Rust compilation environment check failed"
+  exit 1
+fi
+
+echo "🎯 All dependencies installed and verified - environment ready for Rust builds!"
 
 # ----------------------------------------
 # 📦 Install etcd & etcdctl

@@ -379,21 +379,9 @@ impl FilterGatewayManager {
             }
         };
 
-        // If filter was found and removed, perform additional cleanup
-        if let Some(filter) = removed_filter {
-            // Get topic name for DDS cleanup
-            if let Some(conditions) = filter.scenario.get_conditions() {
-                let topic_name = conditions.get_operand_value();
-                
-                // Cleanup DDS subscription
-                let mut vehicle_manager = self.vehicle_manager.lock().await;
-                if let Err(e) = vehicle_manager.unsubscribe_topic(topic_name.clone()).await {
-                    eprintln!("Warning: Failed to unsubscribe from topic '{}': {:?}", topic_name, e);
-                    // Continue execution - don't fail the entire operation for this
-                }
-                
-                println!("Successfully removed filter and cleaned up resources for scenario: {}", scenario_name);
-            }
+        // If filter was found and removed, log success
+        if removed_filter.is_some() {
+            println!("Successfully removed filter for scenario: {}", scenario_name);
         }
         
         Ok(())
@@ -418,74 +406,22 @@ impl FilterGatewayManager {
 
         println!("Deleting {} scenarios in parallel", scenario_names.len());
         
-        // Collect all filters to be removed and their associated topics
-        let (filters_to_remove, topics_to_cleanup) = {
+        // Remove filters from the collection
+        let successfully_deleted = {
             let mut filters = self.filters.lock().await;
-            let mut removed_filters = Vec::new();
-            let mut topics = Vec::new();
+            let mut deleted_scenarios = Vec::new();
             
-            // Remove filters from collection and collect topic information
+            // Remove filters from collection
             for scenario_name in &scenario_names {
                 if let Some(index) = filters.iter().position(|f| &f.scenario_name == scenario_name) {
-                    let filter = filters.remove(index);
-                    
-                    // Extract topic information for DDS cleanup
-                    if let Some(conditions) = filter.scenario.get_conditions() {
-                        topics.push((scenario_name.clone(), conditions.get_operand_value()));
-                    }
-                    
-                    removed_filters.push(filter);
+                    filters.remove(index);
+                    deleted_scenarios.push(scenario_name.clone());
+                    println!("Successfully removed filter for scenario: {}", scenario_name);
                 }
             }
             
-            (removed_filters, topics)
+            deleted_scenarios
         };
-
-        // Perform DDS cleanup in parallel
-        let cleanup_tasks: Vec<_> = topics_to_cleanup
-            .into_iter()
-            .map(|(scenario_name, topic_name)| {
-                let vehicle_manager = Arc::clone(&self.vehicle_manager);
-                let scenario_name_clone = scenario_name.clone();
-                
-                tokio::spawn(async move {
-                    let mut vm = vehicle_manager.lock().await;
-                    match vm.unsubscribe_topic(topic_name.clone()).await {
-                        Ok(_) => {
-                            println!("Successfully unsubscribed from topic '{}' for scenario '{}'", topic_name, scenario_name_clone);
-                            Ok::<String, anyhow::Error>(scenario_name_clone)
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to unsubscribe from topic '{}' for scenario '{}': {:?}", topic_name, scenario_name_clone, e);
-                            // Return the scenario name even if cleanup failed - deletion was successful
-                            Ok::<String, anyhow::Error>(scenario_name_clone)
-                        }
-                    }
-                })
-            })
-            .collect();
-
-        // Wait for all cleanup tasks to complete
-        let mut successfully_deleted = Vec::new();
-        for task in cleanup_tasks {
-            match task.await {
-                Ok(Ok(scenario_name)) => successfully_deleted.push(scenario_name),
-                Ok(Err(_)) => {
-                    // Task completed but with error - scenario was still deleted
-                }
-                Err(e) => {
-                    eprintln!("Cleanup task failed to complete: {:?}", e);
-                    // Continue with other tasks
-                }
-            }
-        }
-
-        // Add scenarios that had no topics to cleanup
-        for filter in &filters_to_remove {
-            if filter.scenario.get_conditions().is_none() && !successfully_deleted.contains(&filter.scenario_name) {
-                successfully_deleted.push(filter.scenario_name.clone());
-            }
-        }
 
         println!("Successfully deleted {} out of {} requested scenarios", successfully_deleted.len(), scenario_names.len());
         Ok(successfully_deleted)

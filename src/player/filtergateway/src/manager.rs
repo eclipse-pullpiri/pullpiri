@@ -201,14 +201,7 @@ impl FilterGatewayManager {
                         }
                         1 => {
                             // Withdraw
-                            // Unsubscribe from vehicle data
-                            let mut vehicle_manager = self.vehicle_manager.lock().await;
-                            if let Err(e) = vehicle_manager
-                                .unsubscribe_topic(param.scenario.get_name().clone())
-                                .await
-                            {
-                                eprintln!("Error unsubscribing from vehicle data: {:?}", e);
-                            }
+                            // Only remove the filter - DDS topics may be shared with other scenarios
                             self.remove_scenario_filter(param.scenario.get_name().clone())
                                 .await?;
                         }

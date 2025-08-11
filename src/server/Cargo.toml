@@ -9,6 +9,7 @@ members = [
     "apiserver",
     "policymanager",
     "monitoringserver",
+    "settingsserver",
 ]
 
 [workspace.dependencies]

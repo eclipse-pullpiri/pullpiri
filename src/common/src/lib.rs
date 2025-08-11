@@ -129,10 +129,9 @@ pub mod statemanager {
     }
 }
 
-pub mod pharos_service {
-    tonic::include_proto!("pharos.api.v1");
-    pub fn connect_pharos_server() -> String {
-        format!("http://{}:{}", crate::setting::get_config().host.ip, 47006)
+pub mod settingsserver {
+    pub fn open_rest_server() -> String {
+        super::open_server(47007)
     }
 }
 //Unit Test Cases

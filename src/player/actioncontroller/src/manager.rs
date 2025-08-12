@@ -134,10 +134,9 @@ impl ActionControllerManager {
                 println!("Node {} is nodeagent", model_node);
                 "nodeagent"
             } else {
-                // Log warning for unknown node types but default to bluechi for backward compatibility
-                println!("Warning: Node '{}' is not explicitly configured. Defaulting to bluechi type.", model_node);
-                println!("Node {} is bluechi", model_node);
-                "bluechi"
+                // Log warning for unknown node types and skip processing
+                println!("Warning: Node '{}' is not explicitly configured. Skipping deployment.", model_node);
+                continue;
             };
             println!(
                 "Processing model '{}' on node '{}' with action '{}'",
@@ -253,9 +252,9 @@ impl ActionControllerManager {
             } else if self.nodeagent_nodes.contains(&model_node) {
                 "nodeagent"
             } else {
-                // Default to bluechi for unknown nodes for backward compatibility
-                println!("Warning: Node '{}' is not explicitly configured. Defaulting to bluechi type.", model_node);
-                "bluechi"
+                // Log warning for unknown node types and skip processing
+                println!("Warning: Node '{}' is not explicitly configured. Skipping deployment.", model_node);
+                continue;
             };
 
             if desired == Status::Running {
@@ -622,8 +621,8 @@ spec:
     }
 
     #[test]
-    fn test_unknown_nodes_defaulted_to_bluechi() {
-        // Test that when creating a manager, unknown nodes get defaulted properly
+    fn test_unknown_nodes_skipped() {
+        // Test that when creating a manager, unknown nodes are properly categorized
         let manager = ActionControllerManager {
             bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec!["ZONE".to_string()],
@@ -634,7 +633,7 @@ spec:
         assert!(manager.nodeagent_nodes.contains(&"ZONE".to_string()));
         assert!(!manager.bluechi_nodes.contains(&"cloud".to_string()));
         
-        // The logic now defaults unknown nodes to bluechi instead of skipping them
-        // This test validates that the manager is set up correctly for the fix
+        // The logic now skips unknown nodes instead of processing them
+        // This test validates that the manager is set up correctly
     }
 }

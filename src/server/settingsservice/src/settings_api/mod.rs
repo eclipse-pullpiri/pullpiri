@@ -495,7 +495,7 @@ async fn rollback_to_version(
 }
 
 async fn diff_versions(
-    Path(_path): Path<String>,
+    Path(path): Path<String>,
     State(_state): State<ApiState>,
 ) -> Result<Json<Vec<crate::settings_history::DiffEntry>>, (StatusCode, Json<ErrorResponse>)> {
     debug!("GET /api/v1/history/{}/diff", path);
@@ -507,19 +507,17 @@ async fn diff_versions(
 
 // System API handlers
 
-async fn get_system_status(
-    State(_state): State<ApiState>,
-) -> Result<Json<crate::settings_core::SystemStatus>, (StatusCode, Json<ErrorResponse>)> {
+async fn get_system_status() -> Json<serde_json::Value> {
     debug!("GET /api/v1/system/status");
 
-    // Create a dummy core manager status for now
-    let status = crate::settings_core::SystemStatus {
-        version: env!("CARGO_PKG_VERSION").to_string(),
-        uptime: std::time::Duration::from_secs(60), // dummy value
-        components: std::collections::HashMap::new(),
-    };
+    // Create a dummy status for now
+    let status = serde_json::json!({
+        "version": env!("CARGO_PKG_VERSION"),
+        "status": "running",
+        "uptime_seconds": 60
+    });
 
-    Ok(Json(status))
+    Json(status)
 }
 
 async fn health_check() -> StatusCode {

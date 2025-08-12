@@ -40,7 +40,7 @@ pub fn merge_yaml(base: &mut Value, overlay: &Value) -> Result<(), SettingsError
 }
 
 /// Get a value at the specified path
-pub fn get_path(value: &Value, path: &str) -> Option<&Value> {
+pub fn get_path<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
     let parts: Vec<&str> = path.split('.').collect();
     let mut current = value;
     

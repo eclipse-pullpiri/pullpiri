@@ -5,6 +5,7 @@
 
 use crate::settings_storage::{Storage, config_key, schema_key};
 use crate::settings_utils::error::{SettingsError, ValidationError};
+use crate::settings_history::{HistoryManager, ChangeAction};
 use crate::settings_utils::yaml;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -180,6 +181,7 @@ impl ConfigManager {
         schema_type: &str,
         author: &str,
         comment: Option<String>,
+        history_manager: Option<&mut HistoryManager>,
     ) -> Result<Config, SettingsError> {
         // Check if config already exists
         let key = config_key(path);
@@ -202,6 +204,12 @@ impl ConfigManager {
         };
 
         self.save_config(&config).await?;
+
+        // Record history
+        if let Some(history_manager) = history_manager {
+            history_manager.record_change(path, None, &config, ChangeAction::Create).await?;
+        }
+
         Ok(config)
     }
 
@@ -212,9 +220,11 @@ impl ConfigManager {
         content: Value,
         author: &str,
         comment: Option<String>,
+        history_manager: Option<&mut HistoryManager>,
     ) -> Result<Config, SettingsError> {
-        let mut config = self.load_config(path).await?;
+        let old_config = self.load_config(path).await?;
         
+        let mut config = old_config.clone();
         config.content = content;
         config.metadata.version += 1;
         config.metadata.modified_at = Utc::now();
@@ -222,16 +232,37 @@ impl ConfigManager {
         config.metadata.comment = comment;
 
         self.save_config(&config).await?;
+
+        // Record history
+        if let Some(history_manager) = history_manager {
+            history_manager.record_change(path, Some(&old_config), &config, ChangeAction::Update).await?;
+        }
+
         Ok(config)
     }
 
     /// Delete configuration
-    pub async fn delete_config(&mut self, config_path: &str) -> Result<(), SettingsError> {
+    pub async fn delete_config(&mut self, config_path: &str, history_manager: Option<&mut HistoryManager>) -> Result<(), SettingsError> {
         info!("Deleting config: {}", config_path);
+        
+        // Load existing config before deletion for history
+        let old_config = if let Ok(config) = self.load_config(config_path).await {
+            Some(config)
+        } else {
+            None
+        };
         
         let key = config_key(config_path);
         if !self.storage.delete(&key).await? {
             warn!("Configuration not found for deletion: {}", config_path);
+        }
+
+        // Record history if we had a config to delete
+        if let (Some(old_config), Some(history_manager)) = (old_config, history_manager) {
+            // Create a tombstone config for history
+            let mut deleted_config = old_config.clone();
+            deleted_config.metadata.modified_at = Utc::now();
+            history_manager.record_change(config_path, Some(&old_config), &deleted_config, ChangeAction::Delete).await?;
         }
         
         Ok(())

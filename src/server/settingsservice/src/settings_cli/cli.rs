@@ -189,6 +189,7 @@ async fn handle_config_command(ctx: &mut CliContext, args: &[&str]) -> Result<()
                         value,
                         "cli-user",
                         Some("Updated via CLI".to_string()),
+                        None, // CLI doesn't have access to history manager
                     ).await {
                         Ok(config) => {
                             println!("Configuration updated: {} (v{})", config.path, config.metadata.version);
@@ -201,6 +202,7 @@ async fn handle_config_command(ctx: &mut CliContext, args: &[&str]) -> Result<()
                                 "generic",
                                 "cli-user",
                                 Some("Created via CLI".to_string()),
+                                None, // CLI doesn't have access to history manager
                             ).await {
                                 Ok(config) => {
                                     println!("Configuration created: {} (v{})", config.path, config.metadata.version);
@@ -223,7 +225,7 @@ async fn handle_config_command(ctx: &mut CliContext, args: &[&str]) -> Result<()
                 return Ok(());
             }
             
-            ctx.config_manager.delete_config(args[1]).await?;
+            ctx.config_manager.delete_config(args[1], None).await?;
             println!("Configuration deleted: {}", args[1]);
         }
         "validate" => {

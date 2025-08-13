@@ -196,6 +196,7 @@ impl HistoryManager {
                 target_config.content,
                 author,
                 comment.or_else(|| Some(format!("Rollback to version {}", target_version))),
+                None, // Don't record history during rollback - we'll do it manually
             )
             .await?;
 

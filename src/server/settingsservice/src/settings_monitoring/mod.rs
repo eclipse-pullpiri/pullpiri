@@ -26,7 +26,15 @@ pub struct MetricsFilter {
     pub time_range: Option<TimeRange>,
     pub refresh_interval: Option<u64>, // seconds
     pub max_items: Option<usize>,
+    #[serde(default = "default_version")]
+    pub version: u64,
+    #[serde(default = "Utc::now")]
+    pub created_at: DateTime<Utc>,
+    #[serde(default = "Utc::now")]
+    pub modified_at: DateTime<Utc>,
 }
+
+fn default_version() -> u64 { 1 }
 
 /// Time range for metrics filtering
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,7 +86,9 @@ pub struct FilterSummary {
     pub enabled: bool,
     pub component_count: usize,
     pub metric_type_count: usize,
+    pub version: u64,
     pub created_at: DateTime<Utc>,
+    pub modified_at: DateTime<Utc>,
 }
 
 /// Cache entry with expiration
@@ -242,6 +252,9 @@ impl MonitoringManager {
             time_range: None,
             refresh_interval: None,
             max_items: None,
+            version: 1,
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
         };
 
         self.get_metrics(Some(&filter)).await
@@ -264,6 +277,9 @@ impl MonitoringManager {
             time_range: None,
             refresh_interval: None,
             max_items: None,
+            version: 1,
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
         };
 
         self.get_metrics(Some(&filter)).await
@@ -274,6 +290,9 @@ impl MonitoringManager {
         let filter_id = Uuid::new_v4().to_string();
         let mut filter_with_id = filter.clone();
         filter_with_id.id = filter_id.clone();
+        filter_with_id.version = 1;
+        filter_with_id.created_at = Utc::now();
+        filter_with_id.modified_at = Utc::now();
 
         info!("Creating metrics filter: {} ({})", filter.name, filter_id);
 
@@ -304,8 +323,14 @@ impl MonitoringManager {
     pub async fn update_filter(&mut self, id: &str, filter: &MetricsFilter) -> Result<(), SettingsError> {
         info!("Updating filter: {}", id);
 
+        // Get the existing filter to preserve version and creation time
+        let existing_filter = self.get_filter(id).await?;
+
         let mut updated_filter = filter.clone();
         updated_filter.id = id.to_string();
+        updated_filter.version = existing_filter.version + 1;
+        updated_filter.created_at = existing_filter.created_at;
+        updated_filter.modified_at = Utc::now();
 
         let key = filter_key(id);
         let filter_value = serde_json::to_value(&updated_filter)
@@ -352,7 +377,9 @@ impl MonitoringManager {
                         enabled: filter.enabled,
                         component_count: filter.components.as_ref().map_or(0, |c| c.len()),
                         metric_type_count: filter.metric_types.as_ref().map_or(0, |t| t.len()),
-                        created_at: Utc::now(), // TODO: Add created_at to filter
+                        version: filter.version,
+                        created_at: filter.created_at,
+                        modified_at: filter.modified_at,
                     });
                 }
                 Err(e) => {

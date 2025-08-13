@@ -7,6 +7,7 @@ use crate::settings_config::{Config, ConfigManager, ConfigSummary, ValidationRes
 use crate::settings_history::{HistoryEntry, HistoryManager, ChangeAction};
 use crate::settings_monitoring::{MonitoringManager, Metric, MetricsFilter, FilterSummary};
 use crate::settings_utils::error::{SettingsError, ApiError};
+use chrono::Utc;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -44,6 +45,13 @@ pub struct MetricsQuery {
 #[derive(Debug, Deserialize)]
 pub struct HistoryQuery {
     pub limit: Option<usize>,
+}
+
+/// Query parameters for diff API
+#[derive(Debug, Deserialize)]
+pub struct DiffQuery {
+    pub version1: u64,
+    pub version2: u64,
 }
 
 /// Query parameters for config listing
@@ -186,6 +194,9 @@ async fn get_metrics(
             time_range: None,
             refresh_interval: None,
             max_items: query.page_size.map(|ps| ps as usize),
+            version: 1,
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
         })
     } else {
         None
@@ -351,6 +362,7 @@ async fn create_config(
     debug!("POST /api/v1/settings/{}", path);
 
     let mut config_manager = state.config_manager.write().await;
+    let mut history_manager = state.history_manager.write().await;
 
     match config_manager.create_config(
         &path,
@@ -358,6 +370,7 @@ async fn create_config(
         &request.schema_type,
         &request.author,
         request.comment,
+        Some(&mut *history_manager),
     ).await {
         Ok(config) => Ok(Json(config)),
         Err(e) => Err(bad_request_error(&format!("Failed to create config: {}", e))),
@@ -372,12 +385,14 @@ async fn update_config(
     debug!("PUT /api/v1/settings/{}", path);
 
     let mut config_manager = state.config_manager.write().await;
+    let mut history_manager = state.history_manager.write().await;
 
     match config_manager.update_config(
         &path,
         request.content,
         &request.author,
         request.comment,
+        Some(&mut *history_manager),
     ).await {
         Ok(config) => Ok(Json(config)),
         Err(e) => Err(bad_request_error(&format!("Failed to update config: {}", e))),
@@ -391,8 +406,9 @@ async fn delete_config(
     debug!("DELETE /api/v1/settings/{}", path);
 
     let mut config_manager = state.config_manager.write().await;
+    let mut history_manager = state.history_manager.write().await;
 
-    match config_manager.delete_config(&path).await {
+    match config_manager.delete_config(&path, Some(&mut *history_manager)).await {
         Ok(_) => Ok(StatusCode::NO_CONTENT),
         Err(e) => Err(internal_error(&format!("Failed to delete config: {}", e))),
     }
@@ -496,13 +512,25 @@ async fn rollback_to_version(
 
 async fn diff_versions(
     Path(path): Path<String>,
-    State(_state): State<ApiState>,
+    Query(query): Query<DiffQuery>,
+    State(state): State<ApiState>,
 ) -> Result<Json<Vec<crate::settings_history::DiffEntry>>, (StatusCode, Json<ErrorResponse>)> {
-    debug!("GET /api/v1/history/{}/diff", path);
+    debug!("GET /api/v1/history/{}/diff?version1={}&version2={}", path, query.version1, query.version2);
     
-    // For simplicity, return empty diff for now
-    // This would need version1 and version2 parameters in a real implementation
-    Ok(Json(vec![]))
+    let mut history_manager = state.history_manager.write().await;
+
+    // Get both versions
+    let version1_result = history_manager.get_version(&path, query.version1).await;
+    let version2_result = history_manager.get_version(&path, query.version2).await;
+
+    match (version1_result, version2_result) {
+        (Ok(config1), Ok(config2)) => {
+            let diff = crate::settings_history::HistoryManager::calculate_diff(&config1.content, &config2.content);
+            Ok(Json(diff))
+        }
+        (Err(_), _) => Err(not_found_error(&format!("Version {} not found", query.version1))),
+        (_, Err(_)) => Err(not_found_error(&format!("Version {} not found", query.version2))),
+    }
 }
 
 // System API handlers

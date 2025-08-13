@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-FROM rust:1.70 as builder
+FROM rust:latest as builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -17,7 +17,7 @@ WORKDIR /app
 COPY . .
 
 # Build the settings service
-RUN cd src/server/settingsservice && cargo build --release
+RUN cd src/server && cargo build --release
 
 # Runtime stage
 FROM debian:bookworm-slim

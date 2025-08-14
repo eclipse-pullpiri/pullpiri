@@ -7,7 +7,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: piccolo-server
+  name: pullpiri-server
 spec:
   hostNetwork: true
   hostPid: true
@@ -23,8 +23,8 @@ spec:
     image: localhost/pullpiri:latest
     command: ["/piccolo/apiserver"]
     volumeMounts:
-    - name: piccolo-yaml
-      mountPath: /etc/piccolo/yaml
+    - name: pullpiri-yaml
+      mountPath: /etc/pullpiri/yaml
     - name: config-path
       mountPath: /piccolo/settings.yaml
   - name: policymanager
@@ -34,12 +34,12 @@ spec:
     image: localhost/pullpiri:latest
     command: ["/piccolo/monitoringserver"]
   volumes:
-  - name: piccolo-yaml
+  - name: pullpiri-yaml
     hostPath:
-      path: /etc/piccolo/yaml
+      path: /etc/pullpiri/yaml
   - name: etcd-data
     hostPath:
-      path: /etc/containers/systemd/piccolo/etcd-data
+      path: /etc/containers/systemd/pullpiri/etcd-data
   - name: config-path
     hostPath:
-      path: /etc/containers/systemd/piccolo/settings.yaml
+      path: /etc/containers/systemd/pullpiri/settings.yaml

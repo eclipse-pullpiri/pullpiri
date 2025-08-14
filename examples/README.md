@@ -31,13 +31,13 @@ All you have to do is run `make install` and you're ready to go.
 ### Check logs of containers
 
 ```md
-# [root@HPC Pullpiri]# podman logs piccolo-server-apiserver 
+# [root@HPC Pullpiri]# podman logs pullpiri-server-apiserver 
 http api listening on 0.0.0.0:47099
-# [root@HPC Pullpiri]# podman logs piccolo-player-filtergateway 
+# [root@HPC Pullpiri]# podman logs pullpiri-player-filtergateway 
 FilterGatewayManager init
 Pullpirid gateway listening on 0.0.0.0:47002
 FilterGatewayManager successfully initialized
-# [root@HPC Pullpiri]# podman logs piccolo-player-actioncontroller 
+# [root@HPC Pullpiri]# podman logs pullpiri-player-actioncontroller 
 Starting ActionController...
 Starting gRPC server on 0.0.0.0:47001
 gRPC server started and listening

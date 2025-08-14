@@ -7,7 +7,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: piccolo-player
+  name: pullpiri-player
 spec:
   hostNetwork: true
   hostPid: true
@@ -19,8 +19,8 @@ spec:
     image: localhost/pullpiri:latest
     command: ["/piccolo/actioncontroller"]
     volumeMounts:
-    - name: piccolo-yaml
-      mountPath: /root/piccolo_yaml
+    - name: pullpiri-yaml
+      mountPath: /root/pullpiri_yaml
     - name: dbus
       mountPath: /run/dbus
     - name: systemd
@@ -31,8 +31,8 @@ spec:
     image: localhost/pullpiri:latest
     command: ["/piccolo/statemanager"]
     volumeMounts:
-    - name: piccolo-yaml
-      mountPath: /root/piccolo_yaml
+    - name: pullpiri-yaml
+      mountPath: /root/pullpiri_yaml
     - name: dbus
       mountPath: /run/dbus
     - name: systemd
@@ -40,9 +40,9 @@ spec:
     - name: config-path
       mountPath: /piccolo/settings.yaml
   volumes:
-  - name: piccolo-yaml
+  - name: pullpiri-yaml
     hostPath:
-      path: /etc/piccolo/yaml
+      path: /etc/pullpiri/yaml
   - name: dbus
     hostPath:
       path: /run/dbus
@@ -51,4 +51,4 @@ spec:
       path: /etc/containers/systemd
   - name: config-path
     hostPath:
-      path: /etc/containers/systemd/piccolo/settings.yaml
+      path: /etc/containers/systemd/pullpiri/settings.yaml

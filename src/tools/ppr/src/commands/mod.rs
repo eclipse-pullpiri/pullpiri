@@ -3,7 +3,7 @@ pub mod delete;
 pub mod status;
 
 pub fn print_logo() {
-    let _logo_piccolo = r#"
+    let _logo_piccolo_unused = r#"
 __________.__                  .__         
 \______   \__| ____  ____ ____ |  |   ____ 
 |     ___/  |/ ___\/ ___\/  _ \|  |  /  _ \ 

@@ -9,7 +9,7 @@ spec:
     operands:
       type: DDS
       name: charging_status
-      value: "/rt/piccolo/Charging_Status"
+      value: "/rt/pullpiri/Charging_Status"
   action: update
   target: bms-algorithm-charging
 ---

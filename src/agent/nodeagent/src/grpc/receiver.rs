@@ -71,9 +71,9 @@ kind: Model
 metadata:
   name: hellow-core
   annotations:
-    io.piccolo.annotations.package-type: hellow-core
-    io.piccolo.annotations.package-name: hellow
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: hellow-core
+    io.pullpiri.annotations.package-name: hellow
+    io.pullpiri.annotations.package-network: default
   labels:
     app: hellow-core
 spec:

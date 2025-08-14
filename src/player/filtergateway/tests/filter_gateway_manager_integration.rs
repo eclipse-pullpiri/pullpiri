@@ -42,9 +42,9 @@ kind: Model
 metadata:
   name: helloworld_dds-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld_dds-core
-    io.piccolo.annotations.package-name: helloworld_dds
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld_dds-core
+    io.pullpiri.annotations.package-name: helloworld_dds
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld_dds-core
 spec:

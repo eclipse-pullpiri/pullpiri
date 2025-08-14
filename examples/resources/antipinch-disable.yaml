@@ -41,9 +41,9 @@ kind: Pod
 metadata:
   name: antipinch-disable-core
   annotations:
-    io.piccolo.annotations.package-type: antipinch-v1.0
-    io.piccolo.annotations.package-name: antipinch
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: antipinch-v1.0
+    io.pullpiri.annotations.package-name: antipinch
+    io.pullpiri.annotations.package-network: default
   labels:
     app: antipinch-core
 spec:

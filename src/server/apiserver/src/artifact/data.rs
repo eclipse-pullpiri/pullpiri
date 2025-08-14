@@ -88,9 +88,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:

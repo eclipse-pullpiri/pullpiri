@@ -65,7 +65,7 @@ src/
 - **Type**: grpc
 - **Parameters**: scenario_yaml_str: String, action: i32
 - **Returns**: common::Result<()>
-- **Description**:  API-Server로 부터 PICCOLO 시나리오 이름을 받아서 ETCD에 저장된 시나리오 정보를 추가하거나 삭제한다.
+- **Description**:  API-Server로 부터 pullpiri 시나리오 이름을 받아서 ETCD에 저장된 시나리오 정보를 추가하거나 삭제한다.
 API-Server로 부터 시나리오 yaml string 을 받아서 Scenario struct 에 넣는다. 차량 데이터 토픽을 구독등록하고 Filter 생성 후 실행 한다.
 
 ### API : subscribe_vehicle_data
@@ -93,7 +93,7 @@ API-Server로 부터 시나리오 yaml string 을 받아서 Scenario struct 에 
 - **Type**: function
 - **Parameters**: scenario: struct Scenario
 - **Returns**: common::Result<()>
-- **Description**: 전달 받은 PICCOLO Scenario에 해당하는 Filter를 생성하고 실행한다. Filter는 Scenario 하나 당 별도 thread로 생성되고 생성된 후 Scenario에 선언된 차량데이터를 Listener부터 전달 받는다. 전달 받은 차량 데이터로 Scenario의 조건을 판단 한다.
+- **Description**: 전달 받은 pullpiri Scenario에 해당하는 Filter를 생성하고 실행한다. Filter는 Scenario 하나 당 별도 thread로 생성되고 생성된 후 Scenario에 선언된 차량데이터를 Listener부터 전달 받는다. 전달 받은 차량 데이터로 Scenario의 조건을 판단 한다.
 
 ### API : remove_scenario_filter
 
@@ -102,7 +102,7 @@ API-Server로 부터 시나리오 yaml string 을 받아서 Scenario struct 에 
 - **Type**: function
 - **Parameters**: scenario_name: String
 - **Returns**: common::Result<()>
-- **Description**: PICCOLO Scenario에 해당하는 Filter를 삭제한다.
+- **Description**: pullpiri Scenario에 해당하는 Filter를 삭제한다.
 
 ### API : meet_scenario_condition
 

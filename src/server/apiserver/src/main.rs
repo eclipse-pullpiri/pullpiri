@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! The Apiserver provides internal/external APIs for Piccolo operations
+//! The Apiserver provides internal/external APIs for Pullpiri operations
 //! and performs registration and preparation tasks for scenarios and other
 //! artifacts.
 //!
-//! * Open a REST API to communicate with Piccolo Cloud or receive artifacts
+//! * Open a REST API to communicate with Pullpiri Cloud or receive artifacts
 //!   directly.
 //! * Appropriately parse the received string-type artifacts so that they can
-//!   be used within Piccolo.
+//!   be used within Pullpiri.
 //! * The parsing results are stored in etcd and passed to filtergateway so
 //!   that a filter can be created.
 
@@ -19,7 +19,7 @@ mod grpc;
 mod manager;
 mod route;
 
-/// Main function of Piccolo API Server
+/// Main function of Pullpiri API Server
 #[cfg(not(tarpaulin_include))]
 #[tokio::main]
 async fn main() {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! Handler functions of Piccolo REST API
+//! Handler functions of Pullpiri REST API
 
 use axum::{
     response::Response,
@@ -11,7 +11,7 @@ use axum::{
     Router,
 };
 
-/// Make router type for composing handler and Piccolo service
+/// Make router type for composing handler and Pullpiri service
 ///
 /// ### Parametets
 /// None
@@ -102,9 +102,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:

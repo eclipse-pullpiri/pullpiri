@@ -1,14 +1,14 @@
 # Settings Service Detailed Design Document (LLD)
 
-**Document Number**: PICCOLO-SETTINGS-LLD-2025-001  
+**Document Number**: PULLPIRI-SETTINGS-LLD-2025-001  
 **Version**: 1.0  
 **Date**: 2025-08-11  
-**Author**: PICCOLO Team  
+**Author**: Pullpiri Team  
 **Classification**: LLD (Low-Level Design)
 
 ## 1. Overview
 
-Settings Service is a core component in the PICCOLO framework responsible for system configuration management and providing metric information. This document provides detailed design specifications for implementing the functionality defined in the HLD.
+Settings Service is a core component in the pullpiri framework responsible for system configuration management and providing metric information. This document provides detailed design specifications for implementing the functionality defined in the HLD.
 
 ### 1.1 Purpose and Scope
 
@@ -683,7 +683,7 @@ A Docker container will be provided for easy deployment:
 The Settings Service will support the following installation methods:
 - Direct binary installation on supported operating systems
 - Docker container deployment
-- Integration with the PICCOLO system deployment process
+- Integration with the pullpiri system deployment process
 
 #### 3.9.4 System Requirements
 
@@ -943,7 +943,7 @@ Settings Service communicates with the following external systems:
 
 ## 11. Conclusion
 
-Settings Service is a core component of the PICCOLO framework responsible for system configuration management and metric information provision. This document has presented a detailed design for implementing it. A modular architecture, scalable design, and robust error handling mechanisms will enable the implementation of a solid and maintainable service.
+Settings Service is a core component of the pullpiri framework responsible for system configuration management and metric information provision. This document has presented a detailed design for implementing it. A modular architecture, scalable design, and robust error handling mechanisms will enable the implementation of a solid and maintainable service.
 3. Offers a CLI interface supporting command-line resource management, batch operations, and pipeline integration.
 4. Supports change management through change validation, conflict detection, atomic change application, and rollback capabilities.
 5. Provides user management through permission-based access control, user authentication and authorization, and change audit logging.

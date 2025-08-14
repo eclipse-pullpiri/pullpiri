@@ -131,10 +131,10 @@ JSON
             },
             "annotation": {
                 "io.kubernetes.cri-o.SandboxID": "d375a39c129874b8a3630a6",
-****            "io.piccolo.annotations.package-network": "default",
-****            "io.piccolo.annotations.package-type": "default",
+****            "io.pullpiri.annotations.package-network": "default",
+****            "io.pullpiri.annotations.package-type": "default",
                 "org.opencontainers.image.stopSignal": "15",
-****            "io.piccolo.annotations.package-name": "bms",
+****            "io.pullpiri.annotations.package-name": "bms",
                 "io.container.manager": "libpod"
             }
         },

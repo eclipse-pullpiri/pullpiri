@@ -1,11 +1,11 @@
-# Run Pullpiri (a.k.a. Piccolo) examples
+# Run Pullpiri examples
 
 This document is for LG's internal reference and will be updated separately
 under the `doc` folder for external (official) use.
 
 ## Preparation
 
-Basically, there is Piccolo-related documents in `doc/docs` folder, but there
+Basically, there is Pullpiri-related documents in `doc/docs` folder, but there
 are many parts that are different from the present as past data, so it is
 only used for reference.
 
@@ -23,9 +23,9 @@ If you put this binary in a PATH like `/usr/bin`, you can use it without install
 *Optional* :
 CentOS stream (or RHEL) + Eclipse Bluechi (Maybe you will need it later)
 
-## Make container image & Run Piccolo
+## Make container image & Run Pullpiri
 
-Refer [Getting started](/doc/docs/getting-started.md) for launching Piccolo.
+Refer [Getting started](/doc/docs/getting-started.md) for launching Pullpiri.
 All you have to do is run `make install` and you're ready to go.
 
 ### Check logs of containers
@@ -35,7 +35,7 @@ All you have to do is run `make install` and you're ready to go.
 http api listening on 0.0.0.0:47099
 # [root@HPC Pullpiri]# podman logs piccolo-player-filtergateway 
 FilterGatewayManager init
-Piccolod gateway listening on 0.0.0.0:47002
+Pullpirid gateway listening on 0.0.0.0:47002
 FilterGatewayManager successfully initialized
 # [root@HPC Pullpiri]# podman logs piccolo-player-actioncontroller 
 Starting ActionController...
@@ -45,7 +45,7 @@ gRPC server started and listening
 
 ## Run example
 
-### Put Piccolo scenario into apiserver by shell script
+### Put Pullpiri scenario into apiserver by shell script
 
 In this folder (`examples`), there is a `helloworld.sh` script.
 Replace `NODE_NAME` in `spec:models[0]:node` with your bluechi controller node name. (My node is `HPC`)

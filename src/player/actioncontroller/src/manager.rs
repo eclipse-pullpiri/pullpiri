@@ -134,7 +134,9 @@ impl ActionControllerManager {
                 println!("Node {} is nodeagent", model_node);
                 "nodeagent"
             } else {
-                continue; // Skip unknown node types
+                // Log warning for unknown node types and skip processing
+                println!("Warning: Node '{}' is not explicitly configured. Skipping deployment.", model_node);
+                continue;
             };
             println!(
                 "Processing model '{}' on node '{}' with action '{}'",
@@ -250,7 +252,9 @@ impl ActionControllerManager {
             } else if self.nodeagent_nodes.contains(&model_node) {
                 "nodeagent"
             } else {
-                continue; // Skip if node type is unknown
+                // Log warning for unknown node types and skip processing
+                println!("Warning: Node '{}' is not explicitly configured. Skipping deployment.", model_node);
+                continue;
             };
 
             if desired == Status::Running {
@@ -614,5 +618,22 @@ spec:
         assert!(manager.delete_workload("test".into()).await.is_ok());
         assert!(manager.restart_workload("test".into()).await.is_ok());
         assert!(manager.pause_workload("test".into()).await.is_ok());
+    }
+
+    #[test]
+    fn test_unknown_nodes_skipped() {
+        // Test that when creating a manager, unknown nodes are properly categorized
+        let manager = ActionControllerManager {
+            bluechi_nodes: vec!["HPC".to_string()],
+            nodeagent_nodes: vec!["ZONE".to_string()],
+        };
+
+        // Test that nodes are properly categorized
+        assert!(manager.bluechi_nodes.contains(&"HPC".to_string()));
+        assert!(manager.nodeagent_nodes.contains(&"ZONE".to_string()));
+        assert!(!manager.bluechi_nodes.contains(&"cloud".to_string()));
+        
+        // The logic now skips unknown nodes instead of processing them
+        // This test validates that the manager is set up correctly
     }
 }

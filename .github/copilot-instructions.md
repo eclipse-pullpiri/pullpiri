@@ -1,6 +1,6 @@
 # Pullpiri (Vehicle Service Orchestrator)
 
-**ALWAYS reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the information provided here.**
+**ALWAYS reference these instructions first. If you encounter unexpected information not covered here, you may: (1) search the project documentation, codebase, or official resources; (2) use only the bash commands explicitly listed in this document or standard diagnostic commands (e.g., `ls`, `cat`, `pwd`). If these steps do not resolve your issue, escalate by contacting a maintainer or opening an issue.**
 
 Pullpiri is a Rust-based vehicle service orchestrator framework designed to enable efficient deployment and management of cloud-native in-vehicle services and applications. It uses a microservices architecture with server, agent, and player components that work together to orchestrate containerized workloads.
 

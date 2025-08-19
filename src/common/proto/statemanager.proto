@@ -142,7 +142,7 @@ enum ResourceType {
 // =============================================================================
 
 message StateChange {
-  string resource_type = 1;        // Resource type (scenario, package, model, etc.)
+  ResourceType resource_type = 1;        // Resource type (scenario, package, model, etc.)
   string resource_name = 2;        // Unique resource identifier
   string current_state = 3;        // Current state of the resource
   string target_state = 4;         // Desired target state

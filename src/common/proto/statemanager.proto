@@ -10,10 +10,500 @@ package statemanager;
 // Reusing ContainerList and SendContainerListResponse messages from monitoringserver.proto to avoid unnecessary struct copying.
 import "monitoringserver.proto";
 
+// =============================================================================
+// PICCOLO State Manager Service Definition
+// =============================================================================
+
 service StateManagerConnection {
+  // Core state management operations
+  rpc SendStateChange (StateChange) returns (StateChangeResponse);
+  //rpc GetResourceState (ResourceStateRequest) returns (ResourceStateResponse);
+  //rpc GetResourceStateHistory (ResourceStateHistoryRequest) returns (ResourceStateHistoryResponse);
+  //rpc ListResourcesByState (ListResourcesByStateRequest) returns (ListResourcesByStateResponse);
+  
+  // State management operations
+  //rpc UpdateDesiredState (UpdateDesiredStateRequest) returns (StateChangeResponse);
+  //rpc TriggerStateTransition (TriggerStateTransitionRequest) returns (StateChangeResponse);
+  //rpc ForceSynchronization (ForceSynchronizationRequest) returns (StateChangeResponse);
+  
+  // Recovery management operations
+  //rpc TriggerRecovery (TriggerRecoveryRequest) returns (RecoveryResponse);
+  //rpc AbortRecovery (AbortRecoveryRequest) returns (RecoveryResponse);
+  //rpc GetRecoveryStatus (RecoveryStatusRequest) returns (RecoveryStatusResponse);
+  
+  // Event and notification operations
+  //rpc SubscribeToStateChanges (StateChangeSubscriptionRequest) returns (stream StateChangeEvent);
+  //rpc AcknowledgeAlert (AcknowledgeAlertRequest) returns (AlertResponse);
+  //rpc GetPendingAlerts (GetPendingAlertsRequest) returns (GetPendingAlertsResponse);
+  
+  // Legacy operations
   rpc SendAction (Action) returns (Response);
   rpc SendChangedContainerList (monitoringserver.ContainerList) returns (monitoringserver.SendContainerListResponse);
 }
+
+// =============================================================================
+// Resource Type Definitions
+// =============================================================================
+
+enum ResourceType {
+  RESOURCE_TYPE_UNSPECIFIED = 0;
+  RESOURCE_TYPE_SCENARIO = 1;
+  RESOURCE_TYPE_PACKAGE = 2;
+  RESOURCE_TYPE_MODEL = 3;
+  RESOURCE_TYPE_VOLUME = 4;
+  RESOURCE_TYPE_NETWORK = 5;
+  RESOURCE_TYPE_NODE = 6;
+}
+
+// =============================================================================
+// Resource State Definitions
+// =============================================================================
+
+// Scenario States
+enum ScenarioState {
+  SCENARIO_STATE_UNSPECIFIED = 0;
+  SCENARIO_STATE_IDLE = 1;
+  SCENARIO_STATE_WAITING = 2;
+  SCENARIO_STATE_PLAYING = 3;
+  SCENARIO_STATE_ERROR = 4;
+  SCENARIO_STATE_ALLOWED = 5;
+  SCENARIO_STATE_DENIED = 6;
+}
+
+// Package States  
+enum PackageState {
+  PACKAGE_STATE_UNSPECIFIED = 0;
+  PACKAGE_STATE_INITIALIZING = 1;
+  PACKAGE_STATE_RUNNING = 2;
+  PACKAGE_STATE_DEGRADED = 3;
+  PACKAGE_STATE_ERROR = 4;
+  PACKAGE_STATE_PAUSED = 5;
+  PACKAGE_STATE_UPDATING = 6;
+}
+
+// Model States
+enum ModelState {
+  MODEL_STATE_UNSPECIFIED = 0;
+  MODEL_STATE_PENDING = 1;
+  MODEL_STATE_RUNNING = 2;
+  MODEL_STATE_SUCCEEDED = 3;
+  MODEL_STATE_FAILED = 4;
+  MODEL_STATE_UNKNOWN = 5;
+  MODEL_STATE_CONTAINER_CREATING = 6;
+  MODEL_STATE_CRASH_LOOP_BACK_OFF = 7;
+}
+
+// Volume States
+enum VolumeState {
+  VOLUME_STATE_UNSPECIFIED = 0;
+  VOLUME_STATE_PENDING = 1;
+  VOLUME_STATE_BOUND = 2;
+  VOLUME_STATE_RELEASED = 3;
+  VOLUME_STATE_FAILED = 4;
+  VOLUME_STATE_TERMINATING = 5;
+}
+
+// Network States
+enum NetworkState {
+  NETWORK_STATE_UNSPECIFIED = 0;
+  NETWORK_STATE_PENDING = 1;
+  NETWORK_STATE_ACTIVE = 2;
+  NETWORK_STATE_DEGRADED = 3;
+  NETWORK_STATE_ERROR = 4;
+  NETWORK_STATE_TERMINATING = 5;
+}
+
+// Node States
+enum NodeState {
+  NODE_STATE_UNSPECIFIED = 0;
+  NODE_STATE_NOT_READY = 1;
+  NODE_STATE_READY = 2;
+  NODE_STATE_CORDONED_READY = 3;
+  NODE_STATE_CORDONED_NOT_READY = 4;
+  NODE_STATE_MAINTENANCE = 5;
+  NODE_STATE_DECOMMISSIONED = 6;
+}
+
+// =============================================================================
+// ASIL Safety Level Definitions
+// =============================================================================
+
+enum ASILLevel {
+  ASIL_LEVEL_UNSPECIFIED = 0;
+  ASIL_LEVEL_QM = 1;    // Quality Management
+  ASIL_LEVEL_A = 2;     // ASIL A
+  ASIL_LEVEL_B = 3;     // ASIL B
+  ASIL_LEVEL_C = 4;     // ASIL C
+  ASIL_LEVEL_D = 5;     // ASIL D (highest safety level)
+}
+
+// =============================================================================
+// Core State Change Messages
+// =============================================================================
+
+message StateChange {
+  string resource_type = 1;        // Resource type (scenario, package, model, etc.)
+  string resource_name = 2;        // Unique resource identifier
+  string current_state = 3;        // Current state of the resource
+  string target_state = 4;         // Desired target state
+  string transition_id = 5;        // Unique transition ID for tracking/verification
+  int64 timestamp_ns = 6;          // Nanosecond precision timestamp
+  string context = 7;              // Context information (ASIL grade, scenario, etc.)
+  string source = 8;               // Source component triggering the change
+  
+  // Extended fields for PICCOLO specification
+  ResourceType resource_type_enum = 9;  // Strongly typed resource type
+  ASILLevel asil_level = 10;            // Safety integrity level
+  StateTransitionMetadata metadata = 11; // Additional transition metadata
+  repeated Dependency dependencies = 12;  // Resource dependencies
+  PerformanceConstraints constraints = 13; // Time and performance constraints
+}
+
+message StateTransitionMetadata {
+  string scenario_id = 1;          // Associated scenario ID
+  string package_version = 2;      // Package version for updates
+  string node_assignment = 3;      // Target node for model deployment
+  map<string, string> labels = 4;  // Resource labels
+  map<string, string> annotations = 5; // Resource annotations
+  string reason = 6;               // Reason for state transition
+  string message = 7;              // Human-readable message
+}
+
+message Dependency {
+  string resource_type = 1;
+  string resource_name = 2;
+  string required_state = 3;
+  bool is_critical = 4;            // Whether this dependency is critical for operation
+}
+
+message PerformanceConstraints {
+  int64 max_transition_time_ms = 1; // Maximum allowed transition time
+  int64 deadline_ns = 2;            // Absolute deadline timestamp
+  int32 priority = 3;               // Transition priority (higher = more important)
+  bool preemptive = 4;              // Whether this can preempt lower priority transitions
+}
+
+// =============================================================================
+// State Management Request/Response Messages
+// =============================================================================
+
+message StateChangeResponse {
+  bool success = 1;
+  string message = 2;
+  string transition_id = 3;
+  int64 timestamp_ns = 4;
+  ErrorCode error_code = 5;
+  string error_details = 6;
+}
+
+message ResourceStateRequest {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+}
+
+message ResourceStateResponse {
+  ResourceState resource_state = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message ResourceState {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+  string current_state = 3;
+  string desired_state = 4;
+  int64 last_transition_time_ns = 5;
+  int64 state_generation = 6;       // Incremented on each state change
+  ASILLevel asil_level = 7;
+  map<string, string> metadata = 8;
+  repeated StateTransitionHistory history = 9;
+  HealthStatus health_status = 10;
+}
+
+message StateTransitionHistory {
+  string from_state = 1;
+  string to_state = 2;
+  int64 timestamp_ns = 3;
+  string transition_id = 4;
+  string reason = 5;
+  string source = 6;
+  int64 duration_ms = 7;
+  bool success = 8;
+}
+
+message HealthStatus {
+  bool healthy = 1;
+  string status_message = 2;
+  int64 last_health_check_ns = 3;
+  repeated HealthCheck checks = 4;
+}
+
+message HealthCheck {
+  string check_name = 1;
+  bool passed = 2;
+  string message = 3;
+  int64 timestamp_ns = 4;
+}
+
+// =============================================================================
+// List and Query Operations
+// =============================================================================
+
+message ResourceStateHistoryRequest {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+  int64 start_time_ns = 3;
+  int64 end_time_ns = 4;
+  int32 limit = 5;
+}
+
+message ResourceStateHistoryResponse {
+  repeated StateTransitionHistory history = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message ListResourcesByStateRequest {
+  ResourceType resource_type = 1;
+  string state = 2;
+  map<string, string> label_selector = 3;
+  int32 limit = 4;
+}
+
+message ListResourcesByStateResponse {
+  repeated ResourceState resources = 1;
+  bool success = 2;
+  string message = 3;
+  int32 total_count = 4;
+}
+
+// =============================================================================
+// State Management Operations
+// =============================================================================
+
+message UpdateDesiredStateRequest {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+  string desired_state = 3;
+  string reason = 4;
+  bool force = 5;                   // Force update even if preconditions not met
+}
+
+message TriggerStateTransitionRequest {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+  string target_state = 3;
+  string reason = 4;
+  PerformanceConstraints constraints = 5;
+  bool validate_preconditions = 6;
+}
+
+message ForceSynchronizationRequest {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+  bool deep_sync = 3;               // Whether to perform deep synchronization
+}
+
+// =============================================================================
+// Recovery Management Messages
+// =============================================================================
+
+message TriggerRecoveryRequest {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+  RecoveryStrategy recovery_strategy = 3;
+  string reason = 4;
+  bool force = 5;
+}
+
+message RecoveryStrategy {
+  RecoveryType type = 1;
+  int64 timeout_ms = 2;
+  int32 max_retries = 3;
+  bool backup_instance = 4;
+  bool validation_required = 5;
+  map<string, string> parameters = 6;
+}
+
+enum RecoveryType {
+  RECOVERY_TYPE_UNSPECIFIED = 0;
+  RECOVERY_TYPE_RESTART = 1;
+  RECOVERY_TYPE_FAILOVER = 2;
+  RECOVERY_TYPE_DEGRADED_MODE = 3;
+  RECOVERY_TYPE_ROLLBACK = 4;
+  RECOVERY_TYPE_RESET = 5;
+}
+
+message RecoveryResponse {
+  bool success = 1;
+  string message = 2;
+  string recovery_id = 3;
+  int64 timestamp_ns = 4;
+  RecoveryStatus status = 5;
+}
+
+message AbortRecoveryRequest {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+  string recovery_id = 3;
+}
+
+message RecoveryStatusRequest {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+  string recovery_id = 3;
+}
+
+message RecoveryStatusResponse {
+  RecoveryStatus status = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message RecoveryStatus {
+  string recovery_id = 1;
+  RecoveryPhase phase = 2;
+  int32 retry_count = 3;
+  int64 start_time_ns = 4;
+  int64 estimated_completion_ns = 5;
+  string status_message = 6;
+  float progress_percentage = 7;
+  repeated RecoveryStep steps = 8;
+}
+
+enum RecoveryPhase {
+  RECOVERY_PHASE_UNSPECIFIED = 0;
+  RECOVERY_PHASE_INITIALIZING = 1;
+  RECOVERY_PHASE_EXECUTING = 2;
+  RECOVERY_PHASE_VALIDATING = 3;
+  RECOVERY_PHASE_COMPLETED = 4;
+  RECOVERY_PHASE_FAILED = 5;
+  RECOVERY_PHASE_ABORTED = 6;
+}
+
+message RecoveryStep {
+  string step_name = 1;
+  RecoveryStepStatus status = 2;
+  int64 start_time_ns = 3;
+  int64 completion_time_ns = 4;
+  string message = 5;
+}
+
+enum RecoveryStepStatus {
+  RECOVERY_STEP_STATUS_UNSPECIFIED = 0;
+  RECOVERY_STEP_STATUS_PENDING = 1;
+  RECOVERY_STEP_STATUS_RUNNING = 2;
+  RECOVERY_STEP_STATUS_COMPLETED = 3;
+  RECOVERY_STEP_STATUS_FAILED = 4;
+  RECOVERY_STEP_STATUS_SKIPPED = 5;
+}
+
+// =============================================================================
+// Event and Notification Messages
+// =============================================================================
+
+message StateChangeSubscriptionRequest {
+  ResourceType resource_type = 1;   // Optional: filter by resource type
+  map<string, string> filter = 2;   // Additional filters
+  bool include_health_events = 3;
+  bool include_recovery_events = 4;
+}
+
+message StateChangeEvent {
+  EventType event_type = 1;
+  StateChange state_change = 2;
+  int64 event_timestamp_ns = 3;
+  string event_id = 4;
+  Severity severity = 5;
+  string description = 6;
+  map<string, string> metadata = 7;
+}
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_STATE_CHANGE = 1;
+  EVENT_TYPE_HEALTH_STATUS = 2;
+  EVENT_TYPE_RECOVERY_START = 3;
+  EVENT_TYPE_RECOVERY_COMPLETE = 4;
+  EVENT_TYPE_RECOVERY_FAILED = 5;
+  EVENT_TYPE_ALERT = 6;
+  EVENT_TYPE_WARNING = 7;
+}
+
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  SEVERITY_INFO = 1;
+  SEVERITY_WARNING = 2;
+  SEVERITY_ERROR = 3;
+  SEVERITY_CRITICAL = 4;
+}
+
+message AcknowledgeAlertRequest {
+  string alert_id = 1;
+  string acknowledged_by = 2;
+  string acknowledgment_message = 3;
+}
+
+message AlertResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetPendingAlertsRequest {
+  Severity severity = 1;            // Optional: filter by severity
+  ResourceType resource_type = 2;   // Optional: filter by resource type
+  int32 limit = 3;
+}
+
+message GetPendingAlertsResponse {
+  repeated Alert alerts = 1;
+  bool success = 2;
+  string message = 3;
+  int32 total_count = 4;
+}
+
+message Alert {
+  string alert_id = 1;
+  Severity severity = 2;
+  ResourceType resource_type = 3;
+  string resource_name = 4;
+  string title = 5;
+  string description = 6;
+  int64 created_time_ns = 7;
+  int64 updated_time_ns = 8;
+  AlertStatus status = 9;
+  map<string, string> metadata = 10;
+}
+
+enum AlertStatus {
+  ALERT_STATUS_UNSPECIFIED = 0;
+  ALERT_STATUS_ACTIVE = 1;
+  ALERT_STATUS_ACKNOWLEDGED = 2;
+  ALERT_STATUS_RESOLVED = 3;
+  ALERT_STATUS_EXPIRED = 4;
+}
+
+// =============================================================================
+// Error Handling
+// =============================================================================
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_INVALID_REQUEST = 1;
+  ERROR_CODE_RESOURCE_NOT_FOUND = 2;
+  ERROR_CODE_INVALID_STATE_TRANSITION = 3;
+  ERROR_CODE_PRECONDITION_FAILED = 4;
+  ERROR_CODE_TIMEOUT = 5;
+  ERROR_CODE_RESOURCE_UNAVAILABLE = 6;
+  ERROR_CODE_PERMISSION_DENIED = 7;
+  ERROR_CODE_INTERNAL_ERROR = 8;
+  ERROR_CODE_DEPENDENCY_FAILED = 9;
+  ERROR_CODE_RECOVERY_FAILED = 10;
+}
+
+// =============================================================================
+// Legacy Support Messages
+// =============================================================================
 
 message Action {
   string action = 1;

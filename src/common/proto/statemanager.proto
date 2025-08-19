@@ -155,62 +155,62 @@ message StateChange {
 // State Management Request/Response Messages
 // =============================================================================
 
-//message StateChangeResponse {
-//  string message = 1;
-//  string transition_id = 2;
-//  int64 timestamp_ns = 3;
-//  ErrorCode error_code = 4;
-//  string error_details = 5;
-//}
+message StateChangeResponse {
+  string message = 1;
+  string transition_id = 2;
+  int64 timestamp_ns = 3;
+  ErrorCode error_code = 4;
+  string error_details = 5;
+}
 
-//message ResourceStateRequest {
-//  ResourceType resource_type = 1;
-//  string resource_name = 2;
-//}
+message ResourceStateRequest {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+}
 
-//message ResourceStateResponse {
-//  ResourceState resource_state = 1;
-//  bool success = 2;
-//  string message = 3;
-//}
+message ResourceStateResponse {
+  ResourceState resource_state = 1;
+  bool success = 2;
+  string message = 3;
+}
 
-//message ResourceState {
-//  ResourceType resource_type = 1;
-//  string resource_name = 2;
-//  string current_state = 3;
-//  string desired_state = 4;
-//  int64 last_transition_time_ns = 5;
-//  int64 state_generation = 6;       // Incremented on each state change
-//  ASILLevel asil_level = 7;
-//  map<string, string> metadata = 8;
-//  repeated StateTransitionHistory history = 9;
-//  HealthStatus health_status = 10;
-//}
+message ResourceState {
+  ResourceType resource_type = 1;
+  string resource_name = 2;
+  string current_state = 3;
+  string desired_state = 4;
+  int64 last_transition_time_ns = 5;
+  int64 state_generation = 6;       // Incremented on each state change
+  ASILLevel asil_level = 7;
+  map<string, string> metadata = 8;
+  repeated StateTransitionHistory history = 9;
+  HealthStatus health_status = 10;
+}
 
-//message StateTransitionHistory {
-//  string from_state = 1;
-//  string to_state = 2;
-//  int64 timestamp_ns = 3;
-//  string transition_id = 4;
-//  string reason = 5;
-//  string source = 6;
-//  int64 duration_ms = 7;
-//  bool success = 8;
-//}
+message StateTransitionHistory {
+  string from_state = 1;
+  string to_state = 2;
+  int64 timestamp_ns = 3;
+  string transition_id = 4;
+  string reason = 5;
+  string source = 6;
+  int64 duration_ms = 7;
+  bool success = 8;
+}
 
-//message HealthStatus {
-//  bool healthy = 1;
-//  string status_message = 2;
-//  int64 last_health_check_ns = 3;
-//  repeated HealthCheck checks = 4;
-//}
+message HealthStatus {
+  bool healthy = 1;
+  string status_message = 2;
+  int64 last_health_check_ns = 3;
+  repeated HealthCheck checks = 4;
+}
 
-//message HealthCheck {
-//  string check_name = 1;
-//  bool passed = 2;
-//  string message = 3;
-//  int64 timestamp_ns = 4;
-//}
+message HealthCheck {
+  string check_name = 1;
+  bool passed = 2;
+  string message = 3;
+  int64 timestamp_ns = 4;
+}
 
 // =============================================================================
 // List and Query Operations

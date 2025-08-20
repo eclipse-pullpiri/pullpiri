@@ -145,21 +145,6 @@ impl StateManagerSender {
     /// - Maintains transition_id for complete audit trail
     /// - Supports ResourceType enum for type-safe resource identification
     /// - Provides detailed error information for safety analysis
-    ///
-    /// # Example Usage
-    /// ```rust
-    /// let mut sender = StateManagerSender::new();
-    /// let state_change = StateChange {
-    ///     resource_type: ResourceType::Scenario as i32,
-    ///     resource_name: "brake-system-startup".to_string(),
-    ///     current_state: "idle".to_string(),
-    ///     target_state: "waiting".to_string(),
-    ///     transition_id: "unique-id".to_string(),
-    ///     timestamp_ns: timestamp,
-    ///     source: "apiserver".to_string(),
-    /// };
-    /// let response = sender.send_state_change(state_change).await?;
-    /// ```
     pub async fn send_state_change(
         &mut self,
         state_change: StateChange,

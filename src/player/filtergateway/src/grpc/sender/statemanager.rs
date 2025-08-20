@@ -15,7 +15,7 @@
 
 use common::statemanager::{
     connect_server, state_manager_connection_client::StateManagerConnectionClient, ResourceType,
-    StateChange, StateChangeResponse, 
+    StateChange, StateChangeResponse,
 };
 use tonic::{Request, Status};
 
@@ -143,65 +143,6 @@ impl StateManagerSender {
     /// * `Status::unavailable` - StateManager service unavailable
     /// * `Status::invalid_argument` - Malformed StateChange message
     /// * `Status::deadline_exceeded` - Request timeout (ASIL timing violation)
-    ///
-    /// # FilterGateway Usage Patterns
-    ///
-    /// ## 1. Policy Enforcement Result
-    /// ```rust,no_run
-    /// use common::statemanager::{ResourceType, StateChange};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let policy_decision_id = "decision-123".to_string();
-    /// # let decision_timestamp = 1234567890i64;
-    /// let state_change = StateChange {
-    ///     resource_type: ResourceType::Scenario as i32,
-    ///     resource_name: "emergency-scenario".to_string(),
-    ///     current_state: "requested".to_string(),
-    ///     target_state: "allowed".to_string(),
-    ///     transition_id: policy_decision_id,
-    ///     timestamp_ns: decision_timestamp,
-    ///     source: "filtergateway".to_string(),
-    /// };
-    /// # Ok(())
-    /// # }
-    /// ```
-    ///
-    /// ## 2. Access Control Denial
-    /// ```rust,no_run
-    /// use common::statemanager::{ResourceType, StateChange};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let access_control_id = "access-456".to_string();
-    /// # let denial_timestamp = 1234567890i64;
-    /// let state_change = StateChange {
-    ///     resource_type: ResourceType::Package as i32,
-    ///     resource_name: "restricted-package".to_string(),
-    ///     current_state: "requested".to_string(),
-    ///     target_state: "denied".to_string(),
-    ///     transition_id: access_control_id,
-    ///     timestamp_ns: denial_timestamp,
-    ///     source: "filtergateway".to_string(),
-    /// };
-    /// # Ok(())
-    /// # }
-    /// ```
-    ///
-    /// ## 3. Security Policy Violation
-    /// ```rust,no_run
-    /// use common::statemanager::{ResourceType, StateChange};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let security_violation_id = "violation-789".to_string();
-    /// # let violation_timestamp = 1234567890i64;
-    /// let state_change = StateChange {
-    ///     resource_type: ResourceType::Model as i32,
-    ///     resource_name: "untrusted-model".to_string(),
-    ///     current_state: "running".to_string(),
-    ///     target_state: "blocked".to_string(),
-    ///     transition_id: security_violation_id,
-    ///     timestamp_ns: violation_timestamp,
-    ///     source: "filtergateway".to_string(),
-    /// };
-    /// # Ok(())
-    /// # }
-    /// ```
     ///
     /// # PICCOLO Compliance Notes
     /// - Preserves nanosecond precision timestamps for timing verification

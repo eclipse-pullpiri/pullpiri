@@ -1,6 +1,6 @@
 use common::spec::artifact::Scenario;
 use filtergateway::filter::Filter;
-use filtergateway::grpc::sender::FilterGatewaySender;
+use filtergateway::grpc::sender::actioncontroller::FilterGatewaySender;
 use filtergateway::vehicle::dds::DdsData;
 use std::collections::HashMap;
 use tokio;

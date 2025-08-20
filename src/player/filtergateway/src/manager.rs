@@ -1,5 +1,5 @@
 use crate::filter::Filter;
-use crate::grpc::sender::FilterGatewaySender;
+use crate::grpc::sender::actioncontroller::FilterGatewaySender;
 use crate::vehicle::dds::DdsData;
 use crate::vehicle::VehicleManager;
 use common::spec::artifact::Scenario;

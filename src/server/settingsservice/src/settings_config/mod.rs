@@ -3,9 +3,9 @@
 
 //! Configuration management module
 
-use crate::settings_storage::{Storage, config_key, schema_key};
+use crate::settings_history::{ChangeAction, HistoryManager};
+use crate::settings_storage::{config_key, schema_key, Storage};
 use crate::settings_utils::error::{SettingsError, ValidationError};
-use crate::settings_history::{HistoryManager, ChangeAction};
 use crate::settings_utils::yaml;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -13,7 +13,7 @@ use jsonschema::{JSONSchema, ValidationError as JsonSchemaError};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use tracing::{debug, info, warn, error};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 /// Configuration metadata
@@ -85,8 +85,9 @@ impl SchemaValidator {
     pub fn load_schema(&mut self, schema_type: &str, schema: &Value) -> Result<(), SettingsError> {
         let compiled_schema = JSONSchema::compile(schema)
             .map_err(|e| SettingsError::Validation(format!("Schema compilation failed: {}", e)))?;
-        
-        self.schemas.insert(schema_type.to_string(), compiled_schema);
+
+        self.schemas
+            .insert(schema_type.to_string(), compiled_schema);
         debug!("Loaded schema for type: {}", schema_type);
         Ok(())
     }
@@ -95,7 +96,7 @@ impl SchemaValidator {
     pub fn validate(&self, schema_type: &str, data: &Value) -> ValidationResult {
         if let Some(schema) = self.schemas.get(schema_type) {
             let validation_result = schema.validate(data);
-            
+
             match validation_result {
                 Ok(_) => ValidationResult {
                     is_valid: true,
@@ -149,26 +150,33 @@ impl ConfigManager {
     /// Load configuration by path
     pub async fn load_config(&mut self, config_path: &str) -> Result<Config, SettingsError> {
         debug!("Loading config: {}", config_path);
-        
+
         let key = config_key(config_path);
         if let Some(config_data) = self.storage.get_json(&key).await? {
-            let config: Config = serde_json::from_value(config_data)
-                .map_err(|e| SettingsError::Config(format!("Failed to deserialize config: {}", e)))?;
-            
+            let config: Config = serde_json::from_value(config_data).map_err(|e| {
+                SettingsError::Config(format!("Failed to deserialize config: {}", e))
+            })?;
+
             Ok(config)
         } else {
-            Err(SettingsError::Config(format!("Configuration not found: {}", config_path)))
+            Err(SettingsError::Config(format!(
+                "Configuration not found: {}",
+                config_path
+            )))
         }
     }
 
     /// Save configuration
     pub async fn save_config(&mut self, config: &Config) -> Result<(), SettingsError> {
-        info!("Saving config: {} (version {})", config.path, config.metadata.version);
-        
+        info!(
+            "Saving config: {} (version {})",
+            config.path, config.metadata.version
+        );
+
         let key = config_key(&config.path);
         let config_value = serde_json::to_value(config)
             .map_err(|e| SettingsError::Config(format!("Failed to serialize config: {}", e)))?;
-        
+
         self.storage.put_json(&key, &config_value).await?;
         Ok(())
     }
@@ -186,7 +194,10 @@ impl ConfigManager {
         // Check if config already exists
         let key = config_key(path);
         if self.storage.get(&key).await?.is_some() {
-            return Err(SettingsError::Config(format!("Configuration already exists: {}", path)));
+            return Err(SettingsError::Config(format!(
+                "Configuration already exists: {}",
+                path
+            )));
         }
 
         let now = Utc::now();
@@ -207,7 +218,9 @@ impl ConfigManager {
 
         // Record history
         if let Some(history_manager) = history_manager {
-            history_manager.record_change(path, None, &config, ChangeAction::Create).await?;
+            history_manager
+                .record_change(path, None, &config, ChangeAction::Create)
+                .await?;
         }
 
         Ok(config)
@@ -223,7 +236,7 @@ impl ConfigManager {
         history_manager: Option<&mut HistoryManager>,
     ) -> Result<Config, SettingsError> {
         let old_config = self.load_config(path).await?;
-        
+
         let mut config = old_config.clone();
         config.content = content;
         config.metadata.version += 1;
@@ -235,23 +248,29 @@ impl ConfigManager {
 
         // Record history
         if let Some(history_manager) = history_manager {
-            history_manager.record_change(path, Some(&old_config), &config, ChangeAction::Update).await?;
+            history_manager
+                .record_change(path, Some(&old_config), &config, ChangeAction::Update)
+                .await?;
         }
 
         Ok(config)
     }
 
     /// Delete configuration
-    pub async fn delete_config(&mut self, config_path: &str, history_manager: Option<&mut HistoryManager>) -> Result<(), SettingsError> {
+    pub async fn delete_config(
+        &mut self,
+        config_path: &str,
+        history_manager: Option<&mut HistoryManager>,
+    ) -> Result<(), SettingsError> {
         info!("Deleting config: {}", config_path);
-        
+
         // Load existing config before deletion for history
         let old_config = if let Ok(config) = self.load_config(config_path).await {
             Some(config)
         } else {
             None
         };
-        
+
         let key = config_key(config_path);
         if !self.storage.delete(&key).await? {
             warn!("Configuration not found for deletion: {}", config_path);
@@ -262,21 +281,32 @@ impl ConfigManager {
             // Create a tombstone config for history
             let mut deleted_config = old_config.clone();
             deleted_config.metadata.modified_at = Utc::now();
-            history_manager.record_change(config_path, Some(&old_config), &deleted_config, ChangeAction::Delete).await?;
+            history_manager
+                .record_change(
+                    config_path,
+                    Some(&old_config),
+                    &deleted_config,
+                    ChangeAction::Delete,
+                )
+                .await?;
         }
-        
+
         Ok(())
     }
 
     /// List configurations with optional prefix filter
-    pub async fn list_configs(&mut self, prefix: Option<&str>) -> Result<Vec<ConfigSummary>, SettingsError> {
+    pub async fn list_configs(
+        &mut self,
+        prefix: Option<&str>,
+    ) -> Result<Vec<ConfigSummary>, SettingsError> {
         debug!("Listing configs with prefix: {:?}", prefix);
-        
-        let search_prefix = format!("{}{}", 
+
+        let search_prefix = format!(
+            "{}{}",
             crate::settings_storage::KeyPrefixes::CONFIG,
             prefix.unwrap_or("")
         );
-        
+
         let configs = self.storage.list(&search_prefix).await?;
         let mut summaries = Vec::new();
 
@@ -301,15 +331,27 @@ impl ConfigManager {
     }
 
     /// Validate configuration against schema
-    pub async fn validate_config(&mut self, config: &Config) -> Result<ValidationResult, SettingsError> {
-        debug!("Validating config: {} with schema: {}", config.path, config.metadata.schema_type);
-        
+    pub async fn validate_config(
+        &mut self,
+        config: &Config,
+    ) -> Result<ValidationResult, SettingsError> {
+        debug!(
+            "Validating config: {} with schema: {}",
+            config.path, config.metadata.schema_type
+        );
+
         // Load schema if not already loaded
-        if !self.validator.schemas.contains_key(&config.metadata.schema_type) {
+        if !self
+            .validator
+            .schemas
+            .contains_key(&config.metadata.schema_type)
+        {
             self.load_schema(&config.metadata.schema_type).await?;
         }
 
-        Ok(self.validator.validate(&config.metadata.schema_type, &config.content))
+        Ok(self
+            .validator
+            .validate(&config.metadata.schema_type, &config.content))
     }
 
     /// Load schema from storage
@@ -329,15 +371,19 @@ impl ConfigManager {
     }
 
     /// Create or update a schema
-    pub async fn save_schema(&mut self, schema_type: &str, schema: &Value) -> Result<(), SettingsError> {
+    pub async fn save_schema(
+        &mut self,
+        schema_type: &str,
+        schema: &Value,
+    ) -> Result<(), SettingsError> {
         info!("Saving schema: {}", schema_type);
-        
+
         let key = schema_key(schema_type);
         self.storage.put_json(&key, schema).await?;
-        
+
         // Update the validator
         self.validator.load_schema(schema_type, schema)?;
-        
+
         Ok(())
     }
 
@@ -347,7 +393,10 @@ impl ConfigManager {
         if let Some(schema) = self.storage.get_json(&key).await? {
             Ok(schema)
         } else {
-            Err(SettingsError::Config(format!("Schema not found: {}", schema_type)))
+            Err(SettingsError::Config(format!(
+                "Schema not found: {}",
+                schema_type
+            )))
         }
     }
 }

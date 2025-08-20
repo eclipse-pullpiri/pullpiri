@@ -20,16 +20,13 @@ nested:
 "#;
 
     let parsed = yaml::parse_yaml(yaml_content).expect("Failed to parse YAML");
-    
+
     // Test path retrieval
     assert_eq!(
         yaml::get_path(&parsed, "name").unwrap(),
         &json!("test-config")
     );
-    assert_eq!(
-        yaml::get_path(&parsed, "nested.value").unwrap(),
-        &json!(42)
-    );
+    assert_eq!(yaml::get_path(&parsed, "nested.value").unwrap(), &json!(42));
 
     // Test YAML serialization
     let serialized = yaml::to_yaml_string(&parsed).expect("Failed to serialize YAML");
@@ -62,7 +59,7 @@ async fn test_yaml_merge() {
     assert_eq!(base["config"]["new"], json!("added"));
 }
 
-#[tokio::test] 
+#[tokio::test]
 async fn test_yaml_path_operations() {
     let mut value = json!({
         "level1": {
@@ -75,7 +72,7 @@ async fn test_yaml_path_operations() {
     // Test path setting
     yaml::set_path(&mut value, "level1.level2.value", json!("modified"))
         .expect("Failed to set path");
-    
+
     assert_eq!(
         yaml::get_path(&value, "level1.level2.value").unwrap(),
         &json!("modified")
@@ -84,7 +81,7 @@ async fn test_yaml_path_operations() {
     // Test creating new path
     yaml::set_path(&mut value, "level1.new_key", json!("new_value"))
         .expect("Failed to set new path");
-    
+
     assert_eq!(
         yaml::get_path(&value, "level1.new_key").unwrap(),
         &json!("new_value")
@@ -97,11 +94,17 @@ fn test_error_types() {
 
     // Test error creation and formatting
     let config_error = SettingsError::Config("test error".to_string());
-    assert_eq!(format!("{}", config_error), "Configuration error: test error");
+    assert_eq!(
+        format!("{}", config_error),
+        "Configuration error: test error"
+    );
 
     let storage_error = StorageError::ConnectionFailed("connection failed".to_string());
     let settings_error = SettingsError::Storage(storage_error);
-    assert_eq!(format!("{}", settings_error), "Storage error: ETCD connection failed: connection failed");
+    assert_eq!(
+        format!("{}", settings_error),
+        "Storage error: ETCD connection failed: connection failed"
+    );
 }
 
 #[test]

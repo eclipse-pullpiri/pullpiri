@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! PICCOLO Settings Service CLI
-//! 
+//!
 //! Command-line interface for the Settings Service
 
 use anyhow::Result;
@@ -29,7 +29,8 @@ async fn main() -> Result<()> {
     // Initialize logging
     settingsservice::settings_utils::logging::init_logging(&args.log_level)?;
 
-    let etcd_endpoints: Vec<String> = args.etcd_endpoints
+    let etcd_endpoints: Vec<String> = args
+        .etcd_endpoints
         .split(',')
         .map(|s| s.trim().to_string())
         .collect();

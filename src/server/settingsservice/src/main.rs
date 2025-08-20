@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! PICCOLO Settings Service
-//! 
+//!
 //! This service provides centralized configuration management and metrics filtering
 //! for the PICCOLO framework. It supports:
-//! 
+//!
 //! - YAML/JSON configuration management
 //! - Change history tracking and rollback
 //! - Metrics data filtering from ETCD
@@ -15,15 +15,15 @@
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
-use tracing::{info, error};
+use tracing::{error, info};
 
-mod settings_core;
+mod settings_api;
+mod settings_cli;
 mod settings_config;
+mod settings_core;
 mod settings_history;
 mod settings_monitoring;
 mod settings_storage;
-mod settings_api;
-mod settings_cli;
 mod settings_utils;
 
 use settings_core::CoreManager;
@@ -65,7 +65,7 @@ async fn main() -> Result<()> {
 
     // Initialize logging
     init_logging(&args.log_level)?;
-    
+
     info!("Starting PICCOLO Settings Service");
     info!("Config file: {:?}", args.config);
     info!("ETCD endpoints: {}", args.etcd_endpoints);
@@ -80,10 +80,14 @@ async fn main() -> Result<()> {
 }
 
 async fn run_server_mode(args: Args) -> Result<()> {
-    info!("Starting in server mode on {}:{}", args.bind_address, args.bind_port);
-    
+    info!(
+        "Starting in server mode on {}:{}",
+        args.bind_address, args.bind_port
+    );
+
     // Parse ETCD endpoints
-    let etcd_endpoints: Vec<String> = args.etcd_endpoints
+    let etcd_endpoints: Vec<String> = args
+        .etcd_endpoints
         .split(',')
         .map(|s| s.trim().to_string())
         .collect();
@@ -94,28 +98,30 @@ async fn run_server_mode(args: Args) -> Result<()> {
         args.bind_address,
         args.bind_port,
         args.config,
-    ).await?;
+    )
+    .await?;
 
     // Start the services
     core_manager.start_services().await?;
-    
+
     info!("Settings Service started successfully");
 
     // Keep the service running
     tokio::signal::ctrl_c().await?;
-    
+
     info!("Shutting down Settings Service");
     core_manager.shutdown().await?;
-    
+
     Ok(())
 }
 
 async fn run_cli_mode(args: Args) -> Result<()> {
     info!("Starting in CLI mode");
-    
+
     use settings_cli::cli::run_cli;
-    
-    let etcd_endpoints: Vec<String> = args.etcd_endpoints
+
+    let etcd_endpoints: Vec<String> = args
+        .etcd_endpoints
         .split(',')
         .map(|s| s.trim().to_string())
         .collect();

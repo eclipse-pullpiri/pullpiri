@@ -1,20 +1,9 @@
 use common::monitoringserver::ContainerInfo;
 use futures::future::try_join_all;
-use serde::Deserialize;
 use std::collections::HashMap;
-use thiserror::Error;
+use super::{get, Container, ContainerError, ContainerInspect, ContainerStats};
 
 pub type Result<T> = core::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
-#[derive(Error, Debug)]
-pub enum ContainerError {
-    #[error("Podman API error: {0}")]
-    PodmanApi(#[from] Box<dyn std::error::Error + Send + Sync>),
-    #[error("Serde error: {0}")]
-    Serde(#[from] serde_json::Error),
-    #[error("Env error: {0}")]
-    Env(#[from] std::env::VarError),
-}
 
 pub async fn inspect(hostname: String) -> std::result::Result<Vec<ContainerInfo>, ContainerError> {
     let list = get_list().await?;
@@ -97,60 +86,14 @@ pub async fn inspect(hostname: String) -> std::result::Result<Vec<ContainerInfo>
                 stats.memory_stats.limit.to_string(),
             );
 
-            // calculate total network inbound
-            let total_rx_bytes: u64 = stats
-                .networks
-                .as_ref()
-                .map(|nets| nets.values().map(|net| net.rx_bytes).sum())
-                .unwrap_or(0);
             stats_map.insert(
-                "TotalNetworkRxBytes".to_string(),
-                total_rx_bytes.to_string(),
-            );
-
-            // calculate total network outbound
-            let total_tx_bytes: u64 = stats
-                .networks
-                .as_ref()
-                .map(|nets| nets.values().map(|net| net.tx_bytes).sum())
-                .unwrap_or(0);
-            stats_map.insert(
-                "TotalNetworkTxBytes".to_string(),
-                total_tx_bytes.to_string(),
-            );
-
-            // calculate total blkio read bytes
-            let total_blkio_read: u64 = stats
-                .blkio_stats
-                .io_service_bytes_recursive
-                .as_ref()
-                .map(|vec| {
-                    vec.iter()
-                        .filter(|blkio| blkio.op == "Read")
-                        .map(|blkio| blkio.value)
-                        .sum()
-                })
-                .unwrap_or(0);
-            stats_map.insert(
-                "TotalBlkioReadBytes".to_string(),
-                total_blkio_read.to_string(),
-            );
-
-            // calculate total blkio write bytes
-            let total_blkio_write: u64 = stats
-                .blkio_stats
-                .io_service_bytes_recursive
-                .as_ref()
-                .map(|vec| {
-                    vec.iter()
-                        .filter(|blkio| blkio.op == "Write")
-                        .map(|blkio| blkio.value)
-                        .sum()
-                })
-                .unwrap_or(0);
-            stats_map.insert(
-                "TotalBlkioWriteBytes".to_string(),
-                total_blkio_write.to_string(),
+                "Networks".to_string(),
+                stats.networks.as_ref().map(|nets| {
+                    nets.iter()
+                        .map(|(name, net)| format!("{}: {{{}}}", name, net))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                }).unwrap_or_else(|| "None".to_string()),
             );
 
             Ok::<ContainerInfo, ContainerError>(ContainerInfo {
@@ -173,7 +116,7 @@ pub async fn inspect(hostname: String) -> std::result::Result<Vec<ContainerInfo>
 }
 
 pub async fn get_list() -> Result<Vec<Container>> {
-    let body = super::get("/v1.0.0/libpod/containers/json").await?;
+    let body = get("/v1.0.0/libpod/containers/json").await?;
 
     let containers: Vec<Container> = serde_json::from_slice(&body)?;
     //println!("{:#?}", containers);
@@ -185,7 +128,7 @@ pub async fn get_inspect(
     id: &str,
 ) -> std::result::Result<ContainerInspect, Box<dyn std::error::Error + Send + Sync>> {
     let path = &format!("/v1.0.0/libpod/containers/{}/json", id);
-    let body = super::get(path).await?;
+    let body = get(path).await?;
 
     let inspect: ContainerInspect = serde_json::from_slice(&body)?;
     //println!("{:#?}", container_inspect);
@@ -197,7 +140,7 @@ pub async fn get_stats(
     id: &str,
 ) -> std::result::Result<ContainerStats, Box<dyn std::error::Error + Send + Sync>> {
     let path = &format!("/v1.0.0/libpod/containers/{}/stats?stream=false", id);
-    let body = super::get(path).await?;
+    let body = get(path).await?;
 
     let stats: ContainerStats = serde_json::from_slice(&body)?;
     // println!("{:#?}", stats);
@@ -205,125 +148,6 @@ pub async fn get_stats(
     Ok(stats)
 }
 
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct Container {
-    pub Id: String,
-    pub Names: Vec<String>,
-    pub Image: String,
-    pub State: String,
-    pub Status: String,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerInspect {
-    pub Id: String,
-    pub Name: String,
-    pub State: ContainerState,
-    pub Config: ContainerConfig,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerState {
-    pub Status: String,
-    pub Running: bool,
-    pub Paused: bool,
-    pub Restarting: bool,
-    pub OOMKilled: bool,
-    pub Dead: bool,
-    pub Pid: i32,
-    pub ExitCode: i32,
-    pub Error: String,
-    pub StartedAt: String,
-    pub FinishedAt: String,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerConfig {
-    pub Hostname: String,
-    pub Domainname: String,
-    pub User: String,
-    pub AttachStdin: bool,
-    pub AttachStdout: bool,
-    pub AttachStderr: bool,
-    pub ExposedPorts: Option<HashMap<String, serde_json::Value>>,
-    pub Tty: bool,
-    pub OpenStdin: bool,
-    pub StdinOnce: bool,
-    pub Env: Option<Vec<String>>,
-    pub Cmd: Option<Vec<String>>,
-    pub Image: String,
-    pub Volumes: Option<HashMap<String, serde_json::Value>>,
-    pub WorkingDir: String,
-    pub Entrypoint: String,
-    pub OnBuild: Option<Vec<String>>,
-    pub Labels: Option<HashMap<String, String>>,
-    pub Annotations: Option<HashMap<String, String>>,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerStats {
-    pub Id: String,
-    pub name: String,
-    pub cpu_stats: ContainerCpuStats,
-    pub memory_stats: ContainerMemoryStats,
-    pub networks: Option<HashMap<String, ContainerNetworkStats>>,
-    pub blkio_stats: ContainerBlkioStats,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerCpuStats {
-    pub cpu_usage: ContainerCpuUsage,
-    pub online_cpus: u64,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerCpuUsage {
-    pub total_usage: u64,
-    pub usage_in_kernelmode: u64,
-    pub usage_in_usermode: u64,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerMemoryStats {
-    pub usage: u64,
-    pub limit: u64,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerNetworkStats {
-    pub rx_bytes: u64,
-    pub rx_packets: u64,
-    pub rx_errors: u64,
-    pub rx_dropped: u64,
-    pub tx_bytes: u64,
-    pub tx_packets: u64,
-    pub tx_errors: u64,
-    pub tx_dropped: u64,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerBlkioStats {
-    pub io_service_bytes_recursive: Option<Vec<ContainerBlkioServiceBytesRecursive>>,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerBlkioServiceBytesRecursive {
-    pub major: u64,
-    pub minor: u64,
-    pub op: String,
-    pub value: u64,
-}
 
 //Unit Test Cases
 #[cfg(test)]

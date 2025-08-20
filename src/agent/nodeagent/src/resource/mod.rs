@@ -1,9 +1,12 @@
 pub mod container;
 
-use hyper::{Body, Client, Error, Uri};
+use hyper::{Body, Client, Uri};
 use hyperlocal::{UnixConnector, Uri as UnixUri};
+use serde::Deserialize;
+use std::collections::HashMap;
+use thiserror::Error;
 
-async fn get(path: &str) -> Result<hyper::body::Bytes, Error> {
+async fn get(path: &str) -> Result<hyper::body::Bytes, hyper::Error> {
     let connector = UnixConnector;
     let client = Client::builder().build::<_, Body>(connector);
 
@@ -19,6 +22,139 @@ async fn get(path: &str) -> Result<hyper::body::Bytes, Error> {
 
     let res = client.get(uri).await?;
     hyper::body::to_bytes(res).await
+}
+
+#[derive(Error, Debug)]
+pub enum ContainerError {
+    #[error("Podman API error: {0}")]
+    PodmanApi(#[from] Box<dyn std::error::Error + Send + Sync>),
+    #[error("Serde error: {0}")]
+    Serde(#[from] serde_json::Error),
+    #[error("Env error: {0}")]
+    Env(#[from] std::env::VarError),
+}
+
+#[allow(non_snake_case, unused)]
+#[derive(Deserialize, Debug)]
+pub struct Container {
+    pub Id: String,
+    pub Names: Vec<String>,
+    pub Image: String,
+    pub State: String,
+    pub Status: String,
+}
+
+#[allow(non_snake_case, unused)]
+#[derive(Deserialize, Debug)]
+pub struct ContainerInspect {
+    pub Id: String,
+    pub Name: String,
+    pub State: ContainerState,
+    pub Config: ContainerConfig,
+}
+
+#[allow(non_snake_case, unused)]
+#[derive(Deserialize, Debug)]
+pub struct ContainerState {
+    pub Status: String,
+    pub Running: bool,
+    pub Paused: bool,
+    pub Restarting: bool,
+    pub OOMKilled: bool,
+    pub Dead: bool,
+    pub Pid: i32,
+    pub ExitCode: i32,
+    pub Error: String,
+    pub StartedAt: String,
+    pub FinishedAt: String,
+}
+
+#[allow(non_snake_case, unused)]
+#[derive(Deserialize, Debug)]
+pub struct ContainerConfig {
+    pub Hostname: String,
+    pub Domainname: String,
+    pub User: String,
+    pub AttachStdin: bool,
+    pub AttachStdout: bool,
+    pub AttachStderr: bool,
+    pub ExposedPorts: Option<HashMap<String, serde_json::Value>>,
+    pub Tty: bool,
+    pub OpenStdin: bool,
+    pub StdinOnce: bool,
+    pub Env: Option<Vec<String>>,
+    pub Cmd: Option<Vec<String>>,
+    pub Image: String,
+    pub Volumes: Option<HashMap<String, serde_json::Value>>,
+    pub WorkingDir: String,
+    pub Entrypoint: String,
+    pub OnBuild: Option<Vec<String>>,
+    pub Labels: Option<HashMap<String, String>>,
+    pub Annotations: Option<HashMap<String, String>>,
+}
+
+#[allow(non_snake_case, unused)]
+#[derive(Deserialize, Debug)]
+pub struct ContainerStats {
+    pub Id: String,
+    pub name: String,
+    pub cpu_stats: ContainerCpuStats,
+    pub memory_stats: ContainerMemoryStats,
+    pub networks: Option<HashMap<String, ContainerNetworkStats>>,
+}
+
+#[allow(non_snake_case, unused)]
+#[derive(Deserialize, Debug)]
+pub struct ContainerCpuStats {
+    pub cpu_usage: ContainerCpuUsage,
+    pub online_cpus: u64,
+}
+
+#[allow(non_snake_case, unused)]
+#[derive(Deserialize, Debug)]
+pub struct ContainerCpuUsage {
+    pub total_usage: u64,
+    pub usage_in_kernelmode: u64,
+    pub usage_in_usermode: u64,
+}
+
+#[allow(non_snake_case, unused)]
+#[derive(Deserialize, Debug)]
+pub struct ContainerMemoryStats {
+    pub usage: u64,
+    pub limit: u64,
+}
+
+#[allow(non_snake_case, unused)]
+#[derive(Deserialize, Debug)]
+pub struct ContainerNetworkStats {
+    pub rx_bytes: u64,
+    pub rx_packets: u64,
+    pub rx_errors: u64,
+    pub rx_dropped: u64,
+    pub tx_bytes: u64,
+    pub tx_packets: u64,
+    pub tx_errors: u64,
+    pub tx_dropped: u64,
+}
+
+use std::fmt;
+
+impl fmt::Display for ContainerNetworkStats {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "rx_bytes: {}, rx_packets: {}, rx_errors: {}, rx_dropped: {}, tx_bytes: {}, tx_packets: {}, tx_errors: {}, tx_dropped: {}",
+            self.rx_bytes,
+            self.rx_packets,
+            self.rx_errors,
+            self.rx_dropped,
+            self.tx_bytes,
+            self.tx_packets,
+            self.tx_errors,
+            self.tx_dropped
+        )
+    }
 }
 
 //Unit tets cases

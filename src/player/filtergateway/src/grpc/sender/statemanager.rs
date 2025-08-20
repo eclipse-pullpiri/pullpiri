@@ -15,7 +15,7 @@
 
 use common::statemanager::{
     connect_server, state_manager_connection_client::StateManagerConnectionClient, ResourceType,
-    StateChange, StateChangeResponse,
+    StateChange, StateChangeResponse, 
 };
 use tonic::{Request, Status};
 
@@ -147,7 +147,11 @@ impl StateManagerSender {
     /// # FilterGateway Usage Patterns
     ///
     /// ## 1. Policy Enforcement Result
-    /// ```rust
+    /// ```rust,no_run
+    /// use common::statemanager::{ResourceType, StateChange};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let policy_decision_id = "decision-123".to_string();
+    /// # let decision_timestamp = 1234567890i64;
     /// let state_change = StateChange {
     ///     resource_type: ResourceType::Scenario as i32,
     ///     resource_name: "emergency-scenario".to_string(),
@@ -157,10 +161,16 @@ impl StateManagerSender {
     ///     timestamp_ns: decision_timestamp,
     ///     source: "filtergateway".to_string(),
     /// };
+    /// # Ok(())
+    /// # }
     /// ```
     ///
     /// ## 2. Access Control Denial
-    /// ```rust
+    /// ```rust,no_run
+    /// use common::statemanager::{ResourceType, StateChange};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let access_control_id = "access-456".to_string();
+    /// # let denial_timestamp = 1234567890i64;
     /// let state_change = StateChange {
     ///     resource_type: ResourceType::Package as i32,
     ///     resource_name: "restricted-package".to_string(),
@@ -170,10 +180,16 @@ impl StateManagerSender {
     ///     timestamp_ns: denial_timestamp,
     ///     source: "filtergateway".to_string(),
     /// };
+    /// # Ok(())
+    /// # }
     /// ```
     ///
     /// ## 3. Security Policy Violation
-    /// ```rust
+    /// ```rust,no_run
+    /// use common::statemanager::{ResourceType, StateChange};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let security_violation_id = "violation-789".to_string();
+    /// # let violation_timestamp = 1234567890i64;
     /// let state_change = StateChange {
     ///     resource_type: ResourceType::Model as i32,
     ///     resource_name: "untrusted-model".to_string(),
@@ -183,6 +199,8 @@ impl StateManagerSender {
     ///     timestamp_ns: violation_timestamp,
     ///     source: "filtergateway".to_string(),
     /// };
+    /// # Ok(())
+    /// # }
     /// ```
     ///
     /// # PICCOLO Compliance Notes
@@ -221,17 +239,6 @@ impl StateManagerSender {
     ///
     /// # Returns
     /// * `Result<tonic::Response<StateChangeResponse>, Status>` - StateManager response
-    ///
-    /// # Example Usage
-    /// ```rust
-    /// sender.report_policy_decision(
-    ///     ResourceType::Scenario,
-    ///     "emergency-brake-scenario",
-    ///     "requested",
-    ///     "allowed",
-    ///     "policy-decision-123"
-    /// ).await?;
-    /// ```
     pub async fn report_policy_decision(
         &mut self,
         resource_type: ResourceType,
@@ -272,17 +279,6 @@ impl StateManagerSender {
     ///
     /// # Returns
     /// * `Result<tonic::Response<StateChangeResponse>, Status>` - StateManager response
-    ///
-    /// # Example Usage
-    /// ```rust
-    /// sender.report_access_control(
-    ///     ResourceType::Model,
-    ///     "classified-ai-model",
-    ///     "requested",
-    ///     "denied",
-    ///     "access-control-456"
-    /// ).await?;
-    /// ```
     pub async fn report_access_control(
         &mut self,
         resource_type: ResourceType,
@@ -323,17 +319,6 @@ impl StateManagerSender {
     ///
     /// # Returns
     /// * `Result<tonic::Response<StateChangeResponse>, Status>` - StateManager response
-    ///
-    /// # Example Usage
-    /// ```rust
-    /// sender.report_security_violation(
-    ///     ResourceType::Package,
-    ///     "suspicious-package",
-    ///     "running",
-    ///     "blocked",
-    ///     "security-violation-789"
-    /// ).await?;
-    /// ```
     pub async fn report_security_violation(
         &mut self,
         resource_type: ResourceType,
@@ -374,17 +359,6 @@ impl StateManagerSender {
     ///
     /// # Returns
     /// * `Result<tonic::Response<StateChangeResponse>, Status>` - StateManager response
-    ///
-    /// # Example Usage
-    /// ```rust
-    /// sender.report_filter_result(
-    ///     ResourceType::Network,
-    ///     "external-network-request",
-    ///     "pending",
-    ///     "filtered",
-    ///     "filter-101"
-    /// ).await?;
-    /// ```
     pub async fn report_filter_result(
         &mut self,
         resource_type: ResourceType,

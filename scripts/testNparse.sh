@@ -116,6 +116,7 @@ fi
 start_service "$FILTERGATEWAY_MANIFEST" "filtergateway"
 start_service "$AGENT_MANIFEST" "nodeagent"
 sleep 3  # Give services time to initialize
+start_service "$STATEMANAGER_MANIFEST" "statemanager"
 [[ -f "$APISERVER_MANIFEST" ]] && run_tests "$APISERVER_MANIFEST" "apiserver" || echo "::warning ::$APISERVER_MANIFEST missing."
 cleanup  # Stop background services
 

@@ -1,7 +1,7 @@
+use super::{get, Container, ContainerError, ContainerInspect, ContainerStats};
 use common::monitoringserver::ContainerInfo;
 use futures::future::try_join_all;
 use std::collections::HashMap;
-use super::{get, Container, ContainerError, ContainerInspect, ContainerStats};
 
 pub type Result<T> = core::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -88,12 +88,16 @@ pub async fn inspect(hostname: String) -> std::result::Result<Vec<ContainerInfo>
 
             stats_map.insert(
                 "Networks".to_string(),
-                stats.networks.as_ref().map(|nets| {
-                    nets.iter()
-                        .map(|(name, net)| format!("{}: {{{}}}", name, net))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                }).unwrap_or_else(|| "None".to_string()),
+                stats
+                    .networks
+                    .as_ref()
+                    .map(|nets| {
+                        nets.iter()
+                            .map(|(name, net)| format!("{}: {{{}}}", name, net))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    })
+                    .unwrap_or_else(|| "None".to_string()),
             );
 
             Ok::<ContainerInfo, ContainerError>(ContainerInfo {
@@ -147,7 +151,6 @@ pub async fn get_stats(
 
     Ok(stats)
 }
-
 
 //Unit Test Cases
 #[cfg(test)]

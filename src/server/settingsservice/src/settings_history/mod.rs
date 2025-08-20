@@ -4,7 +4,7 @@
 //! Configuration history management module
 
 use crate::settings_config::{Config, ConfigManager};
-use crate::settings_storage::{Storage, history_key};
+use crate::settings_storage::{history_key, Storage};
 use crate::settings_utils::error::SettingsError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -69,7 +69,7 @@ impl HistoryManager {
         action: ChangeAction,
     ) -> Result<u64, SettingsError> {
         let version = new_config.metadata.version;
-        
+
         debug!("Recording change for {} version {}", config_path, version);
 
         // Calculate change summary
@@ -98,7 +98,10 @@ impl HistoryManager {
         let key = history_key(config_path, version);
         self.storage.put_json(&key, &history_data).await?;
 
-        info!("Recorded history entry for {} version {}", config_path, version);
+        info!(
+            "Recorded history entry for {} version {}",
+            config_path, version
+        );
         Ok(version)
     }
 
@@ -155,9 +158,10 @@ impl HistoryManager {
         let key = history_key(config_path, version);
         if let Some(history_data) = self.storage.get_json(&key).await? {
             if let Some(config_data) = history_data.get("config") {
-                let config: Config = serde_json::from_value(config_data.clone())
-                    .map_err(|e| SettingsError::History(format!("Failed to deserialize config: {}", e)))?;
-                
+                let config: Config = serde_json::from_value(config_data.clone()).map_err(|e| {
+                    SettingsError::History(format!("Failed to deserialize config: {}", e))
+                })?;
+
                 Ok(config)
             } else {
                 Err(SettingsError::History(
@@ -220,12 +224,7 @@ impl HistoryManager {
     }
 
     /// Recursive function to calculate differences
-    fn calculate_diff_recursive(
-        path: &str,
-        old: &Value,
-        new: &Value,
-        diffs: &mut Vec<DiffEntry>,
-    ) {
+    fn calculate_diff_recursive(path: &str, old: &Value, new: &Value, diffs: &mut Vec<DiffEntry>) {
         match (old, new) {
             (Value::Object(old_map), Value::Object(new_map)) => {
                 // Check for removed and changed keys
@@ -238,7 +237,12 @@ impl HistoryManager {
 
                     if let Some(new_value) = new_map.get(key) {
                         if old_value != new_value {
-                            Self::calculate_diff_recursive(&current_path, old_value, new_value, diffs);
+                            Self::calculate_diff_recursive(
+                                &current_path,
+                                old_value,
+                                new_value,
+                                diffs,
+                            );
                         }
                     } else {
                         diffs.push(DiffEntry {
@@ -318,25 +322,46 @@ impl HistoryManager {
     /// Calculate a brief change summary
     fn calculate_change_summary(old_config: &Value, new_config: &Value) -> String {
         let diffs = Self::calculate_diff(old_config, new_config);
-        
+
         if diffs.is_empty() {
             return "No changes detected".to_string();
         }
 
-        let adds = diffs.iter().filter(|d| matches!(d.operation, DiffOperation::Add)).count();
-        let removes = diffs.iter().filter(|d| matches!(d.operation, DiffOperation::Remove)).count();
-        let changes = diffs.iter().filter(|d| matches!(d.operation, DiffOperation::Change)).count();
+        let adds = diffs
+            .iter()
+            .filter(|d| matches!(d.operation, DiffOperation::Add))
+            .count();
+        let removes = diffs
+            .iter()
+            .filter(|d| matches!(d.operation, DiffOperation::Remove))
+            .count();
+        let changes = diffs
+            .iter()
+            .filter(|d| matches!(d.operation, DiffOperation::Change))
+            .count();
 
         let mut summary_parts = Vec::new();
-        
+
         if adds > 0 {
-            summary_parts.push(format!("{} addition{}", adds, if adds == 1 { "" } else { "s" }));
+            summary_parts.push(format!(
+                "{} addition{}",
+                adds,
+                if adds == 1 { "" } else { "s" }
+            ));
         }
         if removes > 0 {
-            summary_parts.push(format!("{} removal{}", removes, if removes == 1 { "" } else { "s" }));
+            summary_parts.push(format!(
+                "{} removal{}",
+                removes,
+                if removes == 1 { "" } else { "s" }
+            ));
         }
         if changes > 0 {
-            summary_parts.push(format!("{} change{}", changes, if changes == 1 { "" } else { "s" }));
+            summary_parts.push(format!(
+                "{} change{}",
+                changes,
+                if changes == 1 { "" } else { "s" }
+            ));
         }
 
         summary_parts.join(", ")

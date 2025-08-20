@@ -9,21 +9,24 @@ use crate::settings_monitoring::MonitoringManager;
 use crate::settings_storage::EtcdClient;
 use crate::settings_utils::error::SettingsError;
 use anyhow::Result;
-use rustyline::{Editor, DefaultEditor};
-use tracing::{info, error, debug};
+use rustyline::{DefaultEditor, Editor};
+use tracing::{debug, error, info};
 
 /// Run the interactive CLI
 pub async fn run_cli(etcd_endpoints: Vec<String>) -> Result<()> {
     info!("Starting Settings Service CLI");
 
     // Initialize storage clients
-    let storage_config = EtcdClient::new(etcd_endpoints.clone()).await
+    let storage_config = EtcdClient::new(etcd_endpoints.clone())
+        .await
         .map_err(|e| anyhow::anyhow!("Failed to create config storage: {}", e))?;
-    
-    let storage_history = EtcdClient::new(etcd_endpoints.clone()).await
+
+    let storage_history = EtcdClient::new(etcd_endpoints.clone())
+        .await
         .map_err(|e| anyhow::anyhow!("Failed to create history storage: {}", e))?;
-    
-    let storage_monitoring = EtcdClient::new(etcd_endpoints).await
+
+    let storage_monitoring = EtcdClient::new(etcd_endpoints)
+        .await
         .map_err(|e| anyhow::anyhow!("Failed to create monitoring storage: {}", e))?;
 
     // Initialize managers
@@ -40,7 +43,7 @@ pub async fn run_cli(etcd_endpoints: Vec<String>) -> Result<()> {
 
     // Start interactive shell
     let mut rl = DefaultEditor::new()?;
-    
+
     println!("PICCOLO Settings Service CLI");
     println!("Type 'help' for available commands or 'quit' to exit");
 
@@ -101,7 +104,10 @@ async fn handle_command(ctx: &mut CliContext, command: &str) -> Result<(), Setti
         "metrics" => handle_metrics_command(ctx, &parts[1..]).await?,
         "history" => handle_history_command(ctx, &parts[1..]).await?,
         "status" => handle_status_command(ctx, &parts[1..]).await?,
-        _ => println!("Unknown command: {}. Type 'help' for available commands.", parts[0]),
+        _ => println!(
+            "Unknown command: {}. Type 'help' for available commands.",
+            parts[0]
+        ),
     }
 
     Ok(())
@@ -140,14 +146,15 @@ async fn handle_config_command(ctx: &mut CliContext, args: &[&str]) -> Result<()
         "list" => {
             let prefix = args.get(1).copied();
             let configs = ctx.config_manager.list_configs(prefix).await?;
-            
+
             if configs.is_empty() {
                 println!("No configurations found");
             } else {
                 println!("Configurations:");
                 for config in configs {
-                    println!("  {} (v{}) - {} [{}]", 
-                        config.path, 
+                    println!(
+                        "  {} (v{}) - {} [{}]",
+                        config.path,
                         config.version,
                         config.schema_type,
                         config.modified_at.format("%Y-%m-%d %H:%M")
@@ -160,7 +167,7 @@ async fn handle_config_command(ctx: &mut CliContext, args: &[&str]) -> Result<()
                 println!("Usage: config get <path>");
                 return Ok(());
             }
-            
+
             let config = ctx.config_manager.load_config(args[1]).await?;
             println!("Configuration: {}", config.path);
             println!("Version: {}", config.metadata.version);
@@ -170,42 +177,59 @@ async fn handle_config_command(ctx: &mut CliContext, args: &[&str]) -> Result<()
                 println!("Comment: {}", comment);
             }
             println!("Content:");
-            println!("{}", serde_json::to_string_pretty(&config.content).unwrap_or_default());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&config.content).unwrap_or_default()
+            );
         }
         "set" => {
             if args.len() < 3 {
                 println!("Usage: config set <path> <json_value>");
                 return Ok(());
             }
-            
+
             let path = args[1];
             let value_str = args[2..].join(" ");
-            
+
             match serde_json::from_str(&value_str) {
                 Ok(value) => {
                     // Try to update existing config
-                    match ctx.config_manager.update_config(
-                        path,
-                        value,
-                        "cli-user",
-                        Some("Updated via CLI".to_string()),
-                        None, // CLI doesn't have access to history manager
-                    ).await {
+                    match ctx
+                        .config_manager
+                        .update_config(
+                            path,
+                            value,
+                            "cli-user",
+                            Some("Updated via CLI".to_string()),
+                            None, // CLI doesn't have access to history manager
+                        )
+                        .await
+                    {
                         Ok(config) => {
-                            println!("Configuration updated: {} (v{})", config.path, config.metadata.version);
+                            println!(
+                                "Configuration updated: {} (v{})",
+                                config.path, config.metadata.version
+                            );
                         }
                         Err(_) => {
                             // If update fails, try to create new config
-                            match ctx.config_manager.create_config(
-                                path,
-                                serde_json::from_str(&value_str).unwrap(),
-                                "generic",
-                                "cli-user",
-                                Some("Created via CLI".to_string()),
-                                None, // CLI doesn't have access to history manager
-                            ).await {
+                            match ctx
+                                .config_manager
+                                .create_config(
+                                    path,
+                                    serde_json::from_str(&value_str).unwrap(),
+                                    "generic",
+                                    "cli-user",
+                                    Some("Created via CLI".to_string()),
+                                    None, // CLI doesn't have access to history manager
+                                )
+                                .await
+                            {
                                 Ok(config) => {
-                                    println!("Configuration created: {} (v{})", config.path, config.metadata.version);
+                                    println!(
+                                        "Configuration created: {} (v{})",
+                                        config.path, config.metadata.version
+                                    );
                                 }
                                 Err(e) => {
                                     return Err(e);
@@ -224,7 +248,7 @@ async fn handle_config_command(ctx: &mut CliContext, args: &[&str]) -> Result<()
                 println!("Usage: config delete <path>");
                 return Ok(());
             }
-            
+
             ctx.config_manager.delete_config(args[1], None).await?;
             println!("Configuration deleted: {}", args[1]);
         }
@@ -233,10 +257,10 @@ async fn handle_config_command(ctx: &mut CliContext, args: &[&str]) -> Result<()
                 println!("Usage: config validate <path>");
                 return Ok(());
             }
-            
+
             let config = ctx.config_manager.load_config(args[1]).await?;
             let result = ctx.config_manager.validate_config(&config).await?;
-            
+
             if result.is_valid {
                 println!("Configuration is valid");
             } else {
@@ -264,17 +288,16 @@ async fn handle_metrics_command(ctx: &mut CliContext, args: &[&str]) -> Result<(
     match args[0] {
         "list" => {
             let metrics = ctx.monitoring_manager.get_metrics(None).await?;
-            
+
             if metrics.is_empty() {
                 println!("No metrics found");
             } else {
                 println!("Metrics:");
-                for metric in metrics.iter().take(10) { // Show first 10
-                    println!("  {} ({}) - {} = {:?}", 
-                        metric.id, 
-                        metric.component,
-                        metric.metric_type,
-                        metric.value
+                for metric in metrics.iter().take(10) {
+                    // Show first 10
+                    println!(
+                        "  {} ({}) - {} = {:?}",
+                        metric.id, metric.component, metric.metric_type, metric.value
                     );
                 }
                 if metrics.len() > 10 {
@@ -287,7 +310,7 @@ async fn handle_metrics_command(ctx: &mut CliContext, args: &[&str]) -> Result<(
                 println!("Usage: metrics get <id>");
                 return Ok(());
             }
-            
+
             if let Some(metric) = ctx.monitoring_manager.get_metric_by_id(args[1]).await? {
                 println!("Metric: {}", metric.id);
                 println!("Component: {}", metric.component);
@@ -309,34 +332,41 @@ async fn handle_metrics_command(ctx: &mut CliContext, args: &[&str]) -> Result<(
                 println!("Usage: metrics filter <component>");
                 return Ok(());
             }
-            
-            let metrics = ctx.monitoring_manager.get_metrics_by_component(args[1]).await?;
-            
+
+            let metrics = ctx
+                .monitoring_manager
+                .get_metrics_by_component(args[1])
+                .await?;
+
             if metrics.is_empty() {
                 println!("No metrics found for component: {}", args[1]);
             } else {
                 println!("Metrics for component '{}':", args[1]);
                 for metric in metrics {
-                    println!("  {} ({}) = {:?}", 
-                        metric.id, 
-                        metric.metric_type,
-                        metric.value
+                    println!(
+                        "  {} ({}) = {:?}",
+                        metric.id, metric.metric_type, metric.value
                     );
                 }
             }
         }
         "filters" => {
             let filters = ctx.monitoring_manager.list_filters().await?;
-            
+
             if filters.is_empty() {
                 println!("No filters found");
             } else {
                 println!("Filters:");
                 for filter in filters {
-                    println!("  {} - {} ({})", 
-                        filter.id, 
+                    println!(
+                        "  {} - {} ({})",
+                        filter.id,
                         filter.name,
-                        if filter.enabled { "enabled" } else { "disabled" }
+                        if filter.enabled {
+                            "enabled"
+                        } else {
+                            "disabled"
+                        }
                     );
                 }
             }
@@ -361,31 +391,38 @@ async fn handle_history_command(ctx: &mut CliContext, args: &[&str]) -> Result<(
             println!("Usage: history rollback <path> <version>");
             return Ok(());
         }
-        
+
         let path = args[1];
-        let version: u64 = args[2].parse()
+        let version: u64 = args[2]
+            .parse()
             .map_err(|_| SettingsError::Cli("Invalid version number".to_string()))?;
-        
-        let config = ctx.history_manager.rollback_to_version(
-            path,
-            version,
-            &mut ctx.config_manager,
-            "cli-user",
-            Some(format!("Rollback to version {} via CLI", version)),
-        ).await?;
-        
-        println!("Rolled back {} to version {} (new version: {})", 
-            path, version, config.metadata.version);
+
+        let config = ctx
+            .history_manager
+            .rollback_to_version(
+                path,
+                version,
+                &mut ctx.config_manager,
+                "cli-user",
+                Some(format!("Rollback to version {} via CLI", version)),
+            )
+            .await?;
+
+        println!(
+            "Rolled back {} to version {} (new version: {})",
+            path, version, config.metadata.version
+        );
     } else {
         let path = args[0];
         let history = ctx.history_manager.list_history(path, Some(10)).await?;
-        
+
         if history.is_empty() {
             println!("No history found for: {}", path);
         } else {
             println!("History for '{}':", path);
             for entry in history {
-                println!("  v{} - {} ({}) - {}", 
+                println!(
+                    "  v{} - {} ({}) - {}",
                     entry.version,
                     entry.timestamp.format("%Y-%m-%d %H:%M"),
                     entry.author,
@@ -407,7 +444,7 @@ async fn handle_status_command(_ctx: &mut CliContext, _args: &[&str]) -> Result<
     println!("  Version: {}", env!("CARGO_PKG_VERSION"));
     println!("  Mode: CLI");
     println!("  Status: Running");
-    
+
     // TODO: Add real status information
     Ok(())
 }

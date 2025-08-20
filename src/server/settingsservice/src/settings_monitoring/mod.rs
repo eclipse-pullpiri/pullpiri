@@ -3,7 +3,7 @@
 
 //! Monitoring and metrics management module
 
-use crate::settings_storage::{Storage, metrics_key, filter_key};
+use crate::settings_storage::{filter_key, metrics_key, Storage};
 use crate::settings_utils::error::SettingsError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,9 @@ pub struct MetricsFilter {
     pub modified_at: DateTime<Utc>,
 }
 
-fn default_version() -> u64 { 1 }
+fn default_version() -> u64 {
+    1
+}
 
 /// Time range for metrics filtering
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -311,8 +313,9 @@ impl MonitoringManager {
 
         let key = filter_key(id);
         if let Some(filter_data) = self.storage.get_json(&key).await? {
-            let filter: MetricsFilter = serde_json::from_value(filter_data)
-                .map_err(|e| SettingsError::Metrics(format!("Failed to deserialize filter: {}", e)))?;
+            let filter: MetricsFilter = serde_json::from_value(filter_data).map_err(|e| {
+                SettingsError::Metrics(format!("Failed to deserialize filter: {}", e))
+            })?;
             Ok(filter)
         } else {
             Err(SettingsError::Metrics(format!("Filter not found: {}", id)))
@@ -320,7 +323,11 @@ impl MonitoringManager {
     }
 
     /// Update filter
-    pub async fn update_filter(&mut self, id: &str, filter: &MetricsFilter) -> Result<(), SettingsError> {
+    pub async fn update_filter(
+        &mut self,
+        id: &str,
+        filter: &MetricsFilter,
+    ) -> Result<(), SettingsError> {
         info!("Updating filter: {}", id);
 
         // Get the existing filter to preserve version and creation time
@@ -435,12 +442,12 @@ impl MonitoringManager {
 
         if let Ok(cache) = self.cache.read() {
             stats.insert("total_entries".to_string(), cache.len());
-            
+
             let valid_entries = cache
                 .values()
                 .filter(|entry| entry.expiry > Instant::now())
                 .count();
-            
+
             stats.insert("valid_entries".to_string(), valid_entries);
             stats.insert("expired_entries".to_string(), cache.len() - valid_entries);
         }

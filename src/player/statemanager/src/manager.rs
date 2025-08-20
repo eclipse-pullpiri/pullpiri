@@ -314,8 +314,11 @@ impl StateManagerManager {
             let state_manager = self.clone_for_task();
             tokio::spawn(async move {
                 loop {
-                    let mut rx = rx_container.lock().await;
-                    match rx.recv().await {
+                    let container_list_opt = {
+                        let mut rx = rx_container.lock().await;
+                        rx.recv().await
+                    };
+                    match container_list_opt {
                         Some(container_list) => {
                             // Process container status update with comprehensive analysis
                             state_manager.process_container_list(container_list).await;
@@ -341,8 +344,11 @@ impl StateManagerManager {
             let state_manager = self.clone_for_task();
             tokio::spawn(async move {
                 loop {
-                    let mut rx = rx_state_change.lock().await;
-                    match rx.recv().await {
+                    let state_change_opt = {
+                        let mut rx = rx_state_change.lock().await;
+                        rx.recv().await
+                    };
+                    match state_change_opt {
                         Some(state_change) => {
                             // Process state change with comprehensive PICCOLO compliance
                             state_manager.process_state_change(state_change).await;

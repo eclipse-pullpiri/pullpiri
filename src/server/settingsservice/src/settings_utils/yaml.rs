@@ -3,9 +3,9 @@
 
 //! YAML processing utilities
 
+use crate::settings_utils::error::SettingsError;
 use anyhow::Result;
 use serde_json::Value;
-use crate::settings_utils::error::SettingsError;
 
 /// Parse YAML content into a JSON Value
 pub fn parse_yaml(content: &str) -> Result<Value, SettingsError> {
@@ -43,7 +43,7 @@ pub fn merge_yaml(base: &mut Value, overlay: &Value) -> Result<(), SettingsError
 pub fn get_path<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
     let parts: Vec<&str> = path.split('.').collect();
     let mut current = value;
-    
+
     for part in parts {
         match current {
             Value::Object(map) => {
@@ -52,7 +52,7 @@ pub fn get_path<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
             _ => return None,
         }
     }
-    
+
     Some(current)
 }
 
@@ -64,12 +64,14 @@ pub fn set_path(value: &mut Value, path: &str, new_value: Value) -> Result<(), S
     }
 
     let mut current = value;
-    
+
     // Navigate to the parent
     for part in &parts[..parts.len() - 1] {
         match current {
             Value::Object(map) => {
-                current = map.entry(part.to_string()).or_insert(Value::Object(Default::default()));
+                current = map
+                    .entry(part.to_string())
+                    .or_insert(Value::Object(Default::default()));
             }
             _ => {
                 return Err(SettingsError::Config(format!(

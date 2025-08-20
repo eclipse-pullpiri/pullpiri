@@ -12,7 +12,7 @@ use crate::settings_utils::error::SettingsError;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, error, debug};
+use tracing::{debug, error, info};
 
 /// System status information
 #[derive(Debug, Clone)]
@@ -50,14 +50,17 @@ impl CoreManager {
         info!("Initializing Settings Service core manager");
 
         // Initialize ETCD clients for each component
-        let storage_config = EtcdClient::new(etcd_endpoints.clone()).await
-            .map_err(|e| SettingsError::System(format!("Failed to create config storage: {}", e)))?;
-        
-        let storage_history = EtcdClient::new(etcd_endpoints.clone()).await
-            .map_err(|e| SettingsError::System(format!("Failed to create history storage: {}", e)))?;
-        
-        let storage_monitoring = EtcdClient::new(etcd_endpoints).await
-            .map_err(|e| SettingsError::System(format!("Failed to create monitoring storage: {}", e)))?;
+        let storage_config = EtcdClient::new(etcd_endpoints.clone()).await.map_err(|e| {
+            SettingsError::System(format!("Failed to create config storage: {}", e))
+        })?;
+
+        let storage_history = EtcdClient::new(etcd_endpoints.clone()).await.map_err(|e| {
+            SettingsError::System(format!("Failed to create history storage: {}", e))
+        })?;
+
+        let storage_monitoring = EtcdClient::new(etcd_endpoints).await.map_err(|e| {
+            SettingsError::System(format!("Failed to create monitoring storage: {}", e))
+        })?;
 
         // Initialize managers
         let config_manager = Arc::new(RwLock::new(ConfigManager::new(Box::new(storage_config))));
@@ -74,7 +77,8 @@ impl CoreManager {
             config_manager.clone(),
             history_manager.clone(),
             monitoring_manager.clone(),
-        ).await?;
+        )
+        .await?;
 
         Ok(Self {
             config_manager,
@@ -188,7 +192,9 @@ impl CoreManager {
             "required": ["level", "output"]
         });
 
-        config_manager.save_schema("logging-config", &logging_schema).await?;
+        config_manager
+            .save_schema("logging-config", &logging_schema)
+            .await?;
 
         // Basic network configuration schema
         let network_schema = serde_json::json!({
@@ -217,7 +223,9 @@ impl CoreManager {
             "required": ["bind_address", "bind_port"]
         });
 
-        config_manager.save_schema("network-config", &network_schema).await?;
+        config_manager
+            .save_schema("network-config", &network_schema)
+            .await?;
 
         // Metrics filter configuration schema
         let metrics_filter_schema = serde_json::json!({
@@ -252,7 +260,9 @@ impl CoreManager {
             "required": ["enabled"]
         });
 
-        config_manager.save_schema("metrics-filter", &metrics_filter_schema).await?;
+        config_manager
+            .save_schema("metrics-filter", &metrics_filter_schema)
+            .await?;
 
         info!("Default schemas loaded successfully");
         Ok(())

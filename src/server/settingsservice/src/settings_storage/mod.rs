@@ -3,9 +3,9 @@
 
 //! ETCD storage client module
 
-use crate::settings_utils::error::{StorageError, SettingsError};
+use crate::settings_utils::error::{SettingsError, StorageError};
 use async_trait::async_trait;
-use etcd_client::{Client, ConnectOptions, GetOptions, PutOptions, DeleteOptions};
+use etcd_client::{Client, ConnectOptions, DeleteOptions, GetOptions, PutOptions};
 use serde_json::Value;
 use std::collections::HashMap;
 use tracing::{debug, error, warn};
@@ -19,10 +19,12 @@ impl EtcdClient {
     /// Create a new ETCD client
     pub async fn new(endpoints: Vec<String>) -> Result<Self, StorageError> {
         debug!("Connecting to ETCD endpoints: {:?}", endpoints);
-        
+
         let client = Client::connect(endpoints, Some(ConnectOptions::new()))
             .await
-            .map_err(|e| StorageError::ConnectionFailed(format!("Failed to connect to ETCD: {}", e)))?;
+            .map_err(|e| {
+                StorageError::ConnectionFailed(format!("Failed to connect to ETCD: {}", e))
+            })?;
 
         Ok(Self { client })
     }
@@ -30,11 +32,11 @@ impl EtcdClient {
     /// Get a value by key
     pub async fn get(&mut self, key: &str) -> Result<Option<String>, StorageError> {
         debug!("Getting key: {}", key);
-        
-        let resp = self.client
-            .get(key, None)
-            .await
-            .map_err(|e| StorageError::OperationFailed(format!("Get operation failed: {}", e)))?;
+
+        let resp =
+            self.client.get(key, None).await.map_err(|e| {
+                StorageError::OperationFailed(format!("Get operation failed: {}", e))
+            })?;
 
         if let Some(kv) = resp.kvs().first() {
             let value = String::from_utf8(kv.value().to_vec())
@@ -48,7 +50,7 @@ impl EtcdClient {
     /// Put a key-value pair
     pub async fn put(&mut self, key: &str, value: &str) -> Result<(), StorageError> {
         debug!("Putting key: {}, value length: {}", key, value.len());
-        
+
         self.client
             .put(key, value, None)
             .await
@@ -60,11 +62,10 @@ impl EtcdClient {
     /// Delete a key
     pub async fn delete(&mut self, key: &str) -> Result<bool, StorageError> {
         debug!("Deleting key: {}", key);
-        
-        let resp = self.client
-            .delete(key, None)
-            .await
-            .map_err(|e| StorageError::OperationFailed(format!("Delete operation failed: {}", e)))?;
+
+        let resp = self.client.delete(key, None).await.map_err(|e| {
+            StorageError::OperationFailed(format!("Delete operation failed: {}", e))
+        })?;
 
         Ok(resp.deleted() > 0)
     }
@@ -72,19 +73,21 @@ impl EtcdClient {
     /// List keys with a prefix
     pub async fn list(&mut self, prefix: &str) -> Result<Vec<(String, String)>, StorageError> {
         debug!("Listing keys with prefix: {}", prefix);
-        
+
         let get_options = Some(GetOptions::new().with_prefix());
-        let resp = self.client
-            .get(prefix, get_options)
-            .await
-            .map_err(|e| StorageError::OperationFailed(format!("List operation failed: {}", e)))?;
+        let resp =
+            self.client.get(prefix, get_options).await.map_err(|e| {
+                StorageError::OperationFailed(format!("List operation failed: {}", e))
+            })?;
 
         let mut results = Vec::new();
         for kv in resp.kvs() {
-            let key = String::from_utf8(kv.key().to_vec())
-                .map_err(|e| StorageError::SerializationError(format!("Invalid UTF-8 in key: {}", e)))?;
-            let value = String::from_utf8(kv.value().to_vec())
-                .map_err(|e| StorageError::SerializationError(format!("Invalid UTF-8 in value: {}", e)))?;
+            let key = String::from_utf8(kv.key().to_vec()).map_err(|e| {
+                StorageError::SerializationError(format!("Invalid UTF-8 in key: {}", e))
+            })?;
+            let value = String::from_utf8(kv.value().to_vec()).map_err(|e| {
+                StorageError::SerializationError(format!("Invalid UTF-8 in value: {}", e))
+            })?;
             results.push((key, value));
         }
 
@@ -94,8 +97,9 @@ impl EtcdClient {
     /// Get JSON value by key
     pub async fn get_json(&mut self, key: &str) -> Result<Option<Value>, StorageError> {
         if let Some(value_str) = self.get(key).await? {
-            let value: Value = serde_json::from_str(&value_str)
-                .map_err(|e| StorageError::SerializationError(format!("JSON parse error: {}", e)))?;
+            let value: Value = serde_json::from_str(&value_str).map_err(|e| {
+                StorageError::SerializationError(format!("JSON parse error: {}", e))
+            })?;
             Ok(Some(value))
         } else {
             Ok(None)
@@ -104,9 +108,10 @@ impl EtcdClient {
 
     /// Put JSON value by key
     pub async fn put_json(&mut self, key: &str, value: &Value) -> Result<(), StorageError> {
-        let value_str = serde_json::to_string(value)
-            .map_err(|e| StorageError::SerializationError(format!("JSON serialize error: {}", e)))?;
-        
+        let value_str = serde_json::to_string(value).map_err(|e| {
+            StorageError::SerializationError(format!("JSON serialize error: {}", e))
+        })?;
+
         self.put(key, &value_str).await
     }
 }

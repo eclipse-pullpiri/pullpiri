@@ -1,4 +1,4 @@
-use crate::grpc::sender::FilterGatewaySender;
+use crate::grpc::sender::actioncontroller::FilterGatewaySender;
 use crate::vehicle::dds::DdsData;
 use common::spec::artifact::Scenario;
 use common::Result;

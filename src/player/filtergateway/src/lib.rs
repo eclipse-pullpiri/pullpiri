@@ -8,7 +8,7 @@ pub use common::spec::artifact::Scenario;
 pub use common::Result;
 pub use filter::Filter;
 pub use grpc::receiver::FilterGatewayReceiver;
-pub use grpc::sender::FilterGatewaySender;
+pub use grpc::sender::actioncontroller::FilterGatewaySender;
 pub use manager::ScenarioParameter;
 use tokio::sync::mpsc::{Receiver, Sender};
 pub use vehicle::dds::listener;

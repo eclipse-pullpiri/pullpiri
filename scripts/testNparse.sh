@@ -28,6 +28,7 @@ TOOLS_MANIFEST="src/tools/Cargo.toml"
 APISERVER_MANIFEST="src/server/apiserver/Cargo.toml"
 FILTERGATEWAY_MANIFEST="src/player/filtergateway/Cargo.toml"
 ACTIONCONTROLLER_MANIFEST="src/player/actioncontroller/Cargo.toml"
+STATEMANAGER_MANIFEST="src/player/statemanager/Cargo.toml"
 
 # === Function: Start background service ===
 start_service() {
@@ -122,12 +123,16 @@ cleanup  # Stop background services
 [[ -f "$TOOLS_MANIFEST" ]] && run_tests "$TOOLS_MANIFEST" "tools" || echo "::warning ::$TOOLS_MANIFEST missing."
 # [[ -f "$AGENT_MANIFEST" ]] && run_tests "$AGENT_MANIFEST" "agent" || echo "::warning ::$AGENT_MANIFEST missing."
 
-# Step 4: Start `actioncontroller` before testing `filtergateway`
+# Step 4: Start `actioncontroller` and `statemanager` before testing `filtergateway`
 start_service "$ACTIONCONTROLLER_MANIFEST" "actioncontroller"
+start_service "$STATEMANAGER_MANIFEST" "statemanager"
 etcdctl del "" --prefix
 sleep 3
 [[ -f "$FILTERGATEWAY_MANIFEST" ]] && run_tests "$FILTERGATEWAY_MANIFEST" "filtergateway" || echo "::warning ::$FILTERGATEWAY_MANIFEST missing."
 cleanup  # Stop actioncontroller
+
+# Step 5: Test `statemanager`
+[[ -f "$STATEMANAGER_MANIFEST" ]] && run_tests "$STATEMANAGER_MANIFEST" "statemanager" || echo "::warning ::$STATEMANAGER_MANIFEST missing."
 
 # Optional: Uncomment to test `actioncontroller` directly
 # [[ -f "$ACTIONCONTROLLER_MANIFEST" ]] && run_tests "$ACTIONCONTROLLER_MANIFEST" "actioncontroller"

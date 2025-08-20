@@ -120,7 +120,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_inspect() {
-        let r = crate::resource::container::inspect().await;
+        let hostname: String = String::from_utf8_lossy(
+            &std::process::Command::new("hostname")
+                .output()
+                .expect("Failed to get hostname")
+                .stdout,
+        )
+        .trim()
+        .to_string();
+
+        let r = crate::resource::container::inspect(hostname).await;
         println!("{:#?}", r);
     }
 }

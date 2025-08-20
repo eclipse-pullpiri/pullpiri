@@ -4,7 +4,7 @@
 //! a gRPC sender for communicating with the monitoring server or other services.
 //! It is designed to be thread-safe and run in an async context.
 use crate::grpc::sender::NodeAgentSender;
-use common::monitoringserver::ContainerList;
+use common::monitoringserver::{ContainerInfo, ContainerList};
 use common::nodeagent::HandleYamlRequest;
 use common::Result;
 use std::sync::Arc;
@@ -74,7 +74,7 @@ impl NodeAgentManager {
         let mut previous_container_list = Vec::new();
 
         loop {
-            let container_list = inspect().await.unwrap_or_default();
+            let container_list = inspect(self.hostname.clone()).await.unwrap_or_default();
             let node = self.hostname.clone();
 
             // Send the container info to the monitoring server
@@ -91,12 +91,13 @@ impl NodeAgentManager {
                 }
             }
 
-            // Check if the container list is changed from the previous one
-            if previous_container_list != container_list {
-                println!(
-                    "Container list changed for node: {}. Previous: {:?}, Current: {:?}",
-                    node, previous_container_list, container_list
-                );
+            // Check if the container list is changed from the previous one except for ContainerList.stats
+            // (which is not included in the comparison)
+            if !containers_equal_except_stats(&previous_container_list, &container_list) {
+                // println!(
+                //     "Container list changed for node: {}. Previous: {:?}, Current: {:?}",
+                //     node, previous_container_list, container_list
+                // );
 
                 // Save the previous container list for comparison
                 previous_container_list = container_list.clone();
@@ -137,6 +138,21 @@ impl NodeAgentManager {
         println!("NodeAgentManager stopped");
         Ok(())
     }
+}
+
+fn containers_equal_except_stats<'a>(a: &'a [ContainerInfo], b: &'a [ContainerInfo]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    a.iter().zip(b.iter()).all(|(c1, c2)| {
+        c1.id == c2.id
+            && c1.names == c2.names
+            && c1.image == c2.image
+            && c1.state == c2.state
+            && c1.config == c2.config
+            && c1.annotation == c2.annotation
+        // do NOT compare c1.stats/c2.stats
+    })
 }
 
 //unit test cases

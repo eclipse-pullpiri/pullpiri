@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+[Unit]
+Description=PICCOLO Settings Service
+Documentation=https://github.com/eclipse-pullpiri/pullpiri
+After=network.target etcd.service
+Wants=etcd.service
+
+[Service]
+Type=simple
+User=piccolo
+Group=piccolo
+WorkingDirectory=/opt/piccolo/settingsservice
+ExecStart=/opt/piccolo/settingsservice/bin/settingsservice \
+  --config=/etc/piccolo/settings.yaml \
+  --etcd-endpoints=localhost:2379 \
+  --bind-address=0.0.0.0 \
+  --bind-port=8080 \
+  --log-level=info
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=settingsservice
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/etc/piccolo
+
+# Environment
+Environment=RUST_LOG=settingsservice=info,warn
+Environment=RUST_BACKTRACE=1
+
+[Install]
+WantedBy=multi-user.target

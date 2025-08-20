@@ -135,7 +135,10 @@ impl ActionControllerManager {
                 "nodeagent"
             } else {
                 // Log warning for unknown node types and skip processing
-                println!("Warning: Node '{}' is not explicitly configured. Skipping deployment.", model_node);
+                println!(
+                    "Warning: Node '{}' is not explicitly configured. Skipping deployment.",
+                    model_node
+                );
                 continue;
             };
             println!(
@@ -253,7 +256,10 @@ impl ActionControllerManager {
                 "nodeagent"
             } else {
                 // Log warning for unknown node types and skip processing
-                println!("Warning: Node '{}' is not explicitly configured. Skipping deployment.", model_node);
+                println!(
+                    "Warning: Node '{}' is not explicitly configured. Skipping deployment.",
+                    model_node
+                );
                 continue;
             };
 
@@ -632,7 +638,7 @@ spec:
         assert!(manager.bluechi_nodes.contains(&"HPC".to_string()));
         assert!(manager.nodeagent_nodes.contains(&"ZONE".to_string()));
         assert!(!manager.bluechi_nodes.contains(&"cloud".to_string()));
-        
+
         // The logic now skips unknown nodes instead of processing them
         // This test validates that the manager is set up correctly
     }

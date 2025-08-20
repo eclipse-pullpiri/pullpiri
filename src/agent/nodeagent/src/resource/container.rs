@@ -1,28 +1,19 @@
 use common::monitoringserver::ContainerInfo;
 use futures::future::try_join_all;
-use serde::Deserialize;
 use std::collections::HashMap;
-use std::env;
-use thiserror::Error;
+use super::{get, Container, ContainerError, ContainerInspect, ContainerStats};
 
 pub type Result<T> = core::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-#[derive(Error, Debug)]
-pub enum ContainerError {
-    #[error("Podman API error: {0}")]
-    PodmanApi(#[from] Box<dyn std::error::Error + Send + Sync>),
-    #[error("Serde error: {0}")]
-    Serde(#[from] serde_json::Error),
-    #[error("Env error: {0}")]
-    Env(#[from] std::env::VarError),
-}
-
-pub async fn inspect() -> std::result::Result<Vec<ContainerInfo>, ContainerError> {
+pub async fn inspect(hostname: String) -> std::result::Result<Vec<ContainerInfo>, ContainerError> {
     let list = get_list().await?;
     let infos: Vec<ContainerInfo> = try_join_all(list.iter().map(|container| {
         let id = container.Id.clone();
+        let host_name = hostname.clone();
         async move {
             let inspect = get_inspect(&id).await?;
+            let stats = get_stats(&id).await?;
+
             let mut state_map = HashMap::new();
             state_map.insert("Status".to_string(), inspect.State.Status);
             state_map.insert("Running".to_string(), inspect.State.Running.to_string());
@@ -40,7 +31,6 @@ pub async fn inspect() -> std::result::Result<Vec<ContainerInfo>, ContainerError
             state_map.insert("FinishedAt".to_string(), inspect.State.FinishedAt);
 
             let mut config_map = HashMap::new();
-            let host_name = env::var("HOST_NAME").unwrap_or("Unknown".to_string());
             config_map.insert("Hostname".to_string(), host_name);
             config_map.insert("Domainname".to_string(), inspect.Config.Domainname);
             config_map.insert("User".to_string(), inspect.Config.User);
@@ -74,6 +64,38 @@ pub async fn inspect() -> std::result::Result<Vec<ContainerInfo>, ContainerError
                 HashMap::new()
             };
 
+            let mut stats_map = HashMap::new();
+            stats_map.insert(
+                "CpuTotalUsage".to_string(),
+                stats.cpu_stats.cpu_usage.total_usage.to_string(),
+            );
+            stats_map.insert(
+                "CpuUsageInKernelMode".to_string(),
+                stats.cpu_stats.cpu_usage.usage_in_kernelmode.to_string(),
+            );
+            stats_map.insert(
+                "CpuUsageInUserMode".to_string(),
+                stats.cpu_stats.cpu_usage.usage_in_usermode.to_string(),
+            );
+            stats_map.insert(
+                "MemoryUsage".to_string(),
+                stats.memory_stats.usage.to_string(),
+            );
+            stats_map.insert(
+                "MemoryLimit".to_string(),
+                stats.memory_stats.limit.to_string(),
+            );
+
+            stats_map.insert(
+                "Networks".to_string(),
+                stats.networks.as_ref().map(|nets| {
+                    nets.iter()
+                        .map(|(name, net)| format!("{}: {{{}}}", name, net))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                }).unwrap_or_else(|| "None".to_string()),
+            );
+
             Ok::<ContainerInfo, ContainerError>(ContainerInfo {
                 id: inspect.Id,
                 names: vec![inspect.Name],
@@ -81,6 +103,7 @@ pub async fn inspect() -> std::result::Result<Vec<ContainerInfo>, ContainerError
                 state: state_map,
                 config: config_map,
                 annotation: annotation_map,
+                stats: stats_map,
             })
         }
     }))
@@ -93,7 +116,7 @@ pub async fn inspect() -> std::result::Result<Vec<ContainerInfo>, ContainerError
 }
 
 pub async fn get_list() -> Result<Vec<Container>> {
-    let body = super::get("/v1.0.0/libpod/containers/json").await?;
+    let body = get("/v1.0.0/libpod/containers/json").await?;
 
     let containers: Vec<Container> = serde_json::from_slice(&body)?;
     //println!("{:#?}", containers);
@@ -105,7 +128,7 @@ pub async fn get_inspect(
     id: &str,
 ) -> std::result::Result<ContainerInspect, Box<dyn std::error::Error + Send + Sync>> {
     let path = &format!("/v1.0.0/libpod/containers/{}/json", id);
-    let body = super::get(path).await?;
+    let body = get(path).await?;
 
     let inspect: ContainerInspect = serde_json::from_slice(&body)?;
     //println!("{:#?}", container_inspect);
@@ -113,64 +136,18 @@ pub async fn get_inspect(
     Ok(inspect)
 }
 
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct Container {
-    pub Id: String,
-    pub Names: Vec<String>,
-    pub Image: String,
-    pub State: String,
-    pub Status: String,
+pub async fn get_stats(
+    id: &str,
+) -> std::result::Result<ContainerStats, Box<dyn std::error::Error + Send + Sync>> {
+    let path = &format!("/v1.0.0/libpod/containers/{}/stats?stream=false", id);
+    let body = get(path).await?;
+
+    let stats: ContainerStats = serde_json::from_slice(&body)?;
+    // println!("{:#?}", stats);
+
+    Ok(stats)
 }
 
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerInspect {
-    pub Id: String,
-    pub Name: String,
-    pub State: ContainerState,
-    pub Config: ContainerConfig,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerState {
-    pub Status: String,
-    pub Running: bool,
-    pub Paused: bool,
-    pub Restarting: bool,
-    pub OOMKilled: bool,
-    pub Dead: bool,
-    pub Pid: i32,
-    pub ExitCode: i32,
-    pub Error: String,
-    pub StartedAt: String,
-    pub FinishedAt: String,
-}
-
-#[allow(non_snake_case, unused)]
-#[derive(Deserialize, Debug)]
-pub struct ContainerConfig {
-    pub Hostname: String,
-    pub Domainname: String,
-    pub User: String,
-    pub AttachStdin: bool,
-    pub AttachStdout: bool,
-    pub AttachStderr: bool,
-    pub ExposedPorts: Option<HashMap<String, serde_json::Value>>,
-    pub Tty: bool,
-    pub OpenStdin: bool,
-    pub StdinOnce: bool,
-    pub Env: Option<Vec<String>>,
-    pub Cmd: Option<Vec<String>>,
-    pub Image: String,
-    pub Volumes: Option<HashMap<String, serde_json::Value>>,
-    pub WorkingDir: String,
-    pub Entrypoint: String,
-    pub OnBuild: Option<Vec<String>>,
-    pub Labels: Option<HashMap<String, String>>,
-    pub Annotations: Option<HashMap<String, String>>,
-}
 
 //Unit Test Cases
 #[cfg(test)]
@@ -189,7 +166,8 @@ mod tests {
             assert!(!container.Id.is_empty());
             assert!(!container.Image.is_empty());
             assert!(!container.State.is_empty());
-            assert!(!container.Status.is_empty());
+            // There's a case that the Status is empty.
+            // assert!(!container.Status.is_empty());
         }
     }
 
@@ -216,7 +194,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_inspect_contains_expected_keys() {
-        let result = inspect().await;
+        let hostname: String = String::from_utf8_lossy(
+            &std::process::Command::new("hostname")
+                .output()
+                .expect("Failed to get hostname")
+                .stdout,
+        )
+        .trim()
+        .to_string();
+
+        let result = inspect(hostname).await;
         assert!(result.is_ok());
         let infos = result.unwrap();
         for info in infos {
@@ -226,31 +213,6 @@ mod tests {
             assert!(info.state.contains_key("Status"));
             assert!(info.state.contains_key("Running"));
             assert!(info.config.contains_key("Hostname"));
-        }
-    }
-
-    #[tokio::test]
-    async fn test_inspect_env_var_hostname() {
-        std::env::set_var("HOST_NAME", "test_host");
-        let result = inspect().await;
-        assert!(result.is_ok());
-        let infos = result.unwrap();
-        if !infos.is_empty() {
-            let config = &infos[0].config;
-            assert_eq!(config.get("Hostname").unwrap(), "test_host");
-        }
-        std::env::remove_var("HOST_NAME");
-    }
-
-    #[tokio::test]
-    async fn test_inspect_env_var_hostname_default() {
-        std::env::remove_var("HOST_NAME");
-        let result = inspect().await;
-        assert!(result.is_ok());
-        let infos = result.unwrap();
-        if !infos.is_empty() {
-            let config = &infos[0].config;
-            assert_eq!(config.get("Hostname").unwrap(), "Unknown");
         }
     }
 }

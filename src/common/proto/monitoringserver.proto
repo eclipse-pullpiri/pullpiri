@@ -27,4 +27,5 @@ message ContainerInfo {
   map<string, string> state = 4;
   map<string, string> config = 5;
   map<string, string> annotation = 6;
+  map<string, string> stats = 7;
 }

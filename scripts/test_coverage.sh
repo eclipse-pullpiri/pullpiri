@@ -53,6 +53,7 @@ APISERVER_MANIFEST="src/server/apiserver/Cargo.toml"
 PLAYER_MANIFEST="src/player/Cargo.toml"
 FILTERGATEWAY_MANIFEST="src/player/filtergateway/Cargo.toml"
 ACTIONCONTROLLER_MANIFEST="src/player/actioncontroller/Cargo.toml"
+STATEMANAGER_MANIFEST="src/player/statemanager/Cargo.toml"
 
 # === COMMON ===
 if [[ -f "$COMMON_MANIFEST" ]]; then
@@ -136,6 +137,7 @@ fi
 
 # === Player ===
 start_service "$ACTIONCONTROLLER_MANIFEST" "actioncontroller"
+start_service "$STATEMANAGER_MANIFEST" "statemanager"
 etcdctl del "" --prefix
 sleep 3
 

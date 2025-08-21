@@ -144,47 +144,6 @@ impl StateManagerSender {
     /// * `Status::invalid_argument` - Malformed StateChange message
     /// * `Status::deadline_exceeded` - Request timeout (ASIL timing violation)
     ///
-    /// # FilterGateway Usage Patterns
-    ///
-    /// ## 1. Policy Enforcement Result
-    /// ```rust
-    /// let state_change = StateChange {
-    ///     resource_type: ResourceType::Scenario as i32,
-    ///     resource_name: "emergency-scenario".to_string(),
-    ///     current_state: "requested".to_string(),
-    ///     target_state: "allowed".to_string(),
-    ///     transition_id: policy_decision_id,
-    ///     timestamp_ns: decision_timestamp,
-    ///     source: "filtergateway".to_string(),
-    /// };
-    /// ```
-    ///
-    /// ## 2. Access Control Denial
-    /// ```rust
-    /// let state_change = StateChange {
-    ///     resource_type: ResourceType::Package as i32,
-    ///     resource_name: "restricted-package".to_string(),
-    ///     current_state: "requested".to_string(),
-    ///     target_state: "denied".to_string(),
-    ///     transition_id: access_control_id,
-    ///     timestamp_ns: denial_timestamp,
-    ///     source: "filtergateway".to_string(),
-    /// };
-    /// ```
-    ///
-    /// ## 3. Security Policy Violation
-    /// ```rust
-    /// let state_change = StateChange {
-    ///     resource_type: ResourceType::Model as i32,
-    ///     resource_name: "untrusted-model".to_string(),
-    ///     current_state: "running".to_string(),
-    ///     target_state: "blocked".to_string(),
-    ///     transition_id: security_violation_id,
-    ///     timestamp_ns: violation_timestamp,
-    ///     source: "filtergateway".to_string(),
-    /// };
-    /// ```
-    ///
     /// # PICCOLO Compliance Notes
     /// - Preserves nanosecond precision timestamps for timing verification
     /// - Maintains transition_id for complete audit trail
@@ -221,17 +180,6 @@ impl StateManagerSender {
     ///
     /// # Returns
     /// * `Result<tonic::Response<StateChangeResponse>, Status>` - StateManager response
-    ///
-    /// # Example Usage
-    /// ```rust
-    /// sender.report_policy_decision(
-    ///     ResourceType::Scenario,
-    ///     "emergency-brake-scenario",
-    ///     "requested",
-    ///     "allowed",
-    ///     "policy-decision-123"
-    /// ).await?;
-    /// ```
     pub async fn report_policy_decision(
         &mut self,
         resource_type: ResourceType,
@@ -272,17 +220,6 @@ impl StateManagerSender {
     ///
     /// # Returns
     /// * `Result<tonic::Response<StateChangeResponse>, Status>` - StateManager response
-    ///
-    /// # Example Usage
-    /// ```rust
-    /// sender.report_access_control(
-    ///     ResourceType::Model,
-    ///     "classified-ai-model",
-    ///     "requested",
-    ///     "denied",
-    ///     "access-control-456"
-    /// ).await?;
-    /// ```
     pub async fn report_access_control(
         &mut self,
         resource_type: ResourceType,
@@ -323,17 +260,6 @@ impl StateManagerSender {
     ///
     /// # Returns
     /// * `Result<tonic::Response<StateChangeResponse>, Status>` - StateManager response
-    ///
-    /// # Example Usage
-    /// ```rust
-    /// sender.report_security_violation(
-    ///     ResourceType::Package,
-    ///     "suspicious-package",
-    ///     "running",
-    ///     "blocked",
-    ///     "security-violation-789"
-    /// ).await?;
-    /// ```
     pub async fn report_security_violation(
         &mut self,
         resource_type: ResourceType,
@@ -374,17 +300,6 @@ impl StateManagerSender {
     ///
     /// # Returns
     /// * `Result<tonic::Response<StateChangeResponse>, Status>` - StateManager response
-    ///
-    /// # Example Usage
-    /// ```rust
-    /// sender.report_filter_result(
-    ///     ResourceType::Network,
-    ///     "external-network-request",
-    ///     "pending",
-    ///     "filtered",
-    ///     "filter-101"
-    /// ).await?;
-    /// ```
     pub async fn report_filter_result(
         &mut self,
         resource_type: ResourceType,

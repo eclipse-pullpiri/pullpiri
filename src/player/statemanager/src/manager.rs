@@ -13,8 +13,9 @@
 //! state transitions, monitoring, reconciliation, and recovery for all resource types
 //! (Scenario, Package, Model, Volume, Network, Node).
 
+use crate::state_machine::{StateMachine, TransitionResult};
 use common::monitoringserver::ContainerList;
-use common::statemanager::{ResourceType, StateChange};
+use common::statemanager::{ResourceType, StateChange, ErrorCode};
 use common::Result;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -37,6 +38,9 @@ use tokio::sync::{mpsc, Mutex};
 /// - Spawns dedicated async tasks for each message type
 /// - Ensures lock-free message processing with proper channel patterns
 pub struct StateManagerManager {
+    /// State machine for processing state transitions
+    state_machine: Arc<Mutex<StateMachine>>,
+
     /// Channel receiver for container status updates from nodeagent.
     ///
     /// Receives ContainerList messages containing current container states,
@@ -70,6 +74,7 @@ impl StateManagerManager {
         rx_state_change: mpsc::Receiver<StateChange>,
     ) -> Self {
         Self {
+            state_machine: Arc::new(Mutex::new(StateMachine::new())),
             rx_container: Arc::new(Mutex::new(rx_container)),
             rx_state_change: Arc::new(Mutex::new(rx_state_change)),
         }
@@ -93,6 +98,12 @@ impl StateManagerManager {
     /// - Configure ASIL safety monitoring and alerting
     pub async fn initialize(&mut self) -> Result<()> {
         println!("StateManagerManager initializing...");
+
+         // Initialize the state machine
+        {
+            let state_machine = self.state_machine.lock().await;
+            println!("State machine initialized with transition tables for Scenario, Package, and Model resources");
+        }
 
         // TODO: Add comprehensive initialization logic:
         // - Load persisted resource states from persistent storage
@@ -286,6 +297,44 @@ impl StateManagerManager {
         println!("=====================================");
     }
 
+    /// Execute actions based on state transitions
+    async fn execute_action(&self, action: &str, state_change: &StateChange) {
+        println!("    Executing action: {}", action);
+    }
+    
+     /// Handle state transition failures
+    async fn handle_transition_failure(&self, state_change: &StateChange, result: &TransitionResult) {
+        println!("    Handling transition failure for resource: {}", state_change.resource_name);
+        println!("      Error: {}", result.message);
+        println!("      Error code: {:?}", result.error_code);
+        
+        // Generate appropriate error responses based on error type
+        match result.error_code {
+            ErrorCode::InvalidStateTransition => {
+                println!("      Invalid state transition - checking state machine rules");
+                // Would log detailed state machine validation errors
+            }
+            ErrorCode::PreconditionFailed => {
+                println!("      Preconditions not met - evaluating retry strategy");
+                // Would check if conditions might be met later and schedule retry
+            }
+            ErrorCode::ResourceNotFound => {
+                println!("      Resource not found - may need initialization");
+                // Would check if resource needs to be created or registered
+            }
+            _ => {
+                println!("      General error - applying default error handling");
+                // Would apply general error handling procedures
+            }
+        }
+        
+        // In a real implementation, this would:
+        // - Log to audit trail
+        // - Generate alerts
+        // - Trigger recovery procedures
+        // - Update monitoring metrics
+    }
+
     /// Main message processing loop for handling gRPC requests.
     ///
     /// Spawns dedicated async tasks for processing different message types:
@@ -387,6 +436,7 @@ impl StateManagerManager {
     /// * `StateManagerManager` - Cloned instance for task use
     fn clone_for_task(&self) -> StateManagerManager {
         StateManagerManager {
+            state_machine: Arc::clone(&self.state_machine),
             rx_container: Arc::clone(&self.rx_container),
             rx_state_change: Arc::clone(&self.rx_state_change),
         }
@@ -442,7 +492,7 @@ impl StateManagerManager {
 // ========================================
 // The following areas require implementation for full PICCOLO compliance:
 //
-// 1. STATE MACHINE ENGINE
+// 1. STATE MACHINE ENGINE - ✓ In PROGRESS
 //    - Implement state validators for each ResourceType (Scenario, Package, Model, Volume, Network, Node)
 //    - Add transition rules and constraint checking for each state enum
 //    - Support for ASIL timing requirements and safety constraints

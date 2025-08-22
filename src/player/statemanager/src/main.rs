@@ -21,6 +21,7 @@ use tonic::transport::Server;
 
 pub mod grpc;
 pub mod manager;
+pub mod state_machine;
 
 /// Launches the StateManagerManager in an asynchronous task.
 ///

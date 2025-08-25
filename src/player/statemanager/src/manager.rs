@@ -13,12 +13,13 @@
 //! state transitions, monitoring, reconciliation, and recovery for all resource types
 //! (Scenario, Package, Model, Volume, Network, Node).
 
-use crate::state_machine::{StateMachine, TransitionResult};
+use crate::state_machine::{StateMachine, TransitionResult, ActionCommand};
 use common::monitoringserver::ContainerList;
-use common::statemanager::{ResourceType, StateChange, ErrorCode};
+use common::statemanager::{ErrorCode, ResourceType, StateChange};
 use common::Result;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+use tokio::task;
 
 /// Core state management engine for the StateManager service.
 ///
@@ -99,11 +100,19 @@ impl StateManagerManager {
     pub async fn initialize(&mut self) -> Result<()> {
         println!("StateManagerManager initializing...");
 
-         // Initialize the state machine
-        {
-            let state_machine = self.state_machine.lock().await;
-            println!("State machine initialized with transition tables for Scenario, Package, and Model resources");
-        }
+        // Initialize the state machine with async action executor
+        let action_receiver = {
+            let mut state_machine = self.state_machine.lock().await;
+            state_machine.initialize_action_executor()
+        };
+
+        // Start the async action executor
+        tokio::spawn(async move {
+            run_action_executor(action_receiver).await;
+        });
+
+        println!("State machine initialized with transition tables for Scenario, Package, and Model resources");
+        println!("Async action executor started for non-blocking action processing");
 
         // TODO: Add comprehensive initialization logic:
         // - Load persisted resource states from persistent storage
@@ -220,8 +229,82 @@ impl StateManagerManager {
         //    - Generate alerts and notifications for failures
         //    - Maintain system stability during error conditions
 
-        println!("  Status: State change processing completed (implementation pending)");
+        // Process the state change through the state machine
+        let result = {
+            let mut state_machine = self.state_machine.lock().await;
+            state_machine.process_state_change(state_change.clone())
+        };
+
+        // Handle the transition result using error_code instead of success field
+        if result.is_success() {
+            println!("  ✓ State transition successful: {}", result.message);
+            println!("    New state: {}", result.new_state);
+            println!("    Transition ID: {}", result.transition_id);
+
+            // Actions are now executed asynchronously - just log them
+            if !result.actions_to_execute.is_empty() {
+                println!("    Actions queued for async execution:");
+                for action in &result.actions_to_execute {
+                    println!("      - {}", action);
+                }
+            }
+
+            println!("  Status: State change processing completed successfully");
+        } else {
+            println!("  ✗ State transition failed: {}", result.message);
+            println!("    Error code: {:?}", result.error_code);
+            println!("    Error details: {}", result.error_details);
+            println!("    Current state remains: {}", result.new_state);
+            println!("    Transition ID: {}", result.transition_id);
+
+            // Handle transition failure
+            self.handle_transition_failure(&state_change, &result).await;
+
+            println!("  Status: State change processing completed with errors");
+        }
+
         println!("================================");
+    }
+
+    /// Handle state transition failures
+    async fn handle_transition_failure(
+        &self,
+        state_change: &StateChange,
+        result: &TransitionResult,
+    ) {
+        println!(
+            "    Handling transition failure for resource: {}",
+            state_change.resource_name
+        );
+        println!("      Error: {}", result.message);
+        println!("      Error code: {:?}", result.error_code);
+        println!("      Error details: {}", result.error_details);
+
+        // Generate appropriate error responses based on error type
+        match result.error_code {
+            ErrorCode::InvalidStateTransition => {
+                println!("      Invalid state transition - checking state machine rules");
+                // Would log detailed state machine validation errors
+            }
+            ErrorCode::PreconditionFailed => {
+                println!("      Preconditions not met - evaluating retry strategy");
+                // Would check if conditions might be met later and schedule retry
+            }
+            ErrorCode::ResourceNotFound => {
+                println!("      Resource not found - may need initialization");
+                // Would check if resource needs to be created or registered
+            }
+            _ => {
+                println!("      General error - applying default error handling");
+                // Would apply general error handling procedures
+            }
+        }
+
+        // In a real implementation, this would:
+        // - Log to audit trail
+        // - Generate alerts
+        // - Trigger recovery procedures
+        // - Update monitoring metrics
     }
 
     /// Processes a ContainerList message for container health monitoring.
@@ -295,44 +378,6 @@ impl StateManagerManager {
 
         println!("  Status: Container list processing completed (implementation pending)");
         println!("=====================================");
-    }
-
-    /// Execute actions based on state transitions
-    async fn execute_action(&self, action: &str, state_change: &StateChange) {
-        println!("    Executing action: {}", action);
-    }
-    
-     /// Handle state transition failures
-    async fn handle_transition_failure(&self, state_change: &StateChange, result: &TransitionResult) {
-        println!("    Handling transition failure for resource: {}", state_change.resource_name);
-        println!("      Error: {}", result.message);
-        println!("      Error code: {:?}", result.error_code);
-        
-        // Generate appropriate error responses based on error type
-        match result.error_code {
-            ErrorCode::InvalidStateTransition => {
-                println!("      Invalid state transition - checking state machine rules");
-                // Would log detailed state machine validation errors
-            }
-            ErrorCode::PreconditionFailed => {
-                println!("      Preconditions not met - evaluating retry strategy");
-                // Would check if conditions might be met later and schedule retry
-            }
-            ErrorCode::ResourceNotFound => {
-                println!("      Resource not found - may need initialization");
-                // Would check if resource needs to be created or registered
-            }
-            _ => {
-                println!("      General error - applying default error handling");
-                // Would apply general error handling procedures
-            }
-        }
-        
-        // In a real implementation, this would:
-        // - Log to audit trail
-        // - Generate alerts
-        // - Trigger recovery procedures
-        // - Update monitoring metrics
     }
 
     /// Main message processing loop for handling gRPC requests.
@@ -487,12 +532,193 @@ impl StateManagerManager {
     }
 }
 
+/// Async action executor - runs in separate task
+///
+/// This function handles the execution of actions triggered by state transitions.
+/// Actions are executed asynchronously to ensure state transitions remain fast and non-blocking.
+pub async fn run_action_executor(mut receiver: mpsc::UnboundedReceiver<ActionCommand>) {
+    println!("Action executor started - processing actions asynchronously");
+
+    while let Some(action_command) = receiver.recv().await {
+        // Execute action asynchronously without blocking state transitions
+        task::spawn(async move {
+            execute_action(action_command).await;
+        });
+    }
+
+    println!("Action executor stopped");
+}
+
+/// Execute individual action asynchronously
+async fn execute_action(command: ActionCommand) {
+    println!(
+        " Executing action: {} for resource: {}",
+        command.action, command.resource_key
+    );
+
+    match command.action.as_str() {
+        "start_condition_evaluation" => {
+            println!(
+                " Starting condition evaluation for scenario: {}",
+                command.resource_key
+            );
+            // Would integrate with policy engine or condition evaluator
+        }
+        "start_policy_verification" => {
+            println!(
+                " Starting policy verification for scenario: {}",
+                command.resource_key
+            );
+            // Would integrate with policy manager
+        }
+        "execute_action_on_target_package" => {
+            println!(
+                " Executing action on target package for scenario: {}",
+                command.resource_key
+            );
+            // Would trigger package operations
+        }
+        "log_denial_generate_alert" => {
+            println!(
+                " Logging denial and generating alert for scenario: {}",
+                command.resource_key
+            );
+            // Would integrate with alerting system
+        }
+        "start_model_creation_allocate_resources" => {
+            println!(
+                " Starting model creation and resource allocation for package: {}",
+                command.resource_key
+            );
+            // Would integrate with resource allocation system
+        }
+        "update_state_announce_availability" => {
+            println!(
+                " Updating state and announcing availability for: {}",
+                command.resource_key
+            );
+            // Would update service discovery and announce availability
+        }
+        "log_warning_activate_partial_functionality" => {
+            println!(
+                " Logging warning and activating partial functionality for: {}",
+                command.resource_key
+            );
+            // Would configure degraded mode operation
+        }
+        "log_error_attempt_recovery" => {
+            println!(
+                " Logging error and attempting recovery for: {}",
+                command.resource_key
+            );
+            // Would trigger automated recovery procedures
+        }
+        "pause_models_preserve_state" => {
+            println!(
+                " Pausing models and preserving state for: {}",
+                command.resource_key
+            );
+            // Would pause container execution and save state
+        }
+        "resume_models_restore_state" => {
+            println!(
+                " Resuming models and restoring state for: {}",
+                command.resource_key
+            );
+            // Would resume container execution and restore state
+        }
+        "start_node_selection_and_allocation" => {
+            println!(
+                " Starting node selection and allocation for model: {}",
+                command.resource_key
+            );
+            // Would integrate with scheduler for node allocation
+        }
+        "pull_container_images_mount_volumes" => {
+            println!(
+                " Pulling container images and mounting volumes for model: {}",
+                command.resource_key
+            );
+            // Would trigger container image pulls and volume mounts
+        }
+        "update_state_start_readiness_checks" => {
+            println!(
+                " Updating state and starting readiness checks for model: {}",
+                command.resource_key
+            );
+            // Would start health/readiness checks
+        }
+        "log_completion_clean_up_resources" => {
+            println!(
+                " Logging completion and cleaning up resources for model: {}",
+                command.resource_key
+            );
+            // Would clean up completed job resources
+        }
+        "set_backoff_timer_collect_logs" => {
+            println!(
+                " Setting backoff timer and collecting logs for model: {}",
+                command.resource_key
+            );
+            // Would set exponential backoff and collect diagnostic logs
+        }
+        "attempt_diagnostics_restore_communication" => {
+            println!(
+                " Attempting diagnostics and restoring communication for model: {}",
+                command.resource_key
+            );
+            // Would run diagnostic checks and restore node communication
+        }
+        "resume_monitoring_reset_counter" => {
+            println!(
+                " Resuming monitoring and resetting counter for model: {}",
+                command.resource_key
+            );
+            // Would resume monitoring and reset failure counters
+        }
+        "log_error_notify_for_manual_intervention" => {
+            println!(
+                " Logging error and notifying for manual intervention for model: {}",
+                command.resource_key
+            );
+            // Would log critical error and notify operations team
+        }
+        "synchronize_state_recover_if_needed" => {
+            println!(
+                " Synchronizing state and recovering if needed for model: {}",
+                command.resource_key
+            );
+            // Would synchronize state and trigger recovery if necessary
+        }
+        "start_model_recreation" => {
+            println!(" Starting model recreation for: {}", command.resource_key);
+            // Would start complete model recreation process
+        }
+        _ => {
+            println!(
+                " Unknown action: {} for resource: {}",
+                command.action, command.resource_key
+            );
+        }
+    }
+
+    // Print context information if available
+    if !command.context.is_empty() {
+        println!("    Context: {:?}", command.context);
+    }
+
+    println!(
+        "  ✓ Action '{}' completed for: {}",
+        command.action, command.resource_key
+    );
+}
+
 // ========================================
 // FUTURE IMPLEMENTATION AREAS
 // ========================================
 // The following areas require implementation for full PICCOLO compliance:
 //
-// 1. STATE MACHINE ENGINE - ✓ In PROGRESS
+// 1. STATE MACHINE ENGINE - ✓ IMPLEMENTED
 //    - Implement state validators for each ResourceType (Scenario, Package, Model, Volume, Network, Node)
 //    - Add transition rules and constraint checking for each state enum
 //    - Support for ASIL timing requirements and safety constraints

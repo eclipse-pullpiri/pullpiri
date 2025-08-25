@@ -15,7 +15,7 @@
 
 use crate::state_machine::{StateMachine, TransitionResult};
 use common::monitoringserver::ContainerList;
-use common::statemanager::{ResourceType, StateChange, ErrorCode};
+use common::statemanager::{ErrorCode, ResourceType, StateChange};
 use common::Result;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -99,7 +99,7 @@ impl StateManagerManager {
     pub async fn initialize(&mut self) -> Result<()> {
         println!("StateManagerManager initializing...");
 
-         // Initialize the state machine
+        // Initialize the state machine
         {
             let state_machine = self.state_machine.lock().await;
             println!("State machine initialized with transition tables for Scenario, Package, and Model resources");
@@ -301,13 +301,20 @@ impl StateManagerManager {
     async fn execute_action(&self, action: &str, state_change: &StateChange) {
         println!("    Executing action: {}", action);
     }
-    
-     /// Handle state transition failures
-    async fn handle_transition_failure(&self, state_change: &StateChange, result: &TransitionResult) {
-        println!("    Handling transition failure for resource: {}", state_change.resource_name);
+
+    /// Handle state transition failures
+    async fn handle_transition_failure(
+        &self,
+        state_change: &StateChange,
+        result: &TransitionResult,
+    ) {
+        println!(
+            "    Handling transition failure for resource: {}",
+            state_change.resource_name
+        );
         println!("      Error: {}", result.message);
         println!("      Error code: {:?}", result.error_code);
-        
+
         // Generate appropriate error responses based on error type
         match result.error_code {
             ErrorCode::InvalidStateTransition => {
@@ -327,7 +334,7 @@ impl StateManagerManager {
                 // Would apply general error handling procedures
             }
         }
-        
+
         // In a real implementation, this would:
         // - Log to audit trail
         // - Generate alerts

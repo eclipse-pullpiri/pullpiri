@@ -14,7 +14,7 @@
 //! The state machine follows a table-driven approach where each resource type (Scenario, Package, Model)
 //! has its own transition table defining valid state changes. The system supports:
 //! - Conditional transitions based on resource state
-//! - Action execution during state changes
+//! - Action execution during state changes non-blocking
 //! - Health monitoring and failure handling
 //! - Backoff mechanisms for failed transitions
 //!
@@ -26,21 +26,163 @@
 //! let result = state_machine.process_state_change(state_change);
 //! ```
 
-use common::statemanager::{ResourceType, StateChange, ErrorCode};
+use common::statemanager::{ErrorCode, ResourceType, StateChange};
 use std::collections::HashMap;
+use tokio::sync::mpsc;
 use tokio::time::{Duration, Instant};
 
-/// Represents a single state transition rule in the state machine
-///
-/// Each transition defines a complete rule for moving from one state to another,
-/// including optional conditions that must be met and actions to execute.
-///
-/// # Fields
-/// - `from_state`: The source state that must be current for this transition to apply
-/// - `event`: The trigger event that initiates this transition
-/// - `to_state`: The target state after successful transition
-/// - `condition`: Optional condition that must evaluate to true (e.g., "resource_count > 0")
-/// - `action`: Action to execute during transition (e.g., "start_container", "cleanup_resources")
+// ========================================
+// CONSTANTS AND CONFIGURATION
+// ========================================
+
+/// Default backoff duration for CrashLoopBackOff states
+const BACKOFF_DURATION_SECS: u64 = 30;
+
+/// Maximum consecutive failures before marking resource as unhealthy
+const MAX_CONSECUTIVE_FAILURES: u32 = 3;
+
+// ========================================
+// STATE DEFINITIONS
+// ========================================
+
+/// Scenario state enumeration aligned with PICCOLO specification
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ScenarioState {
+    Idle,
+    Waiting,
+    Playing,
+    Allowed,
+    Denied,
+    Error,
+}
+
+impl ScenarioState {
+    /// Convert enum to string representation
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ScenarioState::Idle => "idle",
+            ScenarioState::Waiting => "waiting",
+            ScenarioState::Playing => "playing",
+            ScenarioState::Allowed => "allowed",
+            ScenarioState::Denied => "denied",
+            ScenarioState::Error => "error",
+        }
+    }
+
+    /// Create enum from string representation
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "idle" => Some(ScenarioState::Idle),
+            "waiting" => Some(ScenarioState::Waiting),
+            "playing" => Some(ScenarioState::Playing),
+            "allowed" => Some(ScenarioState::Allowed),
+            "denied" => Some(ScenarioState::Denied),
+            "error" => Some(ScenarioState::Error),
+            _ => None,
+        }
+    }
+}
+
+/// Package state enumeration aligned with PICCOLO specification
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PackageState {
+    NotAvailable,
+    Initializing,
+    Running,
+    Degraded,
+    Error,
+    Paused,
+    Updating,
+}
+
+impl PackageState {
+    /// Convert enum to string representation
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PackageState::NotAvailable => "N/A",
+            PackageState::Initializing => "initializing",
+            PackageState::Running => "running",
+            PackageState::Degraded => "degraded",
+            PackageState::Error => "error",
+            PackageState::Paused => "paused",
+            PackageState::Updating => "updating",
+        }
+    }
+
+    /// Create enum from string representation
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "N/A" => Some(PackageState::NotAvailable),
+            "initializing" => Some(PackageState::Initializing),
+            "running" => Some(PackageState::Running),
+            "degraded" => Some(PackageState::Degraded),
+            "error" => Some(PackageState::Error),
+            "paused" => Some(PackageState::Paused),
+            "updating" => Some(PackageState::Updating),
+            _ => None,
+        }
+    }
+}
+
+/// Model state enumeration aligned with PICCOLO specification
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ModelState {
+    NotAvailable,
+    Pending,
+    ContainerCreating,
+    Running,
+    Failed,
+    Succeeded,
+    CrashLoopBackOff,
+    Unknown,
+}
+
+impl ModelState {
+    /// Convert enum to string representation
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ModelState::NotAvailable => "N/A",
+            ModelState::Pending => "Pending",
+            ModelState::ContainerCreating => "ContainerCreating",
+            ModelState::Running => "Running",
+            ModelState::Failed => "Failed",
+            ModelState::Succeeded => "Succeeded",
+            ModelState::CrashLoopBackOff => "CrashLoopBackOff",
+            ModelState::Unknown => "Unknown",
+        }
+    }
+
+    /// Create enum from string representation
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "N/A" => Some(ModelState::NotAvailable),
+            "Pending" => Some(ModelState::Pending),
+            "ContainerCreating" => Some(ModelState::ContainerCreating),
+            "Running" => Some(ModelState::Running),
+            "Failed" => Some(ModelState::Failed),
+            "Succeeded" => Some(ModelState::Succeeded),
+            "CrashLoopBackOff" => Some(ModelState::CrashLoopBackOff),
+            "Unknown" => Some(ModelState::Unknown),
+            _ => None,
+        }
+    }
+}
+
+// ========================================
+// CORE DATA STRUCTURES
+// ========================================
+
+/// Action execution command for async processing
+#[derive(Debug, Clone)]
+pub struct ActionCommand {
+    pub action: String,
+    pub resource_key: String,
+    pub resource_type: ResourceType,
+    pub transition_id: String,
+    pub context: HashMap<String, String>,
+}
+
+/// Represents a state transition in the state machine
 #[derive(Debug, Clone, PartialEq)]
 pub struct StateTransition {
     pub from_state: String,
@@ -50,20 +192,16 @@ pub struct StateTransition {
     pub action: String,
 }
 
-/// Tracks the complete state information for a managed resource
-///
-/// This structure maintains both current state and metadata necessary for
-/// state management decisions, health monitoring, and audit trails.
-///
-/// # Fields
-/// - `resource_type`: The type of resource (Scenario, Package, or Model)
-/// - `resource_name`: Unique identifier for the resource instance
-/// - `current_state`: Current operational state of the resource
-/// - `desired_state`: Target state the resource should transition to (if any)
-/// - `last_transition_time`: Timestamp of the most recent state change
-/// - `transition_count`: Total number of state transitions for this resource
-/// - `metadata`: Key-value pairs for additional resource information
-/// - `health_status`: Current health and monitoring information
+/// Health status tracking for resources
+#[derive(Debug, Clone)]
+pub struct HealthStatus {
+    pub healthy: bool,
+    pub status_message: String,
+    pub last_check: Instant,
+    pub consecutive_failures: u32,
+}
+
+/// Represents the current state of a resource with metadata
 #[derive(Debug, Clone)]
 pub struct ResourceState {
     pub resource_type: ResourceType,
@@ -76,38 +214,6 @@ pub struct ResourceState {
     pub health_status: HealthStatus,
 }
 
-/// Comprehensive health monitoring information for resources
-///
-/// Tracks the operational health of resources to enable proactive
-/// failure detection and recovery mechanisms.
-///
-/// # Fields
-/// - `healthy`: Overall health status indicator
-/// - `status_message`: Human-readable description of current health state
-/// - `last_check`: Timestamp of the most recent health evaluation
-/// - `consecutive_failures`: Counter for consecutive failed health checks (used for backoff)
-#[derive(Debug, Clone)]
-pub struct HealthStatus {
-    pub healthy: bool,
-    pub status_message: String,
-    pub last_check: Instant,
-    pub consecutive_failures: u32,
-}
-
-/// Comprehensive result of a state transition attempt
-///
-/// Provides detailed information about transition outcomes, including
-/// success status, resulting state, error details, and follow-up actions.
-///
-/// # Fields
-/// - `success`: Whether the transition completed successfully
-/// - `new_state`: The resulting state after transition attempt
-/// - `error_code`: Specific error classification for failures
-/// - `message`: Human-readable description of the result
-/// - `actions_to_execute`: List of actions that should be performed post-transition
-/// - `transition_id`: Unique identifier for the transition attempt
-/// - `error_details`: Detailed error information (if any)
-
 /// Result of a state transition attempt - aligned with proto StateChangeResponse
 #[derive(Debug, Clone)]
 pub struct TransitionResult {
@@ -117,6 +223,32 @@ pub struct TransitionResult {
     pub actions_to_execute: Vec<String>,
     pub transition_id: String,
     pub error_details: String,
+}
+
+impl TransitionResult {
+    /// Check if the transition was successful
+    pub fn is_success(&self) -> bool {
+        matches!(self.error_code, ErrorCode::Success)
+    }
+
+    /// Check if the transition failed
+    pub fn is_failure(&self) -> bool {
+        !self.is_success()
+    }
+
+    /// Convert TransitionResult to StateChangeResponse for proto compatibility
+    pub fn to_state_change_response(&self) -> common::statemanager::StateChangeResponse {
+        common::statemanager::StateChangeResponse {
+            message: self.message.clone(),
+            transition_id: self.transition_id.clone(),
+            timestamp_ns: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos() as i64,
+            error_code: self.error_code as i32,
+            error_details: self.error_details.clone(),
+        }
+    }
 }
 
 /// Core state machine implementation for PICCOLO resource management
@@ -136,22 +268,25 @@ pub struct TransitionResult {
 /// for concurrent access across multiple threads.
 pub struct StateMachine {
     /// State transition tables indexed by resource type
-    /// 
+    ///
     /// Each resource type has its own set of valid transitions, allowing
     /// for type-specific state management rules and behaviors.
     transition_tables: HashMap<ResourceType, Vec<StateTransition>>,
-    
+
     /// Current state tracking for all managed resources
-    /// 
+    ///
     /// Resources are keyed by a unique identifier (typically resource name)
     /// and contain complete state information including metadata and health status.
     resource_states: HashMap<String, ResourceState>,
-    
+
     /// Backoff timers for CrashLoopBackOff and retry management
-    /// 
+    ///
     /// Tracks when resources that have failed transitions can be retried,
     /// implementing exponential backoff to prevent resource thrashing.
     backoff_timers: HashMap<String, Instant>,
+
+    /// Action command sender for async execution
+    action_sender: Option<mpsc::UnboundedSender<ActionCommand>>,
 }
 
 impl StateMachine {
@@ -172,15 +307,27 @@ impl StateMachine {
             transition_tables: HashMap::new(),
             resource_states: HashMap::new(),
             backoff_timers: HashMap::new(),
+            action_sender: None,
         };
 
-        // Initialize transition tables for each resource type according to PICCOLO specification
+        // Initialize transition tables for each resource type
         state_machine.initialize_scenario_transitions();
         state_machine.initialize_package_transitions();
         state_machine.initialize_model_transitions();
 
         state_machine
     }
+
+    /// Initialize async action executor
+    pub fn initialize_action_executor(&mut self) -> mpsc::UnboundedReceiver<ActionCommand> {
+        let (sender, receiver) = mpsc::unbounded_channel();
+        self.action_sender = Some(sender);
+        receiver
+    }
+
+    // ========================================
+    // STATE TRANSITION TABLE INITIALIZATION
+    // ========================================
 
     /// Initialize the state transition table for Scenario resources
     ///
@@ -197,7 +344,39 @@ impl StateMachine {
     /// - "Active" -> "Inactive" on "deactivate" event
     /// - Any state -> "Failed" on "error" event
     fn initialize_scenario_transitions(&mut self) {
-        todo!()
+        let scenario_transitions = vec![
+            StateTransition {
+                from_state: ScenarioState::Idle.as_str().to_string(),
+                event: "scenario_activation".to_string(),
+                to_state: ScenarioState::Waiting.as_str().to_string(),
+                condition: None,
+                action: "start_condition_evaluation".to_string(),
+            },
+            StateTransition {
+                from_state: ScenarioState::Waiting.as_str().to_string(),
+                event: "condition_met".to_string(),
+                to_state: ScenarioState::Allowed.as_str().to_string(),
+                condition: None,
+                action: "start_policy_verification".to_string(),
+            },
+            StateTransition {
+                from_state: ScenarioState::Allowed.as_str().to_string(),
+                event: "policy_verification_success".to_string(),
+                to_state: ScenarioState::Playing.as_str().to_string(),
+                condition: None,
+                action: "execute_action_on_target_package".to_string(),
+            },
+            StateTransition {
+                from_state: ScenarioState::Allowed.as_str().to_string(),
+                event: "policy_verification_failure".to_string(),
+                to_state: ScenarioState::Denied.as_str().to_string(),
+                condition: None,
+                action: "log_denial_generate_alert".to_string(),
+            },
+        ];
+
+        self.transition_tables
+            .insert(ResourceType::Scenario, scenario_transitions);
     }
 
     /// Initialize the state transition table for Package resources
@@ -212,7 +391,116 @@ impl StateMachine {
     /// Package transitions typically involve more complex workflows due to
     /// dependency management and rollback requirements.
     fn initialize_package_transitions(&mut self) {
-        todo!()
+        let package_transitions = vec![
+            StateTransition {
+                from_state: PackageState::NotAvailable.as_str().to_string(),
+                event: "launch_request".to_string(),
+                to_state: PackageState::Initializing.as_str().to_string(),
+                condition: None,
+                action: "start_model_creation_allocate_resources".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Initializing.as_str().to_string(),
+                event: "initialization_complete".to_string(),
+                to_state: PackageState::Running.as_str().to_string(),
+                condition: Some("all_models_normal".to_string()),
+                action: "update_state_announce_availability".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Initializing.as_str().to_string(),
+                event: "partial_initialization_failure".to_string(),
+                to_state: PackageState::Degraded.as_str().to_string(),
+                condition: Some("critical_models_normal".to_string()),
+                action: "log_warning_activate_partial_functionality".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Initializing.as_str().to_string(),
+                event: "critical_initialization_failure".to_string(),
+                to_state: PackageState::Error.as_str().to_string(),
+                condition: Some("critical_models_failed".to_string()),
+                action: "log_error_attempt_recovery".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Running.as_str().to_string(),
+                event: "model_issue_detected".to_string(),
+                to_state: PackageState::Degraded.as_str().to_string(),
+                condition: Some("non_critical_model_issues".to_string()),
+                action: "log_warning_maintain_partial_functionality".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Running.as_str().to_string(),
+                event: "critical_issue_detected".to_string(),
+                to_state: PackageState::Error.as_str().to_string(),
+                condition: Some("critical_model_issues".to_string()),
+                action: "log_error_attempt_recovery".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Running.as_str().to_string(),
+                event: "pause_request".to_string(),
+                to_state: PackageState::Paused.as_str().to_string(),
+                condition: None,
+                action: "pause_models_preserve_state".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Degraded.as_str().to_string(),
+                event: "model_recovery".to_string(),
+                to_state: PackageState::Running.as_str().to_string(),
+                condition: Some("all_models_recovered".to_string()),
+                action: "update_state_restore_full_functionality".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Degraded.as_str().to_string(),
+                event: "additional_model_issues".to_string(),
+                to_state: PackageState::Error.as_str().to_string(),
+                condition: Some("critical_models_affected".to_string()),
+                action: "log_error_attempt_recovery".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Degraded.as_str().to_string(),
+                event: "pause_request".to_string(),
+                to_state: PackageState::Paused.as_str().to_string(),
+                condition: None,
+                action: "pause_models_preserve_state".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Error.as_str().to_string(),
+                event: "recovery_successful".to_string(),
+                to_state: PackageState::Running.as_str().to_string(),
+                condition: Some("depends_on_recovery_level".to_string()),
+                action: "update_state_announce_functionality_restoration".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Paused.as_str().to_string(),
+                event: "resume_request".to_string(),
+                to_state: PackageState::Running.as_str().to_string(),
+                condition: Some("depends_on_previous_state".to_string()),
+                action: "resume_models_restore_state".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Running.as_str().to_string(),
+                event: "update_request".to_string(),
+                to_state: PackageState::Updating.as_str().to_string(),
+                condition: None,
+                action: "start_update_process".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Updating.as_str().to_string(),
+                event: "update_successful".to_string(),
+                to_state: PackageState::Running.as_str().to_string(),
+                condition: None,
+                action: "activate_new_version_update_state".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Updating.as_str().to_string(),
+                event: "update_failed".to_string(),
+                to_state: PackageState::Error.as_str().to_string(),
+                condition: Some("depends_on_rollback_settings".to_string()),
+                action: "rollback_or_error_handling".to_string(),
+            },
+        ];
+
+        self.transition_tables
+            .insert(ResourceType::Package, package_transitions);
     }
 
     /// Initialize the state transition table for Model resources
@@ -227,8 +515,107 @@ impl StateMachine {
     /// Model transitions may include resource-intensive operations and
     /// should account for memory and compute constraints.
     fn initialize_model_transitions(&mut self) {
-        todo!()
+        let model_transitions = vec![
+            StateTransition {
+                from_state: ModelState::NotAvailable.as_str().to_string(),
+                event: "creation_request".to_string(),
+                to_state: ModelState::Pending.as_str().to_string(),
+                condition: None,
+                action: "start_node_selection_and_allocation".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Pending.as_str().to_string(),
+                event: "node_allocation_complete".to_string(),
+                to_state: ModelState::ContainerCreating.as_str().to_string(),
+                condition: Some("sufficient_resources".to_string()),
+                action: "pull_container_images_mount_volumes".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Pending.as_str().to_string(),
+                event: "node_allocation_failed".to_string(),
+                to_state: ModelState::Failed.as_str().to_string(),
+                condition: Some("timeout_or_error".to_string()),
+                action: "log_error_retry_or_reschedule".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::ContainerCreating.as_str().to_string(),
+                event: "container_creation_complete".to_string(),
+                to_state: ModelState::Running.as_str().to_string(),
+                condition: Some("all_containers_started".to_string()),
+                action: "update_state_start_readiness_checks".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::ContainerCreating.as_str().to_string(),
+                event: "container_creation_failed".to_string(),
+                to_state: ModelState::Failed.as_str().to_string(),
+                condition: None,
+                action: "log_error_retry_or_reschedule".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Running.as_str().to_string(),
+                event: "temporary_task_complete".to_string(),
+                to_state: ModelState::Succeeded.as_str().to_string(),
+                condition: Some("one_time_task".to_string()),
+                action: "log_completion_clean_up_resources".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Running.as_str().to_string(),
+                event: "container_termination".to_string(),
+                to_state: ModelState::Failed.as_str().to_string(),
+                condition: Some("unexpected_termination".to_string()),
+                action: "log_error_evaluate_automatic_restart".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Running.as_str().to_string(),
+                event: "repeated_crash_detection".to_string(),
+                to_state: ModelState::CrashLoopBackOff.as_str().to_string(),
+                condition: Some("consecutive_restart_failures".to_string()),
+                action: "set_backoff_timer_collect_logs".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Running.as_str().to_string(),
+                event: "monitoring_failure".to_string(),
+                to_state: ModelState::Unknown.as_str().to_string(),
+                condition: Some("node_communication_issues".to_string()),
+                action: "attempt_diagnostics_restore_communication".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::CrashLoopBackOff.as_str().to_string(),
+                event: "backoff_time_elapsed".to_string(),
+                to_state: ModelState::Running.as_str().to_string(),
+                condition: Some("restart_successful".to_string()),
+                action: "resume_monitoring_reset_counter".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::CrashLoopBackOff.as_str().to_string(),
+                event: "maximum_retries_exceeded".to_string(),
+                to_state: ModelState::Failed.as_str().to_string(),
+                condition: Some("retry_limit_reached".to_string()),
+                action: "log_error_notify_for_manual_intervention".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Unknown.as_str().to_string(),
+                event: "state_check_recovered".to_string(),
+                to_state: ModelState::Running.as_str().to_string(),
+                condition: Some("depends_on_actual_state".to_string()),
+                action: "synchronize_state_recover_if_needed".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Failed.as_str().to_string(),
+                event: "manual_automatic_recovery".to_string(),
+                to_state: ModelState::Pending.as_str().to_string(),
+                condition: Some("according_to_restart_policy".to_string()),
+                action: "start_model_recreation".to_string(),
+            },
+        ];
+
+        self.transition_tables
+            .insert(ResourceType::Model, model_transitions);
     }
+
+    // ========================================
+    // CORE STATE PROCESSING
+    // ========================================
 
     /// Process a state change request and return the comprehensive result
     ///
@@ -266,6 +653,10 @@ impl StateMachine {
         todo!()
     }
 
+    // ========================================
+    // VALIDATION AND UTILITY METHODS
+    // ========================================
+
     /// Find a valid transition rule for the given parameters
     ///
     /// Searches the appropriate transition table for a rule that matches
@@ -291,6 +682,30 @@ impl StateMachine {
         event: &str,
         to_state: &str,
     ) -> Option<StateTransition> {
+        todo!()
+    }
+
+    /// Validate state change request parameters
+    fn validate_state_change(&self, state_change: &StateChange) -> Result<(), String> {
+        todo!()
+    }
+
+    /// Generate a unique resource key
+    fn generate_resource_key(&self, resource_type: ResourceType, resource_name: &str) -> String {
+        todo!()
+    }
+
+    /// Build context for action execution
+    fn build_action_context(
+        &self,
+        state_change: &StateChange,
+        transition: &StateTransition,
+    ) -> HashMap<String, String> {
+        todo!()
+    }
+
+    /// Updates health status based on transition result
+    fn update_health_status(&mut self, resource_key: &str, transition_result: &TransitionResult) {
         todo!()
     }
 
@@ -340,27 +755,8 @@ impl StateMachine {
     ///
     /// # Error Handling
     /// Malformed conditions should be logged and default to `false` for safety.
-    fn evaluate_condition(&self, condition: &str, _state_change: &StateChange) -> bool {
-        todo!()
-    }
 
-    /// Validate if a state is appropriate for resource initialization
-    ///
-    /// Checks whether the specified state is a valid starting point for
-    /// a new resource of the given type.
-    ///
-    /// # Parameters
-    /// - `resource_type`: The type of resource being created
-    /// - `state`: The proposed initial state
-    ///
-    /// # Returns
-    /// - `true`: If the state is a valid initial state for the resource type
-    /// - `false`: If the state is not appropriate for new resource creation
-    ///
-    /// # Design Rationale
-    /// Not all states are appropriate for resource creation. For example,
-    /// a resource should not be created directly in a "Failed" state.
-    fn is_valid_initial_state(&self, resource_type: ResourceType, state: &str) -> bool {
+    fn evaluate_condition(&self, condition: &str, _state_change: &StateChange) -> bool {
         todo!()
     }
 
@@ -381,9 +777,49 @@ impl StateMachine {
     /// - Updates last transition timestamp
     /// - Clears any active backoff timers on successful transition
     /// - Updates health status if applicable
-    fn update_resource_state(&mut self, resource_key: &str, state_change: &StateChange, new_state: &str, resource_type: ResourceType) {
-        todo!()
+    fn update_resource_state(
+        &mut self,
+        resource_key: &str,
+        state_change: &StateChange,
+        new_state: &str,
+        resource_type: ResourceType,
+    ) {
+        let now = Instant::now();
+
+        let resource_state = self
+            .resource_states
+            .entry(resource_key.to_string())
+            .or_insert_with(|| ResourceState {
+                resource_type,
+                resource_name: state_change.resource_name.clone(),
+                current_state: state_change.current_state.clone(),
+                desired_state: Some(state_change.target_state.clone()),
+                last_transition_time: now,
+                transition_count: 0,
+                metadata: HashMap::new(),
+                health_status: HealthStatus {
+                    healthy: true,
+                    status_message: "Healthy".to_string(),
+                    last_check: now,
+                    consecutive_failures: 0,
+                },
+            });
+
+        resource_state.current_state = new_state.to_string();
+        resource_state.last_transition_time = now;
+        resource_state.transition_count += 1;
+        resource_state.metadata.insert(
+            "last_transition_id".to_string(),
+            state_change.transition_id.clone(),
+        );
+        resource_state
+            .metadata
+            .insert("source".to_string(), state_change.source.clone());
     }
+
+    // ========================================
+    // PUBLIC QUERY METHODS
+    // ========================================
 
     /// Retrieve the current state information for a specific resource
     ///
@@ -403,8 +839,13 @@ impl StateMachine {
     /// - Status queries from external systems
     /// - Health check implementations
     /// - Audit and monitoring purposes
-    pub fn get_resource_state(&self, resource_name: &str, resource_type: ResourceType) -> Option<&ResourceState> {
-        todo!()
+    pub fn get_resource_state(
+        &self,
+        resource_name: &str,
+        resource_type: ResourceType,
+    ) -> Option<&ResourceState> {
+        let resource_key = self.generate_resource_key(resource_type, resource_name);
+        self.resource_states.get(&resource_key)
     }
 
     /// List all resources currently in a specific state
@@ -426,8 +867,18 @@ impl StateMachine {
     /// # Usage Examples
     /// - Find all failed resources: `list_resources_by_state(None, "Failed")`
     /// - Find active scenarios: `list_resources_by_state(Some(ResourceType::Scenario), "Active")`
-    pub fn list_resources_by_state(&self, resource_type: Option<ResourceType>, state: &str) -> Vec<&ResourceState> {
-        todo!()
+    pub fn list_resources_by_state(
+        &self,
+        resource_type: Option<ResourceType>,
+        state: &str,
+    ) -> Vec<&ResourceState> {
+        self.resource_states
+            .values()
+            .filter(|resource| {
+                resource.current_state == state
+                    && (resource_type.is_none() || resource_type == Some(resource.resource_type))
+            })
+            .collect()
     }
 
     /// Convert ResourceType enum to string representation for logging
@@ -445,7 +896,15 @@ impl StateMachine {
     /// Using static string slices avoids unnecessary string allocations
     /// for this frequently-called utility function.
     fn resource_type_to_string(&self, resource_type: ResourceType) -> &'static str {
-        todo!()
+        match resource_type {
+            ResourceType::Scenario => "Scenario",
+            ResourceType::Package => "Package",
+            ResourceType::Model => "Model",
+            ResourceType::Volume => "Volume",
+            ResourceType::Network => "Network",
+            ResourceType::Node => "Node",
+            _ => "Unknown",
+        }
     }
 }
 

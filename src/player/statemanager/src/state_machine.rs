@@ -105,13 +105,18 @@ pub struct HealthStatus {
 /// - `error_code`: Specific error classification for failures
 /// - `message`: Human-readable description of the result
 /// - `actions_to_execute`: List of actions that should be performed post-transition
+/// - `transition_id`: Unique identifier for the transition attempt
+/// - `error_details`: Detailed error information (if any)
+
+/// Result of a state transition attempt - aligned with proto StateChangeResponse
 #[derive(Debug, Clone)]
 pub struct TransitionResult {
-    pub success: bool,
     pub new_state: String,
     pub error_code: ErrorCode,
     pub message: String,
     pub actions_to_execute: Vec<String>,
+    pub transition_id: String,
+    pub error_details: String,
 }
 
 /// Core state machine implementation for PICCOLO resource management

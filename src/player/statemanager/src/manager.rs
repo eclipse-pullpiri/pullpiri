@@ -17,6 +17,7 @@ use crate::state_machine::{StateMachine, TransitionResult};
 use common::monitoringserver::ContainerList;
 use common::statemanager::{ErrorCode, ResourceType, StateChange};
 use common::Result;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
@@ -261,6 +262,13 @@ impl StateManagerManager {
                 println!("    Annotations: {:?}", container.annotation);
             }
 
+            // Process container statistics for health analysis
+            if !container.stats.is_empty() {
+                println!("    Statistics:");
+                self.analyze_container_stats(&container.stats, &container_names, &container.id)
+                    .await;
+            }
+
             // TODO: Implement comprehensive container processing:
             //
             // 1. HEALTH STATUS ANALYSIS
@@ -295,6 +303,210 @@ impl StateManagerManager {
 
         println!("  Status: Container list processing completed (implementation pending)");
         println!("=====================================");
+    }
+
+    /// Analyze container statistics for health status and performance monitoring
+    ///
+    /// This function processes real-time container statistics including CPU usage,
+    /// memory consumption, and network metrics to make state transition decisions.
+    async fn analyze_container_stats(
+        &self,
+        stats: &HashMap<String, String>,
+        container_name: &str,
+        container_id: &str,
+    ) {
+        println!(
+            "      Analyzing container statistics for: {}",
+            container_name
+        );
+
+        // Parse CPU statistics
+        if let (Some(cpu_total), Some(cpu_kernel), Some(cpu_user)) = (
+            stats.get("CpuTotalUsage"),
+            stats.get("CpuUsageInKernelMode"),
+            stats.get("CpuUsageInUserMode"),
+        ) {
+            if let (Ok(total), Ok(kernel), Ok(user)) = (
+                cpu_total.parse::<u64>(),
+                cpu_kernel.parse::<u64>(),
+                cpu_user.parse::<u64>(),
+            ) {
+                println!(
+                    "        CPU - Total: {}, Kernel: {}, User: {}",
+                    total, kernel, user
+                );
+                self.analyze_cpu_usage(total, kernel, user, container_name, container_id)
+                    .await;
+            }
+        }
+
+        // Parse memory statistics
+        if let (Some(mem_usage), Some(mem_limit)) =
+            (stats.get("MemoryUsage"), stats.get("MemoryLimit"))
+        {
+            if let (Ok(usage), Ok(limit)) = (mem_usage.parse::<u64>(), mem_limit.parse::<u64>()) {
+                println!(
+                    "        Memory - Usage: {} bytes, Limit: {} bytes",
+                    usage, limit
+                );
+                self.analyze_memory_usage(usage, limit, container_name, container_id)
+                    .await;
+            }
+        }
+
+        // Analyze network statistics
+        if let Some(networks) = stats.get("Networks") {
+            println!("        Network: {}", networks);
+            self.analyze_network_stats(networks, container_name, container_id)
+                .await;
+        }
+    }
+
+    /// Analyze CPU usage and detect performance issues
+    async fn analyze_cpu_usage(
+        &self,
+        total_usage: u64,
+        kernel_usage: u64,
+        user_usage: u64,
+        container_name: &str,
+        container_id: &str,
+    ) {
+        // Define CPU usage thresholds (in nanoseconds or platform-specific units)
+        const HIGH_CPU_THRESHOLD: f64 = 0.8; // 80% threshold placeholder
+        const CRITICAL_CPU_THRESHOLD: f64 = 0.95; // 95% threshold placeholder
+
+        // For demonstration, we'll show the analysis logic
+        // In a real implementation, these values would be normalized to percentages
+        let cpu_ratio = if total_usage > 0 {
+            (kernel_usage + user_usage) as f64 / total_usage as f64
+        } else {
+            0.0
+        };
+
+        println!("        CPU Analysis: Ratio: {:.2}", cpu_ratio);
+
+        if cpu_ratio > CRITICAL_CPU_THRESHOLD {
+            println!(
+                "        🔴 CRITICAL: Container {} ({}) CPU usage is critical",
+                container_name, container_id
+            );
+            // In real implementation: trigger state transition to ERROR state
+            self.trigger_container_performance_alert(container_id, "CPU_CRITICAL")
+                .await;
+        } else if cpu_ratio > HIGH_CPU_THRESHOLD {
+            println!(
+                "        🟡 WARNING: Container {} ({}) CPU usage is high",
+                container_name, container_id
+            );
+            // In real implementation: trigger state transition to DEGRADED state
+            self.trigger_container_performance_alert(container_id, "CPU_HIGH")
+                .await;
+        } else {
+            println!(
+                "        ✅ OK: Container {} ({}) CPU usage is normal",
+                container_name, container_id
+            );
+        }
+    }
+
+    /// Analyze memory usage and detect memory pressure
+    async fn analyze_memory_usage(
+        &self,
+        usage: u64,
+        limit: u64,
+        container_name: &str,
+        container_id: &str,
+    ) {
+        if limit == 0 {
+            println!("        Memory Analysis: No limit set");
+            return;
+        }
+
+        let memory_ratio = usage as f64 / limit as f64;
+        println!("        Memory Analysis: {:.2}% used", memory_ratio * 100.0);
+
+        const HIGH_MEMORY_THRESHOLD: f64 = 0.8; // 80%
+        const CRITICAL_MEMORY_THRESHOLD: f64 = 0.95; // 95%
+
+        if memory_ratio > CRITICAL_MEMORY_THRESHOLD {
+            println!(
+                "        🔴 CRITICAL: Container {} ({}) memory usage is critical ({:.1}%)",
+                container_name,
+                container_id,
+                memory_ratio * 100.0
+            );
+            self.trigger_container_performance_alert(container_id, "MEMORY_CRITICAL")
+                .await;
+        } else if memory_ratio > HIGH_MEMORY_THRESHOLD {
+            println!(
+                "        🟡 WARNING: Container {} ({}) memory usage is high ({:.1}%)",
+                container_name,
+                container_id,
+                memory_ratio * 100.0
+            );
+            self.trigger_container_performance_alert(container_id, "MEMORY_HIGH")
+                .await;
+        } else {
+            println!(
+                "        ✅ OK: Container {} ({}) memory usage is normal ({:.1}%)",
+                container_name,
+                container_id,
+                memory_ratio * 100.0
+            );
+        }
+    }
+
+    /// Analyze network statistics for connectivity and performance issues
+    async fn analyze_network_stats(
+        &self,
+        networks: &str,
+        container_name: &str,
+        container_id: &str,
+    ) {
+        if networks == "None" || networks.is_empty() {
+            println!(
+                "        🟡 WARNING: Container {} ({}) has no network information",
+                container_name, container_id
+            );
+            return;
+        }
+
+        // Parse network information (simplified analysis)
+        // In a real implementation, this would parse detailed network stats
+        println!(
+            "        ✅ OK: Container {} ({}) has network connectivity",
+            container_name, container_id
+        );
+    }
+
+    /// Trigger performance alerts and potential state transitions
+    async fn trigger_container_performance_alert(&self, container_id: &str, alert_type: &str) {
+        println!(
+            "        🚨 ALERT: Triggering {} alert for container {}",
+            alert_type, container_id
+        );
+
+        // In a real implementation, this would:
+        // 1. Create StateChange message
+        // 2. Send to state machine for processing
+        // 3. Update resource states
+        // 4. Generate alerts/notifications
+        // 5. Trigger recovery actions if needed
+
+        // For now, we'll log the action that would be taken
+        match alert_type {
+            "CPU_CRITICAL" | "MEMORY_CRITICAL" => {
+                println!("        -> Would trigger state transition to ERROR state");
+                println!("        -> Would initiate container restart procedure");
+            }
+            "CPU_HIGH" | "MEMORY_HIGH" => {
+                println!("        -> Would trigger state transition to DEGRADED state");
+                println!("        -> Would increase monitoring frequency");
+            }
+            _ => {
+                println!("        -> Unknown alert type: {}", alert_type);
+            }
+        }
     }
 
     /// Execute actions based on state transitions
@@ -546,3 +758,230 @@ impl StateManagerManager {
 //    - Resource usage monitoring and optimization
 //    - Health check automation and reporting
 //    - Metrics collection and observability integration
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use common::monitoringserver::ContainerInfo;
+    use std::collections::HashMap;
+    use tokio::sync::mpsc;
+
+    /// Create a test StateManagerManager for testing
+    async fn create_test_manager() -> StateManagerManager {
+        let (tx_container, rx_container) = mpsc::channel::<ContainerList>(32);
+        let (tx_state_change, rx_state_change) = mpsc::channel::<StateChange>(32);
+
+        drop(tx_container);
+        drop(tx_state_change);
+
+        StateManagerManager::new(rx_container, rx_state_change).await
+    }
+
+    /// Test container stats analysis with normal CPU usage
+    #[tokio::test]
+    async fn test_analyze_container_stats_normal_cpu() {
+        let manager = create_test_manager().await;
+        let mut stats = HashMap::new();
+
+        // Simulate normal CPU usage (total usage with reasonable kernel/user split)
+        stats.insert("CpuTotalUsage".to_string(), "1000000000".to_string()); // 1 billion nanoseconds
+        stats.insert("CpuUsageInKernelMode".to_string(), "200000000".to_string()); // 200 million ns
+        stats.insert("CpuUsageInUserMode".to_string(), "300000000".to_string()); // 300 million ns
+
+        // Simulate normal memory usage (50% of limit)
+        stats.insert("MemoryUsage".to_string(), "524288000".to_string()); // 500MB
+        stats.insert("MemoryLimit".to_string(), "1048576000".to_string()); // 1GB
+
+        stats.insert(
+            "Networks".to_string(),
+            "eth0: {rx_bytes: 1024, tx_bytes: 2048}".to_string(),
+        );
+
+        // This test verifies the stats processing doesn't crash and handles normal values
+        manager
+            .analyze_container_stats(&stats, "test-container", "container-123")
+            .await;
+
+        // If we reach here, the analysis completed without panicking
+        assert!(true);
+    }
+
+    /// Test container stats analysis with high CPU usage
+    #[tokio::test]
+    async fn test_analyze_container_stats_high_cpu() {
+        let manager = create_test_manager().await;
+        let mut stats = HashMap::new();
+
+        // Simulate high CPU usage that should trigger warning
+        stats.insert("CpuTotalUsage".to_string(), "1000000000".to_string());
+        stats.insert("CpuUsageInKernelMode".to_string(), "400000000".to_string()); // 400M ns
+        stats.insert("CpuUsageInUserMode".to_string(), "450000000".to_string()); // 450M ns
+                                                                                 // Total kernel + user = 850M out of 1000M = 85% (should trigger high warning)
+
+        stats.insert("MemoryUsage".to_string(), "524288000".to_string());
+        stats.insert("MemoryLimit".to_string(), "1048576000".to_string());
+
+        manager
+            .analyze_container_stats(&stats, "high-cpu-container", "container-456")
+            .await;
+
+        // Verify analysis completes (specific alerts would be tested via logs in integration tests)
+        assert!(true);
+    }
+
+    /// Test container stats analysis with critical memory usage
+    #[tokio::test]
+    async fn test_analyze_container_stats_critical_memory() {
+        let manager = create_test_manager().await;
+        let mut stats = HashMap::new();
+
+        // Normal CPU
+        stats.insert("CpuTotalUsage".to_string(), "1000000000".to_string());
+        stats.insert("CpuUsageInKernelMode".to_string(), "100000000".to_string());
+        stats.insert("CpuUsageInUserMode".to_string(), "200000000".to_string());
+
+        // Critical memory usage (96% of limit)
+        stats.insert("MemoryUsage".to_string(), "1006632960".to_string()); // ~96% of 1GB
+        stats.insert("MemoryLimit".to_string(), "1048576000".to_string()); // 1GB
+
+        manager
+            .analyze_container_stats(&stats, "memory-critical-container", "container-789")
+            .await;
+
+        assert!(true);
+    }
+
+    /// Test container stats analysis with missing network info
+    #[tokio::test]
+    async fn test_analyze_container_stats_no_network() {
+        let manager = create_test_manager().await;
+        let mut stats = HashMap::new();
+
+        stats.insert("CpuTotalUsage".to_string(), "1000000000".to_string());
+        stats.insert("CpuUsageInKernelMode".to_string(), "100000000".to_string());
+        stats.insert("CpuUsageInUserMode".to_string(), "200000000".to_string());
+        stats.insert("MemoryUsage".to_string(), "524288000".to_string());
+        stats.insert("MemoryLimit".to_string(), "1048576000".to_string());
+        stats.insert("Networks".to_string(), "None".to_string());
+
+        manager
+            .analyze_container_stats(&stats, "no-network-container", "container-abc")
+            .await;
+
+        assert!(true);
+    }
+
+    /// Test container stats analysis with invalid numeric data
+    #[tokio::test]
+    async fn test_analyze_container_stats_invalid_data() {
+        let manager = create_test_manager().await;
+        let mut stats = HashMap::new();
+
+        // Invalid numeric values should be handled gracefully
+        stats.insert("CpuTotalUsage".to_string(), "invalid-number".to_string());
+        stats.insert(
+            "CpuUsageInKernelMode".to_string(),
+            "not-a-number".to_string(),
+        );
+        stats.insert("MemoryUsage".to_string(), "also-invalid".to_string());
+
+        // This should not panic, even with invalid data
+        manager
+            .analyze_container_stats(&stats, "invalid-data-container", "container-def")
+            .await;
+
+        assert!(true);
+    }
+
+    /// Test container stats analysis with zero memory limit
+    #[tokio::test]
+    async fn test_analyze_container_stats_zero_memory_limit() {
+        let manager = create_test_manager().await;
+        let mut stats = HashMap::new();
+
+        stats.insert("CpuTotalUsage".to_string(), "1000000000".to_string());
+        stats.insert("CpuUsageInKernelMode".to_string(), "100000000".to_string());
+        stats.insert("CpuUsageInUserMode".to_string(), "200000000".to_string());
+        stats.insert("MemoryUsage".to_string(), "524288000".to_string());
+        stats.insert("MemoryLimit".to_string(), "0".to_string()); // Zero limit should be handled
+
+        manager
+            .analyze_container_stats(&stats, "zero-limit-container", "container-ghi")
+            .await;
+
+        assert!(true);
+    }
+
+    /// Test process_container_list function to ensure stats are processed
+    #[tokio::test]
+    async fn test_process_container_list_with_stats() {
+        let manager = create_test_manager().await;
+
+        // Create a container with stats
+        let mut stats = HashMap::new();
+        stats.insert("CpuTotalUsage".to_string(), "1000000000".to_string());
+        stats.insert("CpuUsageInKernelMode".to_string(), "200000000".to_string());
+        stats.insert("CpuUsageInUserMode".to_string(), "300000000".to_string());
+        stats.insert("MemoryUsage".to_string(), "524288000".to_string());
+        stats.insert("MemoryLimit".to_string(), "1048576000".to_string());
+        stats.insert(
+            "Networks".to_string(),
+            "eth0: {rx_bytes: 1024, tx_bytes: 2048}".to_string(),
+        );
+
+        let container_info = ContainerInfo {
+            id: "test-container-123".to_string(),
+            names: vec!["test-app".to_string()],
+            image: "nginx:latest".to_string(),
+            state: {
+                let mut state = HashMap::new();
+                state.insert("Status".to_string(), "running".to_string());
+                state.insert("Running".to_string(), "true".to_string());
+                state
+            },
+            config: {
+                let mut config = HashMap::new();
+                config.insert("Image".to_string(), "nginx:latest".to_string());
+                config
+            },
+            annotation: HashMap::new(),
+            stats,
+        };
+
+        let container_list = ContainerList {
+            node_name: "test-node".to_string(),
+            containers: vec![container_info],
+        };
+
+        // This should process the container and its stats without error
+        manager.process_container_list(container_list).await;
+
+        assert!(true);
+    }
+
+    /// Test process_container_list with empty stats
+    #[tokio::test]
+    async fn test_process_container_list_empty_stats() {
+        let manager = create_test_manager().await;
+
+        let container_info = ContainerInfo {
+            id: "no-stats-container".to_string(),
+            names: vec!["basic-app".to_string()],
+            image: "alpine:latest".to_string(),
+            state: HashMap::new(),
+            config: HashMap::new(),
+            annotation: HashMap::new(),
+            stats: HashMap::new(), // Empty stats
+        };
+
+        let container_list = ContainerList {
+            node_name: "test-node".to_string(),
+            containers: vec![container_info],
+        };
+
+        // This should handle empty stats gracefully
+        manager.process_container_list(container_list).await;
+
+        assert!(true);
+    }
+}

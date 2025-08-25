@@ -1,5 +1,5 @@
 [Unit]
-Description=Piccolo server
+Description=Pullpiri agent
 After=network.target
 
 [Install]
@@ -7,7 +7,7 @@ After=network.target
 WantedBy=multi-user.target default.target
 
 [Kube]
-Yaml=/etc/containers/systemd/piccolo/piccolo-server.yaml
+Yaml=/etc/containers/systemd/pullpiri/pullpiri-agent.yaml
 
 [Service]
 Restart=always

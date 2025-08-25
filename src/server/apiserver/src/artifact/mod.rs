@@ -18,7 +18,7 @@ use common::spec::artifact::Volume;
 /// Apply downloaded artifact to etcd
 ///
 /// ### Parametets
-/// * `body: &str` - whole yaml string of piccolo artifact
+/// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Returns
 /// * `Result(String, String)` - scenario and package yaml in downloaded artifact
 /// ### Description
@@ -69,7 +69,7 @@ pub async fn apply(body: &str) -> common::Result<String> {
 /// Delete downloaded artifact to etcd
 ///
 /// ### Parametets
-/// * `body: &str` - whole yaml string of piccolo artifact
+/// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Returns
 /// * `Result(String)` - scenario yaml in downloaded artifact
 /// ### Description

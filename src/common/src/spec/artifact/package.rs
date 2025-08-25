@@ -1,5 +1,6 @@
 use super::Artifact;
 use super::Package;
+use serde::{Deserialize, Serialize};
 
 impl Artifact for Package {
     fn get_name(&self) -> String {
@@ -11,20 +12,28 @@ impl Package {
     pub fn get_models(&self) -> &Vec<ModelInfo> {
         &self.spec.models
     }
+
+    pub fn set_status(&mut self, state: PackageState) {
+        if let Some(status) = &mut self.status {
+            status.state = state;
+        } else {
+            self.status = Some(PackageStatus { state });
+        }
+    }
 }
 
-#[derive(Debug, serde::Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct PackageSpec {
     pattern: Vec<Pattern>,
     models: Vec<ModelInfo>,
 }
 
-#[derive(Debug, serde::Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct Pattern {
     r#type: String,
 }
 
-#[derive(Debug, serde::Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ModelInfo {
     name: String,
     node: String,
@@ -45,7 +54,7 @@ impl ModelInfo {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Resource {
     volume: Option<String>,
     network: Option<String>,
@@ -60,22 +69,20 @@ impl Resource {
     }
 }
 
-#[derive(Debug, serde::Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct PackageStatus {
-    status: Vec<ModelStatus>,
+    state: PackageState,
 }
 
-#[derive(Debug, serde::Deserialize, PartialEq)]
-pub struct ModelStatus {
-    name: String,
-    state: ModelStatusState,
-}
-
-#[derive(Debug, serde::Deserialize, PartialEq)]
-enum ModelStatusState {
-    None,
-    Running,
-    Error,
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum PackageState {
+    None,         // Package not yet initialized
+    Initializing, // Package being initialized
+    Running,      // Package operating normally
+    Degraded,     // Package operating with reduced functionality
+    Paused,       // Package temporarily pause
+    Updating,     // Package being updated
+    Error,        // Package in error state
 }
 
 //Unit Test Cases
@@ -122,16 +129,7 @@ mod tests {
                 ],
             },
             status: Some(PackageStatus {
-                status: vec![
-                    ModelStatus {
-                        name: "model1".to_string(),
-                        state: ModelStatusState::Running,
-                    },
-                    ModelStatus {
-                        name: "model2".to_string(),
-                        state: ModelStatusState::None,
-                    },
-                ],
+                state: PackageState::None,
             }),
         }
     }
@@ -240,17 +238,5 @@ mod tests {
 
         assert_eq!(package.get_name(), "empty-package");
         assert_eq!(package.get_models().len(), 0);
-    }
-
-    #[test]
-    fn test_model_status_state_equality() {
-        let running = ModelStatusState::Running;
-        let none = ModelStatusState::None;
-        let error = ModelStatusState::Error;
-
-        // Test equality
-        assert_eq!(running, ModelStatusState::Running);
-        assert_eq!(none, ModelStatusState::None);
-        assert_eq!(error, ModelStatusState::Error);
     }
 }

@@ -7,13 +7,9 @@
 
 pub mod data;
 
-use common::spec::artifact::Artifact;
-use common::spec::artifact::Model;
-use common::spec::artifact::Network;
-use common::spec::artifact::Node;
-use common::spec::artifact::Package;
-use common::spec::artifact::Scenario;
-use common::spec::artifact::Volume;
+use common::spec::artifact::{model::ModelState, package::PackageState, scenario::ScenarioState};
+use common::spec::artifact::{Artifact, Model, Network, Node, Package, Scenario, Volume};
+use std::collections::HashMap;
 
 /// Apply downloaded artifact to etcd
 ///
@@ -25,44 +21,75 @@ use common::spec::artifact::Volume;
 /// Write artifact in etcd
 pub async fn apply(body: &str) -> common::Result<String> {
     let docs: Vec<&str> = body.split("---").collect();
-    let mut scenario_str = String::new();
-    let mut package_str = String::new();
+    let mut results = HashMap::new();
 
     for doc in docs {
-        let value: serde_yaml::Value = serde_yaml::from_str(doc)?;
-        let artifact_str = serde_yaml::to_string(&value)?;
-
-        if let Some(kind) = value.clone().get("kind").and_then(|k| k.as_str()) {
-            let name: String = match kind {
-                "Scenario" => serde_yaml::from_value::<Scenario>(value)?.get_name(),
-                "Package" => serde_yaml::from_value::<Package>(value)?.get_name(),
-                "Volume" => serde_yaml::from_value::<Volume>(value)?.get_name(),
-                "Network" => serde_yaml::from_value::<Network>(value)?.get_name(),
-                "Node" => serde_yaml::from_value::<Node>(value)?.get_name(),
-                "Model" => serde_yaml::from_value::<Model>(value)?.get_name(),
-                _ => {
-                    println!("unknown artifact");
-                    continue;
-                }
-            };
-            let key = format!("{}/{}", kind, name);
-            data::write_to_etcd(&key, &artifact_str).await?;
-
-            match kind {
-                "Scenario" => scenario_str = artifact_str,
-                "Package" => package_str = artifact_str,
-                _ => continue,
-            };
+        if let Err(e) = process_document(doc, &mut results).await {
+            println!("Error processing document: {}", e);
+            continue;
         }
     }
+
+    // Validate results
+    let scenario_str = results.get("Scenario").cloned().unwrap_or_default();
+    let package_str = results.get("Package").cloned().unwrap_or_default();
 
     if scenario_str.is_empty() {
         Err("There is not any scenario in yaml string".into())
     } else if package_str.is_empty() {
-        //Missing Check is Added for Package
         Err("There is not any package in yaml string".into())
     } else {
-        Ok(scenario_str) //, network_str))
+        Ok(scenario_str)
+    }
+}
+
+async fn process_document(doc: &str, results: &mut HashMap<String, String>) -> common::Result<()> {
+    let value: serde_yaml::Value = serde_yaml::from_str(doc)?;
+    let artifact_str = serde_yaml::to_string(&value)?;
+
+    if let Some(kind) = value.get("kind").and_then(|k| k.as_str()) {
+        let name = get_name_by_kind(kind, value.clone())?;
+        let updated_artifact = update_artifact_status(kind, artifact_str)?;
+
+        let key = format!("{}/{}", kind, name);
+        data::write_to_etcd(&key, &updated_artifact).await?;
+
+        results.insert(kind.to_string(), updated_artifact);
+    }
+
+    Ok(())
+}
+
+fn get_name_by_kind(kind: &str, value: serde_yaml::Value) -> common::Result<String> {
+    match kind {
+        "Scenario" => Ok(serde_yaml::from_value::<Scenario>(value)?.get_name()),
+        "Package" => Ok(serde_yaml::from_value::<Package>(value)?.get_name()),
+        "Volume" => Ok(serde_yaml::from_value::<Volume>(value)?.get_name()),
+        "Network" => Ok(serde_yaml::from_value::<Network>(value)?.get_name()),
+        "Node" => Ok(serde_yaml::from_value::<Node>(value)?.get_name()),
+        "Model" => Ok(serde_yaml::from_value::<Model>(value)?.get_name()),
+        _ => Err("Unknown artifact kind".into()),
+    }
+}
+
+fn update_artifact_status(kind: &str, artifact_str: String) -> common::Result<String> {
+    match kind {
+        "Scenario" => {
+            let mut scenario: Scenario = serde_yaml::from_str(&artifact_str)?;
+            scenario.set_status(ScenarioState::Idle);
+            Ok(serde_yaml::to_string(&scenario)?)
+        }
+        "Package" => {
+            let mut package: Package = serde_yaml::from_str(&artifact_str)?;
+            package.set_status(PackageState::Initializing);
+            Ok(serde_yaml::to_string(&package)?)
+        }
+        "Model" => {
+            let mut model: Model = serde_yaml::from_str(&artifact_str)?;
+            model.set_status(ModelState::Pending);
+            Ok(serde_yaml::to_string(&model)?)
+        }
+        _ => Ok(artifact_str),
     }
 }
 

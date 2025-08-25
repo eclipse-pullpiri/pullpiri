@@ -98,7 +98,8 @@ impl PodSpec {
     /// If no containers are present, returns `None`.
     pub fn get_image(&self) -> Option<&str> {
         self.containers
-            .get(0)
+            .first() // Get the first container
+            //.get(0)
             .map(|container| container.image.as_str())
     }
 

@@ -1,8 +1,8 @@
-mod model;
+pub mod model;
 mod network;
 mod node;
-mod package;
-mod scenario;
+pub mod package;
+pub mod scenario;
 mod volume;
 
 use super::MetaData;
@@ -21,7 +21,7 @@ pub struct Scenario {
     status: Option<scenario::ScenarioStatus>,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Package {
     apiVersion: String,
     kind: String,
@@ -60,6 +60,7 @@ pub struct Model {
     kind: String,
     metadata: MetaData,
     spec: model::ModelSpec,
+    status: Option<model::ModelStatus>,
 }
 
 //Unit Test Cases

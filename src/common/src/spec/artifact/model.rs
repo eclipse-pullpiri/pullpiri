@@ -1,5 +1,6 @@
 use super::Artifact;
 use super::Model;
+use serde::{Deserialize, Serialize};
 
 pub type ModelSpec = crate::spec::k8s::pod::PodSpec;
 
@@ -17,6 +18,31 @@ impl Model {
     pub fn get_podspec(&self) -> ModelSpec {
         self.spec.clone()
     }
+
+    pub fn set_status(&mut self, state: ModelState) {
+        if let Some(status) = &mut self.status {
+            status.state = state;
+        } else {
+            self.status = Some(ModelStatus { state });
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ModelStatus {
+    state: ModelState,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ModelState {
+    None,              // Model has not been assigned a state
+    Pending,           // Model waiting to be assigned to a node
+    Running,           // Model running normally
+    Succeeded,         // All model containers terminated successfully
+    Failed,            // One or more containers failed
+    Unknown,           // Model state cannot be determined
+    ContainerCreating, // Containers being created
+    CrashLoopBackOff,  // Applying backoff due to repeated crashes
 }
 
 //Unit Test Cases

@@ -26,7 +26,7 @@
 //! let result = state_machine.process_state_change(state_change);
 //! ```
 
-use common::statemanager::{ResourceType, StateChange, ErrorCode};
+use common::statemanager::{ErrorCode, ResourceType, StateChange};
 use std::collections::HashMap;
 use tokio::time::{Duration, Instant};
 
@@ -136,19 +136,19 @@ pub struct TransitionResult {
 /// for concurrent access across multiple threads.
 pub struct StateMachine {
     /// State transition tables indexed by resource type
-    /// 
+    ///
     /// Each resource type has its own set of valid transitions, allowing
     /// for type-specific state management rules and behaviors.
     transition_tables: HashMap<ResourceType, Vec<StateTransition>>,
-    
+
     /// Current state tracking for all managed resources
-    /// 
+    ///
     /// Resources are keyed by a unique identifier (typically resource name)
     /// and contain complete state information including metadata and health status.
     resource_states: HashMap<String, ResourceState>,
-    
+
     /// Backoff timers for CrashLoopBackOff and retry management
-    /// 
+    ///
     /// Tracks when resources that have failed transitions can be retried,
     /// implementing exponential backoff to prevent resource thrashing.
     backoff_timers: HashMap<String, Instant>,
@@ -197,7 +197,9 @@ impl StateMachine {
     /// - "Active" -> "Inactive" on "deactivate" event
     /// - Any state -> "Failed" on "error" event
     fn initialize_scenario_transitions(&mut self) {
-        todo!()
+        // Minimal implementation for testing - would be fully implemented in production
+        self.transition_tables
+            .insert(ResourceType::Scenario, Vec::new());
     }
 
     /// Initialize the state transition table for Package resources
@@ -212,7 +214,9 @@ impl StateMachine {
     /// Package transitions typically involve more complex workflows due to
     /// dependency management and rollback requirements.
     fn initialize_package_transitions(&mut self) {
-        todo!()
+        // Minimal implementation for testing - would be fully implemented in production
+        self.transition_tables
+            .insert(ResourceType::Package, Vec::new());
     }
 
     /// Initialize the state transition table for Model resources
@@ -227,7 +231,9 @@ impl StateMachine {
     /// Model transitions may include resource-intensive operations and
     /// should account for memory and compute constraints.
     fn initialize_model_transitions(&mut self) {
-        todo!()
+        // Minimal implementation for testing - would be fully implemented in production
+        self.transition_tables
+            .insert(ResourceType::Model, Vec::new());
     }
 
     /// Process a state change request and return the comprehensive result
@@ -381,7 +387,13 @@ impl StateMachine {
     /// - Updates last transition timestamp
     /// - Clears any active backoff timers on successful transition
     /// - Updates health status if applicable
-    fn update_resource_state(&mut self, resource_key: &str, state_change: &StateChange, new_state: &str, resource_type: ResourceType) {
+    fn update_resource_state(
+        &mut self,
+        resource_key: &str,
+        state_change: &StateChange,
+        new_state: &str,
+        resource_type: ResourceType,
+    ) {
         todo!()
     }
 
@@ -403,7 +415,11 @@ impl StateMachine {
     /// - Status queries from external systems
     /// - Health check implementations
     /// - Audit and monitoring purposes
-    pub fn get_resource_state(&self, resource_name: &str, resource_type: ResourceType) -> Option<&ResourceState> {
+    pub fn get_resource_state(
+        &self,
+        resource_name: &str,
+        resource_type: ResourceType,
+    ) -> Option<&ResourceState> {
         todo!()
     }
 
@@ -426,7 +442,11 @@ impl StateMachine {
     /// # Usage Examples
     /// - Find all failed resources: `list_resources_by_state(None, "Failed")`
     /// - Find active scenarios: `list_resources_by_state(Some(ResourceType::Scenario), "Active")`
-    pub fn list_resources_by_state(&self, resource_type: Option<ResourceType>, state: &str) -> Vec<&ResourceState> {
+    pub fn list_resources_by_state(
+        &self,
+        resource_type: Option<ResourceType>,
+        state: &str,
+    ) -> Vec<&ResourceState> {
         todo!()
     }
 

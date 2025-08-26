@@ -13,7 +13,8 @@
 //! state transitions, monitoring, reconciliation, and recovery for all resource types
 //! (Scenario, Package, Model, Volume, Network, Node).
 
-use crate::state_machine::{ActionCommand, StateMachine, TransitionResult};
+use crate::state_machine::StateMachine;
+use crate::types::{ActionCommand, TransitionResult};
 use common::monitoringserver::ContainerList;
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,

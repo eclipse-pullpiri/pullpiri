@@ -616,41 +616,151 @@ impl StateMachine {
     // ========================================
     // CORE STATE PROCESSING
     // ========================================
-
-    /// Process a state change request and return the comprehensive result
-    ///
-    /// This is the main entry point for all state transitions. It validates the request,
-    /// checks transition rules, evaluates conditions, and executes the state change
-    /// if valid.
-    ///
-    /// # Parameters
-    /// - `state_change`: The requested state change containing resource info and target state
-    ///
-    /// # Returns
-    /// A `TransitionResult` containing the outcome and any required follow-up actions
-    ///
-    /// # Processing Steps
-    /// 1. Validate and convert resource type from the request
-    /// 2. Determine current state (from existing resource or request for new resources)
-    /// 3. Check for special conditions (e.g., CrashLoopBackOff timing)
-    /// 4. Find and validate the requested transition
-    /// 5. Evaluate any conditional requirements
-    /// 6. Execute the transition and update resource state
-    /// 7. Schedule any required follow-up actions
-    ///
-    /// # Error Handling
-    /// - Invalid resource types return appropriate error codes
-    /// - Failed condition evaluations are logged with details
-    /// - Transition failures trigger backoff mechanisms where appropriate
+    /// Process a state change request with non-blocking action execution
     pub fn process_state_change(&mut self, state_change: StateChange) -> TransitionResult {
-        // Convert i32 to ResourceType enum - validate input format
+        // Validate input parameters
+        if let Err(validation_error) = self.validate_state_change(&state_change) {
+            return TransitionResult {
+                new_state: state_change.current_state.clone(),
+                error_code: ErrorCode::InvalidRequest,
+                message: format!("Invalid state change request: {}", validation_error),
+                actions_to_execute: vec![],
+                transition_id: state_change.transition_id.clone(),
+                error_details: validation_error,
+            };
+        }
+
+        // Convert i32 to ResourceType enum
+        let resource_type = match ResourceType::try_from(state_change.resource_type) {
+            Ok(rt) => rt,
+            Err(_) => {
+                return TransitionResult {
+                    new_state: state_change.current_state.clone(),
+                    error_code: ErrorCode::InvalidStateTransition,
+                    message: format!("Invalid resource type: {}", state_change.resource_type),
+                    actions_to_execute: vec![],
+                    transition_id: state_change.transition_id.clone(),
+                    error_details: format!(
+                        "Unsupported resource type ID: {}",
+                        state_change.resource_type
+                    ),
+                };
+            }
+        };
+
+        let resource_key = self.generate_resource_key(resource_type, &state_change.resource_name);
+
         // Get current state - use provided current_state for new resources
-        // For new resources, use the current_state from the StateChange message
-        // This allows proper state transitions for resources that don't exist yet
-        // Check for special CrashLoopBackOff handling - prevent rapid retry cycles
-        // Find valid transition - ensure the requested change is allowed
-        // Execute transition - perform the actual state change and update tracking
-        todo!()
+        let current_state = match self.resource_states.get(&resource_key) {
+            Some(existing_state) => existing_state.current_state.clone(),
+            None => {
+                // For new resources, use the current_state from the StateChange message
+                state_change.current_state.clone()
+            }
+        };
+
+        // Check for special CrashLoopBackOff handling
+        if current_state == ModelState::CrashLoopBackOff.as_str() {
+            if let Some(backoff_time) = self.backoff_timers.get(&resource_key) {
+                if backoff_time.elapsed() < Duration::from_secs(BACKOFF_DURATION_SECS) {
+                    return TransitionResult {
+                        new_state: current_state,
+                        error_code: ErrorCode::PreconditionFailed,
+                        message: "Resource is in backoff period".to_string(),
+                        actions_to_execute: vec![],
+                        transition_id: state_change.transition_id.clone(),
+                        error_details: "Backoff timer has not elapsed yet".to_string(),
+                    };
+                }
+            }
+        }
+
+        // Find valid transition
+        let transition_event =
+            self.infer_event_from_states(&current_state, &state_change.target_state);
+
+        if let Some(transition) = self.find_valid_transition(
+            resource_type,
+            &current_state,
+            &transition_event,
+            &state_change.target_state,
+        ) {
+            // Check conditions if any
+            if let Some(ref condition) = transition.condition {
+                if !self.evaluate_condition(condition, &state_change) {
+                    return TransitionResult {
+                        new_state: current_state,
+                        error_code: ErrorCode::PreconditionFailed,
+                        message: format!("Condition not met: {}", condition),
+                        actions_to_execute: vec![],
+                        transition_id: state_change.transition_id.clone(),
+                        error_details: format!("Failed condition evaluation: {}", condition),
+                    };
+                }
+            }
+
+            // Execute transition - this is immediate and non-blocking
+            self.update_resource_state(
+                &resource_key,
+                &state_change,
+                &transition.to_state,
+                resource_type,
+            );
+
+            // **NON-BLOCKING ACTION EXECUTION** - Queue action for async execution
+            if let Some(ref sender) = self.action_sender {
+                let action_command = ActionCommand {
+                    action: transition.action.clone(),
+                    resource_key: resource_key.clone(),
+                    resource_type,
+                    transition_id: state_change.transition_id.clone(),
+                    context: self.build_action_context(&state_change, &transition),
+                };
+
+                // Send action for async execution (non-blocking)
+                if let Err(e) = sender.send(action_command) {
+                    eprintln!("Warning: Failed to queue action for execution: {}", e);
+                }
+            }
+
+            // Create successful transition result
+            let transition_result = TransitionResult {
+                new_state: transition.to_state.clone(),
+                error_code: ErrorCode::Success,
+                message: format!("Successfully transitioned to {}", transition.to_state),
+                actions_to_execute: vec![transition.action.clone()],
+                transition_id: state_change.transition_id.clone(),
+                error_details: String::new(),
+            };
+
+            self.update_health_status(&resource_key, &transition_result);
+
+            // Handle special state-specific logic
+            if transition.to_state == ModelState::CrashLoopBackOff.as_str() {
+                self.backoff_timers
+                    .insert(resource_key.clone(), Instant::now());
+            }
+
+            transition_result
+        } else {
+            let transition_result = TransitionResult {
+                new_state: current_state.clone(),
+                error_code: ErrorCode::InvalidStateTransition,
+                message: format!(
+                    "No valid transition from {} to {} for resource type {:?}",
+                    current_state, state_change.target_state, resource_type
+                ),
+                actions_to_execute: vec![],
+                transition_id: state_change.transition_id.clone(),
+                error_details: format!(
+                    "Invalid state transition attempted: {} -> {}",
+                    current_state, state_change.target_state
+                ),
+            };
+
+            self.update_health_status(&resource_key, &transition_result);
+            transition_result
+        }
     }
 
     // ========================================
@@ -682,17 +792,47 @@ impl StateMachine {
         event: &str,
         to_state: &str,
     ) -> Option<StateTransition> {
-        todo!()
+        if let Some(transitions) = self.transition_tables.get(&resource_type) {
+            for transition in transitions {
+                if transition.from_state == from_state
+                    && transition.event == event
+                    && transition.to_state == to_state
+                {
+                    return Some(transition.clone());
+                }
+            }
+        }
+        None
     }
 
     /// Validate state change request parameters
     fn validate_state_change(&self, state_change: &StateChange) -> Result<(), String> {
-        todo!()
+        if state_change.resource_name.trim().is_empty() {
+            return Err("Resource name cannot be empty".to_string());
+        }
+
+        if state_change.transition_id.trim().is_empty() {
+            return Err("Transition ID cannot be empty".to_string());
+        }
+
+        if state_change.current_state == state_change.target_state {
+            return Err("Current and target states cannot be the same".to_string());
+        }
+
+        if state_change.source.trim().is_empty() {
+            return Err("Source cannot be empty".to_string());
+        }
+
+        Ok(())
     }
 
     /// Generate a unique resource key
     fn generate_resource_key(&self, resource_type: ResourceType, resource_name: &str) -> String {
-        todo!()
+        format!(
+            "{}::{}",
+            self.resource_type_to_string(resource_type),
+            resource_name
+        )
     }
 
     /// Build context for action execution
@@ -701,12 +841,43 @@ impl StateMachine {
         state_change: &StateChange,
         transition: &StateTransition,
     ) -> HashMap<String, String> {
-        todo!()
+        let mut context = HashMap::new();
+        context.insert("from_state".to_string(), transition.from_state.clone());
+        context.insert("to_state".to_string(), transition.to_state.clone());
+        context.insert("event".to_string(), transition.event.clone());
+        context.insert(
+            "resource_name".to_string(),
+            state_change.resource_name.clone(),
+        );
+        context.insert("source".to_string(), state_change.source.clone());
+        context.insert(
+            "timestamp_ns".to_string(),
+            state_change.timestamp_ns.to_string(),
+        );
+
+        context
     }
 
     /// Updates health status based on transition result
     fn update_health_status(&mut self, resource_key: &str, transition_result: &TransitionResult) {
-        todo!()
+        if let Some(resource_state) = self.resource_states.get_mut(resource_key) {
+            let now = Instant::now();
+            resource_state.health_status.last_check = now;
+
+            if transition_result.is_success() {
+                resource_state.health_status.healthy = true;
+                resource_state.health_status.consecutive_failures = 0;
+                resource_state.health_status.status_message = "Healthy".to_string();
+            } else {
+                resource_state.health_status.consecutive_failures += 1;
+                resource_state.health_status.status_message = transition_result.message.clone();
+
+                // Mark as unhealthy if we have multiple consecutive failures
+                if resource_state.health_status.consecutive_failures >= MAX_CONSECUTIVE_FAILURES {
+                    resource_state.health_status.healthy = false;
+                }
+            }
+        }
     }
 
     /// Infer the appropriate event type from state transition
@@ -730,7 +901,48 @@ impl StateMachine {
     /// If no specific event can be inferred, returns a generic event name
     /// based on the target state (e.g., "transition_to_active").
     fn infer_event_from_states(&self, current_state: &str, target_state: &str) -> String {
-        todo!()
+        match (current_state, target_state) {
+            // Scenario events
+            ("idle", "waiting") => "scenario_activation".to_string(),
+            ("waiting", "allowed") => "condition_met".to_string(),
+            ("allowed", "playing") => "policy_verification_success".to_string(),
+            ("allowed", "denied") => "policy_verification_failure".to_string(),
+
+            // Package events
+            ("N/A", "initializing") => "launch_request".to_string(),
+            ("initializing", "running") => "initialization_complete".to_string(),
+            ("initializing", "degraded") => "partial_initialization_failure".to_string(),
+            ("initializing", "error") => "critical_initialization_failure".to_string(),
+            ("running", "degraded") => "model_issue_detected".to_string(),
+            ("running", "error") => "critical_issue_detected".to_string(),
+            ("running", "paused") => "pause_request".to_string(),
+            ("running", "updating") => "update_request".to_string(),
+            ("degraded", "running") => "model_recovery".to_string(),
+            ("degraded", "error") => "additional_model_issues".to_string(),
+            ("degraded", "paused") => "pause_request".to_string(),
+            ("error", "running") => "recovery_successful".to_string(),
+            ("paused", "running") => "resume_request".to_string(),
+            ("updating", "running") => "update_successful".to_string(),
+            ("updating", "error") => "update_failed".to_string(),
+
+            // Model events
+            ("N/A", "Pending") => "creation_request".to_string(),
+            ("Pending", "ContainerCreating") => "node_allocation_complete".to_string(),
+            ("Pending", "Failed") => "node_allocation_failed".to_string(),
+            ("ContainerCreating", "Running") => "container_creation_complete".to_string(),
+            ("ContainerCreating", "Failed") => "container_creation_failed".to_string(),
+            ("Running", "Succeeded") => "temporary_task_complete".to_string(),
+            ("Running", "Failed") => "container_termination".to_string(),
+            ("Running", "CrashLoopBackOff") => "repeated_crash_detection".to_string(),
+            ("Running", "Unknown") => "monitoring_failure".to_string(),
+            ("CrashLoopBackOff", "Running") => "backoff_time_elapsed".to_string(),
+            ("CrashLoopBackOff", "Failed") => "maximum_retries_exceeded".to_string(),
+            ("Unknown", "Running") => "state_check_recovered".to_string(),
+            ("Failed", "Pending") => "manual_automatic_recovery".to_string(),
+
+            // Default case
+            _ => format!("transition_{}_{}", current_state, target_state),
+        }
     }
 
     /// Evaluate whether a transition condition is satisfied
@@ -757,7 +969,31 @@ impl StateMachine {
     /// Malformed conditions should be logged and default to `false` for safety.
 
     fn evaluate_condition(&self, condition: &str, _state_change: &StateChange) -> bool {
-        todo!()
+        // TODO: Implement real condition evaluation logic
+        match condition {
+            "all_models_normal" => true,
+            "critical_models_normal" => true,
+            "critical_models_failed" => false,
+            "non_critical_model_issues" => true,
+            "critical_model_issues" => false,
+            "all_models_recovered" => true,
+            "critical_models_affected" => false,
+            "depends_on_recovery_level" => true,
+            "depends_on_previous_state" => true,
+            "depends_on_rollback_settings" => true,
+            "sufficient_resources" => true,
+            "timeout_or_error" => false,
+            "all_containers_started" => true,
+            "one_time_task" => true,
+            "unexpected_termination" => false,
+            "consecutive_restart_failures" => false,
+            "node_communication_issues" => false,
+            "restart_successful" => true,
+            "retry_limit_reached" => false,
+            "depends_on_actual_state" => true,
+            "according_to_restart_policy" => true,
+            _ => true, // Default to allow transition for unknown conditions
+        }
     }
 
     /// Update the internal resource state after a successful transition

@@ -15,7 +15,9 @@
 
 use crate::state_machine::{ActionCommand, StateMachine, TransitionResult};
 use common::monitoringserver::ContainerList;
-use common::statemanager::{ErrorCode, ResourceType, StateChange};
+use common::statemanager::{
+    ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
+};
 use common::Result;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -306,7 +308,20 @@ impl StateManagerManager {
             // SUCCESS PATH: Log positive outcome and queue actions
             // ========================================
             println!("  ✓ State transition completed successfully");
-            println!("    Final State: {}", result.new_state);
+            // Convert new_state to string representation based on resource type only for logs
+            let new_state_str = match resource_type {
+                ResourceType::Scenario => ScenarioState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                ResourceType::Package => PackageState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                ResourceType::Model => ModelState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                _ => "UNKNOWN",
+            };
+            println!("    Final State: {}", new_state_str);
             println!("    Success Message: {}", result.message);
             println!("    Transition ID: {}", result.transition_id);
 
@@ -328,10 +343,23 @@ impl StateManagerManager {
             // FAILURE PATH: Log error details and initiate recovery
             // ========================================
             println!("  ✗ State transition failed");
+            // Convert new_state to string representation based on resource type only for logs
+            let new_state_str = match resource_type {
+                ResourceType::Scenario => ScenarioState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                ResourceType::Package => PackageState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                ResourceType::Model => ModelState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                _ => "UNKNOWN",
+            };
             println!("    Error Code: {:?}", result.error_code);
             println!("    Error Message: {}", result.message);
             println!("    Error Details: {}", result.error_details);
-            println!("    Current State: {} (unchanged)", result.new_state);
+            println!("    Current State: {} (unchanged)", new_state_str);
             println!("    Failed Transition ID: {}", result.transition_id);
 
             // Delegate to specialized failure handling logic

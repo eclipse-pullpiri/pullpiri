@@ -10,6 +10,7 @@
 pub mod grpc;
 pub mod manager;
 pub mod state_machine;
+pub mod types;
 
 // Re-export main types for easier access
 pub use manager::StateManagerManager;

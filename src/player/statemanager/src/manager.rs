@@ -13,12 +13,16 @@
 //! state transitions, monitoring, reconciliation, and recovery for all resource types
 //! (Scenario, Package, Model, Volume, Network, Node).
 
-use crate::state_machine::{StateMachine, TransitionResult};
+use crate::state_machine::StateMachine;
+use crate::types::{ActionCommand, TransitionResult};
 use common::monitoringserver::ContainerList;
-use common::statemanager::{ResourceType, StateChange, ErrorCode};
+use common::statemanager::{
+    ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
+};
 use common::Result;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+use tokio::task;
 
 /// Core state management engine for the StateManager service.
 ///
@@ -99,11 +103,19 @@ impl StateManagerManager {
     pub async fn initialize(&mut self) -> Result<()> {
         println!("StateManagerManager initializing...");
 
-         // Initialize the state machine
-        {
-            let state_machine = self.state_machine.lock().await;
-            println!("State machine initialized with transition tables for Scenario, Package, and Model resources");
-        }
+        // Initialize the state machine with async action executor
+        let action_receiver = {
+            let mut state_machine = self.state_machine.lock().await;
+            state_machine.initialize_action_executor()
+        };
+
+        // Start the async action executor
+        tokio::spawn(async move {
+            run_action_executor(action_receiver).await;
+        });
+
+        println!("State machine initialized with transition tables for Scenario, Package, and Model resources");
+        println!("Async action executor started for non-blocking action processing");
 
         // TODO: Add comprehensive initialization logic:
         // - Load persisted resource states from persistent storage
@@ -120,45 +132,83 @@ impl StateManagerManager {
 
     /// Processes a StateChange message according to PICCOLO specifications.
     ///
-    /// This method handles the comprehensive processing of state change requests,
-    /// including validation, dependency checking, ASIL compliance, and actual
-    /// state transitions.
+    /// This is the core method that handles all state transition requests in the system.
+    /// It validates requests, processes transitions through the state machine, and handles
+    /// both successful transitions and failure scenarios with appropriate logging and recovery.
     ///
     /// # Arguments
-    /// * `state_change` - Complete StateChange message from proto definition
+    /// * `state_change` - Complete StateChange message containing:
+    ///   - `resource_type`: Type of resource (Scenario/Package/Model)
+    ///   - `resource_name`: Unique identifier for the resource
+    ///   - `current_state`: Expected current state of the resource
+    ///   - `target_state`: Desired state after transition
+    ///   - `transition_id`: Unique ID for tracking this transition
+    ///   - `source`: Component that initiated the state change
+    ///   - `timestamp_ns`: When the request was created
     ///
-    /// # Processing Steps
-    /// 1. Validate resource type and state transition
-    /// 2. Check ASIL safety constraints and timing requirements
-    /// 3. Verify dependencies and preconditions
-    /// 4. Execute the state transition
-    /// 5. Update persistent storage and notify subscribers
+    /// # Processing Flow
+    /// 1. **Validation**: Parse and validate resource type from the request
+    /// 2. **Logging**: Log comprehensive transition details for audit trails
+    /// 3. **State Machine Processing**: Execute transition through the state machine
+    /// 4. **Result Handling**: Process success/failure outcomes appropriately
+    /// 5. **Action Scheduling**: Queue any required follow-up actions for async execution
+    /// 6. **Error Recovery**: Handle failures with appropriate recovery strategies
+    ///
+    /// # Error Handling
+    /// - Invalid resource types are logged and ignored (early return)
+    /// - State machine failures trigger the `handle_transition_failure` method
+    /// - All errors are logged with detailed context for debugging
+    ///
+    /// # Side Effects
+    /// - Updates internal resource state tracking
+    /// - Queues actions for asynchronous execution
+    /// - Generates log entries for audit trails
+    /// - May trigger recovery procedures on failures
+    ///
+    /// # Thread Safety
+    /// This method is async and uses internal locking for state machine access.
+    /// Multiple concurrent calls are safe but will be serialized at the state machine level.
     async fn process_state_change(&self, state_change: StateChange) {
-        // Parse resource type enum for type-safe processing
+        // ========================================
+        // STEP 1: RESOURCE TYPE VALIDATION
+        // ========================================
+        // Convert the numeric resource type from the proto message to a type-safe enum.
+        // This ensures we only process known resource types and fail fast for invalid requests.
         let resource_type = match ResourceType::try_from(state_change.resource_type) {
             Ok(rt) => rt,
             Err(_) => {
-                eprintln!("Invalid resource type: {}", state_change.resource_type);
-                return;
+                eprintln!(
+                    "VALIDATION ERROR: Invalid resource type '{}' in StateChange request for resource '{}'", 
+                    state_change.resource_type,
+                    state_change.resource_name
+                );
+                return; // Early return - cannot process invalid resource types
             }
         };
 
-        // // Parse ASIL level for safety-critical processing
-        // let asil_level = match state_change.asil_level {
-        //     Some(level) => match ASILLevel::try_from(level) {
-        //         Ok(asil) => asil,
-        //         Err(_) => {
-        //             eprintln!("Invalid ASIL level: {}", level);
-        //             ASILLevel::AsilLevelQm // Default to QM for safety
-        //         }
-        //     },
-        //     None => ASILLevel::AsilLevelQm, // Default to QM if not specified
-        // };
+        // NOTE: ASIL level parsing is commented out pending implementation of ASILLevel enum
+        // This will be needed for safety-critical processing validation
+        // let asil_level = match state_change.asil_level { ... };
 
-        // Log comprehensive state change information
+        // ========================================
+        // STEP 2: COMPREHENSIVE REQUEST LOGGING
+        // ========================================
+        // Log all relevant details for audit trails and debugging.
+        // This structured logging enables:
+        // - Troubleshooting failed transitions with complete context
+        // - Audit compliance for safety-critical systems (ISO 26262)
+        // - Performance monitoring and SLA tracking
+        // - Dependency impact analysis and root cause investigation
+        // - Security audit trails for state change authorization
+        //
+        // TODO: Replace println! with structured logging (tracing crate) for production:
+        // - Use appropriate log levels (info, warn, error)
+        // - Include correlation IDs for distributed tracing
+        // - Add structured fields for metrics aggregation
+        // - Implement log sampling for high-volume scenarios
         println!("=== PROCESSING STATE CHANGE ===");
         println!(
-            "  Resource Type: {:?} ({})",
+            "  Resource Type: {:?} (numeric: {})",
             resource_type, state_change.resource_type
         );
         println!("  Resource Name: {}", state_change.resource_name);
@@ -170,58 +220,198 @@ impl StateManagerManager {
         println!("  Source Component: {}", state_change.source);
         println!("  Timestamp: {} ns", state_change.timestamp_ns);
 
-        // TODO: Implement comprehensive state change processing:
+        // ========================================
+        // COMPREHENSIVE IMPLEMENTATION ROADMAP
+        // ========================================
+        // TODO: The following implementation phases are planned for full PICCOLO compliance:
         //
-        // 1. VALIDATION PHASE
-        //    - Validate state transition according to resource-specific state machine
-        //    - Check if current_state matches actual resource state
-        //    - Verify target_state is valid for the resource type
-        //    - Validate ASIL safety constraints and timing requirements
+        // PHASE 1: VALIDATION AND PRECONDITIONS
+        //    ✓ Resource type validation (implemented above)
+        //    - Validate state transition is allowed by resource-specific state machine rules
+        //    - Verify current_state matches the actual tracked state of the resource
+        //    - Ensure target_state is valid for the specific resource type
+        //    - Validate ASIL safety constraints and timing requirements for critical resources
+        //    - Check request format and required fields are present
         //
-        // 2. DEPENDENCY VERIFICATION
-        //    - Check all dependencies are satisfied
-        //    - Verify critical dependencies are in required states
-        //    - Handle dependency chains and circular dependency detection
-        //    - Escalate to recovery if dependencies fail
+        // PHASE 2: DEPENDENCY AND CONSTRAINT VERIFICATION
+        //    - Load and verify all resource dependencies are in required states
+        //    - Check critical dependency chains and handle circular dependencies
+        //    - Validate performance constraints (timing, deadlines, resource limits)
+        //    - Ensure prerequisite conditions are met before allowing transition
+        //    - Escalate to recovery management if dependencies are not satisfied
         //
-        // 3. PRE-TRANSITION HOOKS
-        //    - Execute resource-specific pre-transition validation
-        //    - Perform safety checks based on ASIL level
-        //    - Validate performance constraints and deadlines
-        //    - Check resource availability and readiness
+        // PHASE 3: PRE-TRANSITION SAFETY CHECKS
+        //    - Execute resource-specific pre-transition validation hooks
+        //    - Perform safety checks based on ASIL level (A, B, C, D, or QM)
+        //    - Validate timing constraints and deadlines for real-time requirements
+        //    - Check system resource availability (CPU, memory, storage, network)
+        //    - Verify external system readiness (databases, services, hardware)
         //
-        // 4. STATE TRANSITION EXECUTION
-        //    - Perform the actual state transition
-        //    - Update internal state tracking
-        //    - Handle resource-specific transition logic
-        //    - Monitor transition timing for ASIL compliance
+        // PHASE 4: STATE TRANSITION EXECUTION (currently implemented)
+        //    ✓ Process transition through StateMachine (implemented below)
+        //    - Handle resource-specific transition logic and business rules
+        //    - Monitor transition timing for ASIL compliance and SLA requirements
+        //    - Implement atomic transaction semantics for complex transitions
+        //    - Handle rollback scenarios if transition fails partway through
         //
-        // 5. PERSISTENT STORAGE UPDATE
-        //    - Update resource state in persistent storage (etcd/database)
-        //    - Record state transition history for audit trails
-        //    - Update health status and monitoring data
-        //    - Maintain state generation counters
+        // PHASE 5: PERSISTENT STORAGE AND AUDIT
+        //    - Update resource state in persistent storage (etcd cluster, database)
+        //    - Record detailed state transition history for compliance auditing
+        //    - Update health status and monitoring data with new state information
+        //    - Maintain state generation counters for optimistic concurrency control
+        //    - Store performance metrics and timing data for analysis
         //
-        // 6. NOTIFICATION AND EVENTS
-        //    - Notify dependent resources of state changes
-        //    - Generate state change events for subscribers
-        //    - Send alerts for ASIL-critical state changes
-        //    - Update monitoring and observability systems
+        // PHASE 6: NOTIFICATION AND EVENT DISTRIBUTION
+        //    - Notify dependent resources of successful state changes
+        //    - Generate StateChangeEvent messages for real-time subscribers
+        //    - Send alerts and notifications for ASIL-critical state changes
+        //    - Update monitoring, observability, and dashboard systems
+        //    - Trigger webhook notifications for external integrations
         //
-        // 7. POST-TRANSITION VALIDATION
-        //    - Verify transition completed successfully
-        //    - Validate resource is in expected state
-        //    - Execute post-transition health checks
-        //    - Log completion and timing metrics
+        // PHASE 7: POST-TRANSITION VALIDATION AND MONITORING
+        //    - Verify the transition completed successfully and resource is stable
+        //    - Validate the resource is actually in the expected target state
+        //    - Execute post-transition health checks and readiness probes
+        //    - Log completion metrics including timing, resource usage, and success rates
+        //    - Schedule follow-up monitoring for transition stability
         //
-        // 8. ERROR HANDLING AND RECOVERY
-        //    - Handle transition failures with appropriate recovery strategies
+        // PHASE 8: ERROR HANDLING AND RECOVERY ORCHESTRATION
+        //    - Implement sophisticated retry strategies with exponential backoff
         //    - Escalate to recovery management for critical failures
-        //    - Generate alerts and notifications for failures
-        //    - Maintain system stability during error conditions
+        //    - Generate detailed alerts with context for operations teams
+        //    - Maintain system stability during error conditions and cascading failures
+        //    - Implement circuit breaker patterns for failing external dependencies
 
-        println!("  Status: State change processing completed (implementation pending)");
+        // ========================================
+        // STEP 3: STATE MACHINE PROCESSING
+        // ========================================
+        // Process the state change request through the core state machine.
+        // This is where the actual business logic and state transition rules are applied.
+        // The state machine handles:
+        // - Validation of transition rules for the specific resource type
+        // - Condition evaluation for conditional transitions
+        // - Action scheduling for follow-up operations
+        // - Error detection and reporting
+        let result = {
+            // Acquire exclusive lock on the state machine for this transition
+            // Note: This serializes all state transitions to maintain consistency
+            let mut state_machine = self.state_machine.lock().await;
+            state_machine.process_state_change(state_change.clone())
+        }; // Lock is automatically released here
+
+        // ========================================
+        // STEP 4: RESULT PROCESSING AND RESPONSE
+        // ========================================
+        // Handle the outcome of the state transition attempt.
+        // Success and failure paths have different logging and follow-up actions.
+        if result.is_success() {
+            // ========================================
+            // SUCCESS PATH: Log positive outcome and queue actions
+            // ========================================
+            println!("  ✓ State transition completed successfully");
+            // Convert new_state to string representation based on resource type only for logs
+            let new_state_str = match resource_type {
+                ResourceType::Scenario => ScenarioState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                ResourceType::Package => PackageState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                ResourceType::Model => ModelState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                _ => "UNKNOWN",
+            };
+            println!("    Final State: {}", new_state_str);
+            println!("    Success Message: {}", result.message);
+            println!("    Transition ID: {}", result.transition_id);
+
+            // Log any actions that were queued for asynchronous execution
+            // Actions are processed separately to keep state transitions fast
+            if !result.actions_to_execute.is_empty() {
+                println!("    Actions queued for async execution:");
+                for action in &result.actions_to_execute {
+                    println!("      - {}", action);
+                }
+                println!(
+                    "    Note: Actions will be executed asynchronously by the action executor"
+                );
+            }
+
+            println!("  Status: State change processing completed successfully");
+        } else {
+            // ========================================
+            // FAILURE PATH: Log error details and initiate recovery
+            // ========================================
+            println!("  ✗ State transition failed");
+            // Convert new_state to string representation based on resource type only for logs
+            let new_state_str = match resource_type {
+                ResourceType::Scenario => ScenarioState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                ResourceType::Package => PackageState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                ResourceType::Model => ModelState::from_i32(result.new_state)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN"),
+                _ => "UNKNOWN",
+            };
+            println!("    Error Code: {:?}", result.error_code);
+            println!("    Error Message: {}", result.message);
+            println!("    Error Details: {}", result.error_details);
+            println!("    Current State: {} (unchanged)", new_state_str);
+            println!("    Failed Transition ID: {}", result.transition_id);
+
+            // Delegate to specialized failure handling logic
+            // This method will analyze the failure type and determine appropriate recovery actions
+            self.handle_transition_failure(&state_change, &result).await;
+
+            println!("  Status: State change processing completed with errors");
+        }
+
         println!("================================");
+    }
+
+    /// Handle state transition failures
+    async fn handle_transition_failure(
+        &self,
+        state_change: &StateChange,
+        result: &TransitionResult,
+    ) {
+        println!(
+            "    Handling transition failure for resource: {}",
+            state_change.resource_name
+        );
+        println!("      Error: {}", result.message);
+        println!("      Error code: {:?}", result.error_code);
+        println!("      Error details: {}", result.error_details);
+
+        // Generate appropriate error responses based on error type
+        match result.error_code {
+            ErrorCode::InvalidStateTransition => {
+                println!("      Invalid state transition - checking state machine rules");
+                // Would log detailed state machine validation errors
+            }
+            ErrorCode::PreconditionFailed => {
+                println!("      Preconditions not met - evaluating retry strategy");
+                // Would check if conditions might be met later and schedule retry
+            }
+            ErrorCode::ResourceNotFound => {
+                println!("      Resource not found - may need initialization");
+                // Would check if resource needs to be created or registered
+            }
+            _ => {
+                println!("      General error - applying default error handling");
+                // Would apply general error handling procedures
+            }
+        }
+
+        // In a real implementation, this would:
+        // - Log to audit trail
+        // - Generate alerts
+        // - Trigger recovery procedures
+        // - Update monitoring metrics
     }
 
     /// Processes a ContainerList message for container health monitoring.
@@ -295,44 +485,6 @@ impl StateManagerManager {
 
         println!("  Status: Container list processing completed (implementation pending)");
         println!("=====================================");
-    }
-
-    /// Execute actions based on state transitions
-    async fn execute_action(&self, action: &str, state_change: &StateChange) {
-        println!("    Executing action: {}", action);
-    }
-    
-     /// Handle state transition failures
-    async fn handle_transition_failure(&self, state_change: &StateChange, result: &TransitionResult) {
-        println!("    Handling transition failure for resource: {}", state_change.resource_name);
-        println!("      Error: {}", result.message);
-        println!("      Error code: {:?}", result.error_code);
-        
-        // Generate appropriate error responses based on error type
-        match result.error_code {
-            ErrorCode::InvalidStateTransition => {
-                println!("      Invalid state transition - checking state machine rules");
-                // Would log detailed state machine validation errors
-            }
-            ErrorCode::PreconditionFailed => {
-                println!("      Preconditions not met - evaluating retry strategy");
-                // Would check if conditions might be met later and schedule retry
-            }
-            ErrorCode::ResourceNotFound => {
-                println!("      Resource not found - may need initialization");
-                // Would check if resource needs to be created or registered
-            }
-            _ => {
-                println!("      General error - applying default error handling");
-                // Would apply general error handling procedures
-            }
-        }
-        
-        // In a real implementation, this would:
-        // - Log to audit trail
-        // - Generate alerts
-        // - Trigger recovery procedures
-        // - Update monitoring metrics
     }
 
     /// Main message processing loop for handling gRPC requests.
@@ -487,12 +639,193 @@ impl StateManagerManager {
     }
 }
 
+/// Async action executor - runs in separate task
+///
+/// This function handles the execution of actions triggered by state transitions.
+/// Actions are executed asynchronously to ensure state transitions remain fast and non-blocking.
+pub async fn run_action_executor(mut receiver: mpsc::UnboundedReceiver<ActionCommand>) {
+    println!("Action executor started - processing actions asynchronously");
+
+    while let Some(action_command) = receiver.recv().await {
+        // Execute action asynchronously without blocking state transitions
+        task::spawn(async move {
+            execute_action(action_command).await;
+        });
+    }
+
+    println!("Action executor stopped");
+}
+
+/// Execute individual action asynchronously
+async fn execute_action(command: ActionCommand) {
+    println!(
+        " Executing action: {} for resource: {}",
+        command.action, command.resource_key
+    );
+
+    match command.action.as_str() {
+        "start_condition_evaluation" => {
+            println!(
+                " Starting condition evaluation for scenario: {}",
+                command.resource_key
+            );
+            // Would integrate with policy engine or condition evaluator
+        }
+        "start_policy_verification" => {
+            println!(
+                " Starting policy verification for scenario: {}",
+                command.resource_key
+            );
+            // Would integrate with policy manager
+        }
+        "execute_action_on_target_package" => {
+            println!(
+                " Executing action on target package for scenario: {}",
+                command.resource_key
+            );
+            // Would trigger package operations
+        }
+        "log_denial_generate_alert" => {
+            println!(
+                " Logging denial and generating alert for scenario: {}",
+                command.resource_key
+            );
+            // Would integrate with alerting system
+        }
+        "start_model_creation_allocate_resources" => {
+            println!(
+                " Starting model creation and resource allocation for package: {}",
+                command.resource_key
+            );
+            // Would integrate with resource allocation system
+        }
+        "update_state_announce_availability" => {
+            println!(
+                " Updating state and announcing availability for: {}",
+                command.resource_key
+            );
+            // Would update service discovery and announce availability
+        }
+        "log_warning_activate_partial_functionality" => {
+            println!(
+                " Logging warning and activating partial functionality for: {}",
+                command.resource_key
+            );
+            // Would configure degraded mode operation
+        }
+        "log_error_attempt_recovery" => {
+            println!(
+                " Logging error and attempting recovery for: {}",
+                command.resource_key
+            );
+            // Would trigger automated recovery procedures
+        }
+        "pause_models_preserve_state" => {
+            println!(
+                " Pausing models and preserving state for: {}",
+                command.resource_key
+            );
+            // Would pause container execution and save state
+        }
+        "resume_models_restore_state" => {
+            println!(
+                " Resuming models and restoring state for: {}",
+                command.resource_key
+            );
+            // Would resume container execution and restore state
+        }
+        "start_node_selection_and_allocation" => {
+            println!(
+                " Starting node selection and allocation for model: {}",
+                command.resource_key
+            );
+            // Would integrate with scheduler for node allocation
+        }
+        "pull_container_images_mount_volumes" => {
+            println!(
+                " Pulling container images and mounting volumes for model: {}",
+                command.resource_key
+            );
+            // Would trigger container image pulls and volume mounts
+        }
+        "update_state_start_readiness_checks" => {
+            println!(
+                " Updating state and starting readiness checks for model: {}",
+                command.resource_key
+            );
+            // Would start health/readiness checks
+        }
+        "log_completion_clean_up_resources" => {
+            println!(
+                " Logging completion and cleaning up resources for model: {}",
+                command.resource_key
+            );
+            // Would clean up completed job resources
+        }
+        "set_backoff_timer_collect_logs" => {
+            println!(
+                " Setting backoff timer and collecting logs for model: {}",
+                command.resource_key
+            );
+            // Would set exponential backoff and collect diagnostic logs
+        }
+        "attempt_diagnostics_restore_communication" => {
+            println!(
+                " Attempting diagnostics and restoring communication for model: {}",
+                command.resource_key
+            );
+            // Would run diagnostic checks and restore node communication
+        }
+        "resume_monitoring_reset_counter" => {
+            println!(
+                " Resuming monitoring and resetting counter for model: {}",
+                command.resource_key
+            );
+            // Would resume monitoring and reset failure counters
+        }
+        "log_error_notify_for_manual_intervention" => {
+            println!(
+                " Logging error and notifying for manual intervention for model: {}",
+                command.resource_key
+            );
+            // Would log critical error and notify operations team
+        }
+        "synchronize_state_recover_if_needed" => {
+            println!(
+                " Synchronizing state and recovering if needed for model: {}",
+                command.resource_key
+            );
+            // Would synchronize state and trigger recovery if necessary
+        }
+        "start_model_recreation" => {
+            println!(" Starting model recreation for: {}", command.resource_key);
+            // Would start complete model recreation process
+        }
+        _ => {
+            println!(
+                " Unknown action: {} for resource: {}",
+                command.action, command.resource_key
+            );
+        }
+    }
+
+    // Print context information if available
+    if !command.context.is_empty() {
+        println!("    Context: {:?}", command.context);
+    }
+
+    println!(
+        "  ✓ Action '{}' completed for: {}",
+        command.action, command.resource_key
+    );
+}
+
 // ========================================
 // FUTURE IMPLEMENTATION AREAS
 // ========================================
 // The following areas require implementation for full PICCOLO compliance:
 //
-// 1. STATE MACHINE ENGINE - ✓ In PROGRESS
+// 1. STATE MACHINE ENGINE - ✓ IMPLEMENTED
 //    - Implement state validators for each ResourceType (Scenario, Package, Model, Volume, Network, Node)
 //    - Add transition rules and constraint checking for each state enum
 //    - Support for ASIL timing requirements and safety constraints

@@ -5,10 +5,8 @@
 
 //! Utility functions for state management operations
 
-use crate::core::types::{StateTransition, SerializableResourceState, ResourceState};
-use common::statemanager::{
-    ModelState, PackageState, ResourceType, ScenarioState, StateChange,
-};
+use crate::core::types::{ResourceState, SerializableResourceState, StateTransition};
+use common::statemanager::{ModelState, PackageState, ResourceType, ScenarioState, StateChange};
 use std::collections::HashMap;
 use tracing::trace;
 
@@ -42,9 +40,15 @@ impl StateUtilities {
         context.insert("from_state".to_string(), from_state_str.to_string());
         context.insert("to_state".to_string(), to_state_str.to_string());
         context.insert("event".to_string(), transition.event.clone());
-        context.insert("resource_name".to_string(), state_change.resource_name.clone());
+        context.insert(
+            "resource_name".to_string(),
+            state_change.resource_name.clone(),
+        );
         context.insert("source".to_string(), state_change.source.clone());
-        context.insert("timestamp_ns".to_string(), state_change.timestamp_ns.to_string());
+        context.insert(
+            "timestamp_ns".to_string(),
+            state_change.timestamp_ns.to_string(),
+        );
 
         trace!("Action context built with {} entries", context.len());
         context
@@ -78,19 +82,28 @@ impl StateUtilities {
             Ok(ResourceType::Scenario) => ScenarioState::from_str_name(&normalized)
                 .map(|s| s as i32)
                 .unwrap_or_else(|| {
-                    eprintln!("ERROR: Invalid scenario state '{}' (normalized: '{}')", state, normalized);
+                    eprintln!(
+                        "ERROR: Invalid scenario state '{}' (normalized: '{}')",
+                        state, normalized
+                    );
                     ScenarioState::Unspecified as i32
                 }),
             Ok(ResourceType::Package) => PackageState::from_str_name(&normalized)
                 .map(|s| s as i32)
                 .unwrap_or_else(|| {
-                    eprintln!("ERROR: Invalid package state '{}' (normalized: '{}')", state, normalized);
+                    eprintln!(
+                        "ERROR: Invalid package state '{}' (normalized: '{}')",
+                        state, normalized
+                    );
                     PackageState::Unspecified as i32
                 }),
             Ok(ResourceType::Model) => ModelState::from_str_name(&normalized)
                 .map(|s| s as i32)
                 .unwrap_or_else(|| {
-                    eprintln!("ERROR: Invalid model state '{}' (normalized: '{}')", state, normalized);
+                    eprintln!(
+                        "ERROR: Invalid model state '{}' (normalized: '{}')",
+                        state, normalized
+                    );
                     ModelState::Unspecified as i32
                 }),
             _ => {

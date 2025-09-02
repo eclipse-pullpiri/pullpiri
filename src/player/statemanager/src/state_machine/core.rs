@@ -1,8 +1,8 @@
-use crate::monitoring::health::HealthManager;
 use crate::core::types::{ActionCommand, ResourceState, StateTransition, TransitionResult};
-use crate::utils::utility::StateUtilities;
+use crate::monitoring::health::HealthManager;
 use crate::monitoring::validation::StateValidator;
 use crate::storage::etcd_state;
+use crate::utils::utility::StateUtilities;
 use common::statemanager::{ErrorCode, ResourceType, StateChange};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
@@ -13,16 +13,16 @@ use tracing::{debug, error, trace, warn};
 pub struct StateMachine {
     /// State transition tables indexed by resource type
     transition_tables: HashMap<ResourceType, Vec<StateTransition>>,
-    
+
     /// Current state tracking for all managed resources
     resource_states: HashMap<String, ResourceState>,
-    
+
     /// Backoff timers for CrashLoopBackOff and retry management
     backoff_timers: HashMap<String, Instant>,
-    
+
     /// Action command sender for async execution
     action_sender: Option<mpsc::UnboundedSender<ActionCommand>>,
-    
+
     /// Health manager for resource health tracking
     health_manager: HealthManager,
 }
@@ -31,7 +31,7 @@ impl StateMachine {
     /// Creates a new StateMachine with predefined transition tables
     pub fn new() -> Self {
         println!("Initializing new StateMachine instance");
-        
+
         let mut state_machine = StateMachine {
             transition_tables: HashMap::new(),
             resource_states: HashMap::new(),
@@ -45,7 +45,7 @@ impl StateMachine {
         state_machine.initialize_all_transitions();
 
         println!(
-            "StateMachine initialized with {} resource types", 
+            "StateMachine initialized with {} resource types",
             state_machine.transition_tables.len()
         );
 
@@ -64,19 +64,15 @@ impl StateMachine {
     /// Initialize all transition tables
     fn initialize_all_transitions(&mut self) {
         use super::transitions::*;
-        
+
         self.transition_tables.insert(
-            ResourceType::Scenario, 
-            ScenarioTransitions::get_transitions()
+            ResourceType::Scenario,
+            ScenarioTransitions::get_transitions(),
         );
-        self.transition_tables.insert(
-            ResourceType::Package, 
-            PackageTransitions::get_transitions()
-        );
-        self.transition_tables.insert(
-            ResourceType::Model, 
-            ModelTransitions::get_transitions()
-        );
+        self.transition_tables
+            .insert(ResourceType::Package, PackageTransitions::get_transitions());
+        self.transition_tables
+            .insert(ResourceType::Model, ModelTransitions::get_transitions());
     }
 
     /// Process a state change request with non-blocking action execution
@@ -112,7 +108,7 @@ impl StateMachine {
             }
             Err(_) => {
                 error!(
-                    "Invalid resource type {} for resource '{}'", 
+                    "Invalid resource type {} for resource '{}'",
                     state_change.resource_type, state_change.resource_name
                 );
                 return TransitionResult::failure(
@@ -131,30 +127,37 @@ impl StateMachine {
             }
         };
 
-        let resource_key = StateUtilities::generate_resource_key(resource_type, &state_change.resource_name);
+        let resource_key =
+            StateUtilities::generate_resource_key(resource_type, &state_change.resource_name);
         trace!("Generated resource key: {}", resource_key);
 
         // Get current state from storage
-        let current_state: i32 = match super::persistence::StatePersistence::get_current_state_from_storage(
-            &resource_key,
-            &state_change.current_state,
-            state_change.resource_type,
-        ).await {
-            Ok(state) => state,
-            Err(e) => {
-                error!("Failed to retrieve state from etcd for {}: {}", resource_key, e);
-                return TransitionResult::failure(
-                    StateUtilities::state_str_to_enum(
-                        state_change.current_state.as_str(),
-                        state_change.resource_type,
-                    ),
-                    state_change.transition_id.clone(),
-                    ErrorCode::InternalError,
-                    format!("Failed to retrieve state from etcd: {}", e),
-                    format!("{}", e),
-                );
-            }
-        };
+        let current_state: i32 =
+            match super::persistence::StatePersistence::get_current_state_from_storage(
+                &resource_key,
+                &state_change.current_state,
+                state_change.resource_type,
+            )
+            .await
+            {
+                Ok(state) => state,
+                Err(e) => {
+                    error!(
+                        "Failed to retrieve state from etcd for {}: {}",
+                        resource_key, e
+                    );
+                    return TransitionResult::failure(
+                        StateUtilities::state_str_to_enum(
+                            state_change.current_state.as_str(),
+                            state_change.resource_type,
+                        ),
+                        state_change.transition_id.clone(),
+                        ErrorCode::InternalError,
+                        format!("Failed to retrieve state from etcd: {}", e),
+                        format!("{}", e),
+                    );
+                }
+            };
 
         // Check backoff period
         if let Err((error_code, message)) = super::backoff::BackoffManager::check_backoff_period(
@@ -176,13 +179,13 @@ impl StateMachine {
             state_change.target_state.as_str(),
             state_change.resource_type,
         );
-        
+
         let transition_event = super::events::EventInference::infer_event_from_states(
             current_state,
             target_state_int,
             resource_type,
         );
-        
+
         debug!(
             "Inferred transition event '{}' for {} -> {}",
             transition_event,
@@ -230,7 +233,9 @@ impl StateMachine {
                 &state_change,
                 transition.to_state,
                 resource_type,
-            ).await {
+            )
+            .await
+            {
                 error!(
                     "Failed to update resource state for {}: {}",
                     resource_key, e
@@ -245,8 +250,13 @@ impl StateMachine {
             }
 
             // Initialize health tracking if needed
-            if !self.health_manager.get_health_status(&resource_key).is_some() {
-                self.health_manager.initialize_health_tracking(resource_key.clone());
+            if !self
+                .health_manager
+                .get_health_status(&resource_key)
+                .is_some()
+            {
+                self.health_manager
+                    .initialize_health_tracking(resource_key.clone());
             }
 
             // NON-BLOCKING ACTION EXECUTION
@@ -261,32 +271,43 @@ impl StateMachine {
 
                 debug!("Queuing action '{}' for async execution", transition.action);
                 if let Err(e) = sender.send(action_command) {
-                    error!("Failed to queue action '{}' for execution: {}", transition.action, e);
+                    error!(
+                        "Failed to queue action '{}' for execution: {}",
+                        transition.action, e
+                    );
                 } else {
                     trace!("Action '{}' queued successfully", transition.action);
                 }
             } else {
-                warn!("Action sender not initialized, action '{}' will not be executed", transition.action);
+                warn!(
+                    "Action sender not initialized, action '{}' will not be executed",
+                    transition.action
+                );
             }
-            
+
             // Handle special state-specific logic
             super::backoff::BackoffManager::set_backoff_timer(
                 &mut self.backoff_timers,
                 &resource_key,
                 transition.to_state,
             );
-            
-            let transitioned_state_str = StateUtilities::state_enum_to_str(transition.to_state, resource_type);
+
+            let transitioned_state_str =
+                StateUtilities::state_enum_to_str(transition.to_state, resource_type);
 
             // Create the transition result
             let transition_result = TransitionResult::success(
                 transition.to_state,
                 state_change.transition_id.clone(),
-                Some(format!("State transition completed successfully to {}", transitioned_state_str)),
+                Some(format!(
+                    "State transition completed successfully to {}",
+                    transitioned_state_str
+                )),
             );
 
             // NOW update health status AFTER transition_result is created
-            self.health_manager.update_health_status(&resource_key, &transition_result);
+            self.health_manager
+                .update_health_status(&resource_key, &transition_result);
 
             println!(
                 "State transition completed successfully: {} -> {} for resource '{}'",
@@ -298,7 +319,8 @@ impl StateMachine {
             transition_result
         } else {
             let current_state_str = StateUtilities::state_enum_to_str(current_state, resource_type);
-            let target_state_str = StateUtilities::state_enum_to_str(target_state_int, resource_type);
+            let target_state_str =
+                StateUtilities::state_enum_to_str(target_state_int, resource_type);
 
             error!(
                 "No valid transition found from {} to {} for resource type {:?}",
@@ -320,7 +342,8 @@ impl StateMachine {
             );
 
             // Also update health status for failures
-            self.health_manager.update_health_status(&resource_key, &transition_result);
+            self.health_manager
+                .update_health_status(&resource_key, &transition_result);
             transition_result
         }
     }
@@ -328,16 +351,19 @@ impl StateMachine {
     /// Load all existing states from etcd on startup
     pub async fn load_states_from_etcd(&mut self) -> common::Result<()> {
         println!("Starting to load existing states from etcd");
-        
+
         let mut loaded_count = 0;
         let mut error_count = 0;
-        
+
         match super::persistence::StatePersistence::load_all_states().await {
             Ok(states) => {
                 println!("Retrieved {} states from etcd", states.len());
-                
+
                 for (resource_key, serializable_state) in states {
-                    match self.load_single_state(resource_key, serializable_state).await {
+                    match self
+                        .load_single_state(resource_key, serializable_state)
+                        .await
+                    {
                         Ok(()) => {
                             loaded_count += 1;
                         }
@@ -353,23 +379,28 @@ impl StateMachine {
                 return Err(e);
             }
         }
-        
+
         println!(
-            "State loading completed: {} successful, {} errors, {} total resources in cache", 
-            loaded_count, error_count, self.resource_states.len()
+            "State loading completed: {} successful, {} errors, {} total resources in cache",
+            loaded_count,
+            error_count,
+            self.resource_states.len()
         );
-        
+
         if error_count > 0 {
-            warn!("Attempting to clean up invalid states due to {} errors", error_count);
+            warn!(
+                "Attempting to clean up invalid states due to {} errors",
+                error_count
+            );
             match crate::storage::etcd_state::cleanup_invalid_states().await {
                 Ok(cleaned) => println!("Successfully cleaned up {} invalid states", cleaned),
                 Err(e) => error!("Failed to clean up invalid states: {}", e),
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Load a single state into the in-memory cache
     async fn load_single_state(
         &mut self,
@@ -384,27 +415,31 @@ impl StateMachine {
         }
 
         let runtime_state = ResourceState::from(serializable_state.clone());
-        self.resource_states.insert(resource_key.clone(), runtime_state);
-        
+        self.resource_states
+            .insert(resource_key.clone(), runtime_state);
+
         super::backoff::BackoffManager::restore_backoff_timer(
             &mut self.backoff_timers,
             &resource_key,
             &serializable_state,
         )?;
-        
+
         let state_name = &serializable_state.current_state;
 
         debug!(
-            "Successfully loaded state for {}: {} (transitions: {})", 
+            "Successfully loaded state for {}: {} (transitions: {})",
             resource_key, state_name, serializable_state.transition_count
         );
-        
+
         Ok(())
     }
 
     /// Validate a state loaded from etcd
     fn validate_loaded_state(&self, state: &crate::core::types::SerializableResourceState) -> bool {
-        trace!("Validating loaded state for resource: {}", state.resource_name);
+        trace!(
+            "Validating loaded state for resource: {}",
+            state.resource_name
+        );
 
         if ResourceType::try_from(state.resource_type).is_err() {
             warn!("Invalid resource type: {}", state.resource_type);
@@ -422,9 +457,15 @@ impl StateMachine {
         }
 
         let is_valid_enum = match ResourceType::try_from(state.resource_type) {
-            Ok(ResourceType::Scenario) => common::statemanager::ScenarioState::from_str_name(&state.current_state).is_some(),
-            Ok(ResourceType::Package) => common::statemanager::PackageState::from_str_name(&state.current_state).is_some(),
-            Ok(ResourceType::Model) => common::statemanager::ModelState::from_str_name(&state.current_state).is_some(),
+            Ok(ResourceType::Scenario) => {
+                common::statemanager::ScenarioState::from_str_name(&state.current_state).is_some()
+            }
+            Ok(ResourceType::Package) => {
+                common::statemanager::PackageState::from_str_name(&state.current_state).is_some()
+            }
+            Ok(ResourceType::Model) => {
+                common::statemanager::ModelState::from_str_name(&state.current_state).is_some()
+            }
             _ => false,
         };
 
@@ -437,9 +478,12 @@ impl StateMachine {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
-            
+
         if state.last_transition_unix_timestamp > now + 3600 {
-            warn!("Future timestamp detected: {}", state.last_transition_unix_timestamp);
+            warn!(
+                "Future timestamp detected: {}",
+                state.last_transition_unix_timestamp
+            );
             return false;
         }
 
@@ -460,14 +504,20 @@ impl StateMachine {
                 "Package::" => 2,
                 "Model::" => 3,
                 _ => 0,
-            }).unwrap_or(ResourceType::Scenario);
+            })
+            .unwrap_or(ResourceType::Scenario);
 
             debug!("Warming cache for resource type: {:?}", resource_type);
 
-            if let Ok(states) = crate::storage::etcd_state::get_resource_states_by_type(resource_type).await {
+            if let Ok(states) =
+                crate::storage::etcd_state::get_resource_states_by_type(resource_type).await
+            {
                 for (key, serializable_state) in states {
                     if StateUtilities::is_active_state(
-                        StateUtilities::enum_str_to_int(&serializable_state.current_state, serializable_state.resource_type),
+                        StateUtilities::enum_str_to_int(
+                            &serializable_state.current_state,
+                            serializable_state.resource_type,
+                        ),
                         serializable_state.resource_type,
                     ) {
                         let runtime_state = ResourceState::from(serializable_state);

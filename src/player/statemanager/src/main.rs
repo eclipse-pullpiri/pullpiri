@@ -20,12 +20,12 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tonic::transport::Server;
 
 // Updated module declarations to match your new structure
-pub mod core;
-pub mod storage;
-pub mod monitoring;
-pub mod utils;
 pub mod communication;
+pub mod core;
+pub mod monitoring;
 pub mod state_machine;
+pub mod storage;
+pub mod utils;
 
 /// Launches the StateManagerManager in an asynchronous task.
 ///

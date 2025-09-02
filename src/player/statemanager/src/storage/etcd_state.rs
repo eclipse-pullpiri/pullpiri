@@ -1,4 +1,4 @@
-use crate::core::types::{SerializableResourceState};
+use crate::core::types::SerializableResourceState;
 use common::statemanager::ResourceType;
 use common::Result;
 use std::collections::HashMap;
@@ -86,11 +86,11 @@ pub async fn list_resources_with_prefix(prefix: &str) -> common::Result<Vec<Stri
 /// Get all resource states from etcd
 pub async fn get_all_resource_states() -> common::Result<Vec<(String, SerializableResourceState)>> {
     debug!("Retrieving all resource states from etcd");
-    
+
     match common::etcd::get_all_with_prefix("state/").await {
         Ok(kvs) => {
             let mut states = Vec::new();
-            
+
             for kv in kvs {
                 match serde_yaml::from_str::<SerializableResourceState>(&kv.value) {
                     Ok(state) => {
@@ -101,7 +101,7 @@ pub async fn get_all_resource_states() -> common::Result<Vec<(String, Serializab
                     }
                 }
             }
-            
+
             info!("Retrieved {} resource states from etcd", states.len());
             Ok(states)
         }

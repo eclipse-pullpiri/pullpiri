@@ -1,5 +1,5 @@
-use crate::core::types::StateTransition;  // Fix: use core::types
-use common::statemanager::{ScenarioState, PackageState, ModelState};
+use crate::core::types::StateTransition; // Fix: use core::types
+use common::statemanager::{ModelState, PackageState, ScenarioState};
 
 pub struct ScenarioTransitions;
 

@@ -6,7 +6,7 @@
 //! Health monitoring and status tracking for StateManager resources
 
 use crate::core::config::MAX_CONSECUTIVE_FAILURES;
-use crate::core::types::{TransitionResult, HealthStatus};
+use crate::core::types::{HealthStatus, TransitionResult};
 use common::statemanager::ErrorCode;
 use std::collections::HashMap;
 use tokio::time::{Duration, Instant};
@@ -25,11 +25,16 @@ impl HealthManager {
     }
 
     /// Updates health status based on transition result
-    pub fn update_health_status(&mut self, resource_key: &str, transition_result: &TransitionResult) {
+    pub fn update_health_status(
+        &mut self,
+        resource_key: &str,
+        transition_result: &TransitionResult,
+    ) {
         tracing::trace!("Updating health status for resource: {}", resource_key);
 
         // Get or create health status for this resource
-        let health_status = self.health_statuses
+        let health_status = self
+            .health_statuses
             .entry(resource_key.to_string())
             .or_insert_with(|| HealthStatus {
                 healthy: true,
@@ -94,12 +99,15 @@ impl HealthManager {
 
     /// Initialize health tracking for a new resource
     pub fn initialize_health_tracking(&mut self, resource_key: String) {
-        self.health_statuses.insert(resource_key.clone(), HealthStatus {
-            healthy: true,
-            status_message: "Healthy".to_string(),
-            last_check: Instant::now(),
-            consecutive_failures: 0,
-        });
+        self.health_statuses.insert(
+            resource_key.clone(),
+            HealthStatus {
+                healthy: true,
+                status_message: "Healthy".to_string(),
+                last_check: Instant::now(),
+                consecutive_failures: 0,
+            },
+        );
         debug!("Initialized health tracking for resource: {}", resource_key);
     }
 }

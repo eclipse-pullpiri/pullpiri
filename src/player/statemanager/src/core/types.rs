@@ -1,7 +1,7 @@
 use common::statemanager::{ErrorCode, ModelState, PackageState, ResourceType, ScenarioState};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tokio::time::{Instant};
+use tokio::time::Instant;
 
 // SerializableInstant conversion to preserve actual time
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,18 +108,24 @@ impl From<ResourceState> for SerializableResourceState {
         };
 
         let desired_state_str = match (state.desired_state, state.resource_type) {
-            (Some(desired), ResourceType::Scenario) => Some(ScenarioState::try_from(desired)
-                .map(|s| s.as_str_name())
-                .unwrap_or("UNKNOWN")
-                .to_string()),
-            (Some(desired), ResourceType::Package) => Some(PackageState::try_from(desired)
-                .map(|s| s.as_str_name())
-                .unwrap_or("UNKNOWN")
-                .to_string()),
-            (Some(desired), ResourceType::Model) => Some(ModelState::try_from(desired)
-                .map(|s| s.as_str_name())
-                .unwrap_or("UNKNOWN")
-                .to_string()),
+            (Some(desired), ResourceType::Scenario) => Some(
+                ScenarioState::try_from(desired)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN")
+                    .to_string(),
+            ),
+            (Some(desired), ResourceType::Package) => Some(
+                PackageState::try_from(desired)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN")
+                    .to_string(),
+            ),
+            (Some(desired), ResourceType::Model) => Some(
+                ModelState::try_from(desired)
+                    .map(|s| s.as_str_name())
+                    .unwrap_or("UNKNOWN")
+                    .to_string(),
+            ),
             _ => None,
         };
 
@@ -154,13 +160,19 @@ impl From<SerializableResourceState> for ResourceState {
             _ => 0,
         };
 
-        let desired_state_int = match (state.desired_state.as_ref(), ResourceType::try_from(state.resource_type)) {
-            (Some(desired), Ok(ResourceType::Scenario)) => ScenarioState::from_str_name(desired)
-                .map(|s| s as i32),
-            (Some(desired), Ok(ResourceType::Package)) => PackageState::from_str_name(desired)
-                .map(|s| s as i32),
-            (Some(desired), Ok(ResourceType::Model)) => ModelState::from_str_name(desired)
-                .map(|s| s as i32),
+        let desired_state_int = match (
+            state.desired_state.as_ref(),
+            ResourceType::try_from(state.resource_type),
+        ) {
+            (Some(desired), Ok(ResourceType::Scenario)) => {
+                ScenarioState::from_str_name(desired).map(|s| s as i32)
+            }
+            (Some(desired), Ok(ResourceType::Package)) => {
+                PackageState::from_str_name(desired).map(|s| s as i32)
+            }
+            (Some(desired), Ok(ResourceType::Model)) => {
+                ModelState::from_str_name(desired).map(|s| s as i32)
+            }
             _ => None,
         };
 

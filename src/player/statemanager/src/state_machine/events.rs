@@ -1,4 +1,4 @@
-use common::statemanager::{ResourceType, ScenarioState, PackageState, ModelState};
+use common::statemanager::{ModelState, PackageState, ResourceType, ScenarioState};
 use tracing::trace;
 
 pub struct EventInference;
@@ -11,7 +11,9 @@ impl EventInference {
     ) -> String {
         trace!(
             "Inferring event for {:?}: {} -> {}",
-            resource_type, current_state, target_state
+            resource_type,
+            current_state,
+            target_state
         );
 
         let event = match resource_type {
@@ -45,13 +47,20 @@ impl EventInference {
 
     fn infer_package_event(current_state: i32, target_state: i32) -> String {
         match (current_state, target_state) {
-            (x, y) if x == PackageState::Unspecified as i32 && y == PackageState::Initializing as i32 => {
+            (x, y)
+                if x == PackageState::Unspecified as i32
+                    && y == PackageState::Initializing as i32 =>
+            {
                 "launch_request".to_string()
             }
-            (x, y) if x == PackageState::Initializing as i32 && y == PackageState::Running as i32 => {
+            (x, y)
+                if x == PackageState::Initializing as i32 && y == PackageState::Running as i32 =>
+            {
                 "initialization_complete".to_string()
             }
-            (x, y) if x == PackageState::Initializing as i32 && y == PackageState::Degraded as i32 => {
+            (x, y)
+                if x == PackageState::Initializing as i32 && y == PackageState::Degraded as i32 =>
+            {
                 "partial_initialization_failure".to_string()
             }
             (x, y) if x == PackageState::Initializing as i32 && y == PackageState::Error as i32 => {
@@ -99,16 +108,22 @@ impl EventInference {
             (x, y) if x == ModelState::Unspecified as i32 && y == ModelState::Pending as i32 => {
                 "creation_request".to_string()
             }
-            (x, y) if x == ModelState::Pending as i32 && y == ModelState::ContainerCreating as i32 => {
+            (x, y)
+                if x == ModelState::Pending as i32 && y == ModelState::ContainerCreating as i32 =>
+            {
                 "node_allocation_complete".to_string()
             }
             (x, y) if x == ModelState::Pending as i32 && y == ModelState::Failed as i32 => {
                 "node_allocation_failed".to_string()
             }
-            (x, y) if x == ModelState::ContainerCreating as i32 && y == ModelState::Running as i32 => {
+            (x, y)
+                if x == ModelState::ContainerCreating as i32 && y == ModelState::Running as i32 =>
+            {
                 "container_creation_complete".to_string()
             }
-            (x, y) if x == ModelState::ContainerCreating as i32 && y == ModelState::Failed as i32 => {
+            (x, y)
+                if x == ModelState::ContainerCreating as i32 && y == ModelState::Failed as i32 =>
+            {
                 "container_creation_failed".to_string()
             }
             (x, y) if x == ModelState::Running as i32 && y == ModelState::Succeeded as i32 => {
@@ -117,16 +132,22 @@ impl EventInference {
             (x, y) if x == ModelState::Running as i32 && y == ModelState::Failed as i32 => {
                 "container_termination".to_string()
             }
-            (x, y) if x == ModelState::Running as i32 && y == ModelState::CrashLoopBackOff as i32 => {
+            (x, y)
+                if x == ModelState::Running as i32 && y == ModelState::CrashLoopBackOff as i32 =>
+            {
                 "repeated_crash_detection".to_string()
             }
             (x, y) if x == ModelState::Running as i32 && y == ModelState::Unknown as i32 => {
                 "monitoring_failure".to_string()
             }
-            (x, y) if x == ModelState::CrashLoopBackOff as i32 && y == ModelState::Running as i32 => {
+            (x, y)
+                if x == ModelState::CrashLoopBackOff as i32 && y == ModelState::Running as i32 =>
+            {
                 "backoff_time_elapsed".to_string()
             }
-            (x, y) if x == ModelState::CrashLoopBackOff as i32 && y == ModelState::Failed as i32 => {
+            (x, y)
+                if x == ModelState::CrashLoopBackOff as i32 && y == ModelState::Failed as i32 =>
+            {
                 "maximum_retries_exceeded".to_string()
             }
             (x, y) if x == ModelState::Unknown as i32 && y == ModelState::Running as i32 => {

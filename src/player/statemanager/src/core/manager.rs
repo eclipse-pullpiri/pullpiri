@@ -13,10 +13,10 @@
 //! state transitions, monitoring, reconciliation, and recovery for all resource types
 //! (Scenario, Package, Model, Volume, Network, Node).
 
-use crate::state_machine::StateMachine;
 use crate::core::types::*;
-use crate::storage::etcd_state;
 use crate::monitoring::health::HealthManager;
+use crate::state_machine::StateMachine;
+use crate::storage::etcd_state;
 use common::monitoringserver::ContainerList;
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
@@ -108,10 +108,10 @@ impl StateManagerManager {
         // Single lock acquisition for all state machine operations
         let action_receiver = {
             let mut state_machine = self.state_machine.lock().await;
-            
+
             // Step 1: Initialize action executor
             let receiver = state_machine.initialize_action_executor();
-            
+
             // Step 2: Load critical states while we have the lock
             match state_machine.load_states_from_etcd().await {
                 Ok(()) => println!("Successfully loaded critical states from etcd"),
@@ -123,7 +123,7 @@ impl StateManagerManager {
                 Ok(()) => println!("Successfully warmed cache for active resources"),
                 Err(e) => eprintln!("Warning: Failed to warm cache: {}", e),
             }
-            
+
             receiver
         }; // Lock released here
 

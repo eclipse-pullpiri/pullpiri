@@ -6,7 +6,7 @@
 //! State validation utilities and constraint checking
 
 use crate::core::types::SerializableResourceState;
-use common::statemanager::{ResourceType, StateChange, ScenarioState, PackageState, ModelState};
+use common::statemanager::{ModelState, PackageState, ResourceType, ScenarioState, StateChange};
 use tracing::{debug, warn};
 
 pub struct StateValidator;
@@ -38,7 +38,10 @@ impl StateValidator {
 
     /// Validate a state loaded from etcd
     pub fn validate_loaded_state(state: &SerializableResourceState) -> bool {
-        debug!("Validating loaded state for resource: {}", state.resource_name);
+        debug!(
+            "Validating loaded state for resource: {}",
+            state.resource_name
+        );
 
         if ResourceType::try_from(state.resource_type).is_err() {
             warn!("Invalid resource type: {}", state.resource_type);
@@ -56,8 +59,12 @@ impl StateValidator {
         }
 
         let is_valid_enum = match ResourceType::try_from(state.resource_type) {
-            Ok(ResourceType::Scenario) => ScenarioState::from_str_name(&state.current_state).is_some(),
-            Ok(ResourceType::Package) => PackageState::from_str_name(&state.current_state).is_some(),
+            Ok(ResourceType::Scenario) => {
+                ScenarioState::from_str_name(&state.current_state).is_some()
+            }
+            Ok(ResourceType::Package) => {
+                PackageState::from_str_name(&state.current_state).is_some()
+            }
             Ok(ResourceType::Model) => ModelState::from_str_name(&state.current_state).is_some(),
             _ => false,
         };
@@ -71,9 +78,12 @@ impl StateValidator {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
-            
+
         if state.last_transition_unix_timestamp > now + 3600 {
-            warn!("Future timestamp detected: {}", state.last_transition_unix_timestamp);
+            warn!(
+                "Future timestamp detected: {}",
+                state.last_transition_unix_timestamp
+            );
             return false;
         }
 

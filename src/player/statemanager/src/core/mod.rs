@@ -5,10 +5,10 @@
 
 //! Core state management functionality
 
+pub mod config;
 pub mod manager;
 pub mod types;
-pub mod config;
 
+pub use config::*;
 pub use manager::StateManagerManager;
 pub use types::*;
-pub use config::*;

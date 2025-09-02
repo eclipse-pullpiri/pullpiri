@@ -1,7 +1,7 @@
-pub mod core;
-pub mod transitions;
-pub mod events;
 pub mod backoff;
+pub mod core;
+pub mod events;
 pub mod persistence;
+pub mod transitions;
 
 pub use core::StateMachine;

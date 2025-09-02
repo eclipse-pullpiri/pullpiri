@@ -14,7 +14,9 @@
 //! (Scenario, Package, Model, Volume, Network, Node).
 
 use crate::state_machine::StateMachine;
-use crate::types::{ActionCommand, TransitionResult};
+use crate::core::types::*;
+use crate::storage::etcd_state;
+use crate::monitoring::health::HealthManager;
 use common::monitoringserver::ContainerList;
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
@@ -100,33 +102,38 @@ impl StateManagerManager {
     /// - Initialize state machine validators for each resource type
     /// - Set up dependency tracking and validation systems
     /// - Configure ASIL safety monitoring and alerting
-    pub async fn initialize(&mut self) -> Result<()> {
-        println!("StateManagerManager initializing...");
+    pub async fn initialize(&mut self) -> common::Result<()> {
+        println!("Initializing StateManagerManager...");
 
-        // Initialize the state machine with async action executor
+        // Single lock acquisition for all state machine operations
         let action_receiver = {
             let mut state_machine = self.state_machine.lock().await;
-            state_machine.initialize_action_executor()
-        };
+            
+            // Step 1: Initialize action executor
+            let receiver = state_machine.initialize_action_executor();
+            
+            // Step 2: Load critical states while we have the lock
+            match state_machine.load_states_from_etcd().await {
+                Ok(()) => println!("Successfully loaded critical states from etcd"),
+                Err(e) => eprintln!("Warning: Failed to load states: {}", e),
+            }
 
-        // Start the async action executor
+            // Step 3: Warm cache while we have the lock
+            match state_machine.warm_cache_for_active_resources().await {
+                Ok(()) => println!("Successfully warmed cache for active resources"),
+                Err(e) => eprintln!("Warning: Failed to warm cache: {}", e),
+            }
+            
+            receiver
+        }; // Lock released here
+
+        // Step 4: Start the async action executor (no lock needed)
         tokio::spawn(async move {
             run_action_executor(action_receiver).await;
         });
-
-        println!("State machine initialized with transition tables for Scenario, Package, and Model resources");
         println!("Async action executor started for non-blocking action processing");
 
-        // TODO: Add comprehensive initialization logic:
-        // - Load persisted resource states from persistent storage
-        // - Initialize state machine validators for each ResourceType
-        // - Set up dependency tracking and validation systems
-        // - Configure ASIL safety monitoring and alerting
-        // - Initialize recovery strategies for each RecoveryType
-        // - Set up health check systems for all resource types
-        // - Configure event streaming and notification systems
-
-        println!("StateManagerManager initialization completed");
+        println!("StateManagerManager initialized successfully");
         Ok(())
     }
 
@@ -296,7 +303,9 @@ impl StateManagerManager {
             // Acquire exclusive lock on the state machine for this transition
             // Note: This serializes all state transitions to maintain consistency
             let mut state_machine = self.state_machine.lock().await;
-            state_machine.process_state_change(state_change.clone())
+            state_machine
+                .process_state_change(state_change.clone())
+                .await
         }; // Lock is automatically released here
 
         // ========================================
@@ -311,13 +320,13 @@ impl StateManagerManager {
             println!("  ✓ State transition completed successfully");
             // Convert new_state to string representation based on resource type only for logs
             let new_state_str = match resource_type {
-                ResourceType::Scenario => ScenarioState::from_i32(result.new_state)
+                ResourceType::Scenario => ScenarioState::try_from(result.new_state)
                     .map(|s| s.as_str_name())
                     .unwrap_or("UNKNOWN"),
-                ResourceType::Package => PackageState::from_i32(result.new_state)
+                ResourceType::Package => PackageState::try_from(result.new_state)
                     .map(|s| s.as_str_name())
                     .unwrap_or("UNKNOWN"),
-                ResourceType::Model => ModelState::from_i32(result.new_state)
+                ResourceType::Model => ModelState::try_from(result.new_state)
                     .map(|s| s.as_str_name())
                     .unwrap_or("UNKNOWN"),
                 _ => "UNKNOWN",
@@ -346,13 +355,13 @@ impl StateManagerManager {
             println!("  ✗ State transition failed");
             // Convert new_state to string representation based on resource type only for logs
             let new_state_str = match resource_type {
-                ResourceType::Scenario => ScenarioState::from_i32(result.new_state)
+                ResourceType::Scenario => ScenarioState::try_from(result.new_state)
                     .map(|s| s.as_str_name())
                     .unwrap_or("UNKNOWN"),
-                ResourceType::Package => PackageState::from_i32(result.new_state)
+                ResourceType::Package => PackageState::try_from(result.new_state)
                     .map(|s| s.as_str_name())
                     .unwrap_or("UNKNOWN"),
-                ResourceType::Model => ModelState::from_i32(result.new_state)
+                ResourceType::Model => ModelState::try_from(result.new_state)
                     .map(|s| s.as_str_name())
                     .unwrap_or("UNKNOWN"),
                 _ => "UNKNOWN",

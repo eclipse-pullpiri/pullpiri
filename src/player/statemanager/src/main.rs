@@ -19,10 +19,13 @@ use common::statemanager::{
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tonic::transport::Server;
 
-pub mod grpc;
-pub mod manager;
+// Updated module declarations to match your new structure
+pub mod core;
+pub mod storage;
+pub mod monitoring;
+pub mod utils;
+pub mod communication;
 pub mod state_machine;
-pub mod types;
 
 /// Launches the StateManagerManager in an asynchronous task.
 ///
@@ -51,7 +54,7 @@ async fn launch_manager(
     println!("=== StateManagerManager Starting ===");
 
     // Create the StateManager engine with async channel receivers
-    let mut manager = manager::StateManagerManager::new(rx_container, rx_state_change).await;
+    let mut manager = core::manager::StateManagerManager::new(rx_container, rx_state_change).await;
 
     // Initialize the manager with configuration and persistent state
     match manager.initialize().await {
@@ -105,7 +108,7 @@ async fn initialize_grpc_server(
     println!("=== StateManager gRPC Server Starting ===");
 
     // Create the gRPC service handler with async channels
-    let server = grpc::receiver::StateManagerReceiver {
+    let server = communication::grpc::receiver::StateManagerReceiver {
         tx: tx_container,
         tx_state_change,
     };
@@ -194,7 +197,7 @@ async fn main() {
 
     // Run both components concurrently until shutdown
     // tokio::join! ensures both tasks complete before main exits
-    let (manager_result, grpc_result) = tokio::join!(manager_task, grpc_task);
+    let (_manager_result, _grpc_result) = tokio::join!(manager_task, grpc_task);
 
     // Both tasks return (), but we log completion for monitoring
     println!("StateManager service components have stopped:");

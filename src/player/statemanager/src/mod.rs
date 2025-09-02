@@ -7,11 +7,27 @@
 //!
 //! This module provides the public interface for the StateManager component
 
-pub mod grpc;
-pub mod manager;
-pub mod state_machine;
-pub mod types;
+// Core state management functionality
+pub mod core;
 
-// Re-export main types for easier access
-pub use manager::StateManagerManager;
-pub use state_machine::{StateMachine, TransitionResult, ResourceState};
+// Data persistence and storage
+pub mod storage;
+
+// Health monitoring and validation
+pub mod monitoring;
+
+// Utility functions
+pub mod utils;
+
+// External communication interfaces
+pub mod communication;
+
+// State machine implementation
+pub mod state_machine;
+
+// Re-export commonly used items
+pub use core::{manager::StateManagerManager, types::*, config::*};
+pub use state_machine::StateMachine;
+pub use storage::etcd_state;
+pub use monitoring::{health::HealthManager, validation::StateValidator};
+pub use utils::utility::StateUtilities;

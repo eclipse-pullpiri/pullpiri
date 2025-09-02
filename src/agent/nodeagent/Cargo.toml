@@ -14,4 +14,5 @@ futures = "0.3.31"
 hyper = { version = "0.14", features = ["full"] }
 hyperlocal = { version = "0.8", features = ["client"] }
 thiserror = "1.0"
-
+once_cell = "1.19.0"
+sysinfo = "0.36.1"

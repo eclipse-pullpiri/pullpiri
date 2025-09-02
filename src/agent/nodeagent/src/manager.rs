@@ -119,6 +119,34 @@ impl NodeAgentManager {
         }
     }
 
+    /// Background task: Periodically gathers system info using extract_system_info().
+    ///
+    /// This runs in an infinite loop and logs or processes system info as needed.
+    async fn gather_node_info_loop(&self) {
+        use crate::resource::nodeinfo::extract_node_info_delta;
+        use tokio::time::{sleep, Duration};
+        loop {
+            let node_info = extract_node_info_delta();
+            println!(
+                "[NodeInfo] CPU: {:.2}%, CPU Count: {}, GPU Count: {}, Mem: {}/{} KB ({:.2}%), Net RX: {} B, Net TX: {} B, Disk Read: {} B, Disk Write: {} B, OS: {}, Arch: {}, IP: {}",
+                node_info.cpu_usage,
+                node_info.cpu_count,
+                node_info.gpu_count,
+                node_info.used_memory,
+                node_info.total_memory,
+                node_info.mem_usage,
+                node_info.rx_bytes,
+                node_info.tx_bytes,
+                node_info.read_bytes,
+                node_info.write_bytes,
+                node_info.os,
+                node_info.arch,
+                node_info.ip
+            );
+            sleep(Duration::from_secs(1)).await;
+        }
+    }
+
     /// Runs the NodeAgentManager event loop.
     ///
     /// Spawns the gRPC processing task and the container info gatherer, and waits for them to finish.
@@ -134,7 +162,13 @@ impl NodeAgentManager {
         let container_gatherer = tokio::spawn(async move {
             container_manager.gather_container_info_loop().await;
         });
-        let _ = tokio::try_join!(grpc_processor, container_gatherer);
+
+        // Spawn a background task to periodically extract and print system info
+        let nodeinfo_manager = Arc::clone(&arc_self);
+        let nodeinfo_task = tokio::spawn(async move {
+            nodeinfo_manager.gather_node_info_loop().await;
+        });
+        let _ = tokio::try_join!(grpc_processor, container_gatherer, nodeinfo_task);
         println!("NodeAgentManager stopped");
         Ok(())
     }

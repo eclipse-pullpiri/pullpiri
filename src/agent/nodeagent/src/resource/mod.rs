@@ -1,4 +1,5 @@
 pub mod container;
+pub mod nodeinfo;
 
 use hyper::{Body, Client, Uri};
 use hyperlocal::{UnixConnector, Uri as UnixUri};
@@ -22,6 +23,35 @@ async fn get(path: &str) -> Result<hyper::body::Bytes, hyper::Error> {
 
     let res = client.get(uri).await?;
     hyper::body::to_bytes(res).await
+}
+
+/// Node information matching the requested DataCache structure.
+#[derive(Deserialize, Debug)]
+pub struct NodeInfo {
+    // 1. CPU
+    pub cpu_count: usize, // NodeInfo['cpu']['cpu_count']
+    pub cpu_usage: f32,   // NodeInfo['cpu']['cpu_usage']
+
+    // 2. GPU
+    pub gpu_count: usize, // NodeInfo['gpu']['gpu_count']
+
+    // 3. Memory
+    pub total_memory: u64, // NodeInfo['mem']['total_memory']
+    pub used_memory: u64,  // NodeInfo['mem']['used_memory']
+    pub mem_usage: f32,    // NodeInfo['mem']['mem_usage']
+
+    // 4. Network
+    pub rx_bytes: u64, // NodeInfo['net']['rx_bytes']
+    pub tx_bytes: u64, // NodeInfo['net']['tx_bytes']
+
+    // 5. Storage
+    pub read_bytes: u64,  // NodeInfo['storage']['read_bytes']
+    pub write_bytes: u64, // NodeInfo['storage']['write_bytes']
+
+    // 6. System
+    pub os: String,   // NodeInfo['system']['os']
+    pub arch: String, // NodeInfo['system']['arch']
+    pub ip: String,   // NodeInfo['system']['ip']
 }
 
 #[derive(Error, Debug)]

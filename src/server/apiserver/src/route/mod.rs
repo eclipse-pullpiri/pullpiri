@@ -29,9 +29,7 @@ pub async fn launch_tcp_listener() {
         .allow_methods(Any)
         .allow_headers(Any);
 
-    let app = Router::new()
-        .merge(api::router())
-        .layer(cors);
+    let app = Router::new().merge(api::router()).layer(cors);
 
     println!("http api listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();

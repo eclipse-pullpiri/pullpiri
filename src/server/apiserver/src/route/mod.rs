@@ -34,7 +34,7 @@ pub async fn launch_tcp_listener() {
         .allow_origin(Any)
         .allow_methods(Any)
         .allow_headers(Any);
-    
+
     let app = Router::new()
         .merge(api::router())
         .merge(cluster::cluster_router())

@@ -5,6 +5,7 @@
 
 use common::nodeagent::HandleYamlRequest;
 mod bluechi;
+pub mod clustering;
 pub mod grpc;
 pub mod manager;
 pub mod resource;
@@ -79,6 +80,15 @@ async fn main() {
     .trim()
     .to_string();
     println!("Starting NodeAgent on host: {}", hostname);
+
+    // Initialize clustering functionality
+    let node_config = clustering::load_node_config();
+    let mut cluster_client = clustering::ClusterClient::new(node_config);
+
+    if let Err(e) = cluster_client.initialize().await {
+        eprintln!("Failed to initialize clustering: {}", e);
+        // Continue without clustering for backward compatibility
+    }
 
     let (tx_grpc, rx_grpc) = channel::<HandleYamlRequest>(100);
     let mgr = launch_manager(rx_grpc, hostname.clone());

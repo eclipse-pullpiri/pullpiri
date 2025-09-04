@@ -1,5 +1,8 @@
 use common::nodeagent::node_agent_connection_server::NodeAgentConnection;
-use common::nodeagent::{HandleYamlRequest, HandleYamlResponse};
+use common::nodeagent::{
+    HandleYamlRequest, HandleYamlResponse, HeartbeatRequest, HeartbeatResponse,
+    NodeRegistrationRequest, NodeRegistrationResponse, NodeStatusRequest, NodeStatusResponse,
+};
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
 
@@ -31,6 +34,51 @@ impl NodeAgentConnection for NodeAgentReceiver {
                 format!("cannot send condition: {}", e),
             )),
         }
+    }
+
+    /// Handle node registration request
+    ///
+    /// For NodeAgent, this method returns an error since registration should be initiated by the node itself
+    async fn register_node(
+        &self,
+        _request: Request<NodeRegistrationRequest>,
+    ) -> Result<Response<NodeRegistrationResponse>, Status> {
+        Err(tonic::Status::new(
+            tonic::Code::Unimplemented,
+            "Node registration should be initiated by the node, not received",
+        ))
+    }
+
+    /// Handle heartbeat request
+    ///
+    /// For NodeAgent, this method returns an error since heartbeat should be sent by the node itself
+    async fn send_heartbeat(
+        &self,
+        _request: Request<HeartbeatRequest>,
+    ) -> Result<Response<HeartbeatResponse>, Status> {
+        Err(tonic::Status::new(
+            tonic::Code::Unimplemented,
+            "Heartbeat should be sent by the node, not received",
+        ))
+    }
+
+    /// Handle node status request
+    ///
+    /// Returns the current status of this node
+    async fn get_node_status(
+        &self,
+        request: Request<NodeStatusRequest>,
+    ) -> Result<Response<NodeStatusResponse>, Status> {
+        let req = request.into_inner();
+
+        // For now, return a simple success response
+        // In a full implementation, this would check the actual node status
+        println!("Node status requested for: {}", req.node_id);
+
+        Ok(tonic::Response::new(NodeStatusResponse {
+            success: true,
+            node: None, // Would contain actual node info in full implementation
+        }))
     }
 }
 

@@ -5,7 +5,7 @@
 
 //! Node registry for cluster management using etcd
 
-use super::{NodeInfo, NodeRole, NodeStatus, ClusterTopology, TopologyType};
+use super::{ClusterTopology, NodeInfo, NodeRole, NodeStatus, TopologyType};
 use common::{etcd, Result};
 use serde_json;
 use std::collections::HashMap;
@@ -43,25 +43,42 @@ impl NodeRegistry {
         let key = format!("{}/{}", NODES_PREFIX, node_info.node_id);
         let value = serde_json::to_string(&node_info)?;
 
-        etcd::put(&key, &value).await
+        etcd::put(&key, &value)
+            .await
             .map_err(|e| format!("Failed to register node: {}", e))?;
 
-        println!("Registered node: {} with role: {:?}", node_info.node_name, node_info.role);
+        println!(
+            "Registered node: {} with role: {:?}",
+            node_info.node_name, node_info.role
+        );
         Ok(cluster_id)
     }
 
     /// Update node status (typically for heartbeats)
-    pub async fn update_node_status(&self, node_id: &str, status: NodeStatus, metrics: Option<HashMap<String, String>>) -> Result<()> {
+    pub async fn update_node_status(
+        &self,
+        node_id: &str,
+        status: NodeStatus,
+        metrics: Option<HashMap<String, String>>,
+    ) -> Result<()> {
         let mut node_info = self.get_node(node_id).await?;
         node_info.status = status;
         node_info.update_heartbeat();
 
         // Update resource metrics if provided
         if let Some(metrics) = metrics {
-            if let Ok(cpu_usage) = metrics.get("cpu_usage").unwrap_or(&"0.0".to_string()).parse::<f64>() {
+            if let Ok(cpu_usage) = metrics
+                .get("cpu_usage")
+                .unwrap_or(&"0.0".to_string())
+                .parse::<f64>()
+            {
                 node_info.resources.cpu_usage = cpu_usage;
             }
-            if let Ok(memory_usage) = metrics.get("memory_usage").unwrap_or(&"0.0".to_string()).parse::<f64>() {
+            if let Ok(memory_usage) = metrics
+                .get("memory_usage")
+                .unwrap_or(&"0.0".to_string())
+                .parse::<f64>()
+            {
                 node_info.resources.memory_usage = memory_usage;
             }
         }
@@ -69,7 +86,8 @@ impl NodeRegistry {
         let key = format!("{}/{}", NODES_PREFIX, node_id);
         let value = serde_json::to_string(&node_info)?;
 
-        etcd::put(&key, &value).await
+        etcd::put(&key, &value)
+            .await
             .map_err(|e| format!("Failed to update node status: {}", e))?;
 
         Ok(())
@@ -78,12 +96,12 @@ impl NodeRegistry {
     /// Get a specific node by ID
     pub async fn get_node(&self, node_id: &str) -> Result<NodeInfo> {
         let key = format!("{}/{}", NODES_PREFIX, node_id);
-        
+
         match etcd::get(&key).await {
             Ok(value) => {
                 let node_info: NodeInfo = serde_json::from_str(&value)?;
                 Ok(node_info)
-            },
+            }
             Err(e) => Err(format!("Failed to get node: {}", e).into()),
         }
     }
@@ -99,7 +117,7 @@ impl NodeRegistry {
                     }
                 }
                 Ok(nodes)
-            },
+            }
             Err(e) => Err(format!("Failed to get nodes: {}", e).into()),
         }
     }
@@ -107,13 +125,17 @@ impl NodeRegistry {
     /// Get nodes filtered by status
     pub async fn get_nodes_by_status(&self, status_filter: NodeStatus) -> Result<Vec<NodeInfo>> {
         let all_nodes = self.get_all_nodes().await?;
-        Ok(all_nodes.into_iter().filter(|node| node.status == status_filter).collect())
+        Ok(all_nodes
+            .into_iter()
+            .filter(|node| node.status == status_filter)
+            .collect())
     }
 
     /// Remove a node from the cluster
     pub async fn remove_node(&self, node_id: &str) -> Result<()> {
         let key = format!("{}/{}", NODES_PREFIX, node_id);
-        etcd::delete(&key).await
+        etcd::delete(&key)
+            .await
             .map_err(|e| format!("Failed to remove node: {}", e))?;
 
         println!("Removed node: {}", node_id);
@@ -123,7 +145,7 @@ impl NodeRegistry {
     /// Get cluster topology
     pub async fn get_cluster_topology(&self, cluster_id: &str) -> Result<ClusterTopology> {
         let all_nodes = self.get_all_nodes().await?;
-        
+
         let mut master_nodes = Vec::new();
         let mut sub_nodes = Vec::new();
 
@@ -154,13 +176,17 @@ impl NodeRegistry {
             let heartbeat_age = current_time - node.last_heartbeat;
             if heartbeat_age > HEARTBEAT_TIMEOUT_SECONDS && node.is_online() {
                 // Mark node as offline
-                self.update_node_status(&node.node_id, NodeStatus::Offline, None).await?;
+                self.update_node_status(&node.node_id, NodeStatus::Offline, None)
+                    .await?;
                 stale_nodes.push(node.node_id);
             }
         }
 
         if !stale_nodes.is_empty() {
-            println!("Marked {} nodes as offline due to stale heartbeats", stale_nodes.len());
+            println!(
+                "Marked {} nodes as offline due to stale heartbeats",
+                stale_nodes.len()
+            );
         }
 
         Ok(stale_nodes)
@@ -169,13 +195,14 @@ impl NodeRegistry {
     /// Get or create cluster ID
     async fn get_or_create_cluster_id(&self) -> Result<String> {
         let key = format!("{}/default", TOPOLOGY_PREFIX);
-        
+
         match etcd::get(&key).await {
             Ok(value) => Ok(value),
             Err(_) => {
                 // Create new cluster ID
                 let cluster_id = format!("piccolo-cluster-{}", chrono::Utc::now().timestamp());
-                etcd::put(&key, &cluster_id).await
+                etcd::put(&key, &cluster_id)
+                    .await
                     .map_err(|e| format!("Failed to create cluster ID: {}", e))?;
                 Ok(cluster_id)
             }

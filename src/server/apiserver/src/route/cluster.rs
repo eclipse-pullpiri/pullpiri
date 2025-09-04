@@ -5,13 +5,13 @@
 
 //! Cluster management REST API endpoints
 
-use crate::cluster::{NodeInfo, NodeRole, NodeStatus, NodeResources, NodeRegistry};
+use crate::cluster::{NodeInfo, NodeRegistry, NodeResources, NodeRole, NodeStatus};
 use axum::{
     extract::{Path, Query},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json, Router, 
-    routing::{get, post, delete},
+    routing::{delete, get, post},
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -23,9 +23,13 @@ static NODE_REGISTRY: OnceCell<NodeRegistry> = OnceCell::const_new();
 /// Initialize the cluster management system
 pub async fn initialize_cluster_management() -> Result<(), Box<dyn std::error::Error>> {
     let registry = NodeRegistry::new();
-    registry.initialize().await.map_err(|e| format!("Failed to initialize node registry: {}", e))?;
-    
-    NODE_REGISTRY.set(registry)
+    registry
+        .initialize()
+        .await
+        .map_err(|e| format!("Failed to initialize node registry: {}", e))?;
+
+    NODE_REGISTRY
+        .set(registry)
         .map_err(|_| "Failed to set global node registry")?;
 
     // Start background task for checking stale nodes
@@ -106,41 +110,56 @@ pub struct ClusterHealthResponse {
 async fn get_nodes(Query(params): Query<NodesQuery>) -> Response {
     let registry = match NODE_REGISTRY.get() {
         Some(r) => r,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, "Node registry not initialized").into_response(),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Node registry not initialized",
+            )
+                .into_response()
+        }
     };
 
     let nodes = match registry.get_all_nodes().await {
         Ok(nodes) => nodes,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to get nodes: {}", e)).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to get nodes: {}", e),
+            )
+                .into_response()
+        }
     };
 
     // Apply filters
-    let filtered_nodes: Vec<NodeInfo> = nodes.into_iter().filter(|node| {
-        if let Some(status_filter) = &params.status {
-            let node_status = match node.status {
-                NodeStatus::Online => "online",
-                NodeStatus::Offline => "offline",
-                NodeStatus::Initializing => "initializing",
-                NodeStatus::Error => "error",
-                NodeStatus::Maintenance => "maintenance",
-            };
-            if node_status != status_filter.as_str() {
-                return false;
+    let filtered_nodes: Vec<NodeInfo> = nodes
+        .into_iter()
+        .filter(|node| {
+            if let Some(status_filter) = &params.status {
+                let node_status = match node.status {
+                    NodeStatus::Online => "online",
+                    NodeStatus::Offline => "offline",
+                    NodeStatus::Initializing => "initializing",
+                    NodeStatus::Error => "error",
+                    NodeStatus::Maintenance => "maintenance",
+                };
+                if node_status != status_filter.as_str() {
+                    return false;
+                }
             }
-        }
 
-        if let Some(role_filter) = &params.role {
-            let node_role = match node.role {
-                NodeRole::Master => "master",
-                NodeRole::Sub => "sub",
-            };
-            if node_role != role_filter.as_str() {
-                return false;
+            if let Some(role_filter) = &params.role {
+                let node_role = match node.role {
+                    NodeRole::Master => "master",
+                    NodeRole::Sub => "sub",
+                };
+                if node_role != role_filter.as_str() {
+                    return false;
+                }
             }
-        }
 
-        true
-    }).collect();
+            true
+        })
+        .collect();
 
     Json(filtered_nodes).into_response()
 }
@@ -149,7 +168,13 @@ async fn get_nodes(Query(params): Query<NodesQuery>) -> Response {
 async fn get_node(Path(node_id): Path<String>) -> Response {
     let registry = match NODE_REGISTRY.get() {
         Some(r) => r,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, "Node registry not initialized").into_response(),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Node registry not initialized",
+            )
+                .into_response()
+        }
     };
 
     match registry.get_node(&node_id).await {
@@ -162,17 +187,33 @@ async fn get_node(Path(node_id): Path<String>) -> Response {
 async fn register_node(Json(payload): Json<NodeRegistrationRequest>) -> Response {
     let registry = match NODE_REGISTRY.get() {
         Some(r) => r,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, "Node registry not initialized").into_response(),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Node registry not initialized",
+            )
+                .into_response()
+        }
     };
 
     // Generate unique node ID
-    let node_id = format!("{}-{}", payload.node_name, chrono::Utc::now().timestamp_millis());
+    let node_id = format!(
+        "{}-{}",
+        payload.node_name,
+        chrono::Utc::now().timestamp_millis()
+    );
 
     // Parse role
     let role = match payload.role.to_lowercase().as_str() {
         "master" => NodeRole::Master,
         "sub" => NodeRole::Sub,
-        _ => return (StatusCode::BAD_REQUEST, "Invalid role. Must be 'master' or 'sub'").into_response(),
+        _ => {
+            return (
+                StatusCode::BAD_REQUEST,
+                "Invalid role. Must be 'master' or 'sub'",
+            )
+                .into_response()
+        }
     };
 
     // Create node info
@@ -185,7 +226,7 @@ async fn register_node(Json(payload): Json<NodeRegistrationRequest>) -> Response
         cpu_usage: 0.0,
         memory_usage: 0.0,
     };
-    
+
     if let Some(labels) = payload.labels {
         node_info.labels = labels;
     }
@@ -199,7 +240,7 @@ async fn register_node(Json(payload): Json<NodeRegistrationRequest>) -> Response
                 node_id: Some(node_id),
             };
             (StatusCode::CREATED, Json(response)).into_response()
-        },
+        }
         Err(e) => {
             let response = NodeRegistrationResponse {
                 success: false,
@@ -213,10 +254,19 @@ async fn register_node(Json(payload): Json<NodeRegistrationRequest>) -> Response
 }
 
 /// Update node status
-async fn update_node_status(Path(node_id): Path<String>, Json(payload): Json<NodeStatusUpdateRequest>) -> Response {
+async fn update_node_status(
+    Path(node_id): Path<String>,
+    Json(payload): Json<NodeStatusUpdateRequest>,
+) -> Response {
     let registry = match NODE_REGISTRY.get() {
         Some(r) => r,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, "Node registry not initialized").into_response(),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Node registry not initialized",
+            )
+                .into_response()
+        }
     };
 
     // Parse status
@@ -229,9 +279,16 @@ async fn update_node_status(Path(node_id): Path<String>, Json(payload): Json<Nod
         _ => return (StatusCode::BAD_REQUEST, "Invalid status").into_response(),
     };
 
-    match registry.update_node_status(&node_id, status, payload.metrics).await {
+    match registry
+        .update_node_status(&node_id, status, payload.metrics)
+        .await
+    {
         Ok(_) => (StatusCode::OK, "Node status updated successfully").into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to update node status: {}", e)).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to update node status: {}", e),
+        )
+            .into_response(),
     }
 }
 
@@ -239,12 +296,22 @@ async fn update_node_status(Path(node_id): Path<String>, Json(payload): Json<Nod
 async fn remove_node(Path(node_id): Path<String>) -> Response {
     let registry = match NODE_REGISTRY.get() {
         Some(r) => r,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, "Node registry not initialized").into_response(),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Node registry not initialized",
+            )
+                .into_response()
+        }
     };
 
     match registry.remove_node(&node_id).await {
         Ok(_) => (StatusCode::OK, "Node removed successfully").into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to remove node: {}", e)).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to remove node: {}", e),
+        )
+            .into_response(),
     }
 }
 
@@ -252,12 +319,22 @@ async fn remove_node(Path(node_id): Path<String>) -> Response {
 async fn get_cluster_topology() -> Response {
     let registry = match NODE_REGISTRY.get() {
         Some(r) => r,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, "Node registry not initialized").into_response(),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Node registry not initialized",
+            )
+                .into_response()
+        }
     };
 
     match registry.get_cluster_topology("default").await {
         Ok(topology) => (StatusCode::OK, Json(topology)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to get cluster topology: {}", e)).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to get cluster topology: {}", e),
+        )
+            .into_response(),
     }
 }
 
@@ -265,15 +342,27 @@ async fn get_cluster_topology() -> Response {
 async fn cluster_health() -> Response {
     let registry = match NODE_REGISTRY.get() {
         Some(r) => r,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, "Node registry not initialized").into_response(),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Node registry not initialized",
+            )
+                .into_response()
+        }
     };
 
     match registry.get_all_nodes().await {
         Ok(nodes) => {
             let total_nodes = nodes.len();
             let online_nodes = nodes.iter().filter(|n| n.is_online()).count();
-            let master_nodes = nodes.iter().filter(|n| matches!(n.role, NodeRole::Master)).count();
-            let sub_nodes = nodes.iter().filter(|n| matches!(n.role, NodeRole::Sub)).count();
+            let master_nodes = nodes
+                .iter()
+                .filter(|n| matches!(n.role, NodeRole::Master))
+                .count();
+            let sub_nodes = nodes
+                .iter()
+                .filter(|n| matches!(n.role, NodeRole::Sub))
+                .count();
 
             let status = if online_nodes == 0 {
                 "unhealthy"
@@ -292,7 +381,11 @@ async fn cluster_health() -> Response {
             };
 
             Json(health).into_response()
-        },
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to get cluster health: {}", e)).into_response(),
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to get cluster health: {}", e),
+        )
+            .into_response(),
     }
 }

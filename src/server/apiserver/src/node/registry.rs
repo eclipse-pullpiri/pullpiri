@@ -4,19 +4,19 @@
  */
 
 //! Node Registry Module
-//! 
+//!
 //! Handles node registration, authentication, and basic node information management.
 //! This module provides a lightweight registry suitable for embedded environments.
 
 use common::nodeagent::{
-    NodeInfo, NodeRegistrationRequest, NodeRegistrationResponse, NodeStatus, 
-    ClusterInfo, Credentials
+    ClusterInfo, Credentials, NodeInfo, NodeRegistrationRequest, NodeRegistrationResponse,
+    NodeRole, NodeStatus,
 };
 
+use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use anyhow::{Result, anyhow};
 
 /// Node registry for managing cluster nodes
 #[derive(Clone)]
@@ -42,10 +42,15 @@ impl NodeRegistry {
     }
 
     /// Register a new node in the cluster
-    pub async fn register_node(&self, request: NodeRegistrationRequest) -> Result<NodeRegistrationResponse> {
+    pub async fn register_node(
+        &self,
+        request: NodeRegistrationRequest,
+    ) -> Result<NodeRegistrationResponse> {
         // Basic validation
         if request.hostname.is_empty() || request.ip_address.is_empty() {
-            return Err(anyhow!("Invalid node information: hostname and IP address are required"));
+            return Err(anyhow!(
+                "Invalid node information: hostname and IP address are required"
+            ));
         }
 
         // Simple authentication check (in production this would be more sophisticated)
@@ -55,7 +60,11 @@ impl NodeRegistry {
 
         // Generate node ID if not provided
         let node_id = if request.node_id.is_empty() {
-            format!("node-{}-{}", request.hostname, chrono::Utc::now().timestamp())
+            format!(
+                "node-{}-{}",
+                request.hostname,
+                chrono::Utc::now().timestamp()
+            )
         } else {
             request.node_id
         };
@@ -109,7 +118,7 @@ impl NodeRegistry {
     /// Update node status
     pub async fn update_node_status(&self, node_id: &str, status: NodeStatus) -> Result<()> {
         let mut nodes = self.nodes.write().await;
-        
+
         if let Some(node) = nodes.get_mut(node_id) {
             node.status = status.into();
             node.last_seen = chrono::Utc::now().timestamp();
@@ -123,10 +132,10 @@ impl NodeRegistry {
     /// Record node heartbeat
     pub async fn record_heartbeat(&self, node_id: &str) -> Result<()> {
         let mut nodes = self.nodes.write().await;
-        
+
         if let Some(node) = nodes.get_mut(node_id) {
             node.last_seen = chrono::Utc::now().timestamp();
-            
+
             // Update status to ready if it was initializing
             if node.status == NodeStatus::Initializing as i32 {
                 node.status = NodeStatus::Ready.into();
@@ -141,12 +150,12 @@ impl NodeRegistry {
     /// Remove a node from the cluster
     pub async fn remove_node(&self, node_id: &str) -> Result<()> {
         let mut nodes = self.nodes.write().await;
-        
+
         if nodes.remove(node_id).is_some() {
             // Update cluster info
             let mut cluster_info = self.cluster_info.write().await;
             cluster_info.nodes.retain(|n| n.node_id != node_id);
-            
+
             log::info!("Node removed: {}", node_id);
             Ok(())
         } else {
@@ -170,7 +179,11 @@ impl NodeRegistry {
                 if node.status == NodeStatus::Ready as i32 {
                     node.status = NodeStatus::NotReady.into();
                     unhealthy_nodes.push(node_id.clone());
-                    log::warn!("Node {} marked as unhealthy (last seen: {})", node_id, node.last_seen);
+                    log::warn!(
+                        "Node {} marked as unhealthy (last seen: {})",
+                        node_id,
+                        node.last_seen
+                    );
                 }
             }
         }
@@ -191,7 +204,7 @@ impl NodeRegistry {
                 }
                 // In real implementation, validate token against known values
                 Ok(true)
-            },
+            }
             None => {
                 log::warn!("No credentials provided, allowing for development");
                 Ok(true) // Allow for development/testing
@@ -214,7 +227,7 @@ mod tests {
     #[tokio::test]
     async fn test_node_registration() {
         let registry = NodeRegistry::new();
-        
+
         let request = NodeRegistrationRequest {
             node_id: "test-node".to_string(),
             hostname: "test-host".to_string(),
@@ -247,7 +260,7 @@ mod tests {
     #[tokio::test]
     async fn test_heartbeat_updates_status() {
         let registry = NodeRegistry::new();
-        
+
         let request = NodeRegistrationRequest {
             node_id: "heartbeat-test".to_string(),
             hostname: "heartbeat-host".to_string(),
@@ -258,14 +271,14 @@ mod tests {
         };
 
         registry.register_node(request).await.unwrap();
-        
+
         // Initially should be initializing
         let node = registry.get_node("heartbeat-test").await.unwrap().unwrap();
         assert_eq!(node.status, NodeStatus::Initializing as i32);
 
         // Send heartbeat should make it ready
         registry.record_heartbeat("heartbeat-test").await.unwrap();
-        
+
         let node = registry.get_node("heartbeat-test").await.unwrap().unwrap();
         assert_eq!(node.status, NodeStatus::Ready as i32);
     }

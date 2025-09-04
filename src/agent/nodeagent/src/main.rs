@@ -5,6 +5,7 @@
 
 use common::nodeagent::HandleYamlRequest;
 mod bluechi;
+pub mod cluster;
 pub mod grpc;
 pub mod manager;
 pub mod resource;

@@ -3,9 +3,10 @@
 //! This struct manages scenario requests received via gRPC, and provides
 //! a gRPC sender for communicating with the monitoring server or other services.
 //! It is designed to be thread-safe and run in an async context.
+use crate::cluster::{ClusterClient, ClusterConfig};
 use crate::grpc::sender::NodeAgentSender;
 use common::monitoringserver::{ContainerInfo, ContainerList};
-use common::nodeagent::HandleYamlRequest;
+use common::nodeagent::{HandleYamlRequest, NodeRole};
 use common::Result;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -13,12 +14,15 @@ use tokio::sync::{mpsc, Mutex};
 /// Main manager struct for NodeAgent.
 ///
 /// Holds the gRPC receiver and sender, and manages the main event loop.
+/// Now includes clustering functionality for master node communication.
 pub struct NodeAgentManager {
     /// Receiver for scenario information from gRPC
     rx_grpc: Arc<Mutex<mpsc::Receiver<HandleYamlRequest>>>,
     /// gRPC sender for monitoring server
     sender: Arc<Mutex<NodeAgentSender>>,
-    // Add other shared state as needed
+    /// Clustering client for master node communication
+    cluster_client: Option<ClusterClient>,
+    /// Hostname of this node
     hostname: String,
 }
 
@@ -27,19 +31,110 @@ impl NodeAgentManager {
     ///
     /// # Arguments
     /// * `rx_grpc` - Channel receiver for scenario information
+    /// * `hostname` - Hostname of this node
     pub async fn new(rx: mpsc::Receiver<HandleYamlRequest>, hostname: String) -> Self {
         Self {
             rx_grpc: Arc::new(Mutex::new(rx)),
             sender: Arc::new(Mutex::new(NodeAgentSender::default())),
+            cluster_client: None,
+            hostname,
+        }
+    }
+
+    /// Creates a new NodeAgentManager with clustering enabled.
+    ///
+    /// # Arguments
+    /// * `rx_grpc` - Channel receiver for scenario information
+    /// * `hostname` - Hostname of this node
+    /// * `master_endpoint` - Endpoint of the master node (e.g., "http://192.168.1.1:47100")
+    pub async fn new_with_clustering(
+        rx: mpsc::Receiver<HandleYamlRequest>,
+        hostname: String,
+        master_endpoint: String,
+    ) -> Self {
+        let cluster_config = ClusterConfig {
+            master_endpoint,
+            hostname: hostname.clone(),
+            node_role: NodeRole::Sub,
+            ..Default::default()
+        };
+
+        let cluster_client = ClusterClient::new(cluster_config);
+
+        Self {
+            rx_grpc: Arc::new(Mutex::new(rx)),
+            sender: Arc::new(Mutex::new(NodeAgentSender::default())),
+            cluster_client: Some(cluster_client),
             hostname,
         }
     }
 
     /// Initializes the NodeAgentManager (e.g., loads scenarios, prepares state).
+    /// Now includes clustering initialization if enabled.
     pub async fn initialize(&mut self) -> Result<()> {
         println!("NodeAgentManager init");
-        // Add initialization logic here (e.g., read scenarios, subscribe, etc.)
+
+        // Initialize clustering if enabled
+        if let Some(cluster_client) = &self.cluster_client {
+            println!("Initializing clustering...");
+            match cluster_client.initialize().await {
+                Ok(_) => {
+                    println!("Clustering initialized successfully");
+                    // Start background tasks for heartbeat and status reporting
+                    cluster_client.start_background_tasks().await;
+                }
+                Err(e) => {
+                    eprintln!(
+                        "Failed to initialize clustering: {}. Running in standalone mode.",
+                        e
+                    );
+                    // Continue running in standalone mode
+                }
+            }
+        } else {
+            println!("Running in standalone mode (no clustering)");
+        }
+
         Ok(())
+    }
+
+    /// Check if clustering is enabled and connected
+    pub fn is_clustering_enabled(&self) -> bool {
+        self.cluster_client.is_some()
+    }
+
+    /// Check if connected to master node (only meaningful if clustering is enabled)
+    pub fn is_connected_to_master(&self) -> bool {
+        self.cluster_client
+            .as_ref()
+            .map(|client| client.is_connected())
+            .unwrap_or(false)
+    }
+
+    /// Get the node ID assigned by the master (if any)
+    pub async fn get_node_id(&self) -> Option<String> {
+        if let Some(cluster_client) = &self.cluster_client {
+            cluster_client.get_node_id().await
+        } else {
+            None
+        }
+    }
+
+    /// Get clustering status information
+    pub async fn get_clustering_status(&self) -> String {
+        if let Some(cluster_client) = &self.cluster_client {
+            let connected = cluster_client.is_connected();
+            let node_id = cluster_client.get_node_id().await;
+
+            match (connected, node_id) {
+                (true, Some(id)) => format!("Connected to cluster as node: {}", id),
+                (true, None) => "Connected but not registered".to_string(),
+                (false, Some(id)) => format!("Disconnected (last known node ID: {})", id),
+                (false, None) => "Disconnected and not registered".to_string(),
+            }
+        } else {
+            "Clustering disabled".to_string()
+        }
     }
 
     // pub async fn handle_yaml(&self, whole_yaml: &String) -> Result<()> {

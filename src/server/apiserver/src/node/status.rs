@@ -4,18 +4,17 @@
  */
 
 //! Node Status Module
-//! 
+//!
 //! Handles node status monitoring, heartbeat processing, and health checks.
 //! Optimized for embedded environments with minimal resource usage.
 
+use anyhow::{anyhow, Result};
 use common::nodeagent::{
-    NodeStatus, StatusReport, StatusAck, HeartbeatRequest, HeartbeatResponse,
-    AlertInfo
+    AlertInfo, HeartbeatRequest, HeartbeatResponse, NodeStatus, StatusAck, StatusReport,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use anyhow::{Result, anyhow};
 
 /// Node status manager for tracking node health and metrics
 #[derive(Clone)]
@@ -48,9 +47,10 @@ impl NodeStatusManager {
     /// Process heartbeat from a node
     pub async fn process_heartbeat(&self, request: HeartbeatRequest) -> Result<HeartbeatResponse> {
         let current_time = chrono::Utc::now().timestamp();
-        
+
         let mut metrics = self.node_metrics.write().await;
-        let node_metrics = metrics.entry(request.node_id.clone())
+        let node_metrics = metrics
+            .entry(request.node_id.clone())
             .or_insert_with(|| NodeMetrics {
                 node_id: request.node_id.clone(),
                 last_heartbeat: 0,
@@ -78,7 +78,8 @@ impl NodeStatusManager {
     /// Process status report from a node
     pub async fn process_status_report(&self, report: StatusReport) -> Result<StatusAck> {
         let mut metrics = self.node_metrics.write().await;
-        let node_metrics = metrics.entry(report.node_id.clone())
+        let node_metrics = metrics
+            .entry(report.node_id.clone())
             .or_insert_with(|| NodeMetrics {
                 node_id: report.node_id.clone(),
                 last_heartbeat: 0,
@@ -98,15 +99,28 @@ impl NodeStatusManager {
 
         // Log container status if any
         if !report.containers.is_empty() {
-            log::debug!("Node {} reported {} containers", report.node_id, report.containers.len());
+            log::debug!(
+                "Node {} reported {} containers",
+                report.node_id,
+                report.containers.len()
+            );
             for container in &report.containers {
-                log::trace!("Container {}: {} ({})", container.name, container.status, container.image);
+                log::trace!(
+                    "Container {}: {} ({})",
+                    container.name,
+                    container.status,
+                    container.image
+                );
             }
         }
 
         // Log alerts if any
         if !report.alerts.is_empty() {
-            log::warn!("Node {} reported {} alerts", report.node_id, report.alerts.len());
+            log::warn!(
+                "Node {} reported {} alerts",
+                report.node_id,
+                report.alerts.len()
+            );
             for alert in &report.alerts {
                 log::warn!("Alert: {} - {}", alert.severity, alert.message);
             }
@@ -134,19 +148,19 @@ impl NodeStatusManager {
     pub async fn check_node_health(&self) -> Result<Vec<String>> {
         let current_time = chrono::Utc::now().timestamp();
         let mut unhealthy_nodes = Vec::new();
-        
+
         let mut metrics = self.node_metrics.write().await;
-        
+
         for (node_id, node_metrics) in metrics.iter_mut() {
             let time_since_heartbeat = current_time - node_metrics.last_heartbeat;
-            
+
             if time_since_heartbeat > self.heartbeat_timeout {
                 // Node is considered unhealthy
                 if node_metrics.status == NodeStatus::Ready {
                     node_metrics.status = NodeStatus::NotReady;
                     node_metrics.consecutive_failures += 1;
                     unhealthy_nodes.push(node_id.clone());
-                    
+
                     log::warn!(
                         "Node {} marked as unhealthy: {} seconds since last heartbeat (consecutive failures: {})",
                         node_id,
@@ -173,7 +187,10 @@ impl NodeStatusManager {
             .collect();
 
         if !failed_nodes.is_empty() {
-            log::warn!("Found {} failed nodes that may need removal", failed_nodes.len());
+            log::warn!(
+                "Found {} failed nodes that may need removal",
+                failed_nodes.len()
+            );
         }
 
         Ok(failed_nodes)
@@ -197,7 +214,7 @@ impl NodeStatusManager {
 
         for node_metrics in metrics.values() {
             summary.total_nodes += 1;
-            
+
             match node_metrics.status {
                 NodeStatus::Ready => summary.ready_nodes += 1,
                 NodeStatus::NotReady => summary.not_ready_nodes += 1,
@@ -218,33 +235,39 @@ impl NodeStatusManager {
     /// Start background health monitoring task
     pub async fn start_health_monitoring(&self, check_interval_seconds: u64) {
         let status_manager = self.clone();
-        
+
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(
-                tokio::time::Duration::from_secs(check_interval_seconds)
-            );
-            
+            let mut interval =
+                tokio::time::interval(tokio::time::Duration::from_secs(check_interval_seconds));
+
             loop {
                 interval.tick().await;
-                
+
                 match status_manager.check_node_health().await {
                     Ok(unhealthy_nodes) => {
                         if !unhealthy_nodes.is_empty() {
-                            log::warn!("Health check found {} unhealthy nodes", unhealthy_nodes.len());
+                            log::warn!(
+                                "Health check found {} unhealthy nodes",
+                                unhealthy_nodes.len()
+                            );
                         }
-                    },
+                    }
                     Err(e) => {
                         log::error!("Error during health check: {}", e);
                     }
                 }
 
                 // Check for nodes that should be removed
-                match status_manager.get_failed_nodes(3).await { // 3 consecutive failures
+                match status_manager.get_failed_nodes(3).await {
+                    // 3 consecutive failures
                     Ok(failed_nodes) => {
                         for node_id in failed_nodes {
-                            log::error!("Node {} has failed consistently and may need manual intervention", node_id);
+                            log::error!(
+                                "Node {} has failed consistently and may need manual intervention",
+                                node_id
+                            );
                         }
-                    },
+                    }
                     Err(e) => {
                         log::error!("Error checking failed nodes: {}", e);
                     }
@@ -281,12 +304,12 @@ impl ClusterHealthSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::nodeagent::{ContainerStatus, AlertInfo};
+    use common::nodeagent::{AlertInfo, ContainerStatus};
 
     #[tokio::test]
     async fn test_heartbeat_processing() {
         let status_manager = NodeStatusManager::new(30);
-        
+
         let heartbeat = HeartbeatRequest {
             node_id: "test-node".to_string(),
             timestamp: chrono::Utc::now().timestamp(),
@@ -306,26 +329,22 @@ mod tests {
     #[tokio::test]
     async fn test_status_report_processing() {
         let status_manager = NodeStatusManager::new(30);
-        
-        let containers = vec![
-            ContainerStatus {
-                container_id: "container1".to_string(),
-                name: "test-app".to_string(),
-                image: "test-image:latest".to_string(),
-                status: "running".to_string(),
-                cpu_percent: 50,
-                memory_usage: 512,
-            }
-        ];
 
-        let alerts = vec![
-            AlertInfo {
-                alert_id: "alert1".to_string(),
-                severity: "warning".to_string(),
-                message: "High CPU usage".to_string(),
-                timestamp: chrono::Utc::now().timestamp(),
-            }
-        ];
+        let containers = vec![ContainerStatus {
+            container_id: "container1".to_string(),
+            name: "test-app".to_string(),
+            image: "test-image:latest".to_string(),
+            status: "running".to_string(),
+            cpu_percent: 50,
+            memory_usage: 512,
+        }];
+
+        let alerts = vec![AlertInfo {
+            alert_id: "alert1".to_string(),
+            severity: "warning".to_string(),
+            message: "High CPU usage".to_string(),
+            timestamp: chrono::Utc::now().timestamp(),
+        }];
 
         let mut metrics_map = HashMap::new();
         metrics_map.insert("cpu_usage".to_string(), "75%".to_string());
@@ -354,16 +373,19 @@ mod tests {
     #[tokio::test]
     async fn test_health_check() {
         let status_manager = NodeStatusManager::new(1); // 1 second timeout for testing
-        
+
         // Add a node with old heartbeat
         let old_heartbeat = HeartbeatRequest {
             node_id: "old-node".to_string(),
             timestamp: chrono::Utc::now().timestamp() - 10, // 10 seconds ago
             status: NodeStatus::Ready.into(),
         };
-        
-        status_manager.process_heartbeat(old_heartbeat).await.unwrap();
-        
+
+        status_manager
+            .process_heartbeat(old_heartbeat)
+            .await
+            .unwrap();
+
         // Manually set old timestamp to simulate timeout
         {
             let mut metrics = status_manager.node_metrics.write().await;
@@ -374,7 +396,7 @@ mod tests {
 
         // Wait a bit and check health
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        
+
         let unhealthy = status_manager.check_node_health().await.unwrap();
         assert!(unhealthy.contains(&"old-node".to_string()));
     }

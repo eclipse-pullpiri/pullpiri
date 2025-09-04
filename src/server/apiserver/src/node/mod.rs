@@ -4,7 +4,7 @@
  */
 
 //! Node Management Module
-//! 
+//!
 //! This module provides clustering functionality for the PICCOLO API Server.
 //! It includes node registration, status monitoring, and cluster topology management.
 
@@ -14,4 +14,4 @@ pub mod status;
 
 pub use manager::NodeManager;
 pub use registry::NodeRegistry;
-pub use status::{NodeStatusManager, NodeMetrics, ClusterHealthSummary};
+pub use status::{ClusterHealthSummary, NodeMetrics, NodeStatusManager};

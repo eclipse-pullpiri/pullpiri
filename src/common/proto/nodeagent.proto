@@ -7,10 +7,19 @@ syntax = "proto3";
 
 package nodeagent;
 
+// Existing NodeAgent service for YAML handling
 service NodeAgentConnection {
   rpc HandleYaml(HandleYamlRequest) returns (HandleYamlResponse);
 }
 
+// New clustering service for NodeAgent
+service NodeAgentCluster {
+  rpc ReportStatus(StatusReport) returns (StatusAck);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc ReceiveConfig(ConfigRequest) returns (ConfigResponse);
+}
+
+// Existing YAML handling messages
 message HandleYamlRequest {
   string yaml = 1;
 }
@@ -18,4 +27,123 @@ message HandleYamlRequest {
 message HandleYamlResponse {
   bool status = 1;
   string desc = 2;
+}
+
+// Node clustering messages
+message NodeRegistrationRequest {
+  string node_id = 1;
+  string hostname = 2;
+  string ip_address = 3;
+  NodeRole role = 4;
+  ResourceInfo resources = 5;
+  Credentials credentials = 6;
+}
+
+message NodeRegistrationResponse {
+  string node_id = 1;
+  ClusterInfo cluster_info = 2;
+  NodeStatus status = 3;
+  string message = 4;
+}
+
+message StatusReport {
+  string node_id = 1;
+  NodeStatus status = 2;
+  map<string, string> metrics = 3;
+  repeated ContainerStatus containers = 4;
+  repeated AlertInfo alerts = 5;
+  int64 timestamp = 6;
+}
+
+message StatusAck {
+  bool received = 1;
+  string message = 2;
+}
+
+message HeartbeatRequest {
+  string node_id = 1;
+  int64 timestamp = 2;
+  NodeStatus status = 3;
+}
+
+message HeartbeatResponse {
+  bool success = 1;
+  string message = 2;
+  int64 server_timestamp = 3;
+}
+
+message ConfigRequest {
+  string node_id = 1;
+  int32 config_version = 2;
+}
+
+message ConfigResponse {
+  bool success = 1;
+  string config_data = 2;
+  int32 config_version = 3;
+  string message = 4;
+}
+
+// Data structures
+message ResourceInfo {
+  int32 cpu_cores = 1;
+  int64 memory_mb = 2;
+  int64 disk_gb = 3;
+  string architecture = 4;
+  string platform = 5;
+}
+
+message Credentials {
+  string token = 1;
+  string certificate = 2;
+  int64 expires_at = 3;
+}
+
+message ClusterInfo {
+  string cluster_id = 1;
+  string cluster_name = 2;
+  string master_endpoint = 3;
+  repeated NodeInfo nodes = 4;
+}
+
+message NodeInfo {
+  string node_id = 1;
+  string hostname = 2;
+  string ip_address = 3;
+  NodeRole role = 4;
+  NodeStatus status = 5;
+  int64 last_seen = 6;
+}
+
+message ContainerStatus {
+  string container_id = 1;
+  string name = 2;
+  string image = 3;
+  string status = 4;
+  int32 cpu_percent = 5;
+  int64 memory_usage = 6;
+}
+
+message AlertInfo {
+  string alert_id = 1;
+  string severity = 2;
+  string message = 3;
+  int64 timestamp = 4;
+}
+
+// Enums
+enum NodeRole {
+  UNKNOWN = 0;
+  MASTER = 1;
+  SUB = 2;
+  EDGE = 3;
+}
+
+enum NodeStatus {
+  PENDING = 0;
+  INITIALIZING = 1;
+  READY = 2;
+  NOT_READY = 3;
+  MAINTENANCE = 4;
+  TERMINATING = 5;
 }

@@ -1,0 +1,107 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+
+package apiserver;
+
+// Import common node definitions
+import "nodeagent.proto";
+
+// API Server clustering service
+service ApiServerCluster {
+  // Node management
+  rpc RegisterNode(nodeagent.NodeRegistrationRequest) returns (nodeagent.NodeRegistrationResponse);
+  rpc GetNodes(GetNodesRequest) returns (GetNodesResponse);
+  rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
+  rpc UpdateNodeStatus(UpdateNodeStatusRequest) returns (UpdateNodeStatusResponse);
+  
+  // Cluster topology management
+  rpc GetTopology(GetTopologyRequest) returns (GetTopologyResponse);
+  rpc UpdateTopology(UpdateTopologyRequest) returns (UpdateTopologyResponse);
+  
+  // Health and monitoring
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Node management messages
+message GetNodesRequest {
+  optional string filter = 1;
+  optional nodeagent.NodeStatus status_filter = 2;
+  optional nodeagent.NodeRole role_filter = 3;
+}
+
+message GetNodesResponse {
+  repeated nodeagent.NodeInfo nodes = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message GetNodeRequest {
+  string node_id = 1;
+}
+
+message GetNodeResponse {
+  nodeagent.NodeInfo node = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message UpdateNodeStatusRequest {
+  string node_id = 1;
+  nodeagent.NodeStatus status = 2;
+  string reason = 3;
+}
+
+message UpdateNodeStatusResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Topology management messages
+message GetTopologyRequest {}
+
+message GetTopologyResponse {
+  ClusterTopology topology = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message UpdateTopologyRequest {
+  ClusterTopology topology = 1;
+}
+
+message UpdateTopologyResponse {
+  ClusterTopology updated_topology = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message ClusterTopology {
+  string cluster_id = 1;
+  string cluster_name = 2;
+  TopologyType type = 3;
+  repeated nodeagent.NodeInfo master_nodes = 4;
+  repeated nodeagent.NodeInfo sub_nodes = 5;
+  optional string parent_cluster = 6;
+  map<string, string> config = 7;
+}
+
+// Health check messages
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  bool healthy = 1;
+  string status = 2;
+  map<string, string> details = 3;
+}
+
+// Enums
+enum TopologyType {
+  BASIC_EMBEDDED = 0;
+  EDGE_CLOUD_HYBRID = 1;
+  MULTI_EMBEDDED = 2;
+  REGIONAL_DISTRIBUTED = 3;
+}

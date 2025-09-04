@@ -6,3 +6,4 @@
 //! Running gRPC message send/receive
 
 pub mod sender;
+pub mod server;

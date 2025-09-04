@@ -7,11 +7,13 @@ syntax = "proto3";
 
 package nodeagent;
 
-service NodeAgentConnection {
+// NodeAgent service for cluster communication as per Korean LLD specification
+service NodeAgentService {
   rpc HandleYaml(HandleYamlRequest) returns (HandleYamlResponse);
   rpc RegisterNode(NodeRegistrationRequest) returns (NodeRegistrationResponse);
-  rpc SendHeartbeat(HeartbeatRequest) returns (HeartbeatResponse);
-  rpc GetNodeStatus(NodeStatusRequest) returns (NodeStatusResponse);
+  rpc ReportStatus(StatusReport) returns (StatusAck);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc ReceiveConfig(ConfigRequest) returns (ConfigResponse);
 }
 
 message HandleYamlRequest {
@@ -26,17 +28,31 @@ message HandleYamlResponse {
 // Node Registration Messages
 message NodeRegistrationRequest {
   string node_id = 1;
-  string node_name = 2;
+  string hostname = 2;
   string ip_address = 3;
   NodeRole role = 4;
-  NodeResources resources = 5;
-  map<string, string> labels = 6;
+  ResourceInfo resources = 5;
+  Credentials credentials = 6;
 }
 
 message NodeRegistrationResponse {
   bool success = 1;
   string message = 2;
   string cluster_id = 3;
+}
+
+// Status reporting messages
+message StatusReport {
+  string node_id = 1;
+  NodeStatus status = 2;
+  map<string, string> metrics = 3;
+  repeated ContainerStatus containers = 4;
+  repeated AlertInfo alerts = 5;
+}
+
+message StatusAck {
+  bool acknowledged = 1;
+  string message = 2;
 }
 
 // Heartbeat Messages
@@ -53,30 +69,31 @@ message HeartbeatResponse {
   int64 server_timestamp = 3;
 }
 
-// Node Status Messages
-message NodeStatusRequest {
+// Configuration messages
+message ConfigRequest {
   string node_id = 1;
+  map<string, string> config = 2;
 }
 
-message NodeStatusResponse {
+message ConfigResponse {
   bool success = 1;
-  NodeInfo node = 2;
+  string message = 2;
 }
 
 // Data Structures
 message NodeInfo {
   string node_id = 1;
-  string node_name = 2;
+  string hostname = 2;
   string ip_address = 3;
   NodeRole role = 4;
   NodeStatus status = 5;
-  NodeResources resources = 6;
+  ResourceInfo resources = 6;
   map<string, string> labels = 7;
   int64 created_at = 8;
   int64 last_heartbeat = 9;
 }
 
-message NodeResources {
+message ResourceInfo {
   uint32 cpu_cores = 1;
   uint64 memory_mb = 2;
   uint64 disk_gb = 3;
@@ -84,16 +101,37 @@ message NodeResources {
   double memory_usage = 5;
 }
 
+message Credentials {
+  string token = 1;
+  string certificate = 2;
+}
+
+message ContainerStatus {
+  string container_id = 1;
+  string name = 2;
+  string image = 3;
+  string status = 4;
+  int64 created_at = 5;
+}
+
+message AlertInfo {
+  string alert_id = 1;
+  string level = 2;
+  string message = 3;
+  int64 timestamp = 4;
+}
+
 enum NodeRole {
-  UNKNOWN = 0;
+  UNKNOWN_ROLE = 0;
   MASTER = 1;
   SUB = 2;
 }
 
 enum NodeStatus {
-  OFFLINE = 0;
-  ONLINE = 1;
-  INITIALIZING = 2;
-  ERROR = 3;
+  PENDING = 0;
+  INITIALIZING = 1;
+  READY = 2;
+  NOT_READY = 3;
   MAINTENANCE = 4;
+  TERMINATING = 5;
 }

@@ -7,77 +7,83 @@ syntax = "proto3";
 
 package apiserver;
 
-// API Server clustering service for internal communication
-service ApiServerClusteringService {
-  rpc RegisterNode(RegisterNodeRequest) returns (RegisterNodeResponse);
-  rpc UpdateNodeStatus(UpdateNodeStatusRequest) returns (UpdateNodeStatusResponse);
-  rpc GetClusterTopology(GetClusterTopologyRequest) returns (GetClusterTopologyResponse);
-  rpc GetNodeList(GetNodeListRequest) returns (GetNodeListResponse);
+// API Server service for cluster management as per Korean LLD specification
+service ApiServerService {
+  // Node management related API
+  rpc GetNodes(GetNodesRequest) returns (GetNodesResponse);
+  rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
+  rpc RegisterNode(NodeRegistrationRequest) returns (NodeRegistrationResponse);
+  
+  // Topology management related API
+  rpc GetTopology(GetTopologyRequest) returns (GetTopologyResponse);
+  rpc UpdateTopology(UpdateTopologyRequest) returns (UpdateTopologyResponse);
 }
 
-// Node Registration
-message RegisterNodeRequest {
+// Node list request/response
+message GetNodesRequest {
+  optional string filter = 1;
+}
+
+message GetNodesResponse {
+  repeated Node nodes = 1;
+}
+
+// Single node request/response
+message GetNodeRequest {
   string node_id = 1;
-  string node_name = 2;
+}
+
+message GetNodeResponse {
+  Node node = 1;
+}
+
+// Node registration request/response
+message NodeRegistrationRequest {
+  string node_id = 1;
+  string hostname = 2;
   string ip_address = 3;
   NodeRole role = 4;
-  NodeResources resources = 5;
-  map<string, string> labels = 6;
+  ResourceInfo resources = 5;
+  Credentials credentials = 6;
 }
 
-message RegisterNodeResponse {
+message NodeRegistrationResponse {
   bool success = 1;
   string message = 2;
   string cluster_id = 3;
 }
 
-// Node Status Update
-message UpdateNodeStatusRequest {
-  string node_id = 1;
-  NodeStatus status = 2;
-  map<string, string> metrics = 3;
-  int64 timestamp = 4;
+// Topology request/response
+message GetTopologyRequest {}
+
+message GetTopologyResponse {
+  ClusterTopology topology = 1;
 }
 
-message UpdateNodeStatusResponse {
-  bool success = 1;
-  string message = 2;
+message UpdateTopologyRequest {
+  ClusterTopology topology = 1;
 }
 
-// Cluster Topology
-message GetClusterTopologyRequest {
-  string cluster_id = 1;
-}
-
-message GetClusterTopologyResponse {
-  bool success = 1;
-  ClusterTopology topology = 2;
-}
-
-message GetNodeListRequest {
-  string cluster_id = 1;
-  NodeStatus status_filter = 2;
-}
-
-message GetNodeListResponse {
-  bool success = 1;
-  repeated NodeInfo nodes = 2;
+message UpdateTopologyResponse {
+  ClusterTopology updated_topology = 1;
+  bool success = 2;
+  optional string error_message = 3;
 }
 
 // Data Structures
-message NodeInfo {
+message Node {
   string node_id = 1;
-  string node_name = 2;
+  string hostname = 2;
   string ip_address = 3;
   NodeRole role = 4;
   NodeStatus status = 5;
-  NodeResources resources = 6;
+  ResourceInfo resources = 6;
   map<string, string> labels = 7;
   int64 created_at = 8;
   int64 last_heartbeat = 9;
 }
 
-message NodeResources {
+message ResourceInfo {
   uint32 cpu_cores = 1;
   uint64 memory_mb = 2;
   uint64 disk_gb = 3;
@@ -85,27 +91,33 @@ message NodeResources {
   double memory_usage = 5;
 }
 
+message Credentials {
+  string token = 1;
+  string certificate = 2;
+}
+
 message ClusterTopology {
   string cluster_id = 1;
   string cluster_name = 2;
   TopologyType type = 3;
-  repeated NodeInfo master_nodes = 4;
-  repeated NodeInfo sub_nodes = 5;
+  repeated Node master_nodes = 4;
+  repeated Node sub_nodes = 5;
   map<string, string> config = 6;
 }
 
 enum NodeRole {
-  UNKNOWN = 0;
+  UNKNOWN_ROLE = 0;
   MASTER = 1;
   SUB = 2;
 }
 
 enum NodeStatus {
-  OFFLINE = 0;
-  ONLINE = 1;
-  INITIALIZING = 2;
-  ERROR = 3;
+  PENDING = 0;
+  INITIALIZING = 1;
+  READY = 2;
+  NOT_READY = 3;
   MAINTENANCE = 4;
+  TERMINATING = 5;
 }
 
 enum TopologyType {

@@ -10,7 +10,7 @@ pub mod grpc;
 pub mod manager;
 pub mod resource;
 
-use common::nodeagent::node_agent_connection_server::NodeAgentConnectionServer;
+use common::nodeagent::node_agent_service_server::NodeAgentServiceServer;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 /// Launches the NodeAgentManager in an asynchronous task.
@@ -59,7 +59,7 @@ async fn initialize(tx_grpc: Sender<HandleYamlRequest>, hostname: String) {
     println!("NodeAgent listening on {}", addr);
 
     let _ = Server::builder()
-        .add_service(NodeAgentConnectionServer::new(server))
+        .add_service(NodeAgentServiceServer::new(server))
         .serve(addr)
         .await;
 }

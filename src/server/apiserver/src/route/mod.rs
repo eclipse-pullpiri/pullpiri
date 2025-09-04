@@ -6,7 +6,6 @@
 //! Access point of Piccolo REST API
 
 pub mod api;
-pub mod cluster;
 
 use axum::{
     http::StatusCode,
@@ -23,11 +22,6 @@ use tower_http::cors::{Any, CorsLayer};
 /// ### Description
 /// CORS layer needs to be considerd.
 pub async fn launch_tcp_listener() {
-    // Initialize cluster management
-    if let Err(e) = cluster::initialize_cluster_management().await {
-        eprintln!("Failed to initialize cluster management: {}", e);
-    }
-
     let addr = common::apiserver::open_rest_server();
     let listener = TcpListener::bind(addr).await.unwrap();
     let cors = CorsLayer::new()
@@ -37,7 +31,6 @@ pub async fn launch_tcp_listener() {
 
     let app = Router::new()
         .merge(api::router())
-        .merge(cluster::cluster_router())
         .layer(cors);
 
     println!("http api listening on {}", listener.local_addr().unwrap());

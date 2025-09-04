@@ -8,9 +8,18 @@
 use common::filtergateway::{Action, HandleScenarioRequest};
 use common::nodeagent::HandleYamlRequest;
 
-/// Launch REST API listener and reload scenario data in etcd
+/// Launch gRPC server and REST API listener, and reload scenario data in etcd
 pub async fn initialize() {
-    tokio::join!(crate::route::launch_tcp_listener(), reload());
+    let (rest_result, grpc_result, reload_result) = tokio::join!(
+        crate::route::launch_tcp_listener(),
+        crate::grpc::server::start_grpc_server(),
+        reload()
+    );
+
+    // Handle any errors from the server initialization
+    if let Err(e) = grpc_result {
+        eprintln!("Failed to start gRPC server: {}", e);
+    }
 }
 
 /// (under construction) Send request message to piccolo cloud

@@ -6,9 +6,13 @@
 //! NodeAgent clustering functionality for node registration and heartbeat
 
 use common::{
+    apiserver::{
+        api_server_service_client::ApiServerServiceClient, NodeRegistrationRequest, 
+        ResourceInfo, NodeRole, Credentials,
+    },
     nodeagent::{
-        node_agent_connection_client::NodeAgentConnectionClient, HeartbeatRequest,
-        NodeRegistrationRequest, NodeResources, NodeRole, NodeStatus,
+        node_agent_service_client::NodeAgentServiceClient, HeartbeatRequest,
+        NodeStatus,
     },
     setting, Result,
 };
@@ -53,10 +57,10 @@ impl Default for NodeConfig {
     }
 }
 
-/// Cluster client for managing node operations
+/// Cluster client for managing node operations with API Server
 pub struct ClusterClient {
     config: NodeConfig,
-    client: Option<NodeAgentConnectionClient<Channel>>,
+    api_client: Option<ApiServerServiceClient<Channel>>,
 }
 
 impl ClusterClient {
@@ -64,7 +68,7 @@ impl ClusterClient {
     pub fn new(config: NodeConfig) -> Self {
         Self {
             config,
-            client: None,
+            api_client: None,
         }
     }
 
@@ -75,7 +79,7 @@ impl ClusterClient {
             self.config.node_name
         );
 
-        // Try to register with master
+        // Try to register with master API Server
         if let Err(e) = self.register_node().await {
             eprintln!(
                 "Failed to register node: {}. Will retry during heartbeat loop.",
@@ -92,19 +96,19 @@ impl ClusterClient {
         Ok(())
     }
 
-    /// Register this node with the master
+    /// Register this node with the master API Server
     pub async fn register_node(&mut self) -> Result<()> {
-        let endpoint = format!("http://{}:{}", self.config.master_ip, self.config.api_port);
+        let endpoint = format!("http://{}:50051", self.config.master_ip); // gRPC port
 
-        match NodeAgentConnectionClient::connect(endpoint.clone()).await {
+        match ApiServerServiceClient::connect(endpoint.clone()).await {
             Ok(client) => {
-                self.client = Some(client);
+                self.api_client = Some(client);
 
                 // Collect system information
                 let mut sys = System::new_all();
                 sys.refresh_all();
 
-                let resources = NodeResources {
+                let resources = ResourceInfo {
                     cpu_cores: sys.cpus().len() as u32,
                     memory_mb: sys.total_memory() / 1024 / 1024,
                     disk_gb: 10, // Default value - could be enhanced to detect actual disk space
@@ -117,16 +121,21 @@ impl ClusterClient {
                     _ => NodeRole::Sub as i32,
                 };
 
+                let credentials = Credentials {
+                    token: "default-token".to_string(), // TODO: implement proper auth
+                    certificate: "".to_string(),
+                };
+
                 let request = NodeRegistrationRequest {
                     node_id: self.config.node_id.clone(),
-                    node_name: self.config.node_name.clone(),
+                    hostname: self.config.node_name.clone(),
                     ip_address: get_local_ip(),
                     role,
                     resources: Some(resources),
-                    labels: self.config.labels.clone(),
+                    credentials: Some(credentials),
                 };
 
-                if let Some(ref mut client) = self.client {
+                if let Some(ref mut client) = self.api_client {
                     match client.register_node(Request::new(request)).await {
                         Ok(response) => {
                             let resp = response.into_inner();
@@ -152,62 +161,62 @@ impl ClusterClient {
         }
     }
 
-    /// Send heartbeat to master
+    /// Send heartbeat to master (using NodeAgent service for status updates)
     pub async fn send_heartbeat(&mut self) -> Result<()> {
-        if self.client.is_none() {
-            return Err("Not connected to master".into());
-        }
+        // For heartbeat, we'll use NodeAgent service to report status
+        let endpoint = format!("http://{}:{}", self.config.master_ip, self.config.api_port);
 
-        // Collect current system metrics
-        let mut sys = System::new_all();
-        sys.refresh_all();
+        match NodeAgentServiceClient::connect(endpoint.clone()).await {
+            Ok(mut client) => {
+                // Collect current system metrics
+                let mut sys = System::new_all();
+                sys.refresh_all();
 
-        let mut metrics = HashMap::new();
+                let mut metrics = HashMap::new();
 
-        // Calculate CPU usage (simplified - average across all CPUs)
-        let cpu_usage: f32 = if !sys.cpus().is_empty() {
-            sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / sys.cpus().len() as f32
-        } else {
-            0.0
-        };
-        metrics.insert("cpu_usage".to_string(), cpu_usage.to_string());
+                // Calculate CPU usage (simplified - average across all CPUs)
+                let cpu_usage: f32 = if !sys.cpus().is_empty() {
+                    sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / sys.cpus().len() as f32
+                } else {
+                    0.0
+                };
+                metrics.insert("cpu_usage".to_string(), cpu_usage.to_string());
 
-        // Calculate memory usage percentage
-        let memory_usage = if sys.total_memory() > 0 {
-            (sys.used_memory() as f64 / sys.total_memory() as f64) * 100.0
-        } else {
-            0.0
-        };
-        metrics.insert("memory_usage".to_string(), memory_usage.to_string());
+                // Calculate memory usage percentage
+                let memory_usage = if sys.total_memory() > 0 {
+                    (sys.used_memory() as f64 / sys.total_memory() as f64) * 100.0
+                } else {
+                    0.0
+                };
+                metrics.insert("memory_usage".to_string(), memory_usage.to_string());
 
-        let request = HeartbeatRequest {
-            node_id: self.config.node_id.clone(),
-            status: NodeStatus::Online as i32,
-            timestamp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64,
-            metrics,
-        };
+                let request = HeartbeatRequest {
+                    node_id: self.config.node_id.clone(),
+                    status: NodeStatus::Ready as i32,
+                    timestamp: SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs() as i64,
+                    metrics,
+                };
 
-        if let Some(ref mut client) = self.client {
-            match client.send_heartbeat(Request::new(request)).await {
-                Ok(response) => {
-                    let resp = response.into_inner();
-                    if resp.acknowledged {
-                        println!("Heartbeat acknowledged: {}", resp.message);
-                        return Ok(());
-                    } else {
-                        return Err(format!("Heartbeat not acknowledged: {}", resp.message).into());
+                match client.heartbeat(Request::new(request)).await {
+                    Ok(response) => {
+                        let resp = response.into_inner();
+                        if resp.acknowledged {
+                            println!("Heartbeat acknowledged: {}", resp.message);
+                            return Ok(());
+                        } else {
+                            return Err(format!("Heartbeat not acknowledged: {}", resp.message).into());
+                        }
+                    }
+                    Err(e) => {
+                        return Err(format!("Failed to send heartbeat: {}", e).into());
                     }
                 }
-                Err(e) => {
-                    return Err(format!("Failed to send heartbeat: {}", e).into());
-                }
             }
+            Err(e) => Err(format!("Failed to connect to master at {}: {}", endpoint, e).into()),
         }
-
-        Err("No client available".into())
     }
 }
 

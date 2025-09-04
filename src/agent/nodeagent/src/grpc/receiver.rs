@@ -1,7 +1,8 @@
-use common::nodeagent::node_agent_connection_server::NodeAgentConnection;
+use common::nodeagent::node_agent_service_server::NodeAgentService;
 use common::nodeagent::{
     HandleYamlRequest, HandleYamlResponse, HeartbeatRequest, HeartbeatResponse,
-    NodeRegistrationRequest, NodeRegistrationResponse, NodeStatusRequest, NodeStatusResponse,
+    NodeRegistrationRequest, NodeRegistrationResponse, StatusReport, StatusAck,
+    ConfigRequest, ConfigResponse,
 };
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
@@ -13,7 +14,7 @@ pub struct NodeAgentReceiver {
 }
 
 #[tonic::async_trait]
-impl NodeAgentConnection for NodeAgentReceiver {
+impl NodeAgentService for NodeAgentReceiver {
     /// Handle a yaml request from API-Server
     ///
     /// Receives a yaml from API-Server and forwards it to the NodeAgent manager for processing.
@@ -49,10 +50,26 @@ impl NodeAgentConnection for NodeAgentReceiver {
         ))
     }
 
+    /// Report status to the API server
+    ///
+    /// Accepts status reports from this node
+    async fn report_status(
+        &self,
+        request: Request<StatusReport>,
+    ) -> Result<Response<StatusAck>, Status> {
+        let _req = request.into_inner();
+        
+        // For now, just acknowledge the status report
+        Ok(tonic::Response::new(StatusAck {
+            acknowledged: true,
+            message: "Status report received".to_string(),
+        }))
+    }
+
     /// Handle heartbeat request
     ///
     /// For NodeAgent, this method returns an error since heartbeat should be sent by the node itself
-    async fn send_heartbeat(
+    async fn heartbeat(
         &self,
         _request: Request<HeartbeatRequest>,
     ) -> Result<Response<HeartbeatResponse>, Status> {
@@ -62,29 +79,28 @@ impl NodeAgentConnection for NodeAgentReceiver {
         ))
     }
 
-    /// Handle node status request
+    /// Receive configuration from the API server
     ///
-    /// Returns the current status of this node
-    async fn get_node_status(
+    /// Accepts configuration updates from the master node
+    async fn receive_config(
         &self,
-        request: Request<NodeStatusRequest>,
-    ) -> Result<Response<NodeStatusResponse>, Status> {
+        request: Request<ConfigRequest>,
+    ) -> Result<Response<ConfigResponse>, Status> {
         let req = request.into_inner();
 
-        // For now, return a simple success response
-        // In a full implementation, this would check the actual node status
-        println!("Node status requested for: {}", req.node_id);
+        // For now, just acknowledge the configuration
+        println!("Configuration received for node: {}", req.node_id);
 
-        Ok(tonic::Response::new(NodeStatusResponse {
+        Ok(tonic::Response::new(ConfigResponse {
             success: true,
-            node: None, // Would contain actual node info in full implementation
+            message: "Configuration received successfully".to_string(),
         }))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::grpc::receiver::{NodeAgentConnection, NodeAgentReceiver};
+    use crate::grpc::receiver::{NodeAgentService, NodeAgentReceiver};
     use common::nodeagent::{HandleYamlRequest, HandleYamlResponse};
     use tokio::sync::mpsc;
     use tonic::{Request, Status};
@@ -139,7 +155,6 @@ spec:
 
         let request = HandleYamlRequest {
             yaml: VALID_ARTIFACT_YAML.to_string(),
-            ..Default::default()
         };
         let tonic_request = Request::new(request.clone());
 
@@ -161,7 +176,6 @@ spec:
 
         let request = HandleYamlRequest {
             yaml: VALID_ARTIFACT_YAML.to_string(),
-            ..Default::default()
         };
         let tonic_request = Request::new(request);
 

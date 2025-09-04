@@ -1,5 +1,5 @@
 [Unit]
-Description=Piccolo player
+Description=Pullpiri player
 After=network.target
 
 [Install]
@@ -7,7 +7,7 @@ After=network.target
 WantedBy=multi-user.target default.target
 
 [Kube]
-Yaml=/etc/containers/systemd/piccolo/piccolo-player.yaml
+Yaml=/etc/containers/systemd/pullpiri/pullpiri-player.yaml
 
 [Service]
 Restart=always

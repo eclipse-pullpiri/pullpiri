@@ -210,7 +210,7 @@ impl DdsManager {
         let default_domain_id = 0;
 
         let settings_path = settings_path.into().unwrap_or_else(|| {
-            env::var("PICCOLO_SETTINGS_PATH")
+            env::var("PULLPIRI_SETTINGS_PATH")
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| {
                     PathBuf::from("/home/edo/2025/projects/pullpiri/src/settings.yaml")

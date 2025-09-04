@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! Access point of Piccolo REST API
+//! Access point of Pullpiri REST API
 
 pub mod api;
 
@@ -15,7 +15,7 @@ use axum::{
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 
-/// Serve Piccolo HTTP API service
+/// Serve Pullpiri HTTP API service
 ///
 /// ### Parametets
 /// None

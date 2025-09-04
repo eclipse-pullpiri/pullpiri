@@ -4,9 +4,9 @@
 
 ### Major features
 
-API Server는 내,외부 API를 제공하며 Piccolo Artifact 등록 및 준비 작업을 수행 한다.
+API Server는 내,외부 API를 제공하며 Pullpiri Artifact 등록 및 준비 작업을 수행 한다.
 
-1. REST API 오픈하여 Piccolo Cloud 와 통신 또는 direct 로 artifact 를 받는 역할을 한다.
+1. REST API 오픈하여 Pullpiri Cloud 와 통신 또는 direct 로 artifact 를 받는 역할을 한다.
 1. yaml 형식 string 으로 들어온 artifact를 파싱한다.
 1. common 에 정의된 scenario, package 모듈등으로 파싱하여 struct로 생성한다.
 1. 파싱 결과를 etcd 에 저장하고 grpc를 통해 filtergateway 로 전달한다.
@@ -15,7 +15,7 @@ API Server는 내,외부 API를 제공하며 Piccolo Artifact 등록 및 준비 
 ### Main Dataflow
 
 1. REST API 오픈하여 외부에서 GET 메소드로 scenario 를 비롯한
-Piccolo artifact 를 수신한다.
+Pullpiri artifact 를 수신한다.
 1. yaml 형식 string 으로 들어온 artifact 를 종류 별로 파싱하여 etcd 에 저장한다.
 파싱하는 struct 는 common/src/spec/artifact 아래에 정의되어 있다.
 1. (선택사항) Bluechi 를 사용할 경우 `.kube`, `.yaml` 파일을 생성 후 각 노드에 전파한다.
@@ -54,8 +54,8 @@ apiserver
 - **grpc/sender/filtergateway.rs** - filtergateway 로 gRPC 메시지 전달
 - **artifact/mod.rs** - string type artifact 를 struct 로 변환하고 etcd에 저장
 - **artifact/data.rs** - etcd에 파싱된 결과를 저장하거나 불러오르는 함수 구현
-- **route/mod.rs** - Piccolo REST API 의 access point
-- **route/api.rs** - Piccolo REST API handler function 모임
+- **route/mod.rs** - Pullpiri REST API 의 access point
+- **route/api.rs** - Pullpiri REST API handler function 모임
 - **bluechi/mod.rs** - Bluechi 통합에 필요한 사전 작업 진행
 - **bluechi/filemaker.rs** - Bluechi 동작에 필요한 파일 생성 및 다른 node 에 전파
 - **bluechi/parser.rs** - 주어진 Package 정보로부터 Model artifact 생성
@@ -68,7 +68,7 @@ apiserver
 ### `main.rs`
 
 ```rust
-/// Main function of Piccolo API Server
+/// Main function of Pullpiri API Server
 #[tokio::main]
 async fn main() {}
 ```
@@ -171,7 +171,7 @@ pub async fn delete_at_etcd(key: &str) -> common::Result<()> {}
 ### `route/mod.rs`
 
 ```rust
-/// Serve Piccolo HTTP API service
+/// Serve Pullpiri HTTP API service
 ///
 /// ### Parametets
 /// None
@@ -191,7 +191,7 @@ pub fn status(result: common::Result<()>) -> Response {}
 ### `route/api.rs`
 
 ```rust
-/// Make router type for composing handler and Piccolo service
+/// Make router type for composing handler and Pullpiri service
 ///
 /// ### Parametets
 /// None
@@ -287,7 +287,7 @@ pub async fn make_files_from_pod(pods: Vec<Pod>) -> common::Result<Vec<String>> 
 /// Make .kube files for Pod
 ///
 /// ### Parametets
-/// * `dir: &str, pod_name: &str` - Piccolo yaml directory path and pod name
+/// * `dir: &str, pod_name: &str` - Pullpiri yaml directory path and pod name
 /// ### Description
 /// Make .kube files for Pod
 fn make_kube_file(dir: &str, pod_name: &str) -> common::Result<()> {}
@@ -295,7 +295,7 @@ fn make_kube_file(dir: &str, pod_name: &str) -> common::Result<()> {}
 /// Make .yaml files for Pod
 ///
 /// ### Parametets
-/// * `dir: &str, pod: Pod` - Piccolo yaml directory path and Pod structure
+/// * `dir: &str, pod: Pod` - Pullpiri yaml directory path and Pod structure
 /// ### Description
 /// Make .yaml files for Pod
 fn make_yaml_file(dir: &str, pod: Pod) -> common::Result<()> {}

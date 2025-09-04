@@ -54,35 +54,35 @@ devimage:
 
 #.PHONY: pre
 #pre:
-#	-mkdir -p /etc/piccolo/yaml
-#	-mkdir -p /etc/containers/systemd/piccolo/
-#	-mkdir -p /etc/containers/systemd/piccolo/etcd-data/
+#	-mkdir -p /etc/pullpiri/yaml
+#	-mkdir -p /etc/containers/systemd/pullpiri/
+#	-mkdir -p /etc/containers/systemd/pullpiri/etcd-data/
 #	-podman-compose -f examples/nginx/docker-compose.yaml up -d
 
 .PHONY: install
 install:
-	-mkdir -p /etc/piccolo/yaml
-	-mkdir -p /etc/containers/systemd/piccolo/
-	-mkdir -p /etc/containers/systemd/piccolo/etcd-data/
-	-cp -r ./src/settings.yaml /etc/containers/systemd/piccolo/
-	-cp -r ./containers/piccolo-*.* /etc/containers/systemd/piccolo/
+	-mkdir -p /etc/pullpiri/yaml
+	-mkdir -p /etc/containers/systemd/pullpiri/
+	-mkdir -p /etc/containers/systemd/pullpiri/etcd-data/
+	-cp -r ./src/settings.yaml /etc/containers/systemd/pullpiri/
+	-cp -r ./containers/pullpiri-*.* /etc/containers/systemd/pullpiri/
 	systemctl daemon-reload
-	systemctl start piccolo-server
-	systemctl start piccolo-agent
-	systemctl start piccolo-player
+	systemctl start pullpiri-server
+	systemctl start pullpiri-agent
+	systemctl start pullpiri-player
 
 .PHONY: uninstall
 uninstall:
-	-systemctl stop piccolo-agent
-	-systemctl stop piccolo-player
-	-systemctl stop piccolo-server
+	-systemctl stop pullpiri-agent
+	-systemctl stop pullpiri-player
+	-systemctl stop pullpiri-server
 	systemctl daemon-reload
-	-rm -rf /etc/piccolo/yaml
+	-rm -rf /etc/pullpiri/yaml
 	-rm -rf /etc/containers/systemd/*
 
 #.PHONY: post
 #post:
-#	-rm -rf /etc/piccolo/yaml
+#	-rm -rf /etc/pullpiri/yaml
 #	-rm -rf /etc/containers/systemd/*
 #	systemctl daemon-reload
 #	-podman-compose -f examples/nginx/docker-compose.yaml down

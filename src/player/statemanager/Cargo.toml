@@ -15,3 +15,9 @@ common.workspace = true
 tokio = "1.43.1"
 tonic = "0.12.3"
 chrono = { version = "0.4", features = ["serde"] }
+serde_yaml = "0.9.34"
+serde_json = "1.0.143"
+serde = "1.0.219"
+serde_millis = "0.1.1"
+serde_repr = "0.1.20"
+tracing = "0.1.41"

@@ -1,0 +1,35 @@
+Diff in /home/runner/work/pullpiri/pullpiri/src/player/statemanager/src/manager.rs:105:
+     pub async fn initialize(&mut self) -> Result<()> {
+         println!("StateManagerManager initializing...");
+ 
+[31m-
+[m         // Initialize the state machine with async action executor
+         let action_receiver = {
+             let mut state_machine = self.state_machine.lock().await;
+Diff in /home/runner/work/pullpiri/pullpiri/src/player/statemanager/src/manager.rs:489:
+         println!("  Status: Container list processing completed (implementation pending)");
+         println!("=====================================");
+     }
+[31m-
+[m 
+     /// Execute actions based on state transitions
+     async fn execute_action(&self, action: &str, state_change: &StateChange) {
+Diff in /home/runner/work/pullpiri/pullpiri/src/player/statemanager/src/state_machine.rs:26:
+ //! let result = state_machine.process_state_change(state_change);
+ //! ```
+ 
+[31m-
+[m use crate::types::{ActionCommand, HealthStatus, ResourceState, StateTransition, TransitionResult};
+ use common::statemanager::{
+     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
+Diff in /home/runner/work/pullpiri/pullpiri/src/player/statemanager/src/state_machine.rs:1136:
+         resource_name: &str,
+         resource_type: ResourceType,
+     ) -> Option<&ResourceState> {
+[31m-
+[m         let resource_key = self.generate_resource_key(resource_type, resource_name);
+         self.resource_states.get(&resource_key)
+[31m-
+[m     }
+ 
+     /// List all resources currently in a specific state

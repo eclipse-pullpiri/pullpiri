@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! Running gRPC message send/receive
+pub mod client;
 
-pub mod receiver;
-pub mod sender;
+pub use client::ClusterClient;

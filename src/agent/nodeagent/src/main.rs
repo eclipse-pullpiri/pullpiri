@@ -5,6 +5,7 @@
 
 use common::nodeagent::HandleYamlRequest;
 mod bluechi;
+pub mod cluster;
 pub mod grpc;
 pub mod manager;
 pub mod resource;
@@ -42,9 +43,8 @@ async fn launch_manager(rx_grpc: Receiver<HandleYamlRequest>, hostname: String) 
 async fn initialize(tx_grpc: Sender<HandleYamlRequest>, hostname: String) {
     use tonic::transport::Server;
 
-    let server = grpc::receiver::NodeAgentReceiver {
-        tx: tx_grpc.clone(),
-    };
+    let server =
+        grpc::receiver::NodeAgentReceiver::new(tx_grpc.clone(), format!("node-{}", hostname));
 
     let hostname_in_setting = common::setting::get_config().host.name.clone();
 

@@ -1,5 +1,8 @@
 use common::nodeagent::node_agent_connection_server::NodeAgentConnection;
-use common::nodeagent::{HandleYamlRequest, HandleYamlResponse};
+use common::nodeagent::{
+    ConfigRequest, ConfigResponse, HandleYamlRequest, HandleYamlResponse, HeartbeatRequest,
+    HeartbeatResponse, NodeRegistrationRequest, NodeRegistrationResponse, StatusAck, StatusReport,
+};
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
 
@@ -7,6 +10,13 @@ use tonic::{Request, Response, Status};
 #[derive(Clone)]
 pub struct NodeAgentReceiver {
     pub tx: mpsc::Sender<HandleYamlRequest>,
+    pub node_id: String,
+}
+
+impl NodeAgentReceiver {
+    pub fn new(tx: mpsc::Sender<HandleYamlRequest>, node_id: String) -> Self {
+        Self { tx, node_id }
+    }
 }
 
 #[tonic::async_trait]
@@ -31,6 +41,69 @@ impl NodeAgentConnection for NodeAgentReceiver {
                 format!("cannot send condition: {}", e),
             )),
         }
+    }
+
+    /// Register this node with the cluster
+    async fn register_node<'life>(
+        &'life self,
+        request: Request<NodeRegistrationRequest>,
+    ) -> Result<Response<NodeRegistrationResponse>, Status> {
+        println!("Received node registration request");
+        let req = request.into_inner();
+
+        // For now, return a simple success response
+        // In a full implementation, this would connect to the master API server
+        Ok(Response::new(NodeRegistrationResponse {
+            node_id: req.node_id,
+            cluster_info: None,
+            status: common::nodeagent::NodeStatus::Ready as i32,
+            success: true,
+            error_message: None,
+        }))
+    }
+
+    /// Report status to the cluster
+    async fn report_status<'life>(
+        &'life self,
+        request: Request<StatusReport>,
+    ) -> Result<Response<StatusAck>, Status> {
+        println!(
+            "Received status report request for node: {}",
+            request.get_ref().node_id
+        );
+
+        Ok(Response::new(StatusAck {
+            acknowledged: true,
+            message: Some("Status report received".to_string()),
+        }))
+    }
+
+    /// Handle heartbeat from master
+    async fn heartbeat<'life>(
+        &'life self,
+        request: Request<HeartbeatRequest>,
+    ) -> Result<Response<HeartbeatResponse>, Status> {
+        let req = request.into_inner();
+        println!("Received heartbeat for node: {}", req.node_id);
+
+        Ok(Response::new(HeartbeatResponse {
+            alive: true,
+            server_timestamp: chrono::Utc::now().timestamp(),
+        }))
+    }
+
+    /// Receive configuration from master
+    async fn receive_config<'life>(
+        &'life self,
+        request: Request<ConfigRequest>,
+    ) -> Result<Response<ConfigResponse>, Status> {
+        let req = request.into_inner();
+        println!("Received config for node: {}", req.node_id);
+
+        Ok(Response::new(ConfigResponse {
+            success: true,
+            error_message: None,
+        }))
     }
 }
 
@@ -87,7 +160,7 @@ spec:
     #[tokio::test]
     async fn test_handle_yaml_with_valid_artifact_yaml() {
         let (tx, mut rx) = mpsc::channel(1);
-        let receiver = NodeAgentReceiver { tx };
+        let receiver = NodeAgentReceiver::new(tx, "test-node".to_string());
 
         let request = HandleYamlRequest {
             yaml: VALID_ARTIFACT_YAML.to_string(),
@@ -109,7 +182,7 @@ spec:
     async fn test_handle_yaml_send_error() {
         let (tx, rx) = mpsc::channel(1);
         drop(rx);
-        let receiver = NodeAgentReceiver { tx };
+        let receiver = NodeAgentReceiver::new(tx, "test-node".to_string());
 
         let request = HandleYamlRequest {
             yaml: VALID_ARTIFACT_YAML.to_string(),

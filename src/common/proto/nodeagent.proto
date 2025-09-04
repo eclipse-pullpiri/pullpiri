@@ -9,6 +9,10 @@ package nodeagent;
 
 service NodeAgentConnection {
   rpc HandleYaml(HandleYamlRequest) returns (HandleYamlResponse);
+  rpc RegisterNode(NodeRegistrationRequest) returns (NodeRegistrationResponse);
+  rpc ReportStatus(StatusReport) returns (StatusAck);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc ReceiveConfig(ConfigRequest) returns (ConfigResponse);
 }
 
 message HandleYamlRequest {
@@ -18,4 +22,100 @@ message HandleYamlRequest {
 message HandleYamlResponse {
   bool status = 1;
   string desc = 2;
+}
+
+// Clustering messages
+message NodeRegistrationRequest {
+  string node_id = 1;
+  string hostname = 2;
+  string ip_address = 3;
+  NodeRole role = 4;
+  ResourceInfo resources = 5;
+  Credentials credentials = 6;
+}
+
+message NodeRegistrationResponse {
+  string node_id = 1;
+  ClusterInfo cluster_info = 2;
+  NodeStatus status = 3;
+  bool success = 4;
+  optional string error_message = 5;
+}
+
+message StatusReport {
+  string node_id = 1;
+  NodeStatus status = 2;
+  map<string, string> metrics = 3;
+  repeated ContainerStatus containers = 4;
+  repeated AlertInfo alerts = 5;
+}
+
+message StatusAck {
+  bool acknowledged = 1;
+  optional string message = 2;
+}
+
+message HeartbeatRequest {
+  string node_id = 1;
+  int64 timestamp = 2;
+}
+
+message HeartbeatResponse {
+  bool alive = 1;
+  int64 server_timestamp = 2;
+}
+
+message ConfigRequest {
+  string node_id = 1;
+  map<string, string> config = 2;
+}
+
+message ConfigResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// Supporting types
+enum NodeRole {
+  MASTER = 0;
+  SUB = 1;
+}
+
+enum NodeStatus {
+  PENDING = 0;
+  INITIALIZING = 1;
+  READY = 2;
+  NOT_READY = 3;
+  MAINTENANCE = 4;
+  TERMINATING = 5;
+}
+
+message ResourceInfo {
+  uint32 cpu_cores = 1;
+  uint64 memory_mb = 2;
+  uint64 disk_gb = 3;
+}
+
+message Credentials {
+  string token = 1;
+  string certificate = 2;
+}
+
+message ClusterInfo {
+  string cluster_id = 1;
+  string cluster_name = 2;
+  string master_endpoint = 3;
+}
+
+message ContainerStatus {
+  string id = 1;
+  string name = 2;
+  string status = 3;
+  string image = 4;
+}
+
+message AlertInfo {
+  string severity = 1;
+  string message = 2;
+  int64 timestamp = 3;
 }

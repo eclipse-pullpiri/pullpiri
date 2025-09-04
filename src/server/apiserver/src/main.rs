@@ -17,6 +17,7 @@
 mod artifact;
 mod grpc;
 mod manager;
+mod node;
 mod route;
 
 /// Main function of Piccolo API Server

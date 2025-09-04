@@ -1,0 +1,13 @@
+Running Cargo fmt...
+Running fmt for common (src/common/Cargo.toml)
+fmt for common passed clean.
+Running fmt for apiserver (src/server/apiserver/Cargo.toml)
+fmt for apiserver passed clean.
+Running fmt for tools (src/tools/Cargo.toml)
+fmt for tools passed clean.
+Running fmt for agent (src/agent/Cargo.toml)
+fmt for agent passed clean.
+Running fmt for filtergateway (src/player/filtergateway/Cargo.toml)
+fmt for filtergateway passed clean.
+Running fmt for actioncontroller (src/player/actioncontroller/Cargo.toml)
+fmt for actioncontroller passed clean.

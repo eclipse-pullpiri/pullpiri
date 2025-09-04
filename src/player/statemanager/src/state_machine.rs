@@ -26,7 +26,6 @@
 //! let result = state_machine.process_state_change(state_change);
 //! ```
 
-
 use crate::types::{ActionCommand, HealthStatus, ResourceState, StateTransition, TransitionResult};
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
@@ -1136,10 +1135,8 @@ impl StateMachine {
         resource_name: &str,
         resource_type: ResourceType,
     ) -> Option<&ResourceState> {
-
         let resource_key = self.generate_resource_key(resource_type, resource_name);
         self.resource_states.get(&resource_key)
-
     }
 
     /// List all resources currently in a specific state

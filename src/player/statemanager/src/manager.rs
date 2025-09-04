@@ -105,7 +105,6 @@ impl StateManagerManager {
     pub async fn initialize(&mut self) -> Result<()> {
         println!("StateManagerManager initializing...");
 
-
         // Initialize the state machine with async action executor
         let action_receiver = {
             let mut state_machine = self.state_machine.lock().await;
@@ -490,50 +489,9 @@ impl StateManagerManager {
         println!("=====================================");
     }
 
-
     /// Execute actions based on state transitions
-    async fn execute_action(&self, action: &str, state_change: &StateChange) {
+    async fn execute_action(&self, action: &str, _state_change: &StateChange) {
         println!("    Executing action: {}", action);
-    }
-
-    /// Handle state transition failures
-    async fn handle_transition_failure(
-        &self,
-        state_change: &StateChange,
-        result: &TransitionResult,
-    ) {
-        println!(
-            "    Handling transition failure for resource: {}",
-            state_change.resource_name
-        );
-        println!("      Error: {}", result.message);
-        println!("      Error code: {:?}", result.error_code);
-
-        // Generate appropriate error responses based on error type
-        match result.error_code {
-            ErrorCode::InvalidStateTransition => {
-                println!("      Invalid state transition - checking state machine rules");
-                // Would log detailed state machine validation errors
-            }
-            ErrorCode::PreconditionFailed => {
-                println!("      Preconditions not met - evaluating retry strategy");
-                // Would check if conditions might be met later and schedule retry
-            }
-            ErrorCode::ResourceNotFound => {
-                println!("      Resource not found - may need initialization");
-                // Would check if resource needs to be created or registered
-            }
-            _ => {
-                println!("      General error - applying default error handling");
-                // Would apply general error handling procedures
-            }
-        }
-
-        // In a real implementation, this would:
-        // - Log to audit trail
-        // - Generate alerts
-        // - Trigger recovery procedures
-        // - Update monitoring metrics
     }
 
     /// Main message processing loop for handling gRPC requests.

@@ -5,6 +5,7 @@
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::compile_protos("proto/actioncontroller.proto")?;
+    tonic_build::compile_protos("proto/apiserver.proto")?;
     tonic_build::compile_protos("proto/filtergateway.proto")?;
     tonic_build::compile_protos("proto/monitoringserver.proto")?;
     tonic_build::compile_protos("proto/nodeagent.proto")?;

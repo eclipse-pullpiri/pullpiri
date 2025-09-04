@@ -15,6 +15,7 @@
 //!   that a filter can be created.
 
 mod artifact;
+mod cluster;
 mod grpc;
 mod manager;
 mod route;

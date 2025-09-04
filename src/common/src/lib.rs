@@ -56,8 +56,14 @@ pub mod actioncontroller {
 }
 
 pub mod apiserver {
+    tonic::include_proto!("apiserver");
+
     pub fn open_rest_server() -> String {
         super::open_server(47099)
+    }
+
+    pub fn connect_server() -> String {
+        super::connect_server(47007)
     }
 }
 

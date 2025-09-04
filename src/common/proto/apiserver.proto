@@ -1,0 +1,116 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+
+package apiserver;
+
+// API Server clustering service for internal communication
+service ApiServerClusteringService {
+  rpc RegisterNode(RegisterNodeRequest) returns (RegisterNodeResponse);
+  rpc UpdateNodeStatus(UpdateNodeStatusRequest) returns (UpdateNodeStatusResponse);
+  rpc GetClusterTopology(GetClusterTopologyRequest) returns (GetClusterTopologyResponse);
+  rpc GetNodeList(GetNodeListRequest) returns (GetNodeListResponse);
+}
+
+// Node Registration
+message RegisterNodeRequest {
+  string node_id = 1;
+  string node_name = 2;
+  string ip_address = 3;
+  NodeRole role = 4;
+  NodeResources resources = 5;
+  map<string, string> labels = 6;
+}
+
+message RegisterNodeResponse {
+  bool success = 1;
+  string message = 2;
+  string cluster_id = 3;
+}
+
+// Node Status Update
+message UpdateNodeStatusRequest {
+  string node_id = 1;
+  NodeStatus status = 2;
+  map<string, string> metrics = 3;
+  int64 timestamp = 4;
+}
+
+message UpdateNodeStatusResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Cluster Topology
+message GetClusterTopologyRequest {
+  string cluster_id = 1;
+}
+
+message GetClusterTopologyResponse {
+  bool success = 1;
+  ClusterTopology topology = 2;
+}
+
+message GetNodeListRequest {
+  string cluster_id = 1;
+  NodeStatus status_filter = 2;
+}
+
+message GetNodeListResponse {
+  bool success = 1;
+  repeated NodeInfo nodes = 2;
+}
+
+// Data Structures
+message NodeInfo {
+  string node_id = 1;
+  string node_name = 2;
+  string ip_address = 3;
+  NodeRole role = 4;
+  NodeStatus status = 5;
+  NodeResources resources = 6;
+  map<string, string> labels = 7;
+  int64 created_at = 8;
+  int64 last_heartbeat = 9;
+}
+
+message NodeResources {
+  uint32 cpu_cores = 1;
+  uint64 memory_mb = 2;
+  uint64 disk_gb = 3;
+  double cpu_usage = 4;
+  double memory_usage = 5;
+}
+
+message ClusterTopology {
+  string cluster_id = 1;
+  string cluster_name = 2;
+  TopologyType type = 3;
+  repeated NodeInfo master_nodes = 4;
+  repeated NodeInfo sub_nodes = 5;
+  map<string, string> config = 6;
+}
+
+enum NodeRole {
+  UNKNOWN = 0;
+  MASTER = 1;
+  SUB = 2;
+}
+
+enum NodeStatus {
+  OFFLINE = 0;
+  ONLINE = 1;
+  INITIALIZING = 2;
+  ERROR = 3;
+  MAINTENANCE = 4;
+}
+
+enum TopologyType {
+  SIMPLE = 0;
+  HIERARCHICAL = 1;
+  MESH = 2;
+  HYBRID = 3;
+}

@@ -9,6 +9,9 @@ package nodeagent;
 
 service NodeAgentConnection {
   rpc HandleYaml(HandleYamlRequest) returns (HandleYamlResponse);
+  rpc RegisterNode(NodeRegistrationRequest) returns (NodeRegistrationResponse);
+  rpc SendHeartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc GetNodeStatus(NodeStatusRequest) returns (NodeStatusResponse);
 }
 
 message HandleYamlRequest {
@@ -18,4 +21,79 @@ message HandleYamlRequest {
 message HandleYamlResponse {
   bool status = 1;
   string desc = 2;
+}
+
+// Node Registration Messages
+message NodeRegistrationRequest {
+  string node_id = 1;
+  string node_name = 2;
+  string ip_address = 3;
+  NodeRole role = 4;
+  NodeResources resources = 5;
+  map<string, string> labels = 6;
+}
+
+message NodeRegistrationResponse {
+  bool success = 1;
+  string message = 2;
+  string cluster_id = 3;
+}
+
+// Heartbeat Messages
+message HeartbeatRequest {
+  string node_id = 1;
+  NodeStatus status = 2;
+  int64 timestamp = 3;
+  map<string, string> metrics = 4;
+}
+
+message HeartbeatResponse {
+  bool acknowledged = 1;
+  string message = 2;
+  int64 server_timestamp = 3;
+}
+
+// Node Status Messages
+message NodeStatusRequest {
+  string node_id = 1;
+}
+
+message NodeStatusResponse {
+  bool success = 1;
+  NodeInfo node = 2;
+}
+
+// Data Structures
+message NodeInfo {
+  string node_id = 1;
+  string node_name = 2;
+  string ip_address = 3;
+  NodeRole role = 4;
+  NodeStatus status = 5;
+  NodeResources resources = 6;
+  map<string, string> labels = 7;
+  int64 created_at = 8;
+  int64 last_heartbeat = 9;
+}
+
+message NodeResources {
+  uint32 cpu_cores = 1;
+  uint64 memory_mb = 2;
+  uint64 disk_gb = 3;
+  double cpu_usage = 4;
+  double memory_usage = 5;
+}
+
+enum NodeRole {
+  UNKNOWN = 0;
+  MASTER = 1;
+  SUB = 2;
+}
+
+enum NodeStatus {
+  OFFLINE = 0;
+  ONLINE = 1;
+  INITIALIZING = 2;
+  ERROR = 3;
+  MAINTENANCE = 4;
 }

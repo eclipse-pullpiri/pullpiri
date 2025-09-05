@@ -11,6 +11,7 @@ license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+chrono = "0.4.39"
 const_format = "0.2.33"
 config = "0.14.1"
 etcd-client = "0.14.0"

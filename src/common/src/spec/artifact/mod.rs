@@ -1,6 +1,6 @@
 mod model;
 mod network;
-mod node;
+pub mod node;
 mod package;
 mod scenario;
 mod volume;

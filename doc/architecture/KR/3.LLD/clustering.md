@@ -64,24 +64,128 @@ API Server는 PICCOLO 클러스터에서 마스터 노드의 핵심 컴포넌트
 
 ### 2.2 시스템 아키텍처
 
-API Server의 클러스터링 관련 모듈은 다음과 같습니다:
+PICCOLO 클러스터링 시스템의 아키텍처는 다음과 같이 구성되어 있습니다:
 
 ```text
-apiserver
+common/
 └── src
+    └── spec
+        └── artifact
+            └── node.rs          # 클러스터링 공통 데이터 구조
+
+apiserver/
+└── src
+    ├── cluster
+    │   ├── mod.rs               # 공통 구조 재사용
+    │   └── registry.rs          # 노드 레지스트리 구현
     ├── grpc
+    │   ├── server.rs            # API Server gRPC 서비스 (수신자)
     │   └── sender
-    │       ├── nodeagent.rs
-    │       └── notification.rs
-    └── node
-        ├── manager.rs
-        ├── registry.rs
-        └── status.rs
+    │       └── nodeagent.rs     # NodeAgent gRPC 클라이언트 (송신자)
+    └── manager.rs               # 서비스 관리자
+
+nodeagent/
+└── src
+    ├── clustering.rs            # API Server gRPC 클라이언트 (송신자)
+    └── grpc
+        └── receiver.rs          # NodeAgent gRPC 서비스 (수신자)
 ```
 
-### 2.3 핵심 인터페이스
+#### 2.2.1 공통 데이터 구조 (`common/spec/artifact/node.rs`)
 
-#### 2.3.1 NodeAgent와의 gRPC 통신
+클러스터링에 사용되는 모든 데이터 구조는 공통 모듈에 정의되어 있습니다:
+
+```rust
+/// 노드 사양 (YAML 아티팩트용)
+pub struct NodeSpec {
+    pub node_info: Option<NodeInfo>,
+    pub cluster_config: Option<ClusterConfig>,
+}
+
+/// 클러스터 내 노드 정보
+pub struct NodeInfo {
+    pub node_id: String,
+    pub node_name: String,
+    pub ip_address: String,
+    pub role: NodeRole,
+    pub status: NodeStatus,
+    pub resources: NodeResources,
+    pub labels: HashMap<String, String>,
+    pub created_at: i64,
+    pub last_heartbeat: i64,
+}
+
+/// 노드 클러스터 구성
+pub struct ClusterConfig {
+    pub cluster_id: String,
+    pub master_endpoint: String,
+    pub heartbeat_interval: u64,
+    pub config: HashMap<String, String>,
+}
+```
+
+#### 2.2.2 gRPC 통신 패턴
+
+gRPC 서비스는 **수신자 쪽에서 정의**되며, **송신자가 수신자의 API를 호출**하는 패턴을 따릅니다:
+
+1. **API Server → NodeAgent 호출**:
+   - API Server는 NodeAgent의 `NodeAgentService`를 호출
+   - `apiserver/grpc/sender/nodeagent.rs`에서 클라이언트 구현
+   - NodeAgent는 `nodeagent/grpc/receiver.rs`에서 서비스 구현
+
+2. **NodeAgent → API Server 호출**:
+   - NodeAgent는 API Server의 `ApiServerService`를 호출
+   - `nodeagent/clustering.rs`에서 클라이언트 구현
+   - API Server는 `apiserver/grpc/server.rs`에서 서비스 구현
+
+### 2.3 노드 명세 (node.yaml)
+
+클러스터의 노드는 YAML 아티팩트로 정의됩니다. 이는 기존 PICCOLO 아티팩트 시스템과 일관성을 유지하며, 다음과 같은 구조를 가집니다:
+
+```yaml
+apiVersion: v1
+kind: Node
+metadata:
+  name: sample-node
+  labels:
+    node-type: "embedded"
+    region: "vehicle-cluster"
+    zone: "ecu-1"
+spec:
+  node_info:
+    node_id: "node-12345"
+    node_name: "sample-node"
+    ip_address: "192.168.1.100"
+    role: "Sub"                    # Master 또는 Sub
+    status: "Online"               # Online, Offline, Initializing, Error, Maintenance
+    resources:
+      cpu_cores: 4
+      memory_mb: 2048
+      disk_gb: 32
+      cpu_usage: 15.5
+      memory_usage: 45.2
+    labels:
+      hardware_type: "arm64"
+      vehicle_model: "ev-2024"
+      ecu_type: "infotainment"
+    created_at: 1704063600
+    last_heartbeat: 1704067200
+  cluster_config:
+    cluster_id: "piccolo-cluster-001"
+    master_endpoint: "192.168.1.10:50051"
+    heartbeat_interval: 30
+    config:
+      etcd_endpoint: "192.168.1.10:2379"
+      log_level: "info"
+      monitoring_enabled: "true"
+      backup_enabled: "false"
+```
+
+이 구조는 `common/spec/artifact/node.rs`에 정의된 데이터 구조와 직접 매핑됩니다.
+
+### 2.4 핵심 인터페이스
+
+#### 2.4.1 NodeAgent와의 gRPC 통신
 
 API Server는 gRPC를 통해 NodeAgent와 통신하여 아티팩트 정보 전달, 노드 상태 확인 등을 수행합니다.
 
@@ -144,7 +248,7 @@ pub async fn check_nodeagent_connection() -> bool {
 }
 ```
 
-#### 2.3.2 노드 등록 및 관리
+#### 2.4.2 노드 등록 및 관리
 
 API Server는 클러스터의 노드 구성을 관리하고, 새로운 노드의 등록 요청을 처리합니다.
 

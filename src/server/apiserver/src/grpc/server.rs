@@ -5,7 +5,7 @@
 
 //! gRPC Server implementation for API Server clustering service
 
-use crate::cluster::{NodeInfo, NodeRegistry, NodeResources, NodeRole, NodeStatus};
+use crate::cluster::{NodeInfo, NodeRegistry, NodeResources, NodeRole, NodeStatus, TopologyType};
 use common::apiserver::{
     api_server_service_server::{ApiServerService, ApiServerServiceServer},
     *,
@@ -227,12 +227,10 @@ fn convert_topology_to_grpc(topology: crate::cluster::ClusterTopology) -> Cluste
         cluster_id: topology.cluster_id,
         cluster_name: topology.cluster_name,
         r#type: match topology.topology_type {
-            crate::cluster::TopologyType::Simple => common::apiserver::TopologyType::Simple as i32,
-            crate::cluster::TopologyType::Hierarchical => {
-                common::apiserver::TopologyType::Hierarchical as i32
-            }
-            crate::cluster::TopologyType::Mesh => common::apiserver::TopologyType::Mesh as i32,
-            crate::cluster::TopologyType::Hybrid => common::apiserver::TopologyType::Hybrid as i32,
+            TopologyType::Simple => common::apiserver::TopologyType::Simple as i32,
+            TopologyType::Hierarchical => common::apiserver::TopologyType::Hierarchical as i32,
+            TopologyType::Mesh => common::apiserver::TopologyType::Mesh as i32,
+            TopologyType::Hybrid => common::apiserver::TopologyType::Hybrid as i32,
         },
         master_nodes: topology
             .master_nodes

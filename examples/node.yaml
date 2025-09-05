@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Node
+metadata:
+  name: sample-node
+  labels:
+    node-type: "embedded"
+    region: "vehicle-cluster"
+    zone: "ecu-1"
+spec:
+  node_info:
+    node_id: "node-12345"
+    node_name: "sample-node"
+    ip_address: "192.168.1.100"
+    role: "Sub"
+    status: "Online"
+    resources:
+      cpu_cores: 4
+      memory_mb: 2048
+      disk_gb: 32
+      cpu_usage: 15.5
+      memory_usage: 45.2
+    labels:
+      hardware_type: "arm64"
+      vehicle_model: "ev-2024"
+      ecu_type: "infotainment"
+    created_at: 1704063600
+    last_heartbeat: 1704067200
+  cluster_config:
+    cluster_id: "piccolo-cluster-001"
+    master_endpoint: "192.168.1.10:50051"
+    heartbeat_interval: 30
+    config:
+      etcd_endpoint: "192.168.1.10:2379"
+      log_level: "info"
+      monitoring_enabled: "true"
+      backup_enabled: "false"
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: master-node
+  labels:
+    node-type: "cloud"
+    region: "vehicle-cluster"
+    zone: "master"
+spec:
+  node_info:
+    node_id: "master-001"
+    node_name: "master-node"
+    ip_address: "192.168.1.10"
+    role: "Master"
+    status: "Online"
+    resources:
+      cpu_cores: 8
+      memory_mb: 8192
+      disk_gb: 100
+      cpu_usage: 25.0
+      memory_usage: 35.8
+    labels:
+      hardware_type: "x86_64"
+      deployment_type: "cloud"
+      services: "api-server,filter-gateway,state-manager"
+    created_at: 1704063600
+    last_heartbeat: 1704067200
+  cluster_config:
+    cluster_id: "piccolo-cluster-001"
+    master_endpoint: "192.168.1.10:50051"
+    heartbeat_interval: 30
+    config:
+      etcd_endpoint: "192.168.1.10:2379"
+      log_level: "debug"
+      monitoring_enabled: "true"
+      backup_enabled: "true"
+      cluster_name: "PICCOLO Vehicle Cluster"

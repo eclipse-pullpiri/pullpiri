@@ -10,5 +10,4 @@
 🧪 Running Clippy for filtergateway (src/player/filtergateway/Cargo.toml)
 ✅ Clippy for filtergateway passed clean.
 🧪 Running Clippy for actioncontroller (src/player/actioncontroller/Cargo.toml)
-::error ::❌ Clippy for actioncontroller failed! Found warnings/errors.
-::error ::🚨 Clippy failed for 1 component(s).
+✅ Clippy for actioncontroller passed clean.

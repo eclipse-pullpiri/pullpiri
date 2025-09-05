@@ -22,5 +22,4 @@ tokio = { version = "1.43.1", features = ["macros", "rt-multi-thread"] }
 tower-http ={ version = "0.6.1", features = ["cors"]}
 tower = "0.4"
 tokio-stream = "0.1"
-etcd-client = "0.14"
 chrono = { version = "0.4", features = ["serde"] }

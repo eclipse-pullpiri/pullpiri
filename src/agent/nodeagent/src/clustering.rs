@@ -7,13 +7,10 @@
 
 use common::{
     apiserver::{
-        api_server_service_client::ApiServerServiceClient, NodeRegistrationRequest, 
-        ResourceInfo, NodeRole, Credentials,
+        api_server_service_client::ApiServerServiceClient, Credentials, NodeRegistrationRequest,
+        NodeRole, ResourceInfo,
     },
-    nodeagent::{
-        node_agent_service_client::NodeAgentServiceClient, HeartbeatRequest,
-        NodeStatus,
-    },
+    nodeagent::{node_agent_service_client::NodeAgentServiceClient, HeartbeatRequest, NodeStatus},
     setting, Result,
 };
 use serde::{Deserialize, Serialize};
@@ -176,7 +173,8 @@ impl ClusterClient {
 
                 // Calculate CPU usage (simplified - average across all CPUs)
                 let cpu_usage: f32 = if !sys.cpus().is_empty() {
-                    sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / sys.cpus().len() as f32
+                    sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>()
+                        / sys.cpus().len() as f32
                 } else {
                     0.0
                 };
@@ -207,7 +205,9 @@ impl ClusterClient {
                             println!("Heartbeat acknowledged: {}", resp.message);
                             return Ok(());
                         } else {
-                            return Err(format!("Heartbeat not acknowledged: {}", resp.message).into());
+                            return Err(
+                                format!("Heartbeat not acknowledged: {}", resp.message).into()
+                            );
                         }
                     }
                     Err(e) => {

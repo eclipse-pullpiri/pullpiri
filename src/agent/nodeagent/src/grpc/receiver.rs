@@ -1,8 +1,7 @@
 use common::nodeagent::node_agent_service_server::NodeAgentService;
 use common::nodeagent::{
-    HandleYamlRequest, HandleYamlResponse, HeartbeatRequest, HeartbeatResponse,
-    NodeRegistrationRequest, NodeRegistrationResponse, StatusReport, StatusAck,
-    ConfigRequest, ConfigResponse,
+    ConfigRequest, ConfigResponse, HandleYamlRequest, HandleYamlResponse, HeartbeatRequest,
+    HeartbeatResponse, NodeRegistrationRequest, NodeRegistrationResponse, StatusAck, StatusReport,
 };
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
@@ -58,7 +57,7 @@ impl NodeAgentService for NodeAgentReceiver {
         request: Request<StatusReport>,
     ) -> Result<Response<StatusAck>, Status> {
         let _req = request.into_inner();
-        
+
         // For now, just acknowledge the status report
         Ok(tonic::Response::new(StatusAck {
             acknowledged: true,
@@ -100,7 +99,7 @@ impl NodeAgentService for NodeAgentReceiver {
 
 #[cfg(test)]
 mod tests {
-    use crate::grpc::receiver::{NodeAgentService, NodeAgentReceiver};
+    use crate::grpc::receiver::{NodeAgentReceiver, NodeAgentService};
     use common::nodeagent::{HandleYamlRequest, HandleYamlResponse};
     use tokio::sync::mpsc;
     use tonic::{Request, Status};

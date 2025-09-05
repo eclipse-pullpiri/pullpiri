@@ -124,7 +124,6 @@ dependencies = [
  "axum",
  "chrono",
  "common",
- "etcd-client",
  "serde",
  "serde_json",
  "serde_yaml",

@@ -1,6 +1,4 @@
-use common::nodeagent::{
-    node_agent_connection_client::NodeAgentConnectionClient, HandleYamlRequest,
-};
+use common::nodeagent::{node_agent_service_client::NodeAgentServiceClient, HandleYamlRequest};
 use common::policymanager::{
     policy_manager_connection_client::PolicyManagerConnectionClient, CheckPolicyRequest,
 };
@@ -96,7 +94,7 @@ pub async fn handle_yaml(workload_name: String) -> Result<bool> {
     }
 
     let addr = common::nodeagent::connect_server();
-    let mut client = NodeAgentConnectionClient::connect(addr)
+    let mut client = NodeAgentServiceClient::connect(addr)
         .await //.unwrap();
         .map_err(|e| format!("Failed to connect to NodeAgent: {}", e))?;
 

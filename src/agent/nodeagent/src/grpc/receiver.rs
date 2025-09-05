@@ -195,7 +195,12 @@ spec:
     #[tokio::test]
     async fn test_handle_yaml_with_valid_artifact_yaml() {
         let (tx, mut rx) = mpsc::channel(1);
-        let receiver = NodeAgentReceiver { tx };
+        let receiver = NodeAgentReceiver::new(
+            tx,
+            "test-node".to_string(),
+            "test-host".to_string(),
+            "192.168.1.100".to_string(),
+        );
 
         let request = HandleYamlRequest {
             yaml: VALID_ARTIFACT_YAML.to_string(),
@@ -217,7 +222,12 @@ spec:
     async fn test_handle_yaml_send_error() {
         let (tx, rx) = mpsc::channel(1);
         drop(rx);
-        let receiver = NodeAgentReceiver { tx };
+        let receiver = NodeAgentReceiver::new(
+            tx,
+            "test-node".to_string(),
+            "test-host".to_string(),
+            "192.168.1.100".to_string(),
+        );
 
         let request = HandleYamlRequest {
             yaml: VALID_ARTIFACT_YAML.to_string(),

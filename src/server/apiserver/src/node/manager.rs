@@ -21,7 +21,7 @@ impl NodeManager {
         request: NodeRegistrationRequest,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let node_key = format!("cluster/nodes/{}", request.node_id);
-        
+
         // Create node info
         let node_info = NodeInfo {
             node_id: request.node_id.clone(),
@@ -38,7 +38,7 @@ impl NodeManager {
         // Use prost to serialize to binary format (more efficient for etcd)
         let mut buf = Vec::new();
         prost::Message::encode(&node_info, &mut buf)?;
-        
+
         // Store in etcd as base64 encoded binary
         let encoded = base64::encode(&buf);
         etcd::put(&node_key, &encoded).await?;
@@ -48,22 +48,22 @@ impl NodeManager {
     }
 
     /// Get all nodes in the cluster
-    pub async fn get_all_nodes(&self) -> Result<Vec<NodeInfo>, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn get_all_nodes(
+        &self,
+    ) -> Result<Vec<NodeInfo>, Box<dyn std::error::Error + Send + Sync>> {
         let prefix = "cluster/nodes/";
         let kvs = etcd::get_all_with_prefix(prefix).await?;
 
         let mut nodes = Vec::new();
         for kv in kvs {
             match base64::decode(&kv.value) {
-                Ok(buf) => {
-                    match NodeInfo::decode(&buf[..]) {
-                        Ok(node) => nodes.push(node),
-                        Err(e) => {
-                            eprintln!("Failed to decode node data for key {}: {}", kv.key, e);
-                            continue;
-                        }
+                Ok(buf) => match NodeInfo::decode(&buf[..]) {
+                    Ok(node) => nodes.push(node),
+                    Err(e) => {
+                        eprintln!("Failed to decode node data for key {}: {}", kv.key, e);
+                        continue;
                     }
-                }
+                },
                 Err(e) => {
                     eprintln!("Failed to decode base64 for key {}: {}", kv.key, e);
                     continue;
@@ -75,9 +75,12 @@ impl NodeManager {
     }
 
     /// Get a specific node by ID
-    pub async fn get_node(&self, node_id: &str) -> Result<Option<NodeInfo>, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn get_node(
+        &self,
+        node_id: &str,
+    ) -> Result<Option<NodeInfo>, Box<dyn std::error::Error + Send + Sync>> {
         let node_key = format!("cluster/nodes/{}", node_id);
-        
+
         match etcd::get(&node_key).await {
             Ok(encoded) => {
                 let buf = base64::decode(&encoded)?;
@@ -89,7 +92,10 @@ impl NodeManager {
     }
 
     /// Update node heartbeat
-    pub async fn update_heartbeat(&self, node_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn update_heartbeat(
+        &self,
+        node_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if let Some(mut node) = self.get_node(node_id).await? {
             node.last_heartbeat = chrono::Utc::now().timestamp();
             node.status = NodeStatus::Ready.into();
@@ -107,7 +113,11 @@ impl NodeManager {
     }
 
     /// Update node status
-    pub async fn update_status(&self, node_id: &str, status: NodeStatus) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn update_status(
+        &self,
+        node_id: &str,
+        status: NodeStatus,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if let Some(mut node) = self.get_node(node_id).await? {
             node.status = status.into();
             node.last_heartbeat = chrono::Utc::now().timestamp();
@@ -125,7 +135,10 @@ impl NodeManager {
     }
 
     /// Remove a node from the cluster
-    pub async fn remove_node(&self, node_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn remove_node(
+        &self,
+        node_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let node_key = format!("cluster/nodes/{}", node_id);
         etcd::delete(&node_key).await?;
 

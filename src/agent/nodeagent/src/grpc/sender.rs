@@ -9,7 +9,7 @@ use common::monitoringserver::{
 };
 use common::nodeagent::{
     HeartbeatRequest, HeartbeatResponse, NodeRegistrationRequest, NodeRegistrationResponse,
-    StatusReport, StatusAck,
+    StatusAck, StatusReport,
 };
 use common::statemanager::{
     state_manager_connection_client::StateManagerConnectionClient, Action, Response,
@@ -121,11 +121,14 @@ impl NodeAgentSender {
 
         match client {
             Ok(mut client) => {
-                client.register_node(Request::new(registration_request)).await
+                client
+                    .register_node(Request::new(registration_request))
+                    .await
             }
-            Err(e) => {
-                Err(Status::unknown(format!("Failed to connect to API server: {}", e)))
-            }
+            Err(e) => Err(Status::unknown(format!(
+                "Failed to connect to API server: {}",
+                e
+            ))),
         }
     }
 
@@ -138,7 +141,7 @@ impl NodeAgentSender {
         // This is a local operation that would be handled by the node's own receiver
         // In practice, heartbeats are typically sent from NodeAgent to API server
         // but this implementation allows for local heartbeat processing
-        
+
         // TODO: Implement heartbeat sending to API server if needed
         // For now, return a success response
         Ok(tonic::Response::new(HeartbeatResponse {
@@ -158,9 +161,9 @@ impl NodeAgentSender {
     ) -> Result<tonic::Response<StatusAck>, Status> {
         // Similar to heartbeat, this is typically a NodeAgent operation
         // TODO: Implement status reporting to API server if needed
-        
+
         println!("Sending status report for node: {}", status_report.node_id);
-        
+
         Ok(tonic::Response::new(StatusAck {
             received: true,
             message: "Status report sent successfully".to_string(),

@@ -45,7 +45,7 @@ async fn initialize(tx_grpc: Sender<HandleYamlRequest>, hostname: String) {
     let config = common::setting::get_config();
     let node_id = format!("{}-{}", hostname, config.host.ip);
     let ip_address = config.host.ip.clone();
-    
+
     let server = grpc::receiver::NodeAgentReceiver::new(
         tx_grpc.clone(),
         node_id,

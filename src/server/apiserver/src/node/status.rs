@@ -25,7 +25,11 @@ impl NodeStatusManager {
     }
 
     /// Get unhealthy nodes in the cluster
-    pub fn get_unhealthy_nodes(&self, nodes: &[NodeInfo], heartbeat_timeout_seconds: u64) -> Vec<String> {
+    pub fn get_unhealthy_nodes(
+        &self,
+        nodes: &[NodeInfo],
+        heartbeat_timeout_seconds: u64,
+    ) -> Vec<String> {
         nodes
             .iter()
             .filter(|node| !self.is_node_healthy(node, heartbeat_timeout_seconds))
@@ -34,7 +38,11 @@ impl NodeStatusManager {
     }
 
     /// Get cluster health summary
-    pub fn get_cluster_health_summary(&self, nodes: &[NodeInfo], heartbeat_timeout_seconds: u64) -> ClusterHealthSummary {
+    pub fn get_cluster_health_summary(
+        &self,
+        nodes: &[NodeInfo],
+        heartbeat_timeout_seconds: u64,
+    ) -> ClusterHealthSummary {
         let total_nodes = nodes.len();
         let healthy_nodes = nodes
             .iter()
@@ -42,17 +50,20 @@ impl NodeStatusManager {
             .count();
         let unhealthy_nodes = total_nodes - healthy_nodes;
 
-        let master_nodes = nodes.iter().filter(|node| {
-            node.role == common::nodeagent::NodeRole::Master as i32
-        }).count();
+        let master_nodes = nodes
+            .iter()
+            .filter(|node| node.role == common::nodeagent::NodeRole::Master as i32)
+            .count();
 
-        let sub_nodes = nodes.iter().filter(|node| {
-            node.role == common::nodeagent::NodeRole::Sub as i32
-        }).count();
+        let sub_nodes = nodes
+            .iter()
+            .filter(|node| node.role == common::nodeagent::NodeRole::Sub as i32)
+            .count();
 
-        let ready_nodes = nodes.iter().filter(|node| {
-            node.status == NodeStatus::Ready as i32
-        }).count();
+        let ready_nodes = nodes
+            .iter()
+            .filter(|node| node.status == NodeStatus::Ready as i32)
+            .count();
 
         ClusterHealthSummary {
             total_nodes,
@@ -162,7 +173,7 @@ mod tests {
         ];
 
         let summary = status_manager.get_cluster_health_summary(&nodes, 60);
-        
+
         assert_eq!(summary.total_nodes, 3);
         assert_eq!(summary.healthy_nodes, 2);
         assert_eq!(summary.unhealthy_nodes, 1);
@@ -172,10 +183,19 @@ mod tests {
     #[test]
     fn test_status_parsing() {
         let status_manager = NodeStatusManager;
-        
+
         assert_eq!(status_manager.parse_node_status("ready"), NodeStatus::Ready);
-        assert_eq!(status_manager.parse_node_status("PENDING"), NodeStatus::Pending);
-        assert_eq!(status_manager.parse_node_status("not_ready"), NodeStatus::NotReady);
-        assert_eq!(status_manager.parse_node_status("unknown"), NodeStatus::Unspecified);
+        assert_eq!(
+            status_manager.parse_node_status("PENDING"),
+            NodeStatus::Pending
+        );
+        assert_eq!(
+            status_manager.parse_node_status("not_ready"),
+            NodeStatus::NotReady
+        );
+        assert_eq!(
+            status_manager.parse_node_status("unknown"),
+            NodeStatus::Unspecified
+        );
     }
 }

@@ -16,18 +16,18 @@ impl Node {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct NodeSpec {
     // Basic node information
-    pub role: Option<String>,          // "master" or "sub"
+    pub role: Option<String>, // "master" or "sub"
     pub ip_address: Option<String>,
     pub hostname: Option<String>,
-    
+
     // Resource information
     pub resources: Option<NodeResources>,
-    
+
     // Clustering information
     pub cluster_id: Option<String>,
     pub status: Option<String>,
     pub last_heartbeat: Option<i64>,
-    
+
     // Configuration
     pub config: Option<std::collections::HashMap<String, String>>,
 }

@@ -15,9 +15,11 @@ pub struct NodeRegistry;
 
 impl NodeRegistry {
     /// Get the current cluster topology
-    pub async fn get_topology(&self) -> Result<ClusterTopology, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn get_topology(
+        &self,
+    ) -> Result<ClusterTopology, Box<dyn std::error::Error + Send + Sync>> {
         let topology_key = "cluster/topology";
-        
+
         match etcd::get(topology_key).await {
             Ok(encoded) => {
                 let buf = base64::decode(&encoded)?;
@@ -40,21 +42,26 @@ impl NodeRegistry {
     }
 
     /// Update the cluster topology
-    pub async fn update_topology(&self, topology: ClusterTopology) -> Result<ClusterTopology, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn update_topology(
+        &self,
+        topology: ClusterTopology,
+    ) -> Result<ClusterTopology, Box<dyn std::error::Error + Send + Sync>> {
         let topology_key = "cluster/topology";
-        
+
         let mut buf = Vec::new();
         prost::Message::encode(&topology, &mut buf)?;
         let encoded = base64::encode(&buf);
-        
+
         etcd::put(topology_key, &encoded).await?;
-        
+
         println!("Updated cluster topology: {}", topology.cluster_name);
         Ok(topology)
     }
 
     /// Initialize default cluster topology
-    pub async fn initialize_default_topology(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn initialize_default_topology(
+        &self,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let default_topology = ClusterTopology {
             cluster_id: "default-cluster".to_string(),
             cluster_name: "PICCOLO Cluster".to_string(),

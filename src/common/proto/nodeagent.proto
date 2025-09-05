@@ -9,6 +9,12 @@ package nodeagent;
 
 service NodeAgentConnection {
   rpc HandleYaml(HandleYamlRequest) returns (HandleYamlResponse);
+  
+  // Clustering functionality
+  rpc RegisterNode(NodeRegistrationRequest) returns (NodeRegistrationResponse);
+  rpc ReportStatus(StatusReport) returns (StatusAck);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc ReceiveConfig(ConfigRequest) returns (ConfigResponse);
 }
 
 message HandleYamlRequest {
@@ -18,4 +24,84 @@ message HandleYamlRequest {
 message HandleYamlResponse {
   bool status = 1;
   string desc = 2;
+}
+
+// Node clustering messages
+message NodeRegistrationRequest {
+  string node_id = 1;
+  string hostname = 2;
+  string ip_address = 3;
+  NodeRole role = 4;
+  ResourceInfo resources = 5;
+  map<string, string> metadata = 6;
+}
+
+message NodeRegistrationResponse {
+  bool success = 1;
+  string message = 2;
+  string cluster_token = 3;
+  ClusterConfig cluster_config = 4;
+}
+
+message StatusReport {
+  string node_id = 1;
+  NodeStatus status = 2;
+  map<string, string> metrics = 3;
+  repeated string active_containers = 4;
+  int64 timestamp = 5;
+}
+
+message StatusAck {
+  bool received = 1;
+  string message = 2;
+}
+
+message HeartbeatRequest {
+  string node_id = 1;
+  int64 timestamp = 2;
+}
+
+message HeartbeatResponse {
+  bool ack = 1;
+  ClusterConfig updated_config = 2;
+}
+
+message ConfigRequest {
+  map<string, string> config = 1;
+}
+
+message ConfigResponse {
+  bool applied = 1;
+  string message = 2;
+}
+
+// Supporting data structures
+enum NodeRole {
+  NODE_ROLE_UNSPECIFIED = 0;
+  NODE_ROLE_MASTER = 1;
+  NODE_ROLE_SUB = 2;
+}
+
+enum NodeStatus {
+  NODE_STATUS_UNSPECIFIED = 0;
+  NODE_STATUS_PENDING = 1;
+  NODE_STATUS_INITIALIZING = 2;
+  NODE_STATUS_READY = 3;
+  NODE_STATUS_NOT_READY = 4;
+  NODE_STATUS_MAINTENANCE = 5;
+  NODE_STATUS_TERMINATING = 6;
+}
+
+message ResourceInfo {
+  int32 cpu_cores = 1;
+  int64 memory_mb = 2;
+  int64 disk_gb = 3;
+  string architecture = 4;
+  string os_version = 5;
+}
+
+message ClusterConfig {
+  string master_endpoint = 1;
+  int32 heartbeat_interval = 2;
+  map<string, string> settings = 3;
 }

@@ -1,0 +1,94 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+
+package apiserver;
+
+// Import necessary types from nodeagent
+import "nodeagent.proto";
+
+service ApiServerConnection {
+  // Node management operations
+  rpc GetNodes(GetNodesRequest) returns (GetNodesResponse);
+  rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
+  rpc RegisterNode(nodeagent.NodeRegistrationRequest) returns (nodeagent.NodeRegistrationResponse);
+  
+  // Cluster topology management
+  rpc GetTopology(GetTopologyRequest) returns (GetTopologyResponse);
+  rpc UpdateTopology(UpdateTopologyRequest) returns (UpdateTopologyResponse);
+}
+
+// Node management messages
+message GetNodesRequest {
+  optional string filter = 1;
+  optional nodeagent.NodeStatus status_filter = 2;
+}
+
+message GetNodesResponse {
+  repeated NodeInfo nodes = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message GetNodeRequest {
+  string node_id = 1;
+}
+
+message GetNodeResponse {
+  NodeInfo node = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message NodeInfo {
+  string node_id = 1;
+  string hostname = 2;
+  string ip_address = 3;
+  nodeagent.NodeRole role = 4;
+  nodeagent.NodeStatus status = 5;
+  nodeagent.ResourceInfo resources = 6;
+  int64 last_heartbeat = 7;
+  int64 created_at = 8;
+  map<string, string> metadata = 9;
+}
+
+// Topology management messages
+message GetTopologyRequest {
+}
+
+message GetTopologyResponse {
+  ClusterTopology topology = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message UpdateTopologyRequest {
+  ClusterTopology topology = 1;
+}
+
+message UpdateTopologyResponse {
+  ClusterTopology updated_topology = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message ClusterTopology {
+  string cluster_id = 1;
+  string cluster_name = 2;
+  TopologyType type = 3;
+  repeated NodeInfo master_nodes = 4;
+  repeated NodeInfo sub_nodes = 5;
+  string parent_cluster = 6;
+  map<string, string> config = 7;
+}
+
+enum TopologyType {
+  TOPOLOGY_TYPE_UNSPECIFIED = 0;
+  TOPOLOGY_TYPE_EMBEDDED = 1;
+  TOPOLOGY_TYPE_HYBRID_CLOUD = 2;
+  TOPOLOGY_TYPE_MULTI_CLUSTER = 3;
+  TOPOLOGY_TYPE_DISTRIBUTED = 4;
+}

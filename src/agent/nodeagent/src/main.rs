@@ -42,9 +42,16 @@ async fn launch_manager(rx_grpc: Receiver<HandleYamlRequest>, hostname: String) 
 async fn initialize(tx_grpc: Sender<HandleYamlRequest>, hostname: String) {
     use tonic::transport::Server;
 
-    let server = grpc::receiver::NodeAgentReceiver {
-        tx: tx_grpc.clone(),
-    };
+    let config = common::setting::get_config();
+    let node_id = format!("{}-{}", hostname, config.host.ip);
+    let ip_address = config.host.ip.clone();
+    
+    let server = grpc::receiver::NodeAgentReceiver::new(
+        tx_grpc.clone(),
+        node_id,
+        hostname.clone(),
+        ip_address,
+    );
 
     let hostname_in_setting = common::setting::get_config().host.name.clone();
 

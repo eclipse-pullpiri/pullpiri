@@ -2,3 +2,10 @@
 .vscode/
 node_modules/
 
+# Build artifacts and logs
+*.log
+*_output.txt
+*_results.log
+dist/reports/
+etcd.log
+

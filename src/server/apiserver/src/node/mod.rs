@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! Running gRPC message send/receive
+//! Node management modules
 
-pub mod receiver;
-pub mod sender;
+pub mod manager;
+pub mod registry;
+pub mod status;

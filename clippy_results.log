@@ -2,7 +2,7 @@
 🧪 Running Clippy for common (src/common/Cargo.toml)
 ✅ Clippy for common passed clean.
 🧪 Running Clippy for apiserver (src/server/apiserver/Cargo.toml)
-✅ Clippy for apiserver passed clean.
+::error ::❌ Clippy for apiserver failed! Found warnings/errors.
 🧪 Running Clippy for tools (src/tools/Cargo.toml)
 ✅ Clippy for tools passed clean.
 🧪 Running Clippy for agent (src/agent/Cargo.toml)
@@ -11,3 +11,4 @@
 ✅ Clippy for filtergateway passed clean.
 🧪 Running Clippy for actioncontroller (src/player/actioncontroller/Cargo.toml)
 ✅ Clippy for actioncontroller passed clean.
+::error ::🚨 Clippy failed for 1 component(s).

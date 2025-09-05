@@ -50,16 +50,6 @@ pub enum NodeRole {
     Sub,
 }
 
-/// Node lifecycle status in the cluster
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum NodeLifecycleStatus {
-    Offline,
-    Online,
-    Initializing,
-    Error,
-    Maintenance,
-}
-
 /// Node resource information
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct NodeResources {
@@ -77,11 +67,22 @@ pub struct NodeInfo {
     pub node_name: String,
     pub ip_address: String,
     pub role: NodeRole,
-    pub status: NodeLifecycleStatus,
+    pub status: NodeState,
     pub resources: NodeResources,
     pub labels: HashMap<String, String>,
     pub created_at: i64,
     pub last_heartbeat: i64,
+}
+
+/// Simplified node registration information for gRPC communication
+/// Contains only essential information needed for node registration and heartbeat
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct NodeRegistrationInfo {
+    pub node_id: String,
+    pub node_name: String,
+    pub ip_address: String,
+    pub role: NodeRole,
+    pub resources: Option<NodeResources>,
 }
 
 /// Cluster configuration for nodes
@@ -121,7 +122,7 @@ pub struct NodeStatus {
     pub addresses: Vec<NodeAddress>,
     pub capacity: Option<NodeResources>,
     pub allocatable: Option<NodeResources>,
-    pub phase: NodePhase,
+    pub phase: NodeState,
     pub last_heartbeat_time: Option<i64>,
     pub node_info: Option<NodeSystemInfo>,
 }
@@ -131,16 +132,6 @@ pub struct NodeStatus {
 pub enum NodeState {
     Ready,
     NotReady,
-    Unknown,
-}
-
-/// Node phase enumeration
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum NodePhase {
-    Pending,
-    Running,
-    Succeeded,
-    Failed,
     Unknown,
 }
 
@@ -211,12 +202,6 @@ impl Default for NodeState {
     }
 }
 
-impl Default for NodePhase {
-    fn default() -> Self {
-        NodePhase::Pending
-    }
-}
-
 impl Default for ConditionStatus {
     fn default() -> Self {
         ConditionStatus::Unknown
@@ -235,12 +220,6 @@ impl Default for NodeResources {
     }
 }
 
-impl Default for NodeLifecycleStatus {
-    fn default() -> Self {
-        NodeLifecycleStatus::Offline
-    }
-}
-
 impl Default for NodeRole {
     fn default() -> Self {
         NodeRole::Sub
@@ -256,7 +235,7 @@ impl NodeStatus {
             addresses: vec![],
             capacity: None,
             allocatable: None,
-            phase: NodePhase::Pending,
+            phase: NodeState::Unknown,
             last_heartbeat_time: Some(now),
             node_info: None,
         }
@@ -266,7 +245,7 @@ impl NodeStatus {
         let now = chrono::Utc::now().timestamp();
         let mut status = Self::new();
         status.state = NodeState::Ready;
-        status.phase = NodePhase::Running;
+        status.phase = NodeState::Ready;
         status.conditions.push(NodeCondition {
             condition_type: NodeConditionType::Ready,
             status: ConditionStatus::True,
@@ -310,6 +289,28 @@ impl NodeAddress {
     }
 }
 
+impl NodeRegistrationInfo {
+    pub fn new(node_id: String, node_name: String, ip_address: String) -> Self {
+        Self {
+            node_id,
+            node_name,
+            ip_address,
+            role: NodeRole::default(),
+            resources: Some(NodeResources::default()),
+        }
+    }
+
+    pub fn with_role(mut self, role: NodeRole) -> Self {
+        self.role = role;
+        self
+    }
+
+    pub fn with_resources(mut self, resources: NodeResources) -> Self {
+        self.resources = Some(resources);
+        self
+    }
+}
+
 impl NodeInfo {
     pub fn new(node_id: String, node_name: String, ip_address: String) -> Self {
         let now = chrono::Utc::now().timestamp();
@@ -318,7 +319,7 @@ impl NodeInfo {
             node_name,
             ip_address,
             role: NodeRole::default(),
-            status: NodeLifecycleStatus::default(),
+            status: NodeState::default(),
             resources: NodeResources::default(),
             labels: HashMap::new(),
             created_at: now,
@@ -331,7 +332,7 @@ impl NodeInfo {
     }
 
     pub fn is_online(&self) -> bool {
-        matches!(self.status, NodeLifecycleStatus::Online)
+        matches!(self.status, NodeState::Ready)
     }
 
     pub fn heartbeat_age(&self) -> i64 {

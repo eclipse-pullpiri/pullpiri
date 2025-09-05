@@ -12,7 +12,7 @@ spec:
     node_name: "sample-node"
     ip_address: "192.168.1.100"
     role: "Sub"
-    status: "Online"
+    status: "Ready"
     resources:
       cpu_cores: 4
       memory_mb: 2048
@@ -36,7 +36,7 @@ spec:
       backup_enabled: "false"
 status:
   state: "Ready"
-  phase: "Running"
+  phase: "Ready"
   last_heartbeat_time: 1704067200
   conditions:
     - condition_type: "Ready"
@@ -100,7 +100,7 @@ spec:
     node_name: "master-node"
     ip_address: "192.168.1.10"
     role: "Master"
-    status: "Online"
+    status: "Ready"
     resources:
       cpu_cores: 8
       memory_mb: 8192
@@ -125,7 +125,7 @@ spec:
       cluster_name: "PICCOLO Vehicle Cluster"
 status:
   state: "Ready"
-  phase: "Running"
+  phase: "Ready"
   last_heartbeat_time: 1704067200
   conditions:
     - condition_type: "Ready"

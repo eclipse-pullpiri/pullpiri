@@ -45,7 +45,8 @@ async fn reload() {
                 action: Action::Apply.into(),
                 scenario,
             };
-            if let Err(status) = crate::grpc::sender::filtergateway::send(req).await {
+            let sender = crate::grpc::sender::ApiServerSender::new();
+            if let Err(status) = sender.send_scenario_to_filtergateway(req).await {
                 println!("{:#?}", status);
             }
         }
@@ -69,11 +70,11 @@ pub async fn apply_artifact(body: &str) -> common::Result<()> {
         yaml: body.to_string(),
     };
 
-    crate::grpc::sender::nodeagent::send(handle_yaml.clone()).await?;
+    crate::grpc::sender::send(handle_yaml.clone()).await?;
 
     if let Some(guests) = &common::setting::get_config().guest {
         if !guests.is_empty() {
-            crate::grpc::sender::nodeagent::send_guest(handle_yaml).await?;
+            crate::grpc::sender::send_guest(handle_yaml).await?;
         }
     } else {
         println!("Guest configuration not found, skipping guest node");
@@ -83,7 +84,8 @@ pub async fn apply_artifact(body: &str) -> common::Result<()> {
         action: Action::Apply.into(),
         scenario: scenario,
     };
-    crate::grpc::sender::filtergateway::send(req).await?;
+    let sender = crate::grpc::sender::ApiServerSender::new();
+    sender.send_scenario_to_filtergateway(req).await?;
     Ok(())
 }
 
@@ -102,7 +104,8 @@ pub async fn withdraw_artifact(body: &str) -> common::Result<()> {
         action: Action::Withdraw.into(),
         scenario,
     };
-    crate::grpc::sender::filtergateway::send(req).await?;
+    let sender = crate::grpc::sender::ApiServerSender::new();
+    sender.send_scenario_to_filtergateway(req).await?;
 
     Ok(())
 }

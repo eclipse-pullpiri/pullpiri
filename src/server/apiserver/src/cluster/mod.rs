@@ -9,7 +9,6 @@ pub mod registry;
 
 // Re-export clustering structures from common
 pub use common::spec::artifact::node::{
-    ClusterConfig, ClusterTopology, NodeInfo, NodeLifecycleStatus, NodeResources, NodeRole,
-    TopologyType,
+    ClusterTopology, NodeInfo, NodeRole, NodeState, TopologyType,
 };
 pub use registry::NodeRegistry;

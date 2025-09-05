@@ -5,13 +5,12 @@
 
 //! gRPC Server implementation for API Server clustering service
 
-use crate::cluster::{
-    NodeInfo, NodeLifecycleStatus, NodeRegistry, NodeResources, NodeRole, TopologyType,
-};
+use crate::cluster::{NodeRegistry, TopologyType};
 use common::apiserver::{
     api_server_service_server::{ApiServerService, ApiServerServiceServer},
     *,
 };
+use common::spec::artifact::node::{NodeInfo, NodeResources, NodeRole, NodeState};
 use tokio::sync::OnceCell;
 use tonic::{Request, Response, Status};
 
@@ -204,11 +203,9 @@ fn convert_node_info_to_grpc(node: NodeInfo) -> Node {
             NodeRole::Sub => common::apiserver::NodeRole::Sub as i32,
         },
         status: match node.status {
-            NodeLifecycleStatus::Online => common::apiserver::NodeStatus::Ready as i32,
-            NodeLifecycleStatus::Offline => common::apiserver::NodeStatus::NotReady as i32,
-            NodeLifecycleStatus::Initializing => common::apiserver::NodeStatus::Initializing as i32,
-            NodeLifecycleStatus::Error => common::apiserver::NodeStatus::NotReady as i32,
-            NodeLifecycleStatus::Maintenance => common::apiserver::NodeStatus::Maintenance as i32,
+            NodeState::Ready => common::apiserver::NodeStatus::Ready as i32,
+            NodeState::NotReady => common::apiserver::NodeStatus::NotReady as i32,
+            NodeState::Unknown => common::apiserver::NodeStatus::NotReady as i32,
         },
         resources: Some(ResourceInfo {
             cpu_cores: node.resources.cpu_cores,

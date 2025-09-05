@@ -52,6 +52,7 @@ pub struct Node {
     kind: String,
     metadata: MetaData,
     spec: Option<node::NodeSpec>,
+    status: Option<node::NodeStatus>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

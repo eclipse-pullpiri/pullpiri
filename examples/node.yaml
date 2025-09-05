@@ -34,6 +34,57 @@ spec:
       log_level: "info"
       monitoring_enabled: "true"
       backup_enabled: "false"
+status:
+  state: "Ready"
+  phase: "Running"
+  last_heartbeat_time: 1704067200
+  conditions:
+    - condition_type: "Ready"
+      status: "True"
+      last_heartbeat_time: 1704067200
+      last_transition_time: 1704063600
+      reason: "KubeletReady"
+      message: "kubelet is posting ready status"
+    - condition_type: "MemoryPressure"
+      status: "False"
+      last_heartbeat_time: 1704067200
+      last_transition_time: 1704063600
+      reason: "KubeletHasSufficientMemory"
+      message: "kubelet has sufficient memory available"
+    - condition_type: "DiskPressure"
+      status: "False"
+      last_heartbeat_time: 1704067200
+      last_transition_time: 1704063600
+      reason: "KubeletHasNoDiskPressure"
+      message: "kubelet has no disk pressure"
+  addresses:
+    - address_type: "InternalIP"
+      address: "192.168.1.100"
+    - address_type: "Hostname"
+      address: "sample-node"
+  capacity:
+    cpu_cores: 4
+    memory_mb: 2048
+    disk_gb: 32
+    cpu_usage: 0.0
+    memory_usage: 0.0
+  allocatable:
+    cpu_cores: 3
+    memory_mb: 1536
+    disk_gb: 28
+    cpu_usage: 0.0
+    memory_usage: 0.0
+  node_info:
+    machine_id: "abc123def456"
+    system_uuid: "12345678-abcd-1234-efgh-123456789012"
+    boot_id: "boot-001-sample"
+    kernel_version: "5.15.0-arm64"
+    os_image: "PICCOLO Node OS v1.0"
+    container_runtime_version: "containerd://1.6.0"
+    kubelet_version: "v1.25.0"
+    kube_proxy_version: "v1.25.0"
+    operating_system: "linux"
+    architecture: "arm64"
 ---
 apiVersion: v1
 kind: Node
@@ -72,3 +123,64 @@ spec:
       monitoring_enabled: "true"
       backup_enabled: "true"
       cluster_name: "PICCOLO Vehicle Cluster"
+status:
+  state: "Ready"
+  phase: "Running"
+  last_heartbeat_time: 1704067200
+  conditions:
+    - condition_type: "Ready"
+      status: "True"
+      last_heartbeat_time: 1704067200
+      last_transition_time: 1704063600
+      reason: "KubeletReady"
+      message: "kubelet is posting ready status"
+    - condition_type: "MemoryPressure"
+      status: "False"
+      last_heartbeat_time: 1704067200
+      last_transition_time: 1704063600
+      reason: "KubeletHasSufficientMemory"
+      message: "kubelet has sufficient memory available"
+    - condition_type: "DiskPressure"
+      status: "False"
+      last_heartbeat_time: 1704067200
+      last_transition_time: 1704063600
+      reason: "KubeletHasNoDiskPressure"
+      message: "kubelet has no disk pressure"
+    - condition_type: "NetworkUnavailable"
+      status: "False"
+      last_heartbeat_time: 1704067200
+      last_transition_time: 1704063600
+      reason: "RouteCreated"
+      message: "RouteController created a route"
+  addresses:
+    - address_type: "InternalIP"
+      address: "192.168.1.10"
+    - address_type: "ExternalIP"
+      address: "203.0.113.10"
+    - address_type: "Hostname"
+      address: "master-node"
+    - address_type: "InternalDNS"
+      address: "master-node.cluster.local"
+  capacity:
+    cpu_cores: 8
+    memory_mb: 8192
+    disk_gb: 100
+    cpu_usage: 0.0
+    memory_usage: 0.0
+  allocatable:
+    cpu_cores: 7
+    memory_mb: 7168
+    disk_gb: 90
+    cpu_usage: 0.0
+    memory_usage: 0.0
+  node_info:
+    machine_id: "xyz789abc123"
+    system_uuid: "87654321-dcba-4321-hgfe-210987654321"
+    boot_id: "boot-001-master"
+    kernel_version: "5.15.0-x86_64"
+    os_image: "PICCOLO Master OS v1.0"
+    container_runtime_version: "containerd://1.6.0"
+    kubelet_version: "v1.25.0"
+    kube_proxy_version: "v1.25.0"
+    operating_system: "linux"
+    architecture: "amd64"

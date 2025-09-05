@@ -12,7 +12,7 @@ use common::nodeagent::HandleYamlRequest;
 pub async fn initialize() {
     let (rest_result, grpc_result, reload_result) = tokio::join!(
         crate::route::launch_tcp_listener(),
-        crate::grpc::server::start_grpc_server(),
+        crate::grpc::receiver::start_grpc_server(),
         reload()
     );
 

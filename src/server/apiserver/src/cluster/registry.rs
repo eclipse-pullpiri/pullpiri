@@ -5,7 +5,7 @@
 
 //! Node registry for cluster management using etcd
 
-use super::{ClusterTopology, NodeInfo, NodeRole, NodeStatus, TopologyType};
+use super::{ClusterTopology, NodeInfo, NodeLifecycleStatus, NodeRole, TopologyType};
 use common::{etcd, Result};
 use serde_json;
 use std::collections::HashMap;
@@ -37,7 +37,7 @@ impl NodeRegistry {
         let cluster_id = self.get_or_create_cluster_id().await?;
 
         // Set node status to initializing during registration
-        node_info.status = NodeStatus::Initializing;
+        node_info.status = NodeLifecycleStatus::Initializing;
         node_info.update_heartbeat();
 
         let key = format!("{}/{}", NODES_PREFIX, node_info.node_id);
@@ -58,7 +58,7 @@ impl NodeRegistry {
     pub async fn update_node_status(
         &self,
         node_id: &str,
-        status: NodeStatus,
+        status: NodeLifecycleStatus,
         metrics: Option<HashMap<String, String>>,
     ) -> Result<()> {
         let mut node_info = self.get_node(node_id).await?;
@@ -123,7 +123,10 @@ impl NodeRegistry {
     }
 
     /// Get nodes filtered by status
-    pub async fn get_nodes_by_status(&self, status_filter: NodeStatus) -> Result<Vec<NodeInfo>> {
+    pub async fn get_nodes_by_status(
+        &self,
+        status_filter: NodeLifecycleStatus,
+    ) -> Result<Vec<NodeInfo>> {
         let all_nodes = self.get_all_nodes().await?;
         Ok(all_nodes
             .into_iter()
@@ -176,7 +179,7 @@ impl NodeRegistry {
             let heartbeat_age = current_time - node.last_heartbeat;
             if heartbeat_age > HEARTBEAT_TIMEOUT_SECONDS && node.is_online() {
                 // Mark node as offline
-                self.update_node_status(&node.node_id, NodeStatus::Offline, None)
+                self.update_node_status(&node.node_id, NodeLifecycleStatus::Offline, None)
                     .await?;
                 stale_nodes.push(node.node_id);
             }

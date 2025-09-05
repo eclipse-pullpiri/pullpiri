@@ -20,6 +20,10 @@ impl Node {
     pub fn get_spec(&self) -> &Option<NodeSpec> {
         &self.spec
     }
+
+    pub fn get_status(&self) -> &Option<NodeStatus> {
+        &self.status
+    }
 }
 
 /// Node specification for clustering
@@ -46,9 +50,9 @@ pub enum NodeRole {
     Sub,
 }
 
-/// Node status in the cluster
+/// Node lifecycle status in the cluster
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum NodeStatus {
+pub enum NodeLifecycleStatus {
     Offline,
     Online,
     Initializing,
@@ -73,7 +77,7 @@ pub struct NodeInfo {
     pub node_name: String,
     pub ip_address: String,
     pub role: NodeRole,
-    pub status: NodeStatus,
+    pub status: NodeLifecycleStatus,
     pub resources: NodeResources,
     pub labels: HashMap<String, String>,
     pub created_at: i64,
@@ -109,6 +113,116 @@ pub struct ClusterTopology {
     pub config: HashMap<String, String>,
 }
 
+/// Node status structure following Kubernetes pattern
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct NodeStatus {
+    pub state: NodeState,
+    pub conditions: Vec<NodeCondition>,
+    pub addresses: Vec<NodeAddress>,
+    pub capacity: Option<NodeResources>,
+    pub allocatable: Option<NodeResources>,
+    pub phase: NodePhase,
+    pub last_heartbeat_time: Option<i64>,
+    pub node_info: Option<NodeSystemInfo>,
+}
+
+/// Node state enumeration
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum NodeState {
+    Ready,
+    NotReady,
+    Unknown,
+}
+
+/// Node phase enumeration
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum NodePhase {
+    Pending,
+    Running,
+    Succeeded,
+    Failed,
+    Unknown,
+}
+
+/// Node condition structure
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct NodeCondition {
+    pub condition_type: NodeConditionType,
+    pub status: ConditionStatus,
+    pub last_heartbeat_time: Option<i64>,
+    pub last_transition_time: Option<i64>,
+    pub reason: Option<String>,
+    pub message: Option<String>,
+}
+
+/// Node condition types
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum NodeConditionType {
+    Ready,
+    MemoryPressure,
+    DiskPressure,
+    PIDPressure,
+    NetworkUnavailable,
+}
+
+/// Condition status
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum ConditionStatus {
+    True,
+    False,
+    Unknown,
+}
+
+/// Node address structure
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct NodeAddress {
+    pub address_type: NodeAddressType,
+    pub address: String,
+}
+
+/// Node address types
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum NodeAddressType {
+    Hostname,
+    ExternalIP,
+    InternalIP,
+    ExternalDNS,
+    InternalDNS,
+}
+
+/// Node system information
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct NodeSystemInfo {
+    pub machine_id: String,
+    pub system_uuid: String,
+    pub boot_id: String,
+    pub kernel_version: String,
+    pub os_image: String,
+    pub container_runtime_version: String,
+    pub kubelet_version: String,
+    pub kube_proxy_version: String,
+    pub operating_system: String,
+    pub architecture: String,
+}
+
+impl Default for NodeState {
+    fn default() -> Self {
+        NodeState::Unknown
+    }
+}
+
+impl Default for NodePhase {
+    fn default() -> Self {
+        NodePhase::Pending
+    }
+}
+
+impl Default for ConditionStatus {
+    fn default() -> Self {
+        ConditionStatus::Unknown
+    }
+}
+
 impl Default for NodeResources {
     fn default() -> Self {
         Self {
@@ -121,15 +235,78 @@ impl Default for NodeResources {
     }
 }
 
-impl Default for NodeStatus {
+impl Default for NodeLifecycleStatus {
     fn default() -> Self {
-        NodeStatus::Offline
+        NodeLifecycleStatus::Offline
     }
 }
 
 impl Default for NodeRole {
     fn default() -> Self {
         NodeRole::Sub
+    }
+}
+
+impl NodeStatus {
+    pub fn new() -> Self {
+        let now = chrono::Utc::now().timestamp();
+        Self {
+            state: NodeState::Unknown,
+            conditions: vec![],
+            addresses: vec![],
+            capacity: None,
+            allocatable: None,
+            phase: NodePhase::Pending,
+            last_heartbeat_time: Some(now),
+            node_info: None,
+        }
+    }
+
+    pub fn ready() -> Self {
+        let now = chrono::Utc::now().timestamp();
+        let mut status = Self::new();
+        status.state = NodeState::Ready;
+        status.phase = NodePhase::Running;
+        status.conditions.push(NodeCondition {
+            condition_type: NodeConditionType::Ready,
+            status: ConditionStatus::True,
+            last_heartbeat_time: Some(now),
+            last_transition_time: Some(now),
+            reason: Some("KubeletReady".to_string()),
+            message: Some("kubelet is posting ready status".to_string()),
+        });
+        status
+    }
+
+    pub fn update_heartbeat(&mut self) {
+        self.last_heartbeat_time = Some(chrono::Utc::now().timestamp());
+    }
+
+    pub fn is_ready(&self) -> bool {
+        matches!(self.state, NodeState::Ready)
+    }
+}
+
+impl NodeCondition {
+    pub fn new(condition_type: NodeConditionType, status: ConditionStatus) -> Self {
+        let now = chrono::Utc::now().timestamp();
+        Self {
+            condition_type,
+            status,
+            last_heartbeat_time: Some(now),
+            last_transition_time: Some(now),
+            reason: None,
+            message: None,
+        }
+    }
+}
+
+impl NodeAddress {
+    pub fn new(address_type: NodeAddressType, address: String) -> Self {
+        Self {
+            address_type,
+            address,
+        }
     }
 }
 
@@ -141,7 +318,7 @@ impl NodeInfo {
             node_name,
             ip_address,
             role: NodeRole::default(),
-            status: NodeStatus::default(),
+            status: NodeLifecycleStatus::default(),
             resources: NodeResources::default(),
             labels: HashMap::new(),
             created_at: now,
@@ -154,7 +331,7 @@ impl NodeInfo {
     }
 
     pub fn is_online(&self) -> bool {
-        matches!(self.status, NodeStatus::Online)
+        matches!(self.status, NodeLifecycleStatus::Online)
     }
 
     pub fn heartbeat_age(&self) -> i64 {

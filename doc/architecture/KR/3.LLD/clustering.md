@@ -129,14 +129,26 @@ pub struct ClusterConfig {
 gRPC 서비스는 **수신자 쪽에서 정의**되며, **송신자가 수신자의 API를 호출**하는 패턴을 따릅니다:
 
 1. **API Server → NodeAgent 호출**:
+   ```text
+   [API Server] ---gRPC-call---> [NodeAgent::NodeAgentService]
+   
+   송신자: apiserver/grpc/sender/nodeagent.rs (NodeAgentServiceClient 사용)
+   수신자: nodeagent/grpc/receiver.rs (NodeAgentService 구현)
+   ```
    - API Server는 NodeAgent의 `NodeAgentService`를 호출
-   - `apiserver/grpc/sender/nodeagent.rs`에서 클라이언트 구현
-   - NodeAgent는 `nodeagent/grpc/receiver.rs`에서 서비스 구현
+   - 호출 목적: YAML 아티팩트 전달, 설정 업데이트 등
 
 2. **NodeAgent → API Server 호출**:
+   ```text
+   [NodeAgent] ---gRPC-call---> [API Server::ApiServerService]
+   
+   송신자: nodeagent/clustering.rs (ApiServerServiceClient 사용)
+   수신자: apiserver/grpc/server.rs (ApiServerService 구현)
+   ```
    - NodeAgent는 API Server의 `ApiServerService`를 호출
-   - `nodeagent/clustering.rs`에서 클라이언트 구현
-   - API Server는 `apiserver/grpc/server.rs`에서 서비스 구현
+   - 호출 목적: 노드 등록, 하트비트, 상태 보고 등
+
+이 패턴은 gRPC의 모범 사례를 따르며, 각 서비스가 자신이 제공하는 기능을 명확히 정의하고 다른 서비스가 이를 호출하는 구조로 되어 있습니다.
 
 ### 2.3 노드 명세 (node.yaml)
 

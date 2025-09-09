@@ -10,6 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::compile_protos("proto/nodeagent.proto")?;
     tonic_build::compile_protos("proto/policymanager.proto")?;
     tonic_build::compile_protos("proto/statemanager.proto")?;
+    tonic_build::compile_protos("proto/external/timpani/schedinfo.proto")?;
     tonic_build::compile_protos("proto/pharos_service.proto")?;
     Ok(())
 }

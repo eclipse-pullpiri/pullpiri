@@ -129,6 +129,10 @@ pub mod statemanager {
     }
 }
 
+pub mod external {
+    tonic::include_proto!("schedinfo.v1");
+}
+
 pub mod pharos_service {
     tonic::include_proto!("pharos.api.v1");
     pub fn connect_pharos_server() -> String {

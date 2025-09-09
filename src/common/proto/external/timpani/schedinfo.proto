@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package schedinfo.v1;
+
+// SchedInfoService in Timpani-O
+service SchedInfoService {
+  // Add a new SchedInfo
+  // From Piccolo to Timpani-O
+  rpc AddSchedInfo (SchedInfo) returns (Response) {}
+}
+
+// FaultService in Piccolo
+service FaultService {
+  // Notify a fault
+  // From Timpani-O to Piccolo
+  rpc NotifyFault (FaultInfo) returns (Response) {}
+}
+
+// Common response message for SchedInfoService and FaultService
+message Response {
+  // Status code: 0 for success, non-zero for error
+  int32 status = 1;
+}
+
+enum SchedPolicy {
+  // SCHED_NORMAL
+  NORMAL = 0;
+  // SCHED_FIFO
+  FIFO = 1;
+  // SCHED_RR
+  RR = 2;
+}
+
+message TaskInfo {
+  // Unique task name
+  string name = 1;
+  // Task priority
+  int32 priority = 2;
+  // Scheduling policy
+  SchedPolicy policy = 3;
+  // CPU affinity
+  uint64 cpu_affinity = 4;
+  // Period in us
+  int32 period = 5;
+  // Release time in us
+  int32 release_time = 6;
+  // Runtime in us
+  int32 runtime = 7;
+  // Deadline in us
+  int32 deadline = 8;
+  // Node ID where the task is running
+  string node_id = 9;
+  // Maximum number of deadline misses allowed
+  int32 max_dmiss = 10;
+}
+
+message SchedInfo {
+  string workload_id = 1;
+  repeated TaskInfo tasks = 2;
+}
+
+enum FaultType {
+  // Unknown fault
+  UNKNOWN = 0;
+  // Deadline miss
+  DMISS = 1;
+}
+
+message FaultInfo {
+  string workload_id = 1;
+  string node_id = 2;
+  string task_name = 3;
+  FaultType type = 4;
+}

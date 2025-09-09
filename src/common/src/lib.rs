@@ -131,6 +131,9 @@ pub mod statemanager {
 
 pub mod external {
     tonic::include_proto!("schedinfo.v1");
+    pub fn connect_timpani_server() -> String {
+        format!("http://{}:{}", crate::setting::get_config().host.ip, 50052)
+    }
 }
 
 pub mod pharos_service {

@@ -1,3 +1,5 @@
+pub mod timpani;
+
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 

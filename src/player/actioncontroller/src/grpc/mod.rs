@@ -5,6 +5,8 @@ use std::sync::Arc;
 
 use tonic::transport::Server;
 
+use common::external::fault_service_server::FaultServiceServer;
+
 /// Initialize the gRPC communication system for ActionController
 ///
 /// Sets up the gRPC server to receive requests from FilterGateway and StateManager,
@@ -37,9 +39,50 @@ pub async fn init(manager: crate::manager::ActionControllerManager) -> common::R
         }
     });
 
+    tokio::spawn(initialize_timpani_server());
+
     println!("gRPC server started and listening");
 
     Ok(())
+}
+
+async fn initialize_timpani_server() {
+    println!("=== Timpani gRPC Server Starting ===");
+
+    // Create the gRPC service handler with async channels
+    let server = receiver::timpani::TimpaniReceiver::default();
+
+    let addr = match "127.0.0.1:50053".parse() {
+        Ok(addr) => {
+            println!("Timpani gRPC server will bind to: {addr}");
+            addr
+        }
+        Err(e) => {
+            eprintln!("Failed to parse Timpani server address: {e:?}");
+            eprintln!("Check Timpani address configuration in common module");
+            return;
+        }
+    };
+
+    // Start the gRPC server with comprehensive error handling
+    println!("Starting Timpani gRPC server...");
+    match Server::builder()
+        .add_service(FaultServiceServer::new(server))
+        .serve(addr)
+        .await
+    {
+        Ok(_) => {
+            println!("Timpani gRPC server stopped gracefully");
+        }
+        Err(e) => {
+            eprintln!("Timpani gRPC server error: {e:?}");
+            eprintln!(
+                "This may indicate network issues, port conflicts, or configuration problems"
+            );
+        }
+    }
+
+    println!("=== Timpani gRPC Server Stopped ===");
 }
 
 //UNIT TEST

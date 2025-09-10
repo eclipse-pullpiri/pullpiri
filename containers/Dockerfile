@@ -14,7 +14,7 @@ WORKDIR /piccolo
 # Copy shared source and both components
 COPY ./src/common/ /piccolo/common/
 COPY ./src/server/ /piccolo/server/
-COPY ./src/agent/ /piccolo/agent/
+# COPY ./src/agent/ /piccolo/agent/
 COPY ./src/player/ /piccolo/player
 
 # Install build dependencies
@@ -23,15 +23,15 @@ RUN apt update -y && \
 
 # Build server binaries
 WORKDIR /piccolo/server
-RUN cargo build --release
+RUN cargo build -p apiserver
 
 # Build agent binaries
-WORKDIR /piccolo/agent
-RUN cargo build --release
+# WORKDIR /piccolo/agent
+# RUN cargo build --release
 
 # Build player binaries
 WORKDIR /piccolo/player
-RUN cargo build --release
+RUN cargo build -p filtergateway -p actioncontroller
 
 # Prepare glibc shared libraries
 WORKDIR /dummy
@@ -77,13 +77,13 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
     fi
 
 # Copy built binaries
-COPY --from=builder /piccolo/server/target/release/apiserver /piccolo/
-COPY --from=builder /piccolo/server/target/release/monitoringserver /piccolo/
-COPY --from=builder /piccolo/server/target/release/policymanager /piccolo/
-COPY --from=builder /piccolo/agent/target/release/nodeagent /piccolo/
-COPY --from=builder /piccolo/player/target/release/actioncontroller /piccolo/
-COPY --from=builder /piccolo/player/target/release/filtergateway /piccolo/
-COPY --from=builder /piccolo/player/target/release/statemanager /piccolo/
+COPY --from=builder /piccolo/server/target/debug/apiserver /piccolo/
+#COPY --from=builder /piccolo/server/target/release/monitoringserver /piccolo/
+#COPY --from=builder /piccolo/server/target/release/policymanager /piccolo/
+#COPY --from=builder /piccolo/agent/target/release/nodeagent /piccolo/
+COPY --from=builder /piccolo/player/target/debug/actioncontroller /piccolo/
+COPY --from=builder /piccolo/player/target/debug/filtergateway /piccolo/
+#COPY --from=builder /piccolo/player/target/release/statemanager /piccolo/
 
 # Copy runtime settings
 COPY ./src/settings.yaml .

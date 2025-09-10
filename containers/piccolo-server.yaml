@@ -27,12 +27,6 @@ spec:
       mountPath: /etc/piccolo/yaml
     - name: config-path
       mountPath: /piccolo/settings.yaml
-  - name: policymanager
-    image: localhost/pullpiri:latest
-    command: ["/piccolo/policymanager"]
-  - name: monitoringserver
-    image: localhost/pullpiri:latest
-    command: ["/piccolo/monitoringserver"]
   volumes:
   - name: piccolo-yaml
     hostPath:

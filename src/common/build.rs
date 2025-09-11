@@ -4,12 +4,6 @@
  */
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tonic_build::configure()
-        .protoc_arg("--experimental_allow_proto3_optional")
-        .compile(
-            &["proto/apiserver.proto", "proto/actioncontroller.proto"],
-            &["proto"],
-        )?;
     tonic_build::compile_protos("proto/filtergateway.proto")?;
     tonic_build::compile_protos("proto/monitoringserver.proto")?;
     tonic_build::compile_protos("proto/nodeagent.proto")?;

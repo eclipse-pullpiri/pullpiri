@@ -122,8 +122,12 @@ name = "apiserver"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "base64 0.22.1",
+ "chrono",
  "common",
+ "prost 0.13.5",
  "serde",
+ "serde_json",
  "serde_yaml",
  "tokio",
  "tokio-stream",

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
-import { X, Download, Pause, Play, RefreshCw } from "lucide-react";
+import { /*X, */Download, Pause, Play, RefreshCw } from "lucide-react";
 
 interface LogsDialogProps {
   open: boolean;

@@ -1,9 +1,9 @@
-import { useState } from "react";
+//import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Separator } from "./ui/separator";
+//import { Separator } from "./ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ScrollArea } from "./ui/scroll-area";
 import { 
@@ -11,8 +11,8 @@ import {
   Box, 
   Copy, 
   Download, 
-  Play, 
-  Square, 
+  //Play, 
+  //Square, 
   RotateCcw, 
   Terminal, 
   FileText, 
@@ -21,7 +21,7 @@ import {
   Server,
   Cpu,
   MemoryStick,
-  Network,
+  //Network,
   AlertCircle
 } from "lucide-react";
 
@@ -467,7 +467,7 @@ export function PodDetail({ podName, podData, onBack }: PodDetailProps) {
           </div>
         </div>
         <div className="space-y-6">
-          {containers.map((container, index) => (
+          {containers.map((container/*, index*/) => (
             <Card key={container.name} className="bg-card/80 backdrop-blur-sm border-border/20 shadow-xl">
               <CardHeader>
                 <div className="flex items-center gap-3">

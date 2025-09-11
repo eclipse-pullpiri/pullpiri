@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Textarea } from "./ui/textarea";
+//import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -12,11 +12,14 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Plus, X, Container, Settings, AlertTriangle, CheckCircle, Info, Cpu, MemoryStick } from "lucide-react";
+import type { Pod } from "./Workloads"; // Import Pod interface as type
 
 interface CreatePodDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreatePod: (pod: any) => void;
+  namespace: string; // Added namespace property
+  setPods: React.Dispatch<React.SetStateAction<Pod[]>>; // Added setPods property
 }
 
 interface ContainerConfig {

@@ -117,8 +117,9 @@ install_required_packages() {
 # Parameter settings
 MASTER_IP=$1
 NODE_TYPE=${2:-"sub"}
-GRPC_PORT=${3:-"50051"}
-DOWNLOAD_URL="https://github.com/piccolo-framework/piccolo/releases/download/latest"
+GRPC_PORT=${3:-"47098"}
+#DOWNLOAD_URL="https://github.com/piccolo-framework/piccolo/releases/download/latest"
+DOWNLOAD_URL="https://github.com/akshayg0314/cicd_pullpiri/releases/download/v1.0.132"
 CHECKSUM_URL="${DOWNLOAD_URL}"  # Define CHECKSUM_URL
 INSTALL_DIR="/opt/piccolo"
 CONFIG_DIR="/etc/piccolo"
@@ -138,22 +139,25 @@ mkdir -p ${INSTALL_DIR} ${CONFIG_DIR} ${LOG_DIR} ${DATA_DIR} ${RUN_DIR}
 echo "Downloading NodeAgent binary... (${DOWNLOAD_URL})"
 ARCH=$(uname -m)
 if [ "$ARCH" = "x86_64" ]; then
-    BINARY_SUFFIX="amd64"
+    BINARY_SUFFIX="linux-amd64"
 elif [ "$ARCH" = "aarch64" ]; then
-    BINARY_SUFFIX="arm64"
+    BINARY_SUFFIX="linux-arm64"
 elif [[ "$ARCH" == "arm"* ]]; then
-    BINARY_SUFFIX="arm"
+    BINARY_SUFFIX="linux-arm"
 else
     BINARY_SUFFIX="$ARCH"
 fi
 
 DOWNLOAD_SUCCESS=false
 if command -v curl &> /dev/null; then
-    if curl -L ${DOWNLOAD_URL}/nodeagent-${BINARY_SUFFIX} -o ${INSTALL_DIR}/${BINARY_NAME} --fail; then
+    if curl -fL "${DOWNLOAD_URL}/nodeagent-${BINARY_SUFFIX}" \
+        -o "${INSTALL_DIR}/${BINARY_NAME}"; then
         DOWNLOAD_SUCCESS=true
     fi
 elif command -v wget &> /dev/null; then
-    if wget ${DOWNLOAD_URL}/nodeagent-${BINARY_SUFFIX} -O ${INSTALL_DIR}/${BINARY_NAME}; then
+    if wget --content-disposition \
+        "${DOWNLOAD_URL}/nodeagent-${BINARY_SUFFIX}" \
+        -O "${INSTALL_DIR}/${BINARY_NAME}"; then
         DOWNLOAD_SUCCESS=true
     fi
 else
@@ -162,7 +166,7 @@ else
 fi
 
 # Verify download
-if [ "$DOWNLOAD_SUCCESS" = false ] || [ ! -f ${INSTALL_DIR}/${BINARY_NAME} ]; then
+if [ "$DOWNLOAD_SUCCESS" = false ] || [ ! -f "${INSTALL_DIR}/${BINARY_NAME}" ]; then
     echo "Error: Failed to download NodeAgent binary."
     exit 1
 fi
@@ -283,7 +287,7 @@ echo "Creating systemd service file..."
 cat > /etc/systemd/system/nodeagent.service << EOF
 [Unit]
 Description=PICCOLO NodeAgent Service
-After=network.target
+After=network-online.target
 Wants=podman.socket
 
 [Service]
@@ -328,13 +332,13 @@ if ping -c 3 -W 2 ${MASTER_IP} &> /dev/null; then
     fi
     
     # Check etcd port
-    if command -v nc &> /dev/null && nc -z -w 5 ${MASTER_IP} 2379 &> /dev/null; then
-        echo "Master node etcd port is accessible: ${MASTER_IP}:2379"
-    else
-        echo "Warning: Unable to connect to master node etcd port: ${MASTER_IP}:2379"
-        echo "Service will be registered but may wait until connection is available."
-        WARNING_COUNT=$((WARNING_COUNT+1))
-    fi
+   # if command -v nc &> /dev/null && nc -z -w 5 ${MASTER_IP} 2379 &> /dev/null; then
+   #    echo "Master node etcd port is accessible: ${MASTER_IP}:2379"
+   # else
+   #     echo "Warning: Unable to connect to master node etcd port: ${MASTER_IP}:2379"
+   #     echo "Service will be registered but may wait until connection is available."
+   #     WARNING_COUNT=$((WARNING_COUNT+1))
+   # fi
     
     # Start service
     echo "Starting NodeAgent service..."

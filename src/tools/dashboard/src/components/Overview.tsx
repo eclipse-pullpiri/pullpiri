@@ -1,8 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Progress } from "./ui/progress";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from "recharts";
-import { Server, Box, Network, Database, AlertTriangle, CheckCircle, TrendingUp, Activity, Zap, HardDrive, Cpu, MemoryStick } from "lucide-react";
+//import { Progress } from "./ui/progress";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,/* BarChart, Bar,*/ PieChart, Pie, Cell/*, Legend*/ } from "recharts";
+import { Server, Box, Network, Database, /*AlertTriangle, CheckCircle, */TrendingUp, Activity, Zap, HardDrive, Cpu, MemoryStick } from "lucide-react";
 
 interface OverviewProps {
   namespace: string;
@@ -293,7 +293,7 @@ export function Overview({ namespace }: OverviewProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4 lg:space-y-6">
-            {nodeData.map((node, index) => (
+            {nodeData.map((node/*, index*/) => (
               <div key={node.name} className="p-4 lg:p-6 bg-gradient-to-r from-accent/50 to-muted/50 rounded-2xl border border-border/30">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                   <div className="flex items-center gap-3">

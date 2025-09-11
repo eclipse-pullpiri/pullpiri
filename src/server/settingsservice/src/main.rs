@@ -15,7 +15,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
-use tracing::{error, info};
+use tracing::info;
 
 mod settings_api;
 mod settings_cli;
@@ -95,21 +95,34 @@ async fn run_server_mode(args: Args) -> Result<()> {
     // Initialize core manager
     let mut core_manager = CoreManager::new(
         etcd_endpoints,
-        args.bind_address,
+        args.bind_address.clone(),
         args.bind_port,
         args.config,
     )
     .await?;
 
-    // Start the services
+    info!("Available API endpoints:");
+    info!("  GET    /api/v1/pods");
+    info!("  GET    /api/v1/pods/{{name}}?logs=true");
+    info!("  POST   /api/v1/pods");
+    info!("  DELETE /api/v1/pods/{{name}}");
+    info!("  GET    /api/v1/settings");
+    info!("  GET    /api/v1/metrics");
+    info!("  GET    /api/v1/history");
+    info!("  GET    /api/v1/system/health");
+
+    // Start all services including the API server
+    // This will start the HTTP server on the specified port
     core_manager.start_services().await?;
 
     info!("Settings Service started successfully");
 
-    // Keep the service running
+    // Wait for shutdown signal
     tokio::signal::ctrl_c().await?;
 
     info!("Shutting down Settings Service");
+
+    // Shutdown core manager
     core_manager.shutdown().await?;
 
     Ok(())

@@ -69,6 +69,36 @@ pub struct ConfigRequest {
     pub comment: Option<String>,
 }
 
+/// Pod API data structures
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PodListResponse {
+    pub pods: Vec<PodInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PodInfo {
+    pub name: String,
+    pub image: String,
+    pub labels: HashMap<String, String>,
+    pub status: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreatePodRequest {
+    pub name: String,
+    pub image: String,
+    pub labels: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PodDetailResponse {
+    pub name: String,
+    pub image: String,
+    pub labels: HashMap<String, String>,
+    pub status: String,
+    pub logs: Option<String>,
+}
+
 /// Response for successful operations
 #[derive(Debug, Serialize)]
 pub struct SuccessResponse {
@@ -132,6 +162,12 @@ impl ApiServer {
     /// Create the router with all endpoints
     fn create_router(&self) -> Router {
         Router::new()
+            // Pod endpoints
+            .route("/api/v1/pods", get(list_pods).post(create_pod))
+            .route(
+                "/api/v1/pods/:name",
+                get(get_pod_details).delete(delete_pod),
+            )
             // Metrics endpoints
             .route("/api/v1/metrics", get(get_metrics))
             .route("/api/v1/metrics/:id", get(get_metric_by_id))
@@ -171,6 +207,67 @@ impl ApiServer {
             .layer(CorsLayer::permissive())
             .with_state(self.state.clone())
     }
+}
+
+// Pod API handlers
+
+/// GET /api/v1/pods - Fetch Pod List
+async fn list_pods() -> Json<PodListResponse> {
+    debug!("GET /api/v1/pods");
+
+    let pods = vec![PodInfo {
+        name: "example-pod".to_string(),
+        image: "nginx:latest".to_string(),
+        labels: HashMap::new(),
+        status: "Running".to_string(),
+    }];
+
+    Json(PodListResponse { pods })
+}
+
+/// GET /api/v1/pods/{name} - Fetch Pod details (with optional logs)
+async fn get_pod_details(
+    Path(pod_name): Path<String>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Json<PodDetailResponse> {
+    debug!("GET /api/v1/pods/{}", pod_name);
+
+    let include_logs = params.get("logs").map(|v| v == "true").unwrap_or(false);
+
+    let logs = if include_logs {
+        Some("Pod log output here...".to_string())
+    } else {
+        None
+    };
+
+    Json(PodDetailResponse {
+        name: pod_name,
+        image: "nginx:latest".to_string(),
+        labels: HashMap::new(),
+        status: "Running".to_string(),
+        logs,
+    })
+}
+
+/// POST /api/v1/pods - Create a new Pod
+async fn create_pod(Json(request): Json<CreatePodRequest>) -> (StatusCode, Json<PodInfo>) {
+    debug!("POST /api/v1/pods");
+
+    let pod_info = PodInfo {
+        name: request.name,
+        image: request.image,
+        labels: request.labels,
+        status: "Created".to_string(),
+    };
+
+    (StatusCode::CREATED, Json(pod_info))
+}
+
+/// DELETE /api/v1/pods/{name} - Delete a specific Pod
+async fn delete_pod(Path(pod_name): Path<String>) -> StatusCode {
+    debug!("DELETE /api/v1/pods/{}", pod_name);
+    info!("Deleting pod: {}", pod_name);
+    StatusCode::NO_CONTENT
 }
 
 // Metrics API handlers

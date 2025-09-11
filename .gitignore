@@ -1,6 +1,7 @@
 **/target
 .vscode/
 node_modules/
+/dist/
 
 # Build artifacts and logs
 *.log

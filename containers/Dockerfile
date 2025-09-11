@@ -14,7 +14,7 @@ WORKDIR /piccolo
 # Copy shared source and both components
 COPY ./src/common/ /piccolo/common/
 COPY ./src/server/ /piccolo/server/
-# COPY ./src/agent/ /piccolo/agent/
+COPY ./src/agent/ /piccolo/agent/
 COPY ./src/player/ /piccolo/player
 
 # Install build dependencies
@@ -26,8 +26,8 @@ WORKDIR /piccolo/server
 RUN cargo build -p apiserver
 
 # Build agent binaries
-# WORKDIR /piccolo/agent
-# RUN cargo build --release
+WORKDIR /piccolo/agent
+RUN cargo build -p nodeagent
 
 # Build player binaries
 WORKDIR /piccolo/player
@@ -80,7 +80,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 COPY --from=builder /piccolo/server/target/debug/apiserver /piccolo/
 #COPY --from=builder /piccolo/server/target/release/monitoringserver /piccolo/
 #COPY --from=builder /piccolo/server/target/release/policymanager /piccolo/
-#COPY --from=builder /piccolo/agent/target/release/nodeagent /piccolo/
+COPY --from=builder /piccolo/agent/target/debug/nodeagent /piccolo/
 COPY --from=builder /piccolo/player/target/debug/actioncontroller /piccolo/
 COPY --from=builder /piccolo/player/target/debug/filtergateway /piccolo/
 #COPY --from=builder /piccolo/player/target/release/statemanager /piccolo/

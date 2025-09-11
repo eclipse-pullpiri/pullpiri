@@ -115,7 +115,7 @@ impl NodeAgentManager {
                 }
             }
 
-            sleep(Duration::from_secs(1)).await;
+            sleep(Duration::from_secs(300)).await;
         }
     }
 
@@ -172,7 +172,7 @@ impl NodeAgentManager {
                 node_info.arch,
                 node_info.ip
             );
-            sleep(Duration::from_secs(1)).await;
+            sleep(Duration::from_secs(300)).await;
         }
     }
 

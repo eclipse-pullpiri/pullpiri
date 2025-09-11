@@ -6,20 +6,20 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+//import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
 import { Progress } from "./ui/progress";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
-import { Search, MoreHorizontal, Play, Pause, RotateCcw, Plus, Box, Activity, AlertCircle, Cpu, MemoryStick, FileText, Terminal, Edit, Trash2, Server, Network, TrendingUp, Zap, Clock, Users } from "lucide-react";
+//import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
+import { Search, MoreHorizontal, Play/*, Pause*/, RotateCcw, Plus, Box, Activity, AlertCircle, Cpu, MemoryStick, FileText, Terminal, Edit, Trash2, Server, Network, TrendingUp, Zap, Clock/*, Users*/ } from "lucide-react";
 import { LogsDialog } from "./LogsDialog";
 import { TerminalView } from "./TerminalView";
 import { YamlEditor } from "./YamlEditor";
 import { CreatePodDialog } from "./CreatePodDialog";
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, LineChart, Line, Area, AreaChart, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer,/* BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, LineChart, Line, Area, AreaChart, */Tooltip } from 'recharts';
 import { useClusterHealth } from "./ui/use-cluster-health";
 
 // Pod interface
-interface Pod {
+export interface Pod {
   name: string;
   image: string;
   labels: Record<string, string>;
@@ -168,26 +168,26 @@ export function Workloads({ namespace, onPodClick, pods, setPods }: WorkloadsPro
   };
 
   // Calculate cluster metrics
-  const runningPods = pods.filter(pod => pod.status === "Running").length;
-  const pendingPods = pods.filter(pod => pod.status === "Pending").length;  
-  const failedPods = pods.filter(pod => pod.status === "Failed").length;
+  //const runningPods = pods.filter(pod => pod.status === "Running").length;
+  //const pendingPods = pods.filter(pod => pod.status === "Pending").length;  
+  //const failedPods = pods.filter(pod => pod.status === "Failed").length;
 
   // Nodes data - move this before cluster health calculation
-  const nodesData = [
+  /*const nodesData = [
     { name: 'worker-node-1', pods: 2, status: 'Ready', cpu: '2.4/4', memory: '3.2/8' },
     { name: 'worker-node-2', pods: 2, status: 'Ready', cpu: '1.8/4', memory: '2.1/8' },
     { name: 'worker-node-3', pods: 1, status: 'Ready', cpu: '0.8/4', memory: '1.5/8' }
   ];
-
+*/
   // Calculate cluster health based on actual data
-  const totalPods = pods.length;
-  const runningPodPercentage = totalPods > 0 ? (runningPods / totalPods) * 100 : 100;
-  const healthyNodeCount = nodesData.filter(node => node.status === 'Ready').length;
-  const totalNodeCount = nodesData.length;
-  const nodeHealthPercentage = totalNodeCount > 0 ? (healthyNodeCount / totalNodeCount) * 100 : 100;
+  //const totalPods = pods.length;
+  //const runningPodPercentage = totalPods > 0 ? (runningPods / totalPods) * 100 : 100;
+  //const healthyNodeCount = nodesData.filter(node => node.status === 'Ready').length;
+  //const totalNodeCount = nodesData.length;
+  //const nodeHealthPercentage = totalNodeCount > 0 ? (healthyNodeCount / totalNodeCount) * 100 : 100;
   
   // Determine cluster health status
-  const getClusterHealth = () => {
+  /*const getClusterHealth = () => {
     // Critical: Failed pods > 20% or any nodes down
     if (failedPods > totalPods * 0.2 || nodeHealthPercentage < 100) {
       return {
@@ -222,7 +222,7 @@ export function Workloads({ namespace, onPodClick, pods, setPods }: WorkloadsPro
       };
     }
   };
-
+*/
   // Use the shared cluster health hook
   const clusterHealth = useClusterHealth(pods);
 
@@ -569,7 +569,7 @@ export function Workloads({ namespace, onPodClick, pods, setPods }: WorkloadsPro
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredDeployments.map((deployment, index) => (
+                    {filteredDeployments.map((deployment/*, index*/)=> (
                       <TableRow key={deployment.name} className="border-border/30 hover:bg-muted/30 transition-colors">
                         <TableCell className="font-medium text-foreground">{deployment.name}</TableCell>
                         <TableCell>
@@ -642,7 +642,7 @@ export function Workloads({ namespace, onPodClick, pods, setPods }: WorkloadsPro
                     </TableRow>
                   </TableHeader>
                   <TableBody className="overflow-visible">
-                    {filteredPods.map((pod, index) => (
+                    {filteredPods.map((pod/*, index*/) => (
                       <TableRow key={pod.name} className="border-border/30 hover:bg-muted/30 transition-colors">
                         <TableCell className="font-medium text-foreground max-w-xs">
                           <Button 

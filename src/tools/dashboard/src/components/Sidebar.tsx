@@ -7,8 +7,8 @@ import {
   Server,
   ChevronLeft,
   ChevronRight,
-  Menu,
-  Hexagon,
+  //Menu,
+//  Hexagon,
   Shield
 } from "lucide-react";
 import { ImageWithFallback } from "./common/ImageWithFallback";
@@ -94,7 +94,7 @@ export function Sidebar({ currentView, onViewChange, collapsed = false, onToggle
                 src={pullpiriLogo}
                 alt="PULLPIRI Logo"
                 className="w-full h-full object-contain p-1"
-                fallback={<Hexagon className="w-10 h-10 text-primary" />}
+              //  fallback={<Hexagon className="w-10 h-10 text-primary" />}
               />
             </div>
             {!collapsed && (

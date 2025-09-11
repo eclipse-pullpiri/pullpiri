@@ -5,7 +5,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Search, MoreHorizontal, Plus, Server, Cpu, MemoryStick, HardDrive, Activity, AlertTriangle, CheckCircle } from "lucide-react";
+import { Search, MoreHorizontal, Plus, Server, Cpu, MemoryStick, /*HardDrive, */Activity, AlertTriangle, CheckCircle } from "lucide-react";
 
 export function Cluster() {
   const [searchTerm, setSearchTerm] = useState("");

@@ -3,9 +3,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
-import { ScrollArea } from "./ui/scroll-area";
+//import { ScrollArea } from "./ui/scroll-area";
 import { Alert, AlertDescription } from "./ui/alert";
-import { Save, X, RotateCcw, Download, AlertTriangle, CheckCircle } from "lucide-react";
+import { Save/*, X*/, RotateCcw, Download, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface YamlEditorProps {
   open: boolean;
@@ -111,13 +111,13 @@ status:
     try {
       // Basic YAML structure validation
       const lines = content.split('\n');
-      let indentStack: number[] = [0];
+      //let indentStack: number[] = [0];
       
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         if (line.trim() === '' || line.trim().startsWith('#')) continue;
         
-        const indent = line.length - line.trimStart().length;
+        //const indent = line.length - line.trimStart().length;
         const trimmed = line.trim();
         
         // Check for proper key-value format

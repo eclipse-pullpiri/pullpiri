@@ -121,7 +121,7 @@ async fn run_server_mode(args: Args) -> Result<()> {
     tokio::signal::ctrl_c().await?;
 
     info!("Shutting down Settings Service");
-    
+
     // Shutdown core manager
     core_manager.shutdown().await?;
 

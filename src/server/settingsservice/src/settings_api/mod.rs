@@ -164,7 +164,10 @@ impl ApiServer {
         Router::new()
             // Pod endpoints
             .route("/api/v1/pods", get(list_pods).post(create_pod))
-            .route("/api/v1/pods/:name", get(get_pod_details).delete(delete_pod))
+            .route(
+                "/api/v1/pods/:name",
+                get(get_pod_details).delete(delete_pod),
+            )
             // Metrics endpoints
             .route("/api/v1/metrics", get(get_metrics))
             .route("/api/v1/metrics/:id", get(get_metric_by_id))
@@ -212,14 +215,12 @@ impl ApiServer {
 async fn list_pods() -> Json<PodListResponse> {
     debug!("GET /api/v1/pods");
 
-    let pods = vec![
-        PodInfo {
-            name: "example-pod".to_string(),
-            image: "nginx:latest".to_string(),
-            labels: HashMap::new(),
-            status: "Running".to_string(),
-        },
-    ];
+    let pods = vec![PodInfo {
+        name: "example-pod".to_string(),
+        image: "nginx:latest".to_string(),
+        labels: HashMap::new(),
+        status: "Running".to_string(),
+    }];
 
     Json(PodListResponse { pods })
 }
@@ -232,7 +233,7 @@ async fn get_pod_details(
     debug!("GET /api/v1/pods/{}", pod_name);
 
     let include_logs = params.get("logs").map(|v| v == "true").unwrap_or(false);
-    
+
     let logs = if include_logs {
         Some("Pod log output here...".to_string())
     } else {

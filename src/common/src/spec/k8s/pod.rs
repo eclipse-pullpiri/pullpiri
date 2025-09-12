@@ -51,6 +51,7 @@ pub struct Container {
     command: Option<Vec<String>>,
     workingDir: Option<String>,
     resources: Option<Resources>,
+    securityContext: Option<SecurityContext>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -85,12 +86,31 @@ pub struct Port {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct Resources {
     requests: Option<Requests>,
+    limits: Option<Limits>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct Requests {
     cpu: Option<String>,
     memory: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct Limits {
+    cpu: Option<String>,
+    memory: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct SecurityContext {
+    privileged: Option<bool>,
+    capabilities: Option<Capabilities>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct Capabilities {
+    add: Option<Vec<String>>,
+    drop: Option<Vec<String>>,
 }
 
 impl PodSpec {

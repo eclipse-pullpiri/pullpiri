@@ -80,6 +80,10 @@ uninstall:
 	-rm -rf /etc/piccolo/yaml
 	-rm -rf /etc/containers/systemd/*
 
+.PHONY: test
+test:
+	cd examples && ./timpani.sh
+
 #.PHONY: post
 #post:
 #	-rm -rf /etc/piccolo/yaml

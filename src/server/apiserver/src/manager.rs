@@ -4,13 +4,34 @@
  */
 
 //! Controls the flow of data between each module.
-
+use common::apiserver::api_server_connection_server::ApiServerConnectionServer;
 use common::filtergateway::{Action, HandleScenarioRequest};
 use common::nodeagent::HandleYamlRequest;
+use tonic::transport::Server;
 
-/// Launch REST API listener and reload scenario data in etcd
+/// Launch REST API listener, gRPC server, and reload scenario data in etcd
 pub async fn initialize() {
-    tokio::join!(crate::route::launch_tcp_listener(), reload());
+    tokio::join!(
+        crate::route::launch_tcp_listener(),
+        start_grpc_server(),
+        reload()
+    );
+}
+
+/// Start gRPC server for node communications
+async fn start_grpc_server() {
+    let addr = common::apiserver::open_grpc_server()
+        .parse()
+        .expect("Invalid gRPC server address");
+
+    let grpc_service = crate::grpc::receiver::ApiServerReceiver::new();
+
+    println!("ApiServer gRPC listening on {}", addr);
+
+    let _ = Server::builder()
+        .add_service(ApiServerConnectionServer::new(grpc_service))
+        .serve(addr)
+        .await;
 }
 
 /// (under construction) Send request message to piccolo cloud

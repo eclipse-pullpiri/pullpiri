@@ -17,6 +17,8 @@ use clap::Parser;
 use std::path::PathBuf;
 use tracing::info;
 
+pub mod monitoring_etcd;
+pub mod monitoring_types;
 mod settings_api;
 mod settings_cli;
 mod settings_config;
@@ -25,7 +27,6 @@ mod settings_history;
 mod settings_monitoring;
 mod settings_storage;
 mod settings_utils;
-
 use settings_core::CoreManager;
 use settings_utils::logging::init_logging;
 
@@ -102,10 +103,6 @@ async fn run_server_mode(args: Args) -> Result<()> {
     .await?;
 
     info!("Available API endpoints:");
-    info!("  GET    /api/v1/pods");
-    info!("  GET    /api/v1/pods/{{name}}?logs=true");
-    info!("  POST   /api/v1/pods");
-    info!("  DELETE /api/v1/pods/{{name}}");
     info!("  GET    /api/v1/settings");
     info!("  GET    /api/v1/metrics");
     info!("  GET    /api/v1/history");

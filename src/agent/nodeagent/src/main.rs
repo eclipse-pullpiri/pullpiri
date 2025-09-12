@@ -17,7 +17,7 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 /// This function creates the manager, initializes it, and then runs it.
 /// If initialization or running fails, errors are printed to stderr.
 async fn launch_manager(rx_grpc: Receiver<HandleYamlRequest>, hostname: String) {
-    let mut manager = manager::NodeAgentManager::new(rx_grpc, hostname).await;
+    let mut manager = manager::NodeAgentManager::new(rx_grpc, hostname.clone()).await;
 
     //manager.initialize().await;
     // let _ = manager.process_grpc_requests().await;
@@ -25,7 +25,48 @@ async fn launch_manager(rx_grpc: Receiver<HandleYamlRequest>, hostname: String) 
     match manager.initialize().await {
         Ok(_) => {
             println!("NodeAgentManager successfully initialized");
-            // Only proceed to run if initialization was successful
+            // Add registration with API server
+            let mut sender = grpc::sender::NodeAgentSender::default();
+            let config = common::setting::get_config();
+            let node_id = format!("{}-{}", hostname, config.host.ip);
+
+            let registration_request = common::nodeagent::NodeRegistrationRequest {
+                node_id: node_id.clone(),
+                hostname: hostname.clone(),
+                ip_address: config.host.ip.clone(),
+                metadata: std::collections::HashMap::new(), // Add empty metadata
+                resources: None, // Use None if NodeResources doesn't exist, or create the correct struct
+                role: 0,         // Use integer instead of string (0 = worker, 1 = master, etc.)
+            };
+
+            // Register with API server
+            match sender.register_with_api_server(registration_request).await {
+                Ok(_) => println!("Successfully registered with API server"),
+                Err(e) => eprintln!("Failed to register with API server: {:?}", e),
+            }
+
+            // Start heartbeat task
+            let mut sender_clone = sender.clone();
+            let node_id_clone = node_id.clone();
+            tokio::spawn(async move {
+                let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3));
+                loop {
+                    interval.tick().await;
+                    let heartbeat_request = common::nodeagent::HeartbeatRequest {
+                        node_id: node_id_clone.clone(),
+                        timestamp: std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs() as i64, // Cast to i64
+                    };
+                    // Fix: call on instance, not static method
+                    if let Err(e) = sender_clone.send_heartbeat(heartbeat_request).await {
+                        eprintln!("Failed to send heartbeat: {:?}", e);
+                    }
+                }
+            });
+
+            // Run the manager
             if let Err(e) = manager.run().await {
                 eprintln!("Error running NodeAgentManager: {:?}", e);
             }

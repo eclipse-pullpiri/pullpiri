@@ -3,11 +3,11 @@
 
 //! Monitoring and metrics management module
 
+use crate::monitoring_types::{BoardInfo, NodeInfo, SocInfo};
 use crate::settings_storage::{filter_key, metrics_key, Storage};
 use crate::settings_utils::error::SettingsError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
@@ -36,6 +36,47 @@ pub struct MetricsFilter {
 
 fn default_version() -> u64 {
     1
+}
+
+// New request structures for API
+#[derive(Debug, Deserialize)]
+pub struct CreateNodeRequest {
+    pub name: String,
+    pub image: String,
+    pub labels: std::collections::HashMap<String, String>,
+    pub ip: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateSocRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub labels: std::collections::HashMap<String, String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateBoardRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub labels: std::collections::HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NodeListResponse {
+    pub nodes: Vec<NodeInfo>,
+    pub total: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SocListResponse {
+    pub socs: Vec<SocInfo>,
+    pub total: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BoardListResponse {
+    pub boards: Vec<BoardInfo>,
+    pub total: usize,
 }
 
 /// Time range for metrics filtering

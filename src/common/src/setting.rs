@@ -42,7 +42,7 @@ fn parse_settings_yaml() -> Settings {
     };
 
     let settings = config::Config::builder()
-        .add_source(config::File::with_name("/piccolo/settings.yaml"))
+        .add_source(config::File::with_name("/etc/piccolo/settings.yaml"))
         .build();
 
     match settings {

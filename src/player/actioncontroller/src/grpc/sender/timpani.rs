@@ -17,9 +17,9 @@ pub async fn add_sched_info() {
         .unwrap();
 
     let request = SchedInfo {
-        workload_id: String::from("workload-123"),
+        workload_id: String::from("timpani_test"),
         tasks: vec![TaskInfo {
-            name: String::from("task-1"),
+            name: String::from("sample_apps"),
             priority: 50,
             policy: SchedPolicy::Normal as i32,
             cpu_affinity: 0,
@@ -27,7 +27,7 @@ pub async fn add_sched_info() {
             release_time: 0,
             runtime: 100000,
             deadline: 900000,
-            node_id: String::from("node1"),
+            node_id: String::from("HPC"),
             max_dmiss: 3,
         }],
     };
@@ -37,10 +37,10 @@ pub async fn add_sched_info() {
 
     match response {
         Ok(res) => {
-            println!("RESPONSE={:?}", res);
+            println!("[add_sched_info] RESPONSE={:?}", res);
         }
         Err(e) => {
-            println!("ERROR={:?}", e);
+            println!("[add_sched_info] ERROR={:?}", e);
         }
     }
 }

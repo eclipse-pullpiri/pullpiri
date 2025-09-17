@@ -181,6 +181,8 @@ impl ActionControllerManager {
                     self.start_workload(&model_name, &model_node, &node_type)
                         .await
                         .map_err(|e| format!("Failed to start workload '{}': {}", model_name, e))?;
+                    thread::sleep(Duration::from_millis(100));
+                    crate::grpc::sender::timpani::add_sched_info().await;
                 }
                 _ => {
                     // Ignore unknown action for now, or optionally return error:

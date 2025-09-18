@@ -434,6 +434,10 @@ impl StateManagerManager {
         println!("  Node Name: {}", container_list.node_name);
         println!("  Container Count: {}", container_list.containers.len());
 
+        // Group containers by model using annotations or naming conventions
+        let mut models_container_states: std::collections::HashMap<String, Vec<String>> = 
+            std::collections::HashMap::new();
+
         // Process each container for health status analysis
         for (i, container) in container_list.containers.iter().enumerate() {
             // container.names is a Vec<String>, so join them for display
@@ -453,39 +457,26 @@ impl StateManagerManager {
                 println!("    Annotations: {:?}", container.annotation);
             }
 
-            // TODO: Implement comprehensive container processing:
-            //
-            // 1. HEALTH STATUS ANALYSIS
-            //    - Analyze container state changes (running -> failed, etc.)
-            //    - Check exit codes for failure conditions
-            //    - Monitor resource usage and performance metrics
-            //    - Detect container restart loops and crash patterns
-            //
-            // 2. RESOURCE MAPPING
-            //    - Map containers to managed resources (scenarios, packages, models)
-            //    - Identify which resources are affected by container changes
-            //    - Determine impact on dependent resources
-            //
-            // 3. STATE TRANSITION TRIGGERS
-            //    - Trigger state transitions for failed containers
-            //    - Handle container recovery and restart scenarios
-            //    - Update resource states based on container health
-            //    - Escalate to recovery management for critical failures
-            //
-            // 4. HEALTH STATUS UPDATES
-            //    - Update resource health status based on container state
-            //    - Generate health check events and notifications
-            //    - Update monitoring and observability data
-            //    - Maintain health history for trend analysis
-            //
-            // 5. ASIL COMPLIANCE MONITORING
-            //    - Monitor ASIL-critical containers for safety violations
-            //    - Generate alerts for safety-critical container failures
-            //    - Implement timing constraints for container recovery
-            //    - Ensure safety systems remain operational
+            // Map container to model using annotations or naming convention
+            let model_name = self.extract_model_name_from_container(container);
+            if let Some(model) = model_name {
+                // Convert container state to string representation
+                let container_state = self.map_container_state_to_string(&container.state);
+                models_container_states
+                    .entry(model)
+                    .or_insert_with(Vec::new)
+                    .push(container_state);
+                
+                println!("    → Mapped to model: {}", models_container_states.keys().last().unwrap());
+            }
         }
 
-        println!("  Status: Container list processing completed (implementation pending)");
+        // Evaluate model states based on container states and trigger state changes
+        for (model_name, container_states) in models_container_states {
+            self.evaluate_and_update_model_state(&model_name, &container_states).await;
+        }
+
+        println!("  Status: Container list processing completed");
         println!("=====================================");
     }
 
@@ -579,6 +570,214 @@ impl StateManagerManager {
                 Err(e.into())
             }
         }
+    }
+
+    /// Extract model name from container using annotations or naming convention.
+    ///
+    /// This method determines which model a container belongs to by examining:
+    /// 1. Container annotations for model metadata
+    /// 2. Container name patterns that indicate model association
+    /// 3. Image labels that specify model relationships
+    ///
+    /// # Arguments
+    /// * `container` - Container information from nodeagent
+    ///
+    /// # Returns
+    /// * `Option<String>` - Model name if successfully extracted, None otherwise
+    fn extract_model_name_from_container(&self, container: &common::monitoringserver::ContainerInfo) -> Option<String> {
+        // Check annotations for model information
+        if let Some(model_name) = container.annotation.get("model") {
+            return Some(model_name.clone());
+        }
+        
+        // Check for piccolo.model label
+        if let Some(model_name) = container.annotation.get("piccolo.model") {
+            return Some(model_name.clone());
+        }
+        
+        // Check container config for model information
+        if let Some(model_name) = container.config.get("model") {
+            return Some(model_name.clone());
+        }
+        
+        // Extract model name from container names if they follow convention
+        // Convention: model-name-container-suffix or piccolo-model-name
+        for name in &container.names {
+            if let Some(name_without_prefix) = name.strip_prefix("/piccolo-") {
+                // Extract model name from piccolo-{model-name}-{container-name} pattern
+                if let Some(first_dash) = name_without_prefix.find('-') {
+                    return Some(name_without_prefix[..first_dash].to_string());
+                }
+                return Some(name_without_prefix.to_string());
+            }
+            
+            // Check for model- prefix pattern
+            if let Some(name_without_prefix) = name.strip_prefix("/model-") {
+                if let Some(first_dash) = name_without_prefix.find('-') {
+                    return Some(name_without_prefix[..first_dash].to_string());
+                }
+                return Some(name_without_prefix.to_string());
+            }
+        }
+        
+        println!("    Warning: Could not extract model name from container: {:?}", container.names);
+        None
+    }
+
+    /// Map container state map to string representation.
+    ///
+    /// Converts the container state map to string representations
+    /// that match the state definitions in the documentation.
+    /// The state map typically contains keys like "Status" with values like "running", "exited", etc.
+    ///
+    /// # Arguments
+    /// * `state_map` - Container state map from ContainerInfo
+    ///
+    /// # Returns
+    /// * `String` - String representation of the container state
+    fn map_container_state_to_string(&self, state_map: &std::collections::HashMap<String, String>) -> String {
+        // Check for common state keys
+        if let Some(status) = state_map.get("Status") {
+            return status.to_lowercase();
+        }
+        
+        if let Some(state) = state_map.get("State") {
+            return state.to_lowercase();
+        }
+        
+        if let Some(state) = state_map.get("state") {
+            return state.to_lowercase();
+        }
+        
+        // If no status found, default to unknown
+        "unknown".to_string()
+    }
+
+    /// Evaluate model state based on container states and update if necessary.
+    ///
+    /// This method implements the core logic from section 3.2 of the documentation:
+    /// - Created: model's initial state 
+    /// - Paused: all containers in paused state
+    /// - Exited: all containers in exited state  
+    /// - Dead: one or more containers in dead state or model info retrieval failure
+    /// - Running: default state when none of above conditions are met
+    ///
+    /// Note: The proto ModelState enum doesn't exactly match the documentation states,
+    /// so we use string representations and map to the closest proto states when needed.
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model to evaluate
+    /// * `container_states` - Vector of container state strings for this model
+    async fn evaluate_and_update_model_state(&self, model_name: &str, container_states: &[String]) {
+        println!("  Evaluating model state for: {}", model_name);
+        println!("    Container states: {:?}", container_states);
+        
+        if container_states.is_empty() {
+            println!("    Warning: No containers found for model {}", model_name);
+            return;
+        }
+
+        // Determine new model state based on container states according to documentation
+        let new_model_state = if container_states.iter().any(|state| state == "dead") {
+            // Rule: One or more containers in dead state -> model is Dead
+            // Map to Failed state in proto since Dead doesn't exist
+            "Failed"
+        } else if container_states.iter().all(|state| state == "paused") {
+            // Rule: All containers in paused state -> model is Paused  
+            // Use custom state since Paused doesn't exist in proto
+            "Paused"
+        } else if container_states.iter().all(|state| state == "exited") {
+            // Rule: All containers in exited state -> model is Exited
+            // Use custom state since Exited doesn't exist in proto
+            "Exited"
+        } else {
+            // Rule: Default state when none of above conditions are met -> model is Running
+            "Running"
+        };
+
+        println!("    Determined model state: {}", new_model_state);
+
+        // Get current model state from ETCD
+        let current_state = self.get_current_model_state_from_etcd(model_name).await;
+        
+        // Only update if state has changed
+        if current_state.as_deref() != Some(new_model_state) {
+            println!("    State change detected: {:?} -> {}", current_state, new_model_state);
+            
+            // Save new state to ETCD
+            if let Err(e) = self.save_model_state_to_etcd(model_name, new_model_state).await {
+                eprintln!("    Error saving model state to ETCD: {:?}", e);
+                return;
+            }
+            
+            println!("    ✓ Model state updated in ETCD");
+            
+            // TODO: Trigger package state evaluation for chain state management
+            // This would check if the model state change affects the parent package state
+            self.trigger_package_state_evaluation(model_name).await;
+        } else {
+            println!("    No state change needed");
+        }
+    }
+
+    /// Get current model state from ETCD.
+    ///
+    /// Retrieves the current state of a model from ETCD storage using the
+    /// key format specified in the documentation: /model/{model_name}/state
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model
+    ///
+    /// # Returns
+    /// * `Option<String>` - Current state if found, None if not found or error
+    async fn get_current_model_state_from_etcd(&self, model_name: &str) -> Option<String> {
+        let key = format!("/model/{}/state", model_name);
+        match common::etcd::get(&key).await {
+            Ok(value) => {
+                println!("    Current model state from ETCD: {}", value);
+                Some(value)
+            }
+            Err(e) => {
+                println!("    No existing state found in ETCD or error: {:?}", e);
+                None
+            }
+        }
+    }
+
+    /// Save model state to ETCD.
+    ///
+    /// Saves the model state to ETCD using the format specified in section 4
+    /// of the documentation: /model/{model_name}/state -> state_value
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model
+    /// * `state` - New state value to save
+    ///
+    /// # Returns
+    /// * `Result<()>` - Success or ETCD error
+    async fn save_model_state_to_etcd(&self, model_name: &str, state: &str) -> common::Result<()> {
+        let key = format!("/model/{}/state", model_name);
+        common::etcd::put(&key, state).await.map_err(|e| e.into())
+    }
+
+    /// Trigger package state evaluation for chain state management.
+    ///
+    /// When a model state changes, this method determines which package
+    /// the model belongs to and triggers evaluation of the package state
+    /// according to the chain state management requirements.
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model whose state changed
+    async fn trigger_package_state_evaluation(&self, _model_name: &str) {
+        // TODO: Implement package state evaluation logic
+        // This would:
+        // 1. Determine which package contains this model
+        // 2. Get states of all models in the package
+        // 3. Evaluate package state according to package state rules
+        // 4. Update package state in ETCD if changed
+        // 5. Potentially notify ActionController if package becomes error/dead
+        
+        println!("    TODO: Package state evaluation not yet implemented");
     }
 
     /// Creates a clone of self suitable for use in async tasks.

@@ -655,12 +655,107 @@ impl StateManagerManager {
     /// - error: All models are dead
     /// - running: Default state when none of the above conditions are met
     async fn analyze_and_update_package_states(&self) {
-        // TODO: Implement package state analysis
+        // For now, we'll simulate package state analysis since it requires
+        // integration with etcd to query actual model states per package
+
+        // TODO: Implement full package state analysis
         // This would:
-        // 1. Query all models for each package from etcd
-        // 2. Analyze model states to determine package state
-        // 3. Trigger package state transitions as needed
-        println!("Package state analysis not yet implemented - requires etcd integration");
+        // 1. Query all models for each package from etcd using common::etcd::get_all_with_prefix("/package/")
+        // 2. For each package, get all its models using common::etcd::get_all_with_prefix("/model/{package_name}/")
+        // 3. Analyze model states to determine package state using determine_package_state_from_models()
+        // 4. Trigger package state transitions as needed using trigger_package_state_transition()
+
+        println!("Package state analysis - would query etcd for package/model relationships");
+        println!("Package state analysis - would analyze model states for each package");
+        println!("Package state analysis - would trigger package state transitions as needed");
+    }
+
+    /// Determines package state based on model states according to PICCOLO logic
+    ///
+    /// Package state determination rules from documentation:
+    /// - idle: Initial package state (creation default) - mapped to Initializing
+    /// - paused: All models are paused - mapped to Paused  
+    /// - exited: All models are exited - mapped to Error (exited suggests termination)
+    /// - degraded: Some models are dead (but not all) - mapped to Degraded
+    /// - error: All models are dead - mapped to Error
+    /// - running: Default state when none of the above conditions are met - mapped to Running
+    fn determine_package_state_from_models(&self, model_states: &[ModelState]) -> PackageState {
+        if model_states.is_empty() {
+            return PackageState::Initializing; // No models = idle/initializing state
+        }
+
+        // Check if all models are failed/dead -> Package Error
+        if model_states
+            .iter()
+            .all(|state| *state == ModelState::Failed)
+        {
+            return PackageState::Error;
+        }
+
+        // Check if some models are failed -> Package Degraded
+        if model_states
+            .iter()
+            .any(|state| *state == ModelState::Failed)
+        {
+            return PackageState::Degraded;
+        }
+
+        // Check if all models are succeeded (exited) -> Package Error (suggests termination)
+        if model_states
+            .iter()
+            .all(|state| *state == ModelState::Succeeded)
+        {
+            return PackageState::Error;
+        }
+
+        // Check if all models are unknown (paused) -> Package Paused
+        // Note: This is an approximation since ModelState doesn't have direct Paused state
+        if model_states
+            .iter()
+            .all(|state| *state == ModelState::Unknown)
+        {
+            return PackageState::Paused;
+        }
+
+        // Check if any models are running -> Package Running
+        if model_states
+            .iter()
+            .any(|state| *state == ModelState::Running)
+        {
+            return PackageState::Running;
+        }
+
+        // Check if all models are pending -> Package Initializing
+        if model_states
+            .iter()
+            .all(|state| *state == ModelState::Pending)
+        {
+            return PackageState::Initializing;
+        }
+
+        // Default case
+        PackageState::Running
+    }
+
+    /// Triggers a package state transition based on model analysis
+    async fn trigger_package_state_transition(&self, package_name: &str, new_state: PackageState) {
+        // Create a StateChange message for the package
+        let state_change = StateChange {
+            resource_type: ResourceType::Package as i32,
+            resource_name: package_name.to_string(),
+            current_state: "Unknown".to_string(), // Would need to track current state
+            target_state: format!("{:?}", new_state),
+            transition_id: format!(
+                "auto-{}-{}",
+                package_name,
+                chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+            ),
+            timestamp_ns: chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0),
+            source: "StateManager-ModelAnalysis".to_string(),
+        };
+
+        // Process the state change
+        self.process_state_change(state_change).await;
     }
 
     /// Main message processing loop for handling gRPC requests.
@@ -1283,5 +1378,71 @@ mod tests {
         // Note: In a real test, we would verify that state transitions were triggered
         // and that etcd was updated with the new model states
         println!("Container list processing test completed successfully");
+    }
+
+    /// Test package state determination from model states
+    #[tokio::test]
+    async fn test_determine_package_state_from_models() {
+        let manager = StateManagerManager::new(
+            tokio::sync::mpsc::channel(10).1,
+            tokio::sync::mpsc::channel(10).1,
+        )
+        .await;
+
+        // Test all models running -> Package Running
+        let model_states = vec![ModelState::Running, ModelState::Running];
+        assert_eq!(
+            manager.determine_package_state_from_models(&model_states),
+            PackageState::Running
+        );
+
+        // Test all models failed -> Package Error
+        let model_states = vec![ModelState::Failed, ModelState::Failed];
+        assert_eq!(
+            manager.determine_package_state_from_models(&model_states),
+            PackageState::Error
+        );
+
+        // Test some models failed -> Package Degraded
+        let model_states = vec![ModelState::Running, ModelState::Failed];
+        assert_eq!(
+            manager.determine_package_state_from_models(&model_states),
+            PackageState::Degraded
+        );
+
+        // Test all models succeeded (exited) -> Package Error (termination)
+        let model_states = vec![ModelState::Succeeded, ModelState::Succeeded];
+        assert_eq!(
+            manager.determine_package_state_from_models(&model_states),
+            PackageState::Error
+        );
+
+        // Test all models unknown (paused) -> Package Paused
+        let model_states = vec![ModelState::Unknown, ModelState::Unknown];
+        assert_eq!(
+            manager.determine_package_state_from_models(&model_states),
+            PackageState::Paused
+        );
+
+        // Test all models pending -> Package Initializing
+        let model_states = vec![ModelState::Pending, ModelState::Pending];
+        assert_eq!(
+            manager.determine_package_state_from_models(&model_states),
+            PackageState::Initializing
+        );
+
+        // Test empty model list -> Package Initializing (idle)
+        let model_states = vec![];
+        assert_eq!(
+            manager.determine_package_state_from_models(&model_states),
+            PackageState::Initializing
+        );
+
+        // Test mixed states with running -> Package Running (at least one running)
+        let model_states = vec![ModelState::Running, ModelState::Pending];
+        assert_eq!(
+            manager.determine_package_state_from_models(&model_states),
+            PackageState::Running
+        );
     }
 }

@@ -2,8 +2,8 @@ use serde::Deserialize;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use thiserror::Error;
 use std::sync::OnceLock;
+use thiserror::Error;
 
 // Global config instance
 static NODEAGENT_CONFIG: OnceLock<Config> = OnceLock::new();
@@ -12,7 +12,7 @@ static NODEAGENT_CONFIG: OnceLock<Config> = OnceLock::new();
 pub enum ConfigError {
     #[error("Failed to read config file: {0}")]
     IoError(#[from] std::io::Error),
-    
+
     #[error("Failed to parse YAML: {0}")]
     YamlError(#[from] serde_yaml::Error),
 }
@@ -62,7 +62,7 @@ impl Config {
         let mut file = File::open(path)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
-        
+
         let config = serde_yaml::from_str(&contents)?;
         Ok(config)
     }

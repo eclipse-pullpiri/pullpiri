@@ -5,6 +5,17 @@ use tokio::time::Instant;
 // CORE DATA STRUCTURES
 // ========================================
 
+/// Container state as analyzed from container information
+#[derive(Debug, Clone, PartialEq)]
+pub enum ContainerState {
+    Created,
+    Running,
+    Paused,
+    Stopped,
+    Exited,
+    Dead,
+}
+
 /// Action execution command for async processing
 #[derive(Debug, Clone)]
 pub struct ActionCommand {

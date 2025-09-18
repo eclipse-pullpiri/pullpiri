@@ -14,7 +14,7 @@
 //! (Scenario, Package, Model, Volume, Network, Node).
 
 use crate::state_machine::StateMachine;
-use crate::types::{ActionCommand, TransitionResult};
+use crate::types::{ActionCommand, ContainerState, TransitionResult};
 use common::monitoringserver::ContainerList;
 
 use common::statemanager::{
@@ -434,6 +434,9 @@ impl StateManagerManager {
         println!("  Node Name: {}", container_list.node_name);
         println!("  Container Count: {}", container_list.containers.len());
 
+        // Group containers by model based on annotations
+        let mut models_containers = std::collections::HashMap::<String, Vec<ContainerState>>::new();
+
         // Process each container for health status analysis
         for (i, container) in container_list.containers.iter().enumerate() {
             // container.names is a Vec<String>, so join them for display
@@ -453,40 +456,211 @@ impl StateManagerManager {
                 println!("    Annotations: {:?}", container.annotation);
             }
 
-            // TODO: Implement comprehensive container processing:
-            //
-            // 1. HEALTH STATUS ANALYSIS
-            //    - Analyze container state changes (running -> failed, etc.)
-            //    - Check exit codes for failure conditions
-            //    - Monitor resource usage and performance metrics
-            //    - Detect container restart loops and crash patterns
-            //
-            // 2. RESOURCE MAPPING
-            //    - Map containers to managed resources (scenarios, packages, models)
-            //    - Identify which resources are affected by container changes
-            //    - Determine impact on dependent resources
-            //
-            // 3. STATE TRANSITION TRIGGERS
-            //    - Trigger state transitions for failed containers
-            //    - Handle container recovery and restart scenarios
-            //    - Update resource states based on container health
-            //    - Escalate to recovery management for critical failures
-            //
-            // 4. HEALTH STATUS UPDATES
-            //    - Update resource health status based on container state
-            //    - Generate health check events and notifications
-            //    - Update monitoring and observability data
-            //    - Maintain health history for trend analysis
-            //
-            // 5. ASIL COMPLIANCE MONITORING
-            //    - Monitor ASIL-critical containers for safety violations
-            //    - Generate alerts for safety-critical container failures
-            //    - Implement timing constraints for container recovery
-            //    - Ensure safety systems remain operational
+            // STEP 1: ANALYZE CONTAINER STATE
+            let container_state = self.analyze_container_state(&container.state);
+            println!("    Analyzed State: {:?}", container_state);
+
+            // STEP 2: EXTRACT MODEL NAME FROM ANNOTATIONS
+            let model_name = self.extract_model_name_from_container(container);
+            if let Some(model_name) = model_name {
+                models_containers
+                    .entry(model_name)
+                    .or_insert_with(Vec::new)
+                    .push(container_state);
+            }
         }
 
-        println!("  Status: Container list processing completed (implementation pending)");
-        println!("=====================================");
+        // STEP 3: DETERMINE MODEL STATES AND TRIGGER TRANSITIONS
+        for (model_name, container_states) in models_containers {
+            let new_model_state = self.determine_model_state_from_containers(&container_states);
+            println!(
+                "Model '{}' new state: {:?} (based on {} containers)",
+                model_name,
+                new_model_state,
+                container_states.len()
+            );
+
+            // Trigger state transition if needed
+            self.trigger_model_state_transition(&model_name, new_model_state)
+                .await;
+        }
+
+        // ========================================
+        // STEP 4: ANALYZE PACKAGE STATES BASED ON MODELS
+        self.analyze_and_update_package_states().await;
+    }
+
+    /// Analyzes container state based on container.state map
+    ///
+    /// According to the PICCOLO documentation, container states are:
+    /// - Created: No running containers exist, all created or deleted
+    /// - Running: At least one container is running
+    /// - Stopped: At least one container stopped, none running  
+    /// - Exited: All containers in the pod have exited
+    /// - Dead: Failed to retrieve state information (metadata corruption, system error)
+    fn analyze_container_state(
+        &self,
+        container_state_map: &std::collections::HashMap<String, String>,
+    ) -> ContainerState {
+        // Container state is typically stored in container.state["Status"] or similar keys
+        // Common Docker/Podman states: "running", "exited", "created", "paused", "dead", etc.
+
+        let status = container_state_map
+            .get("Status")
+            .or_else(|| container_state_map.get("status"))
+            .or_else(|| container_state_map.get("State"))
+            .map(|s| s.to_lowercase());
+
+        match status.as_deref() {
+            Some("running") => ContainerState::Running,
+            Some("paused") => ContainerState::Paused,
+            Some("exited") | Some("stopped") => ContainerState::Exited,
+            Some("created") => ContainerState::Created,
+            Some("dead") | Some("error") => ContainerState::Dead,
+            Some(other) => {
+                println!("Unknown container status '{}', defaulting to Dead", other);
+                ContainerState::Dead
+            }
+            None => {
+                println!("No status found in container state map, defaulting to Dead");
+                ContainerState::Dead
+            }
+        }
+    }
+
+    /// Extracts model name from container annotations
+    ///
+    /// Looks for model identification in container annotations/labels
+    fn extract_model_name_from_container(
+        &self,
+        container: &common::monitoringserver::ContainerInfo,
+    ) -> Option<String> {
+        // Try to find model name in annotations
+        if let Some(model_name) = container.annotation.get("pullpiri.model") {
+            return Some(model_name.clone());
+        }
+        if let Some(model_name) = container.annotation.get("model") {
+            return Some(model_name.clone());
+        }
+
+        // Try to find model name in config
+        if let Some(model_name) = container.config.get("pullpiri.model") {
+            return Some(model_name.clone());
+        }
+        if let Some(model_name) = container.config.get("model") {
+            return Some(model_name.clone());
+        }
+
+        // If no explicit model annotation, try to extract from container name
+        for name in &container.names {
+            if name.contains("model-") || name.contains("-model") {
+                // Extract model name from container name pattern
+                if let Some(model_part) = name.split('-').find(|part| part.starts_with("model")) {
+                    return Some(model_part.to_string());
+                }
+            }
+        }
+
+        None
+    }
+
+    /// Determines model state based on container states according to PICCOLO logic
+    ///
+    /// Model state determination rules from documentation:
+    /// - Created: Model's initial state (creation default)
+    /// - Paused: All containers are paused
+    /// - Exited: All containers are exited  
+    /// - Dead: One or more containers are dead, or model info query failed
+    /// - Running: Default state when none of the above conditions are met
+    fn determine_model_state_from_containers(
+        &self,
+        container_states: &[ContainerState],
+    ) -> ModelState {
+        if container_states.is_empty() {
+            return ModelState::Unknown;
+        }
+
+        // Check for Dead state first (highest priority)
+        if container_states
+            .iter()
+            .any(|state| *state == ContainerState::Dead)
+        {
+            return ModelState::Failed; // Map Dead to Failed for ModelState
+        }
+
+        // Check if all containers are paused
+        if container_states
+            .iter()
+            .all(|state| *state == ContainerState::Paused)
+        {
+            return ModelState::Unknown; // No direct Paused state in ModelState enum
+        }
+
+        // Check if all containers are exited
+        if container_states
+            .iter()
+            .all(|state| *state == ContainerState::Exited)
+        {
+            return ModelState::Succeeded; // Map Exited to Succeeded for ModelState
+        }
+
+        // Check if any containers are running
+        if container_states
+            .iter()
+            .any(|state| *state == ContainerState::Running)
+        {
+            return ModelState::Running;
+        }
+
+        // Check if all containers are created (not started yet)
+        if container_states
+            .iter()
+            .all(|state| *state == ContainerState::Created)
+        {
+            return ModelState::Pending;
+        }
+
+        // Default case
+        ModelState::Unknown
+    }
+
+    /// Triggers a model state transition based on container analysis
+    async fn trigger_model_state_transition(&self, model_name: &str, new_state: ModelState) {
+        // Create a StateChange message for the model
+        let state_change = StateChange {
+            resource_type: ResourceType::Model as i32,
+            resource_name: model_name.to_string(),
+            current_state: "Unknown".to_string(), // Would need to track current state
+            target_state: format!("{:?}", new_state),
+            transition_id: format!(
+                "auto-{}-{}",
+                model_name,
+                chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+            ),
+            timestamp_ns: chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0),
+            source: "StateManager-ContainerAnalysis".to_string(),
+        };
+
+        // Process the state change
+        self.process_state_change(state_change).await;
+    }
+
+    /// Analyzes package states based on model states and triggers transitions
+    ///
+    /// Package state determination rules from documentation:
+    /// - idle: Initial package state (creation default)
+    /// - paused: All models are paused
+    /// - exited: All models are exited
+    /// - degraded: Some models are dead (but not all)
+    /// - error: All models are dead
+    /// - running: Default state when none of the above conditions are met
+    async fn analyze_and_update_package_states(&self) {
+        // TODO: Implement package state analysis
+        // This would:
+        // 1. Query all models for each package from etcd
+        // 2. Analyze model states to determine package state
+        // 3. Trigger package state transitions as needed
+        println!("Package state analysis not yet implemented - requires etcd integration");
     }
 
     /// Main message processing loop for handling gRPC requests.
@@ -870,7 +1044,244 @@ async fn execute_action(command: ActionCommand) {
 //    - Resource filtering and selection capabilities
 //
 // 8. PERFORMANCE AND MONITORING
+// 8. PERFORMANCE AND MONITORING
 //    - Performance constraint enforcement with deadlines and priorities
 //    - Resource usage monitoring and optimization
 //    - Health check automation and reporting
 //    - Metrics collection and observability integration
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::ContainerState;
+    use common::monitoringserver::{ContainerInfo, ContainerList};
+    use std::collections::HashMap;
+
+    /// Test container state analysis logic
+    #[tokio::test]
+    async fn test_analyze_container_state() {
+        let manager = StateManagerManager::new(
+            tokio::sync::mpsc::channel(10).1,
+            tokio::sync::mpsc::channel(10).1,
+        )
+        .await;
+
+        // Test running state
+        let mut state_map = HashMap::new();
+        state_map.insert("Status".to_string(), "running".to_string());
+        assert_eq!(
+            manager.analyze_container_state(&state_map),
+            ContainerState::Running
+        );
+
+        // Test paused state
+        state_map.clear();
+        state_map.insert("status".to_string(), "paused".to_string());
+        assert_eq!(
+            manager.analyze_container_state(&state_map),
+            ContainerState::Paused
+        );
+
+        // Test exited state
+        state_map.clear();
+        state_map.insert("Status".to_string(), "exited".to_string());
+        assert_eq!(
+            manager.analyze_container_state(&state_map),
+            ContainerState::Exited
+        );
+
+        // Test dead state
+        state_map.clear();
+        state_map.insert("Status".to_string(), "dead".to_string());
+        assert_eq!(
+            manager.analyze_container_state(&state_map),
+            ContainerState::Dead
+        );
+
+        // Test unknown state defaults to dead
+        state_map.clear();
+        state_map.insert("Status".to_string(), "unknown".to_string());
+        assert_eq!(
+            manager.analyze_container_state(&state_map),
+            ContainerState::Dead
+        );
+
+        // Test empty state map defaults to dead
+        state_map.clear();
+        assert_eq!(
+            manager.analyze_container_state(&state_map),
+            ContainerState::Dead
+        );
+    }
+
+    /// Test model state determination from container states
+    #[tokio::test]
+    async fn test_determine_model_state_from_containers() {
+        let manager = StateManagerManager::new(
+            tokio::sync::mpsc::channel(10).1,
+            tokio::sync::mpsc::channel(10).1,
+        )
+        .await;
+
+        // Test all containers running -> Model Running
+        let container_states = vec![ContainerState::Running, ContainerState::Running];
+        assert_eq!(
+            manager.determine_model_state_from_containers(&container_states),
+            ModelState::Running
+        );
+
+        // Test any container dead -> Model Failed
+        let container_states = vec![ContainerState::Running, ContainerState::Dead];
+        assert_eq!(
+            manager.determine_model_state_from_containers(&container_states),
+            ModelState::Failed
+        );
+
+        // Test all containers exited -> Model Succeeded
+        let container_states = vec![ContainerState::Exited, ContainerState::Exited];
+        assert_eq!(
+            manager.determine_model_state_from_containers(&container_states),
+            ModelState::Succeeded
+        );
+
+        // Test all containers paused -> Model Unknown (no direct paused state)
+        let container_states = vec![ContainerState::Paused, ContainerState::Paused];
+        assert_eq!(
+            manager.determine_model_state_from_containers(&container_states),
+            ModelState::Unknown
+        );
+
+        // Test all containers created -> Model Pending
+        let container_states = vec![ContainerState::Created, ContainerState::Created];
+        assert_eq!(
+            manager.determine_model_state_from_containers(&container_states),
+            ModelState::Pending
+        );
+
+        // Test empty container list -> Model Unknown
+        let container_states = vec![];
+        assert_eq!(
+            manager.determine_model_state_from_containers(&container_states),
+            ModelState::Unknown
+        );
+
+        // Test mixed states with running -> Model Running (at least one running)
+        let container_states = vec![ContainerState::Running, ContainerState::Created];
+        assert_eq!(
+            manager.determine_model_state_from_containers(&container_states),
+            ModelState::Running
+        );
+    }
+
+    /// Test model name extraction from container annotations
+    #[tokio::test]
+    async fn test_extract_model_name_from_container() {
+        let manager = StateManagerManager::new(
+            tokio::sync::mpsc::channel(10).1,
+            tokio::sync::mpsc::channel(10).1,
+        )
+        .await;
+
+        // Test extraction from pullpiri.model annotation
+        let mut container = ContainerInfo {
+            id: "test-id".to_string(),
+            names: vec!["test-container".to_string()],
+            image: "test-image".to_string(),
+            state: HashMap::new(),
+            config: HashMap::new(),
+            annotation: HashMap::new(),
+            stats: HashMap::new(),
+        };
+        container
+            .annotation
+            .insert("pullpiri.model".to_string(), "test-model".to_string());
+
+        assert_eq!(
+            manager.extract_model_name_from_container(&container),
+            Some("test-model".to_string())
+        );
+
+        // Test extraction from model annotation
+        container.annotation.clear();
+        container
+            .annotation
+            .insert("model".to_string(), "another-model".to_string());
+
+        assert_eq!(
+            manager.extract_model_name_from_container(&container),
+            Some("another-model".to_string())
+        );
+
+        // Test extraction from config
+        container.annotation.clear();
+        container
+            .config
+            .insert("pullpiri.model".to_string(), "config-model".to_string());
+
+        assert_eq!(
+            manager.extract_model_name_from_container(&container),
+            Some("config-model".to_string())
+        );
+
+        // Test no model annotation
+        container.annotation.clear();
+        container.config.clear();
+
+        assert_eq!(manager.extract_model_name_from_container(&container), None);
+    }
+
+    /// Test complete container list processing flow
+    #[tokio::test]
+    async fn test_process_container_list_integration() {
+        let manager = StateManagerManager::new(
+            tokio::sync::mpsc::channel(10).1,
+            tokio::sync::mpsc::channel(10).1,
+        )
+        .await;
+
+        // Create a test container list with model annotations
+        let mut container1 = ContainerInfo {
+            id: "container1".to_string(),
+            names: vec!["model-test-container1".to_string()],
+            image: "test-image1".to_string(),
+            state: HashMap::new(),
+            config: HashMap::new(),
+            annotation: HashMap::new(),
+            stats: HashMap::new(),
+        };
+        container1
+            .state
+            .insert("Status".to_string(), "running".to_string());
+        container1
+            .annotation
+            .insert("pullpiri.model".to_string(), "test-model-1".to_string());
+
+        let mut container2 = ContainerInfo {
+            id: "container2".to_string(),
+            names: vec!["model-test-container2".to_string()],
+            image: "test-image2".to_string(),
+            state: HashMap::new(),
+            config: HashMap::new(),
+            annotation: HashMap::new(),
+            stats: HashMap::new(),
+        };
+        container2
+            .state
+            .insert("Status".to_string(), "dead".to_string());
+        container2
+            .annotation
+            .insert("pullpiri.model".to_string(), "test-model-2".to_string());
+
+        let container_list = ContainerList {
+            node_name: "test-node".to_string(),
+            containers: vec![container1, container2],
+        };
+
+        // Process the container list - this should trigger model state transitions
+        manager.process_container_list(container_list).await;
+
+        // Note: In a real test, we would verify that state transitions were triggered
+        // and that etcd was updated with the new model states
+        println!("Container list processing test completed successfully");
+    }
+}

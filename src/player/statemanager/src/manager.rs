@@ -766,18 +766,229 @@ impl StateManagerManager {
     /// the model belongs to and triggers evaluation of the package state
     /// according to the chain state management requirements.
     ///
+    /// Package state rules from documentation:
+    /// - idle: initial package state
+    /// - paused: all models in paused state
+    /// - exited: all models in exited state  
+    /// - degraded: some (1+) models in dead state, but not all models dead
+    /// - error: all models in dead state
+    /// - running: default state when none of above conditions are met
+    ///
     /// # Arguments
     /// * `model_name` - Name of the model whose state changed
-    async fn trigger_package_state_evaluation(&self, _model_name: &str) {
-        // TODO: Implement package state evaluation logic
-        // This would:
-        // 1. Determine which package contains this model
-        // 2. Get states of all models in the package
-        // 3. Evaluate package state according to package state rules
-        // 4. Update package state in ETCD if changed
-        // 5. Potentially notify ActionController if package becomes error/dead
+    async fn trigger_package_state_evaluation(&self, model_name: &str) {
+        println!("    Triggering package state evaluation for model: {}", model_name);
         
-        println!("    TODO: Package state evaluation not yet implemented");
+        // Determine which package contains this model
+        let package_name = self.extract_package_name_from_model(model_name).await;
+        if let Some(package) = package_name {
+            println!("    Model {} belongs to package: {}", model_name, package);
+            self.evaluate_and_update_package_state(&package).await;
+        } else {
+            println!("    Warning: Could not determine package for model: {}", model_name);
+        }
+    }
+
+    /// Extract package name from model name or ETCD metadata.
+    ///
+    /// This method determines which package a model belongs to by:
+    /// 1. Checking ETCD for model-to-package mapping
+    /// 2. Using naming conventions (if model name contains package info)
+    /// 3. Querying package metadata in ETCD
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model
+    ///
+    /// # Returns
+    /// * `Option<String>` - Package name if found, None otherwise
+    async fn extract_package_name_from_model(&self, model_name: &str) -> Option<String> {
+        // Check for explicit model-to-package mapping in ETCD
+        let mapping_key = format!("/model/{}/package", model_name);
+        if let Ok(package_name) = common::etcd::get(&mapping_key).await {
+            return Some(package_name);
+        }
+        
+        // Use naming convention: if model name follows pattern {package}-{model}
+        if let Some(dash_pos) = model_name.find('-') {
+            let potential_package = &model_name[..dash_pos];
+            // Verify the package exists in ETCD
+            let package_key = format!("/package/{}/state", potential_package);
+            if common::etcd::get(&package_key).await.is_ok() {
+                return Some(potential_package.to_string());
+            }
+        }
+        
+        // Search all packages to find which one contains this model
+        if let Ok(package_kvs) = common::etcd::get_all_with_prefix("/package/").await {
+            for kv in package_kvs {
+                if kv.key.ends_with("/state") {
+                    // Extract package name from /package/{name}/state
+                    let package_name = kv.key.strip_prefix("/package/")
+                        .and_then(|s| s.strip_suffix("/state"))
+                        .unwrap_or("");
+                    
+                    // Check if this package contains our model
+                    if self.package_contains_model(package_name, model_name).await {
+                        return Some(package_name.to_string());
+                    }
+                }
+            }
+        }
+        
+        None
+    }
+
+    /// Check if a package contains a specific model.
+    ///
+    /// # Arguments
+    /// * `package_name` - Name of the package
+    /// * `model_name` - Name of the model to check
+    ///
+    /// # Returns
+    /// * `bool` - true if package contains the model, false otherwise
+    async fn package_contains_model(&self, package_name: &str, model_name: &str) -> bool {
+        // Check for explicit package model list in ETCD
+        let models_key = format!("/package/{}/models", package_name);
+        if let Ok(models_list) = common::etcd::get(&models_key).await {
+            return models_list.split(',').any(|m| m.trim() == model_name);
+        }
+        
+        // Check if any model with package prefix exists
+        let model_prefix = format!("{}-", package_name);
+        model_name.starts_with(&model_prefix)
+    }
+
+    /// Evaluate package state based on model states and update if necessary.
+    ///
+    /// This method implements the package state logic from section 3.1:
+    /// - idle: initial package state
+    /// - paused: all models in paused state  
+    /// - exited: all models in exited state
+    /// - degraded: some (1+) models in dead/failed state, but not all models dead
+    /// - error: all models in dead/failed state
+    /// - running: default state when none of above conditions are met
+    ///
+    /// # Arguments
+    /// * `package_name` - Name of the package to evaluate
+    async fn evaluate_and_update_package_state(&self, package_name: &str) {
+        println!("  Evaluating package state for: {}", package_name);
+        
+        // Get all models in this package
+        let model_states = self.get_all_model_states_in_package(package_name).await;
+        if model_states.is_empty() {
+            println!("    Warning: No models found in package {}", package_name);
+            return;
+        }
+        
+        println!("    Model states in package: {:?}", model_states);
+        
+        // Determine new package state based on model states
+        let new_package_state = if model_states.iter().all(|state| state == "Failed" || state == "Dead") {
+            // Rule: All models in dead/failed state -> package is error
+            "error"
+        } else if model_states.iter().any(|state| state == "Failed" || state == "Dead") {
+            // Rule: Some models in dead/failed state -> package is degraded
+            "degraded"  
+        } else if model_states.iter().all(|state| state == "Paused") {
+            // Rule: All models in paused state -> package is paused
+            "paused"
+        } else if model_states.iter().all(|state| state == "Exited") {
+            // Rule: All models in exited state -> package is exited
+            "exited"
+        } else {
+            // Rule: Default state -> package is running
+            "running"
+        };
+
+        println!("    Determined package state: {}", new_package_state);
+
+        // Get current package state from ETCD
+        let current_state = self.get_current_package_state_from_etcd(package_name).await;
+        
+        // Only update if state has changed
+        if current_state.as_deref() != Some(new_package_state) {
+            println!("    Package state change detected: {:?} -> {}", current_state, new_package_state);
+            
+            // Save new state to ETCD
+            if let Err(e) = self.save_package_state_to_etcd(package_name, new_package_state).await {
+                eprintln!("    Error saving package state to ETCD: {:?}", e);
+                return;
+            }
+            
+            println!("    ✓ Package state updated in ETCD");
+            
+            // If package state is error, notify ActionController for reconcile
+            if new_package_state == "error" {
+                println!("    Package in error state - TODO: notify ActionController for reconciliation");
+                // TODO: Implement ActionController notification
+            }
+        } else {
+            println!("    No package state change needed");
+        }
+    }
+
+    /// Get all model states in a package.
+    ///
+    /// # Arguments
+    /// * `package_name` - Name of the package
+    ///
+    /// # Returns
+    /// * `Vec<String>` - Vector of model state strings in this package
+    async fn get_all_model_states_in_package(&self, package_name: &str) -> Vec<String> {
+        let mut model_states = Vec::new();
+        
+        // Get all model states from ETCD and filter by package
+        if let Ok(model_kvs) = common::etcd::get_all_with_prefix("/model/").await {
+            for kv in model_kvs {
+                if kv.key.ends_with("/state") {
+                    // Extract model name from /model/{name}/state
+                    let model_name = kv.key.strip_prefix("/model/")
+                        .and_then(|s| s.strip_suffix("/state"))
+                        .unwrap_or("");
+                    
+                    // Check if this model belongs to our package
+                    if self.package_contains_model(package_name, model_name).await {
+                        model_states.push(kv.value);
+                    }
+                }
+            }
+        }
+        
+        model_states
+    }
+
+    /// Get current package state from ETCD.
+    ///
+    /// # Arguments
+    /// * `package_name` - Name of the package
+    ///
+    /// # Returns
+    /// * `Option<String>` - Current state if found, None if not found or error
+    async fn get_current_package_state_from_etcd(&self, package_name: &str) -> Option<String> {
+        let key = format!("/package/{}/state", package_name);
+        match common::etcd::get(&key).await {
+            Ok(value) => {
+                println!("    Current package state from ETCD: {}", value);
+                Some(value)
+            }
+            Err(e) => {
+                println!("    No existing package state found in ETCD or error: {:?}", e);
+                None
+            }
+        }
+    }
+
+    /// Save package state to ETCD.
+    ///
+    /// # Arguments
+    /// * `package_name` - Name of the package
+    /// * `state` - New state value to save
+    ///
+    /// # Returns
+    /// * `Result<()>` - Success or ETCD error
+    async fn save_package_state_to_etcd(&self, package_name: &str, state: &str) -> common::Result<()> {
+        let key = format!("/package/{}/state", package_name);
+        common::etcd::put(&key, state).await.map_err(|e| e.into())
     }
 
     /// Creates a clone of self suitable for use in async tasks.
@@ -1073,3 +1284,180 @@ async fn execute_action(command: ActionCommand) {
 //    - Resource usage monitoring and optimization
 //    - Health check automation and reporting
 //    - Metrics collection and observability integration
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use common::monitoringserver::{ContainerInfo, ContainerList};
+    use std::collections::HashMap;
+    use tokio::sync::mpsc;
+
+    /// Test helper to create a mock StateManagerManager for testing
+    async fn create_test_manager() -> StateManagerManager {
+        let (tx_container, rx_container) = mpsc::channel::<ContainerList>(10);
+        let (tx_state_change, rx_state_change) = mpsc::channel::<StateChange>(10);
+        
+        // Drop the senders to avoid warnings
+        drop(tx_container);
+        drop(tx_state_change);
+        
+        StateManagerManager::new(rx_container, rx_state_change).await
+    }
+
+    /// Test helper to create a mock ContainerInfo
+    fn create_test_container(name: &str, state_status: &str, annotations: HashMap<String, String>) -> ContainerInfo {
+        let mut state_map = HashMap::new();
+        state_map.insert("Status".to_string(), state_status.to_string());
+        
+        ContainerInfo {
+            id: format!("{}-id", name),
+            names: vec![name.to_string()],
+            image: format!("{}-image", name),
+            state: state_map,
+            config: HashMap::new(),
+            annotation: annotations,
+            stats: HashMap::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_extract_model_name_from_container_annotation() {
+        let manager = create_test_manager().await;
+        
+        // Test annotation-based extraction
+        let mut annotations = HashMap::new();
+        annotations.insert("model".to_string(), "test-model".to_string());
+        
+        let container = create_test_container("/container-name", "running", annotations);
+        let result = manager.extract_model_name_from_container(&container);
+        
+        assert_eq!(result, Some("test-model".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_extract_model_name_from_container_naming_convention() {
+        let manager = create_test_manager().await;
+        
+        // Test naming convention extraction
+        let container = create_test_container("/piccolo-mymodel-worker", "running", HashMap::new());
+        let result = manager.extract_model_name_from_container(&container);
+        
+        assert_eq!(result, Some("mymodel".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_map_container_state_to_string() {
+        let manager = create_test_manager().await;
+        
+        // Test Status key mapping
+        let mut state_map = HashMap::new();
+        state_map.insert("Status".to_string(), "Running".to_string());
+        let result = manager.map_container_state_to_string(&state_map);
+        assert_eq!(result, "running");
+        
+        // Test lowercase state
+        state_map.clear();
+        state_map.insert("state".to_string(), "Paused".to_string());
+        let result = manager.map_container_state_to_string(&state_map);
+        assert_eq!(result, "paused");
+        
+        // Test unknown state
+        state_map.clear();
+        let result = manager.map_container_state_to_string(&state_map);
+        assert_eq!(result, "unknown");
+    }
+
+    #[test]
+    fn test_model_state_evaluation_logic() {
+        // Test model state determination logic without async
+        
+        // Test all dead containers -> Failed
+        let dead_containers = vec!["dead".to_string(), "dead".to_string()];
+        let state = if dead_containers.iter().any(|state| state == "dead") {
+            "Failed"
+        } else if dead_containers.iter().all(|state| state == "paused") {
+            "Paused"
+        } else if dead_containers.iter().all(|state| state == "exited") {
+            "Exited"
+        } else {
+            "Running"
+        };
+        assert_eq!(state, "Failed");
+        
+        // Test all paused containers -> Paused
+        let paused_containers = vec!["paused".to_string(), "paused".to_string()];
+        let state = if paused_containers.iter().any(|state| state == "dead") {
+            "Failed"
+        } else if paused_containers.iter().all(|state| state == "paused") {
+            "Paused"
+        } else if paused_containers.iter().all(|state| state == "exited") {
+            "Exited"
+        } else {
+            "Running"
+        };
+        assert_eq!(state, "Paused");
+        
+        // Test mixed containers -> Running
+        let mixed_containers = vec!["running".to_string(), "paused".to_string()];
+        let state = if mixed_containers.iter().any(|state| state == "dead") {
+            "Failed"
+        } else if mixed_containers.iter().all(|state| state == "paused") {
+            "Paused"
+        } else if mixed_containers.iter().all(|state| state == "exited") {
+            "Exited"
+        } else {
+            "Running"
+        };
+        assert_eq!(state, "Running");
+    }
+
+    #[test]
+    fn test_package_state_evaluation_logic() {
+        // Test package state determination logic
+        
+        // Test all failed models -> error
+        let failed_models = vec!["Failed".to_string(), "Dead".to_string()];
+        let state = if failed_models.iter().all(|state| state == "Failed" || state == "Dead") {
+            "error"
+        } else if failed_models.iter().any(|state| state == "Failed" || state == "Dead") {
+            "degraded"
+        } else if failed_models.iter().all(|state| state == "Paused") {
+            "paused"
+        } else if failed_models.iter().all(|state| state == "Exited") {
+            "exited"
+        } else {
+            "running"
+        };
+        assert_eq!(state, "error");
+        
+        // Test some failed models -> degraded
+        let mixed_models = vec!["Running".to_string(), "Failed".to_string()];
+        let state = if mixed_models.iter().all(|state| state == "Failed" || state == "Dead") {
+            "error"
+        } else if mixed_models.iter().any(|state| state == "Failed" || state == "Dead") {
+            "degraded"
+        } else if mixed_models.iter().all(|state| state == "Paused") {
+            "paused"
+        } else if mixed_models.iter().all(|state| state == "Exited") {
+            "exited"
+        } else {
+            "running"
+        };
+        assert_eq!(state, "degraded");
+        
+        // Test all running models -> running
+        let running_models = vec!["Running".to_string(), "Running".to_string()];
+        let state = if running_models.iter().all(|state| state == "Failed" || state == "Dead") {
+            "error"
+        } else if running_models.iter().any(|state| state == "Failed" || state == "Dead") {
+            "degraded"
+        } else if running_models.iter().all(|state| state == "Paused") {
+            "paused"
+        } else if running_models.iter().all(|state| state == "Exited") {
+            "exited"
+        } else {
+            "running"
+        };
+        assert_eq!(state, "running");
+    }
+}

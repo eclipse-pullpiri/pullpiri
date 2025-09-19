@@ -429,6 +429,7 @@ impl StateManagerManager {
     /// 2. Identify resources affected by container changes
     /// 3. Trigger state transitions for failed or recovered containers
     /// 4. Update resource health status and monitoring data
+    /// 5. **NEW**: Process container aggregation for model state computation
     async fn process_container_list(&self, container_list: ContainerList) {
         println!("=== PROCESSING CONTAINER LIST ===");
         println!("  Node Name: {}", container_list.node_name);
@@ -485,7 +486,16 @@ impl StateManagerManager {
             //    - Ensure safety systems remain operational
         }
 
-        println!("  Status: Container list processing completed (implementation pending)");
+        // **NEW IMPLEMENTATION**: Process container aggregation for model state computation
+        // This implements the core requirement from StateManager_Model.md
+        {
+            let mut state_machine = self.state_machine.lock().await;
+            state_machine
+                .process_container_list_for_model_states(container_list.clone())
+                .await;
+        }
+
+        println!("  Status: Container list processing completed");
         println!("=====================================");
     }
 

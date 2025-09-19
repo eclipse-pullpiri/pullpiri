@@ -26,7 +26,11 @@
 //! let result = state_machine.process_state_change(state_change);
 //! ```
 
-use crate::types::{ActionCommand, HealthStatus, ResourceState, StateTransition, TransitionResult};
+use crate::types::{
+    ActionCommand, ContainerStateAggregation, HealthStatus, ResourceState, StateTransition,
+    TransitionResult,
+};
+use common::monitoringserver::{ContainerInfo, ContainerList};
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
 };
@@ -1168,6 +1172,321 @@ impl StateMachine {
                     && (resource_type.is_none() || resource_type == Some(resource.resource_type))
             })
             .collect()
+    }
+
+    // ========================================
+    // MODEL STATE MANAGEMENT FROM CONTAINER AGGREGATION
+    // ========================================
+
+    /// Process container list and update model states based on container aggregation
+    ///
+    /// This method implements the core requirement from StateManager_Model.md:
+    /// - Receives container status from NodeAgent via gRPC
+    /// - Aggregates container states to compute model states
+    /// - Updates model states in ETCD according to the documented conditions
+    ///
+    /// # Arguments
+    /// * `container_list` - ContainerList from NodeAgent containing container states
+    ///
+    /// # Processing Logic
+    /// 1. Group containers by model (using annotations or naming conventions)
+    /// 2. Aggregate container states per model according to documentation rules
+    /// 3. Compute new model state based on aggregated container states
+    /// 4. Store model state to ETCD using format: `/model/{model_name}/state`
+    pub async fn process_container_list_for_model_states(&mut self, container_list: ContainerList) {
+        println!("=== PROCESSING CONTAINER LIST FOR MODEL STATE COMPUTATION ===");
+        println!("  Node Name: {}", container_list.node_name);
+        println!("  Container Count: {}", container_list.containers.len());
+
+        // Group containers by model name (extracted from annotations or labels)
+        let model_containers = self.group_containers_by_model(&container_list.containers);
+
+        for (model_name, containers) in model_containers {
+            println!("  Processing model: {}", model_name);
+            println!("    Associated containers: {}", containers.len());
+
+            // Aggregate container states for this model
+            let aggregated_state = self.aggregate_container_states(&containers);
+            println!("    Aggregated container state: {:?}", aggregated_state);
+
+            // Compute model state based on container aggregation
+            let new_model_state = self.compute_model_state_from_containers(&aggregated_state);
+            println!("    Computed model state: {:?}", new_model_state);
+
+            // Store model state to ETCD
+            if let Err(e) = self
+                .store_model_state_to_etcd(&model_name, new_model_state)
+                .await
+            {
+                eprintln!("    Failed to store model state to ETCD: {:?}", e);
+            } else {
+                println!("    ✓ Model state stored to ETCD successfully");
+            }
+
+            // Update internal tracking
+            self.update_model_resource_state(&model_name, new_model_state);
+        }
+
+        println!("=================================================================");
+    }
+
+    /// Group containers by model name based on annotations or naming conventions
+    ///
+    /// This method extracts model identifiers from container metadata to group
+    /// containers that belong to the same model for state aggregation.
+    ///
+    /// # Arguments
+    /// * `containers` - List of containers to group by model
+    ///
+    /// # Returns
+    /// * `HashMap<String, Vec<&ContainerInfo>>` - Containers grouped by model name
+    ///
+    /// # Implementation Notes
+    /// - Looks for model name in container annotations with key "model" or "model_name"
+    /// - Falls back to extracting model name from container names using naming patterns
+    /// - Uses container name as model name if no explicit annotation found
+    fn group_containers_by_model<'a>(
+        &self,
+        containers: &'a [ContainerInfo],
+    ) -> HashMap<String, Vec<&'a ContainerInfo>> {
+        let mut model_containers: HashMap<String, Vec<&ContainerInfo>> = HashMap::new();
+
+        for container in containers {
+            // Try to extract model name from annotations first
+            let model_name = if let Some(model_name) = container.annotation.get("model") {
+                model_name.clone()
+            } else if let Some(model_name) = container.annotation.get("model_name") {
+                model_name.clone()
+            } else if let Some(piccolo_model) = container.annotation.get("piccolo.model") {
+                piccolo_model.clone()
+            } else {
+                // Fallback: use first container name, removing common suffixes/prefixes
+                if let Some(first_name) = container.names.first() {
+                    // Remove common container name prefixes/suffixes to extract model name
+                    let clean_name = first_name
+                        .trim_start_matches('/')
+                        .trim_start_matches("container_")
+                        .trim_start_matches("pod_")
+                        .trim_end_matches("_container")
+                        .trim_end_matches("_pod");
+
+                    // For now, use the cleaned container name as model name
+                    // In production, this should follow actual naming conventions
+                    clean_name.to_string()
+                } else {
+                    // Ultimate fallback: use container ID
+                    format!("model_{}", &container.id[..8])
+                }
+            };
+
+            model_containers
+                .entry(model_name)
+                .or_insert_with(Vec::new)
+                .push(container);
+        }
+
+        model_containers
+    }
+
+    /// Aggregate container states to create a summary for model state computation
+    ///
+    /// This method analyzes all containers belonging to a model and creates
+    /// an aggregated view of their states for model state computation.
+    ///
+    /// # Arguments
+    /// * `containers` - Containers belonging to the same model
+    ///
+    /// # Returns
+    /// * `ContainerStateAggregation` - Aggregated state information
+    fn aggregate_container_states(
+        &self,
+        containers: &[&ContainerInfo],
+    ) -> ContainerStateAggregation {
+        let mut aggregation = ContainerStateAggregation {
+            total_containers: containers.len(),
+            running_count: 0,
+            paused_count: 0,
+            exited_count: 0,
+            dead_count: 0,
+            created_count: 0,
+            unknown_count: 0,
+            any_failed: false,
+        };
+
+        for container in containers {
+            // Analyze container state based on the state map from NodeAgent
+            let status = container
+                .state
+                .get("Status")
+                .unwrap_or(&"unknown".to_string())
+                .to_lowercase();
+            let running = container
+                .state
+                .get("Running")
+                .unwrap_or(&"false".to_string())
+                == "true";
+            let paused = container
+                .state
+                .get("Paused")
+                .unwrap_or(&"false".to_string())
+                == "true";
+            let dead = container.state.get("Dead").unwrap_or(&"false".to_string()) == "true";
+            let exit_code = container
+                .state
+                .get("ExitCode")
+                .unwrap_or(&"0".to_string())
+                .parse::<i32>()
+                .unwrap_or(0);
+
+            // Categorize container state according to documentation
+            if dead {
+                aggregation.dead_count += 1;
+                aggregation.any_failed = true;
+            } else if paused {
+                aggregation.paused_count += 1;
+            } else if running {
+                aggregation.running_count += 1;
+            } else if status == "exited" || exit_code != 0 {
+                aggregation.exited_count += 1;
+                if exit_code != 0 {
+                    aggregation.any_failed = true;
+                }
+            } else if status == "created" {
+                aggregation.created_count += 1;
+            } else {
+                aggregation.unknown_count += 1;
+            }
+        }
+
+        aggregation
+    }
+
+    /// Compute model state based on aggregated container states
+    ///
+    /// This method implements the state transition rules from the documentation:
+    /// - Created: Model's initial state
+    /// - Paused: All containers are paused
+    /// - Exited: All containers are exited
+    /// - Dead: One or more containers are dead OR model info retrieval failed
+    /// - Running: Default state when above conditions are not met
+    ///
+    /// # Arguments
+    /// * `aggregation` - Aggregated container state information
+    ///
+    /// # Returns
+    /// * `ModelState` - Computed model state
+    fn compute_model_state_from_containers(
+        &self,
+        aggregation: &ContainerStateAggregation,
+    ) -> ModelState {
+        // Apply state computation rules from documentation section 3.2
+
+        // Rule: Dead state - One or more containers are dead
+        if aggregation.dead_count > 0 {
+            return ModelState::Failed; // Map "Dead" to Failed enum value
+        }
+
+        // Rule: Paused state - All containers are paused
+        if aggregation.total_containers > 0
+            && aggregation.paused_count == aggregation.total_containers
+        {
+            return ModelState::Succeeded; // Map "Paused" to Succeeded for now, should be ModelState::Paused when available
+        }
+
+        // Rule: Exited state - All containers are exited
+        if aggregation.total_containers > 0
+            && aggregation.exited_count == aggregation.total_containers
+        {
+            return ModelState::Succeeded; // Map "Exited" to Succeeded for now, should be ModelState::Exited when available
+        }
+
+        // Rule: Created state - No containers running, all created/deleted
+        if aggregation.running_count == 0
+            && aggregation.created_count == aggregation.total_containers
+        {
+            return ModelState::Pending; // Map "Created" to Pending, closest existing state
+        }
+
+        // Rule: Running state - Default when above conditions are not met
+        // This includes cases where one or more containers are running
+        if aggregation.running_count > 0 {
+            return ModelState::Running;
+        }
+
+        // Fallback for edge cases
+        ModelState::Unknown
+    }
+
+    /// Store model state to ETCD using the documented key/value format
+    ///
+    /// This method implements the ETCD storage requirement from section 4.2:
+    /// Key format: `/model/{model_name}/state`
+    /// Value format: Model state as string (e.g., "Running", "Failed")
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model
+    /// * `model_state` - New state to store
+    ///
+    /// # Returns
+    /// * `Result<(), String>` - Success or error message
+    async fn store_model_state_to_etcd(
+        &self,
+        model_name: &str,
+        model_state: ModelState,
+    ) -> Result<(), String> {
+        // Use the exact format specified in documentation section 4.2
+        let key = format!("/model/{}/state", model_name);
+        let value = model_state.as_str_name(); // e.g., "RUNNING", "FAILED"
+
+        // Store to ETCD using common::etcd::put
+        if let Err(e) = common::etcd::put(&key, value).await {
+            let error_msg = format!("Failed to save model state to ETCD: {:?}", e);
+            eprintln!("{}", error_msg);
+            return Err(error_msg);
+        }
+
+        println!("  ETCD PUT: {} = {}", key, value);
+        Ok(())
+    }
+
+    /// Update internal resource state tracking for the model
+    ///
+    /// This method maintains internal state consistency after ETCD updates.
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model
+    /// * `new_state` - New model state
+    fn update_model_resource_state(&mut self, model_name: &str, new_state: ModelState) {
+        let resource_key = format!("Model::{}", model_name);
+        let now = Instant::now();
+
+        if let Some(resource_state) = self.resource_states.get_mut(&resource_key) {
+            resource_state.current_state = new_state as i32;
+            resource_state.last_transition_time = now;
+            resource_state.transition_count += 1;
+        } else {
+            // Create new resource state entry
+            let resource_state = ResourceState {
+                resource_type: ResourceType::Model,
+                resource_name: model_name.to_string(),
+                current_state: new_state as i32,
+                desired_state: Some(new_state as i32),
+                last_transition_time: now,
+                transition_count: 1,
+                metadata: HashMap::new(),
+                health_status: HealthStatus {
+                    healthy: new_state != ModelState::Failed,
+                    status_message: format!("Model state: {}", new_state.as_str_name()),
+                    last_check: now,
+                    consecutive_failures: if new_state == ModelState::Failed {
+                        1
+                    } else {
+                        0
+                    },
+                },
+            };
+            self.resource_states.insert(resource_key, resource_state);
+        }
     }
 
     // Utility: Convert state string to proto enum value

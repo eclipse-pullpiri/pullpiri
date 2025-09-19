@@ -57,3 +57,19 @@ pub struct TransitionResult {
     pub transition_id: String,
     pub error_details: String,
 }
+
+/// Container state aggregation for model state computation
+///
+/// This struct holds aggregated information about containers belonging to a model
+/// to enable state computation according to the documented rules.
+#[derive(Debug, Clone)]
+pub struct ContainerStateAggregation {
+    pub total_containers: usize,
+    pub running_count: usize,
+    pub paused_count: usize,
+    pub exited_count: usize,
+    pub dead_count: usize,
+    pub created_count: usize,
+    pub unknown_count: usize,
+    pub any_failed: bool,
+}

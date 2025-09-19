@@ -4,6 +4,7 @@
 //! Integration with monitoring server's etcd storage
 
 use crate::monitoring_types::{BoardInfo, NodeInfo, SocInfo};
+use common::monitoringserver::ContainerInfo;
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use tracing::{debug, warn};
@@ -149,6 +150,26 @@ pub async fn delete_board_info(board_id: &str) -> Result<()> {
     delete_info("boards", board_id).await
 }
 
+/// Store ContainerInfo in etcd
+pub async fn store_container_info(container_info: &ContainerInfo) -> Result<()> {
+    store_info("containers", &container_info.id, container_info).await
+}
+
+/// Get ContainerInfo from etcd
+pub async fn get_container_info(container_id: &str) -> Result<ContainerInfo> {
+    get_info("containers", container_id).await
+}
+
+/// Get all containers from etcd
+pub async fn get_all_containers() -> Result<Vec<ContainerInfo>> {
+    get_all_info("containers").await
+}
+
+/// Delete ContainerInfo from etcd
+pub async fn delete_container_info(container_id: &str) -> Result<()> {
+    delete_info("containers", container_id).await
+}
+
 /// Get node logs from etcd
 pub async fn get_node_logs(node_name: &str) -> Result<Vec<String>> {
     get_logs("nodes", node_name).await
@@ -162,6 +183,11 @@ pub async fn get_soc_logs(soc_id: &str) -> Result<Vec<String>> {
 /// Get board logs from etcd
 pub async fn get_board_logs(board_id: &str) -> Result<Vec<String>> {
     get_logs("boards", board_id).await
+}
+
+/// Get container logs from etcd
+pub async fn get_container_logs(container_id: &str) -> Result<Vec<String>> {
+    get_logs("containers", container_id).await
 }
 
 /// Generic function to get logs from etcd
@@ -198,6 +224,14 @@ pub async fn store_soc_metadata(soc_id: &str, metadata: &serde_json::Value) -> R
 /// Store board metadata in etcd
 pub async fn store_board_metadata(board_id: &str, metadata: &serde_json::Value) -> Result<()> {
     store_metadata("boards", board_id, metadata).await
+}
+
+/// Store container metadata in etcd
+pub async fn store_container_metadata(
+    container_id: &str,
+    metadata: &serde_json::Value,
+) -> Result<()> {
+    store_metadata("containers", container_id, metadata).await
 }
 
 /// Generic function to store metadata in etcd

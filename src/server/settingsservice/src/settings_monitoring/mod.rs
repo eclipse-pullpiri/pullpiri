@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Monitoring and metrics management module
-
 use crate::monitoring_types::{BoardInfo, NodeInfo, SocInfo};
-use crate::settings_storage::{filter_key, metrics_key, Storage};
+use crate::settings_storage::filter_key;
+use crate::settings_storage::Storage;
 use crate::settings_utils::error::SettingsError;
 use chrono::{DateTime, Utc};
+use common::monitoringserver::ContainerInfo;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -38,7 +39,6 @@ fn default_version() -> u64 {
     1
 }
 
-// New request structures for API
 #[derive(Debug, Deserialize)]
 pub struct CreateNodeRequest {
     pub name: String,
@@ -86,25 +86,32 @@ pub struct TimeRange {
     pub end: Option<DateTime<Utc>>,
 }
 
-/// Metrics data structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Metric {
-    pub id: String,
-    pub component: String,
-    pub metric_type: String,
-    pub labels: HashMap<String, String>,
-    pub value: MetricValue,
-    pub timestamp: DateTime<Utc>,
-}
-
-/// Metric value types
+/// Metric value types - Updated to support resource objects
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum MetricValue {
+    // Traditional metric types
     Counter { value: u64 },
     Gauge { value: f64 },
     Histogram { buckets: Vec<HistogramBucket> },
     Summary { quantiles: Vec<SummaryQuantile> },
+
+    // Resource-based metric types (matching etcd data)
+    NodeInfo { value: NodeInfo },
+    ContainerInfo { value: ContainerInfo },
+    SocInfo { value: SocInfo },
+    BoardInfo { value: BoardInfo },
+}
+
+/// Enhanced Metric structure to better match usage patterns
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Metric {
+    pub id: String,
+    pub component: String,   // "node", "container", "soc", "board"
+    pub metric_type: String, // "NodeInfo", "ContainerInfo", "SocInfo", "BoardInfo"
+    pub labels: HashMap<String, String>,
+    pub value: MetricValue,
+    pub timestamp: DateTime<Utc>,
 }
 
 /// Histogram bucket
@@ -141,9 +148,9 @@ pub struct CacheEntry<T> {
     pub expiry: Instant,
 }
 
-/// Monitoring manager for metrics filtering and caching
+/// Monitoring manager for metrics filtering and caching - RESTRUCTURED
 pub struct MonitoringManager {
-    storage: Box<dyn Storage>,
+    storage: Box<dyn Storage>, // Only used for filters, not metrics
     cache: RwLock<HashMap<String, CacheEntry<Vec<Metric>>>>,
     cache_ttl: Duration,
 }
@@ -177,8 +184,8 @@ impl MonitoringManager {
             return Ok(cached);
         }
 
-        // Fetch from storage
-        let metrics = self.fetch_metrics_from_storage(filter).await?;
+        // Fetch from monitoring ETCD directly
+        let metrics = self.fetch_metrics_from_monitoring_etcd(filter).await?;
 
         // Cache the results
         self.set_cached(&cache_key, metrics.clone());
@@ -186,26 +193,138 @@ impl MonitoringManager {
         Ok(metrics)
     }
 
-    /// Fetch metrics from ETCD storage
-    async fn fetch_metrics_from_storage(
+    /// Fetch metrics directly from monitoring ETCD
+    async fn fetch_metrics_from_monitoring_etcd(
         &mut self,
         filter: Option<&MetricsFilter>,
     ) -> Result<Vec<Metric>, SettingsError> {
-        let prefix = crate::settings_storage::KeyPrefixes::METRICS;
-        let entries = self.storage.list(prefix).await?;
-
         let mut metrics = Vec::new();
 
-        for (key, value) in entries {
-            match serde_json::from_str::<Metric>(&value) {
-                Ok(metric) => {
+        // Get nodes and convert to Metric format - using monitoring_etcd
+        match crate::monitoring_etcd::get_all_nodes().await {
+            Ok(nodes) => {
+                for node_info in nodes {
+                    let metric = Metric {
+                        id: node_info.node_name.clone(),
+                        component: "node".to_string(),
+                        metric_type: "NodeInfo".to_string(),
+                        labels: {
+                            let mut labels = HashMap::new();
+                            labels.insert("node_name".to_string(), node_info.node_name.clone());
+                            labels.insert("ip".to_string(), node_info.ip.clone());
+                            labels.insert("os".to_string(), node_info.os.clone());
+                            labels.insert("arch".to_string(), node_info.arch.clone());
+                            labels
+                        },
+                        value: MetricValue::NodeInfo { value: node_info },
+                        timestamp: Utc::now(),
+                    };
+
                     if self.metric_matches_filter(&metric, filter) {
                         metrics.push(metric);
                     }
                 }
-                Err(e) => {
-                    warn!("Failed to parse metric from key {}: {}", key, e);
+            }
+            Err(e) => {
+                debug!("No node metrics available: {}", e);
+            }
+        }
+
+        // Get containers and convert to Metric format - using monitoring_etcd
+        match crate::monitoring_etcd::get_all_containers().await {
+            Ok(containers) => {
+                for container_info in containers {
+                    let metric = Metric {
+                        id: container_info.id.clone(),
+                        component: "container".to_string(),
+                        metric_type: "ContainerInfo".to_string(),
+                        labels: {
+                            let mut labels = HashMap::new();
+                            labels.insert("container_id".to_string(), container_info.id.clone());
+                            labels.insert("image".to_string(), container_info.image.clone());
+                            if let Some(name) = container_info.names.first() {
+                                labels.insert("container_name".to_string(), name.clone());
+                            }
+                            if let Some(status) = container_info.state.get("Status") {
+                                labels.insert("status".to_string(), status.clone());
+                            }
+                            labels // RETURN the labels HashMap
+                        },
+                        value: MetricValue::ContainerInfo {
+                            value: container_info,
+                        },
+                        timestamp: Utc::now(),
+                    };
+
+                    if self.metric_matches_filter(&metric, filter) {
+                        metrics.push(metric);
+                    }
                 }
+            }
+            Err(e) => {
+                debug!("No container metrics available: {}", e);
+            }
+        }
+
+        // Get SoCs and convert to Metric format - using monitoring_etcd
+        match crate::monitoring_etcd::get_all_socs().await {
+            Ok(socs) => {
+                for soc_info in socs {
+                    let metric = Metric {
+                        id: soc_info.soc_id.clone(),
+                        component: "soc".to_string(),
+                        metric_type: "SocInfo".to_string(),
+                        labels: {
+                            let mut labels = HashMap::new();
+                            labels.insert("soc_id".to_string(), soc_info.soc_id.clone());
+                            labels
+                                .insert("node_count".to_string(), soc_info.nodes.len().to_string());
+                            labels
+                        },
+                        value: MetricValue::SocInfo { value: soc_info },
+                        timestamp: Utc::now(),
+                    };
+
+                    if self.metric_matches_filter(&metric, filter) {
+                        metrics.push(metric);
+                    }
+                }
+            }
+            Err(e) => {
+                debug!("No SoC metrics available: {}", e);
+            }
+        }
+
+        // Get boards and convert to Metric format - using monitoring_etcd
+        match crate::monitoring_etcd::get_all_boards().await {
+            Ok(boards) => {
+                for board_info in boards {
+                    let metric = Metric {
+                        id: board_info.board_id.clone(),
+                        component: "board".to_string(),
+                        metric_type: "BoardInfo".to_string(),
+                        labels: {
+                            let mut labels = HashMap::new();
+                            labels.insert("board_id".to_string(), board_info.board_id.clone());
+                            labels.insert(
+                                "node_count".to_string(),
+                                board_info.nodes.len().to_string(),
+                            );
+                            labels
+                                .insert("soc_count".to_string(), board_info.socs.len().to_string());
+                            labels
+                        },
+                        value: MetricValue::BoardInfo { value: board_info },
+                        timestamp: Utc::now(),
+                    };
+
+                    if self.metric_matches_filter(&metric, filter) {
+                        metrics.push(metric);
+                    }
+                }
+            }
+            Err(e) => {
+                debug!("No board metrics available: {}", e);
             }
         }
 
@@ -219,113 +338,183 @@ impl MonitoringManager {
         // Sort by timestamp (newest first)
         metrics.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
 
+        info!("Fetched {} metrics from monitoring ETCD", metrics.len());
         Ok(metrics)
     }
 
-    /// Check if metric matches filter criteria
-    fn metric_matches_filter(&self, metric: &Metric, filter: Option<&MetricsFilter>) -> bool {
-        let Some(filter) = filter else {
-            return true;
-        };
+    /// Get all node metrics - SIMPLIFIED to use monitoring_etcd directly
+    pub async fn get_node_metrics(&mut self) -> Result<Vec<NodeInfo>, SettingsError> {
+        debug!("Getting all node metrics");
 
-        if !filter.enabled {
-            return false;
-        }
-
-        // Filter by components
-        if let Some(components) = &filter.components {
-            if !components.contains(&metric.component) {
-                return false;
+        match crate::monitoring_etcd::get_all_nodes().await {
+            Ok(nodes) => {
+                info!("Retrieved {} node metrics", nodes.len());
+                Ok(nodes)
+            }
+            Err(e) => {
+                warn!("Failed to get node metrics: {}", e);
+                Err(SettingsError::Metrics(format!(
+                    "Failed to get node metrics: {}",
+                    e
+                )))
             }
         }
-
-        // Filter by metric types
-        if let Some(metric_types) = &filter.metric_types {
-            if !metric_types.contains(&metric.metric_type) {
-                return false;
-            }
-        }
-
-        // Filter by labels
-        if let Some(label_selectors) = &filter.label_selectors {
-            for (key, value) in label_selectors {
-                if metric.labels.get(key) != Some(value) {
-                    return false;
-                }
-            }
-        }
-
-        // Filter by time range
-        if let Some(time_range) = &filter.time_range {
-            if metric.timestamp < time_range.start {
-                return false;
-            }
-            if let Some(end) = time_range.end {
-                if metric.timestamp > end {
-                    return false;
-                }
-            }
-        }
-
-        true
     }
 
-    /// Get metric by ID
-    pub async fn get_metric_by_id(&mut self, id: &str) -> Result<Option<Metric>, SettingsError> {
-        debug!("Getting metric by ID: {}", id);
+    /// Get all container metrics - SIMPLIFIED to use monitoring_etcd directly
+    pub async fn get_container_metrics(&mut self) -> Result<Vec<ContainerInfo>, SettingsError> {
+        debug!("Getting all container metrics");
 
-        let metrics = self.get_metrics(None).await?;
-        Ok(metrics.into_iter().find(|m| m.id == id))
+        match crate::monitoring_etcd::get_all_containers().await {
+            Ok(containers) => {
+                info!("Retrieved {} container metrics", containers.len());
+                Ok(containers)
+            }
+            Err(e) => {
+                warn!("Failed to get container metrics: {}", e);
+                Err(SettingsError::Metrics(format!(
+                    "Failed to get container metrics: {}",
+                    e
+                )))
+            }
+        }
     }
 
-    /// Get metrics by component
-    pub async fn get_metrics_by_component(
+    /// Get all soc metrics - SIMPLIFIED to use monitoring_etcd directly
+    pub async fn get_soc_metrics(&mut self) -> Result<Vec<SocInfo>, SettingsError> {
+        debug!("Getting all soc metrics");
+
+        match crate::monitoring_etcd::get_all_socs().await {
+            Ok(socs) => {
+                info!("Retrieved {} soc metrics", socs.len());
+                Ok(socs)
+            }
+            Err(e) => {
+                warn!("Failed to get soc metrics: {}", e);
+                Err(SettingsError::Metrics(format!(
+                    "Failed to get soc metrics: {}",
+                    e
+                )))
+            }
+        }
+    }
+
+    /// Get all board metrics - SIMPLIFIED to use monitoring_etcd directly
+    pub async fn get_board_metrics(&mut self) -> Result<Vec<BoardInfo>, SettingsError> {
+        debug!("Getting all board metrics");
+
+        match crate::monitoring_etcd::get_all_boards().await {
+            Ok(boards) => {
+                info!("Retrieved {} board metrics", boards.len());
+                Ok(boards)
+            }
+            Err(e) => {
+                warn!("Failed to get board metrics: {}", e);
+                Err(SettingsError::Metrics(format!(
+                    "Failed to get board metrics: {}",
+                    e
+                )))
+            }
+        }
+    }
+
+    /// Get node metric by name - SIMPLIFIED to use monitoring_etcd directly
+    pub async fn get_node_metric_by_name(
+        &mut self,
+        node_name: &str,
+    ) -> Result<Option<NodeInfo>, SettingsError> {
+        debug!("Getting node metric for: {}", node_name);
+
+        match crate::monitoring_etcd::get_node_info(node_name).await {
+            Ok(node_info) => Ok(Some(node_info)),
+            Err(_) => Ok(None),
+        }
+    }
+
+    /// Get container metric by ID - SIMPLIFIED to use monitoring_etcd directly
+    pub async fn get_container_metric_by_id(
+        &mut self,
+        container_id: &str,
+    ) -> Result<Option<ContainerInfo>, SettingsError> {
+        debug!("Getting container metric for: {}", container_id);
+
+        match crate::monitoring_etcd::get_container_info(container_id).await {
+            Ok(container_info) => Ok(Some(container_info)),
+            Err(_) => Ok(None),
+        }
+    }
+
+    /// Delete a metric by component and ID
+    pub async fn delete_metric(
         &mut self,
         component: &str,
-    ) -> Result<Vec<Metric>, SettingsError> {
-        debug!("Getting metrics for component: {}", component);
+        metric_id: &str,
+    ) -> Result<(), SettingsError> {
+        debug!(
+            "Deleting metric: {} from component: {}",
+            metric_id, component
+        );
 
-        let filter = MetricsFilter {
-            id: format!("component:{}", component),
-            name: format!("Component: {}", component),
-            enabled: true,
-            components: Some(vec![component.to_string()]),
-            metric_types: None,
-            label_selectors: None,
-            time_range: None,
-            refresh_interval: None,
-            max_items: None,
-            version: 1,
-            created_at: Utc::now(),
-            modified_at: Utc::now(),
-        };
+        match component {
+            "nodes" => {
+                crate::monitoring_etcd::delete_node_info(metric_id)
+                    .await
+                    .map_err(|e| {
+                        SettingsError::Metrics(format!("Failed to delete node metric: {}", e))
+                    })?;
+            }
+            "containers" => {
+                crate::monitoring_etcd::delete_container_info(metric_id)
+                    .await
+                    .map_err(|e| {
+                        SettingsError::Metrics(format!("Failed to delete container metric: {}", e))
+                    })?;
+            }
+            "socs" => {
+                crate::monitoring_etcd::delete_soc_info(metric_id)
+                    .await
+                    .map_err(|e| {
+                        SettingsError::Metrics(format!("Failed to delete SoC metric: {}", e))
+                    })?;
+            }
+            "boards" => {
+                crate::monitoring_etcd::delete_board_info(metric_id)
+                    .await
+                    .map_err(|e| {
+                        SettingsError::Metrics(format!("Failed to delete board metric: {}", e))
+                    })?;
+            }
+            _ => {
+                return Err(SettingsError::Metrics(format!(
+                    "Unknown component: {}",
+                    component
+                )));
+            }
+        }
 
-        self.get_metrics(Some(&filter)).await
+        // Clear cache
+        let mut cache = self.cache.write().unwrap();
+        cache.clear();
+
+        info!("Deleted metric {} from component {}", metric_id, component);
+        Ok(())
     }
 
-    /// Get metrics by type
-    pub async fn get_metrics_by_type(
-        &mut self,
-        metric_type: &str,
-    ) -> Result<Vec<Metric>, SettingsError> {
-        debug!("Getting metrics for type: {}", metric_type);
+    /// Get metric summary statistics
+    pub async fn get_metric_stats(&mut self) -> Result<HashMap<String, usize>, SettingsError> {
+        let metrics = self.get_metrics(None).await?;
+        let mut stats = HashMap::new();
 
-        let filter = MetricsFilter {
-            id: format!("type:{}", metric_type),
-            name: format!("Type: {}", metric_type),
-            enabled: true,
-            components: None,
-            metric_types: Some(vec![metric_type.to_string()]),
-            label_selectors: None,
-            time_range: None,
-            refresh_interval: None,
-            max_items: None,
-            version: 1,
-            created_at: Utc::now(),
-            modified_at: Utc::now(),
-        };
+        // Count by component
+        for metric in &metrics {
+            let count = stats
+                .entry(format!("{}_count", metric.component))
+                .or_insert(0);
+            *count += 1;
+        }
 
-        self.get_metrics(Some(&filter)).await
+        stats.insert("total_metrics".to_string(), metrics.len());
+        Ok(stats)
     }
 
     /// Create a new metrics filter
@@ -344,7 +533,6 @@ impl MonitoringManager {
             .map_err(|e| SettingsError::Metrics(format!("Failed to serialize filter: {}", e)))?;
 
         self.storage.put_json(&key, &filter_value).await?;
-
         Ok(filter_id)
     }
 
@@ -371,7 +559,6 @@ impl MonitoringManager {
     ) -> Result<(), SettingsError> {
         info!("Updating filter: {}", id);
 
-        // Get the existing filter to preserve version and creation time
         let existing_filter = self.get_filter(id).await?;
 
         let mut updated_filter = filter.clone();
@@ -385,11 +572,109 @@ impl MonitoringManager {
             .map_err(|e| SettingsError::Metrics(format!("Failed to serialize filter: {}", e)))?;
 
         self.storage.put_json(&key, &filter_value).await?;
-
-        // Invalidate related cache
         self.invalidate_cache(&format!("filter:{}", id));
 
         Ok(())
+    }
+
+    /// Get metric by ID
+    pub async fn get_metric_by_id(
+        &mut self,
+        metric_id: &str,
+    ) -> Result<Option<Metric>, SettingsError> {
+        debug!("Getting metric by ID: {}", metric_id);
+
+        // Try to find in different component types
+
+        // Check if it's a node metric
+        if let Ok(node_info) = crate::monitoring_etcd::get_node_info(metric_id).await {
+            let metric = Metric {
+                id: node_info.node_name.clone(),
+                component: "node".to_string(),
+                metric_type: "NodeInfo".to_string(),
+                labels: {
+                    let mut labels = HashMap::new();
+                    labels.insert("node_name".to_string(), node_info.node_name.clone());
+                    labels.insert("ip".to_string(), node_info.ip.clone());
+                    labels
+                },
+                value: MetricValue::NodeInfo { value: node_info },
+                timestamp: Utc::now(),
+            };
+            return Ok(Some(metric));
+        }
+
+        // Check if it's a container metric
+        if let Ok(container_info) = crate::monitoring_etcd::get_container_info(metric_id).await {
+            let metric = Metric {
+                id: container_info.id.clone(),
+                component: "container".to_string(),
+                metric_type: "ContainerInfo".to_string(),
+                labels: {
+                    let mut labels = HashMap::new();
+                    labels.insert("container_id".to_string(), container_info.id.clone());
+                    labels.insert("image".to_string(), container_info.image.clone());
+                    labels
+                },
+                value: MetricValue::ContainerInfo {
+                    value: container_info,
+                },
+                timestamp: Utc::now(),
+            };
+            return Ok(Some(metric));
+        }
+
+        Ok(None)
+    }
+
+    /// Get metrics by component
+    pub async fn get_metrics_by_component(
+        &mut self,
+        component: &str,
+    ) -> Result<Vec<Metric>, SettingsError> {
+        debug!("Getting metrics for component: {}", component);
+
+        let filter = MetricsFilter {
+            id: format!("component_{}", component),
+            name: format!("Filter for component {}", component),
+            enabled: true,
+            components: Some(vec![component.to_string()]),
+            metric_types: None,
+            label_selectors: None,
+            time_range: None,
+            refresh_interval: None,
+            max_items: None,
+            version: 1,
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
+        };
+
+        self.get_metrics(Some(&filter)).await
+    }
+
+    /// Get metrics by type
+    pub async fn get_metrics_by_type(
+        &mut self,
+        metric_type: &str,
+    ) -> Result<Vec<Metric>, SettingsError> {
+        debug!("Getting metrics for type: {}", metric_type);
+
+        let filter = MetricsFilter {
+            id: format!("type_{}", metric_type),
+            name: format!("Filter for type {}", metric_type),
+            enabled: true,
+            components: None,
+            metric_types: Some(vec![metric_type.to_string()]),
+            label_selectors: None,
+            time_range: None,
+            refresh_interval: None,
+            max_items: None,
+            version: 1,
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
+        };
+
+        self.get_metrics(Some(&filter)).await
     }
 
     /// Delete filter
@@ -401,9 +686,7 @@ impl MonitoringManager {
             warn!("Filter not found for deletion: {}", id);
         }
 
-        // Invalidate related cache
         self.invalidate_cache(&format!("filter:{}", id));
-
         Ok(())
     }
 
@@ -413,7 +696,6 @@ impl MonitoringManager {
 
         let prefix = crate::settings_storage::KeyPrefixes::FILTERS;
         let entries = self.storage.list(prefix).await?;
-
         let mut summaries = Vec::new();
 
         for (key, value) in entries {
@@ -494,5 +776,92 @@ impl MonitoringManager {
         }
 
         stats
+    }
+
+    /// Check if a metric matches the given filter criteria
+    fn metric_matches_filter(&self, metric: &Metric, filter: Option<&MetricsFilter>) -> bool {
+        let Some(filter) = filter else {
+            return true; // No filter means all metrics match
+        };
+
+        if !filter.enabled {
+            return false;
+        }
+
+        // Check component filter
+        if let Some(ref components) = filter.components {
+            if !components.contains(&metric.component) {
+                return false;
+            }
+        }
+
+        // Check metric type filter
+        if let Some(ref metric_types) = filter.metric_types {
+            if !metric_types.contains(&metric.metric_type) {
+                return false;
+            }
+        }
+
+        // Check label selectors
+        if let Some(ref label_selectors) = filter.label_selectors {
+            for (selector_key, selector_value) in label_selectors {
+                match metric.labels.get(selector_key) {
+                    Some(metric_value) => {
+                        // Support simple wildcard matching with '*'
+                        if selector_value.contains('*') {
+                            if !self.simple_wildcard_match(selector_value, metric_value) {
+                                return false;
+                            }
+                        } else {
+                            // Exact match
+                            if metric_value != selector_value {
+                                return false;
+                            }
+                        }
+                    }
+                    None => return false, // Label not found
+                }
+            }
+        }
+
+        // Check time range filter
+        if let Some(ref time_range) = filter.time_range {
+            if metric.timestamp < time_range.start {
+                return false;
+            }
+
+            if let Some(end) = time_range.end {
+                if metric.timestamp > end {
+                    return false;
+                }
+            }
+        }
+
+        true // All checks passed
+    }
+
+    /// Simple wildcard matching for label selectors
+    /// Supports '*' as a wildcard character
+    fn simple_wildcard_match(&self, pattern: &str, text: &str) -> bool {
+        if pattern == "*" {
+            return true; // Match everything
+        }
+
+        if pattern.starts_with('*') && pattern.ends_with('*') {
+            // Pattern like "*abc*" - check if text contains the middle part
+            let middle = &pattern[1..pattern.len() - 1];
+            text.contains(middle)
+        } else if pattern.starts_with('*') {
+            // Pattern like "*abc" - check if text ends with the suffix
+            let suffix = &pattern[1..];
+            text.ends_with(suffix)
+        } else if pattern.ends_with('*') {
+            // Pattern like "abc*" - check if text starts with the prefix
+            let prefix = &pattern[..pattern.len() - 1];
+            text.starts_with(prefix)
+        } else {
+            // No wildcards - exact match
+            pattern == text
+        }
     }
 }

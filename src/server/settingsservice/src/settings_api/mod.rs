@@ -10,6 +10,7 @@ use crate::settings_monitoring::{
     BoardListResponse, CreateBoardRequest, CreateNodeRequest, CreateSocRequest, FilterSummary,
     Metric, MetricsFilter, MonitoringManager, NodeListResponse, SocListResponse,
 };
+use crate::settings_storage::filter_key;
 use crate::settings_utils::error::SettingsError;
 use axum::{
     extract::{Path, Query, State},
@@ -19,9 +20,12 @@ use axum::{
     Router,
 };
 use chrono::Utc;
+use common::monitoringserver::ContainerInfo;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Instant;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
 use tracing::{debug, error, info};
@@ -191,6 +195,16 @@ impl ApiServer {
             .route("/api/v1/boards/:name", get(get_board).delete(delete_board))
             // Integration with monitoring server
             .route("/api/v1/monitoring/sync", post(sync_with_monitoring_server))
+            // Additional metrics routes
+            .route("/api/v1/metrics/nodes", get(get_all_node_metrics))
+            .route("/api/v1/metrics/containers", get(get_all_container_metrics))
+            .route("/api/v1/metrics/socs", get(get_all_soc_metrics))
+            .route("/api/v1/metrics/boards", get(get_all_board_metrics))
+            .route("/api/v1/metrics/nodes/:name", get(get_node_metric_by_name))
+            .route(
+                "/api/v1/metrics/containers/:id",
+                get(get_container_metric_by_id),
+            )
             .with_state(self.state.clone())
             .layer(CorsLayer::permissive())
     }
@@ -1076,89 +1090,60 @@ async fn store_board_metadata(
 
 // Integration functions with monitoring server
 async fn fetch_all_nodes_from_monitoring_server() -> Result<Vec<NodeInfo>, String> {
-    monitoring_etcd::get_all_nodes()
+    crate::monitoring_etcd::get_all_nodes()
         .await
         .map_err(|e| format!("ETCD error: {}", e))
 }
 
 async fn fetch_node_from_monitoring_server(name: &str) -> Result<Option<NodeInfo>, String> {
-    match monitoring_etcd::get_node_info(name).await {
+    match crate::monitoring_etcd::get_node_info(name).await {
         Ok(node) => Ok(Some(node)),
-        Err(_) => Ok(None),
+        Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Ok(None),
+        Err(e) => Err(format!("ETCD error: {}", e)),
     }
 }
 
 async fn create_node_in_monitoring_server(node: NodeInfo) -> Result<(), String> {
-    monitoring_etcd::store_node_info(&node)
+    crate::monitoring_etcd::store_node_info(&node)
         .await
         .map_err(|e| format!("ETCD error: {}", e))
 }
 
 async fn delete_node_from_monitoring_server(name: &str) -> Result<(), String> {
-    monitoring_etcd::delete_node_info(name)
+    crate::monitoring_etcd::delete_node_info(name)
         .await
         .map_err(|e| format!("ETCD error: {}", e))
 }
 
 async fn fetch_all_socs_from_monitoring_server() -> Result<Vec<SocInfo>, String> {
-    monitoring_etcd::get_all_socs()
-        .await
-        .map_err(|e| format!("ETCD error: {}", e))
-}
-
-async fn fetch_soc_from_monitoring_server(id: &str) -> Result<Option<SocInfo>, String> {
-    match monitoring_etcd::get_soc_info(id).await {
-        Ok(soc) => Ok(Some(soc)),
-        Err(_) => Ok(None),
-    }
-}
-
-async fn create_soc_in_monitoring_server(soc: SocInfo) -> Result<(), String> {
-    monitoring_etcd::store_soc_info(&soc)
-        .await
-        .map_err(|e| format!("ETCD error: {}", e))
-}
-
-async fn delete_soc_from_monitoring_server(id: &str) -> Result<(), String> {
-    monitoring_etcd::delete_soc_info(id)
+    crate::monitoring_etcd::get_all_socs()
         .await
         .map_err(|e| format!("ETCD error: {}", e))
 }
 
 async fn fetch_all_boards_from_monitoring_server() -> Result<Vec<BoardInfo>, String> {
-    monitoring_etcd::get_all_boards()
+    crate::monitoring_etcd::get_all_boards()
         .await
         .map_err(|e| format!("ETCD error: {}", e))
 }
 
-async fn fetch_board_from_monitoring_server(id: &str) -> Result<Option<BoardInfo>, String> {
-    match monitoring_etcd::get_board_info(id).await {
-        Ok(board) => Ok(Some(board)),
-        Err(_) => Ok(None),
+// Container integration functions
+async fn fetch_all_containers_from_monitoring_server() -> Result<Vec<ContainerInfo>, String> {
+    crate::monitoring_etcd::get_all_containers()
+        .await
+        .map_err(|e| format!("ETCD error: {}", e))
+}
+
+async fn fetch_container_from_monitoring_server(id: &str) -> Result<Option<ContainerInfo>, String> {
+    match crate::monitoring_etcd::get_container_info(id).await {
+        Ok(container) => Ok(Some(container)),
+        Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Ok(None),
+        Err(e) => Err(format!("ETCD error: {}", e)),
     }
 }
 
-async fn create_board_in_monitoring_server(board: BoardInfo) -> Result<(), String> {
-    monitoring_etcd::store_board_info(&board)
-        .await
-        .map_err(|e| format!("ETCD error: {}", e))
-}
-
-async fn delete_board_from_monitoring_server(id: &str) -> Result<(), String> {
-    monitoring_etcd::delete_board_info(id)
-        .await
-        .map_err(|e| format!("ETCD error: {}", e))
-}
-
-async fn sync_monitoring_data() -> Result<(), String> {
-    // Implement synchronization logic between settings service and monitoring server
-    // This could involve fetching latest data and updating caches
-    Ok(())
-}
-
-// Helper functions for error responses
-
 fn not_found_error(message: &str) -> (StatusCode, Json<ErrorResponse>) {
+    debug!("Not found error: {}", message);
     (
         StatusCode::NOT_FOUND,
         Json(ErrorResponse {
@@ -1169,6 +1154,7 @@ fn not_found_error(message: &str) -> (StatusCode, Json<ErrorResponse>) {
 }
 
 fn bad_request_error(message: &str) -> (StatusCode, Json<ErrorResponse>) {
+    debug!("Bad request error: {}", message);
     (
         StatusCode::BAD_REQUEST,
         Json(ErrorResponse {
@@ -1187,4 +1173,171 @@ fn internal_error(message: &str) -> (StatusCode, Json<ErrorResponse>) {
             details: Some(serde_json::json!({ "details": message })),
         }),
     )
+}
+
+async fn get_all_node_metrics(
+    State(state): State<ApiState>,
+) -> Result<Json<Vec<NodeInfo>>, (StatusCode, Json<ErrorResponse>)> {
+    debug!("GET /api/v1/metrics/nodes");
+
+    let mut monitoring_manager = state.monitoring_manager.write().await;
+
+    match monitoring_manager.get_node_metrics().await {
+        Ok(nodes) => {
+            info!("Retrieved {} node metrics", nodes.len());
+            Ok(Json(nodes))
+        }
+        Err(e) => {
+            error!("Failed to get node metrics: {}", e);
+            Err(internal_error(&format!(
+                "Failed to get node metrics: {}",
+                e
+            )))
+        }
+    }
+}
+
+async fn get_all_container_metrics(
+    State(state): State<ApiState>,
+) -> Result<Json<Vec<ContainerInfo>>, (StatusCode, Json<ErrorResponse>)> {
+    debug!("GET /api/v1/metrics/containers");
+
+    let mut monitoring_manager = state.monitoring_manager.write().await;
+
+    match monitoring_manager.get_container_metrics().await {
+        Ok(containers) => {
+            info!("Retrieved {} container metrics", containers.len());
+            Ok(Json(containers))
+        }
+        Err(e) => {
+            error!("Failed to get container metrics: {}", e);
+            Err(internal_error(&format!(
+                "Failed to get container metrics: {}",
+                e
+            )))
+        }
+    }
+}
+
+async fn get_all_soc_metrics(
+    State(state): State<ApiState>,
+) -> Result<Json<Vec<SocInfo>>, (StatusCode, Json<ErrorResponse>)> {
+    debug!("GET /api/v1/metrics/socs");
+
+    let mut monitoring_manager = state.monitoring_manager.write().await;
+
+    match monitoring_manager.get_soc_metrics().await {
+        Ok(socs) => {
+            info!("Retrieved {} SoC metrics", socs.len());
+            Ok(Json(socs))
+        }
+        Err(e) => {
+            error!("Failed to get SoC metrics: {}", e);
+            Err(internal_error(&format!("Failed to get SoC metrics: {}", e)))
+        }
+    }
+}
+
+async fn get_all_board_metrics(
+    State(state): State<ApiState>,
+) -> Result<Json<Vec<BoardInfo>>, (StatusCode, Json<ErrorResponse>)> {
+    debug!("GET /api/v1/metrics/boards");
+
+    let mut monitoring_manager = state.monitoring_manager.write().await;
+
+    match monitoring_manager.get_board_metrics().await {
+        Ok(boards) => {
+            info!("Retrieved {} board metrics", boards.len());
+            Ok(Json(boards))
+        }
+        Err(e) => {
+            error!("Failed to get board metrics: {}", e);
+            Err(internal_error(&format!(
+                "Failed to get board metrics: {}",
+                e
+            )))
+        }
+    }
+}
+
+async fn get_node_metric_by_name(
+    Path(name): Path<String>,
+    State(state): State<ApiState>,
+) -> Result<Json<NodeInfo>, (StatusCode, Json<ErrorResponse>)> {
+    debug!("GET /api/v1/metrics/nodes/{}", name);
+
+    let mut monitoring_manager = state.monitoring_manager.write().await;
+
+    match monitoring_manager.get_node_metric_by_name(&name).await {
+        Ok(Some(node)) => Ok(Json(node)),
+        Ok(None) => Err(not_found_error("Node metric not found")),
+        Err(e) => Err(internal_error(&format!("Failed to get node metric: {}", e))),
+    }
+}
+
+async fn get_container_metric_by_id(
+    Path(id): Path<String>,
+    State(state): State<ApiState>,
+) -> Result<Json<ContainerInfo>, (StatusCode, Json<ErrorResponse>)> {
+    debug!("GET /api/v1/metrics/containers/{}", id);
+
+    let mut monitoring_manager = state.monitoring_manager.write().await;
+
+    match monitoring_manager.get_container_metric_by_id(&id).await {
+        Ok(Some(container)) => Ok(Json(container)),
+        Ok(None) => Err(not_found_error("Container metric not found")),
+        Err(e) => Err(internal_error(&format!(
+            "Failed to get container metric: {}",
+            e
+        ))),
+    }
+}
+
+// SoC integration functions
+async fn fetch_soc_from_monitoring_server(name: &str) -> Result<Option<SocInfo>, String> {
+    match crate::monitoring_etcd::get_soc_info(name).await {
+        Ok(soc) => Ok(Some(soc)),
+        Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Ok(None),
+        Err(e) => Err(format!("ETCD error: {}", e)),
+    }
+}
+
+async fn create_soc_in_monitoring_server(soc: SocInfo) -> Result<(), String> {
+    crate::monitoring_etcd::store_soc_info(&soc)
+        .await
+        .map_err(|e| format!("ETCD error: {}", e))
+}
+
+async fn delete_soc_from_monitoring_server(name: &str) -> Result<(), String> {
+    crate::monitoring_etcd::delete_soc_info(name)
+        .await
+        .map_err(|e| format!("ETCD error: {}", e))
+}
+
+// Board integration functions
+async fn fetch_board_from_monitoring_server(name: &str) -> Result<Option<BoardInfo>, String> {
+    match crate::monitoring_etcd::get_board_info(name).await {
+        Ok(board) => Ok(Some(board)),
+        Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Ok(None),
+        Err(e) => Err(format!("ETCD error: {}", e)),
+    }
+}
+
+async fn create_board_in_monitoring_server(board: BoardInfo) -> Result<(), String> {
+    crate::monitoring_etcd::store_board_info(&board)
+        .await
+        .map_err(|e| format!("ETCD error: {}", e))
+}
+
+async fn delete_board_from_monitoring_server(name: &str) -> Result<(), String> {
+    crate::monitoring_etcd::delete_board_info(name)
+        .await
+        .map_err(|e| format!("ETCD error: {}", e))
+}
+
+// sync function
+async fn sync_monitoring_data() -> Result<(), String> {
+    debug!("Syncing monitoring data");
+    // For now, this is a stub - implement based on our synchronization needs
+    Ok(())
 }

@@ -52,7 +52,7 @@ pub async fn initialize(tx_grpc: Sender<manager::ScenarioParameter>) {
         .parse()
         .expect("gateway address parsing error");
 
-    println!("Piccolod gateway listening on {}", addr);
+    println!("Pullpirid gateway listening on {}", addr);
 
     let _ = Server::builder()
         .add_service(FilterGatewayConnectionServer::new(server))

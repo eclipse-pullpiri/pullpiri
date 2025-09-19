@@ -34,7 +34,7 @@ async fn start_grpc_server() {
         .await;
 }
 
-/// (under construction) Send request message to piccolo cloud
+/// (under construction) Send request message to pullpiri cloud
 ///
 /// ### Parametets
 /// TBD
@@ -69,7 +69,7 @@ async fn reload() {
 /// Apply downloaded artifact
 ///
 /// ### Parametets
-/// * `body: &str` - whole yaml string of piccolo artifact
+/// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Description
 /// write artifact in etcd
 /// (optional) make yaml, kube files for Bluechi
@@ -102,7 +102,7 @@ pub async fn apply_artifact(body: &str) -> common::Result<()> {
 /// Withdraw downloaded artifact
 ///
 /// ### Parametets
-/// * `body: &str` - whole yaml string of piccolo artifact
+/// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Description
 /// delete artifact in etcd
 /// (optional) delete yaml, kube files for Bluechi
@@ -167,9 +167,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:
@@ -212,9 +212,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:
@@ -310,9 +310,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:
@@ -324,9 +324,9 @@ spec:
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:
@@ -380,9 +380,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:
@@ -487,9 +487,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:
@@ -526,9 +526,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:

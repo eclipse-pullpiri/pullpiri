@@ -467,23 +467,43 @@ impl StateManagerManager {
             }
         }
 
+        // Track whether any model states changed
+        let mut model_states_changed = false;
+
         // Process Model state changes based on container states
         for (model_name, containers) in model_containers {
             println!("--- Processing Model: {} ---", model_name);
             println!("  Associated Containers: {}", containers.len());
 
+            // Get current model state from ETCD for comparison
+            let current_model_state = self.get_current_model_state(&model_name).await;
+
             // Determine model state based on container states
             if let Some(new_model_state) = StateMachine::determine_model_state(&containers).await {
                 println!("  Determined Model State: {:?}", new_model_state);
 
-                // Save the model state to etcd
-                if let Err(e) = self
-                    .save_model_state_to_etcd(&model_name, new_model_state)
-                    .await
-                {
-                    eprintln!("  Failed to save model state to etcd: {:?}", e);
+                // Check if model state actually changed
+                let state_changed = match current_model_state {
+                    Ok(Some(current_state)) => current_state != new_model_state,
+                    Ok(None) => true, // No previous state, so this is a change
+                    Err(_) => true,   // Error getting state, treat as change
+                };
+
+                if state_changed {
+                    println!("  📊 Model state CHANGED - updating ETCD");
+                    model_states_changed = true;
+
+                    // Save the model state to etcd
+                    if let Err(e) = self
+                        .save_model_state_to_etcd(&model_name, new_model_state)
+                        .await
+                    {
+                        eprintln!("  Failed to save model state to etcd: {:?}", e);
+                    } else {
+                        println!("  Model state saved to etcd successfully");
+                    }
                 } else {
-                    println!("  Model state saved to etcd successfully");
+                    println!("  ⏸️  Model state UNCHANGED - skipping ETCD update");
                 }
             } else {
                 println!("  Could not determine model state from container states");
@@ -493,11 +513,15 @@ impl StateManagerManager {
         // ========================================
         // PACKAGE STATE PROCESSING (Chain effect from model state changes)
         // ========================================
-        println!("\n=== PROCESSING PACKAGE STATE CHANGES ===");
+        if model_states_changed {
+            println!("\n=== PROCESSING PACKAGE STATE CHANGES ===");
+            println!("  📈 Model states changed - processing package state updates");
 
-        // Process package state changes based on model state changes
-        // For this demonstration, we'll assume a simple model-to-package mapping via annotations
-        self.process_package_state_changes().await;
+            // Process package state changes based on model state changes
+            self.process_package_state_changes().await;
+        } else {
+            println!("\n⏭️  No model state changes detected - skipping package state processing");
+        }
 
         println!("  Status: Container list processing completed");
         println!("=====================================");
@@ -661,13 +685,6 @@ impl StateManagerManager {
             "MODEL_STATE_EXITED" => Ok(ModelState::Exited),
             "MODEL_STATE_DEAD" => Ok(ModelState::Dead),
             "MODEL_STATE_RUNNING" => Ok(ModelState::Running),
-            // Legacy states
-            "MODEL_STATE_PENDING" => Ok(ModelState::Pending),
-            "MODEL_STATE_SUCCEEDED" => Ok(ModelState::Succeeded),
-            "MODEL_STATE_FAILED" => Ok(ModelState::Failed),
-            "MODEL_STATE_UNKNOWN" => Ok(ModelState::Unknown),
-            "MODEL_STATE_CONTAINER_CREATING" => Ok(ModelState::ContainerCreating),
-            "MODEL_STATE_CRASH_LOOP_BACK_OFF" => Ok(ModelState::CrashLoopBackOff),
             _ => Err(format!("Unknown model state: {}", state_str).into()),
         }
     }
@@ -760,6 +777,37 @@ impl StateManagerManager {
             Err(e) => {
                 eprintln!("Error in processing tasks: {e:?}");
                 Err(e.into())
+            }
+        }
+    }
+
+    /// Retrieve current model state from ETCD for comparison.
+    ///
+    /// # Arguments
+    /// * `model_name` - Name/identifier of the model
+    ///
+    /// # Returns
+    /// * `Result<Option<ModelState>>` - Current model state if found, None if not found, or error
+    async fn get_current_model_state(&self, model_name: &str) -> Result<Option<ModelState>> {
+        let key = format!("/model/{}/state", model_name);
+
+        match common::etcd::get(&key).await {
+            Ok(value) => {
+                // Parse the retrieved state value
+                match self.parse_model_state(&value) {
+                    Ok(model_state) => Ok(Some(model_state)),
+                    Err(e) => {
+                        eprintln!(
+                            "  Failed to parse current model state for {}: {:?}",
+                            model_name, e
+                        );
+                        Err(e)
+                    }
+                }
+            }
+            Err(_) => {
+                // Key not found or other error - treat as no previous state
+                Ok(None)
             }
         }
     }

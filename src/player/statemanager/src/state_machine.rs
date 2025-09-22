@@ -373,21 +373,7 @@ impl StateMachine {
             ),
         };
 
-        // Check for special CrashLoopBackOff handling
-        if current_state == ModelState::CrashLoopBackOff as i32 {
-            if let Some(backoff_time) = self.backoff_timers.get(&resource_key) {
-                if backoff_time.elapsed() < Duration::from_secs(BACKOFF_DURATION_SECS) {
-                    return TransitionResult {
-                        new_state: current_state,
-                        error_code: ErrorCode::PreconditionFailed,
-                        message: "Resource is in backoff period".to_string(),
-                        actions_to_execute: vec![],
-                        transition_id: state_change.transition_id.clone(),
-                        error_details: "Backoff timer has not elapsed yet".to_string(),
-                    };
-                }
-            }
-        }
+        // No special handling needed for current states since legacy states are removed
 
         // Find valid transition
         let transition_event = self.infer_event_from_states(
@@ -817,63 +803,39 @@ impl StateMachine {
             },
             ResourceType::Model => match (current_state, target_state) {
                 (x, y)
-                    if x == ModelState::Unspecified as i32 && y == ModelState::Pending as i32 =>
+                    if x == ModelState::Unspecified as i32 && y == ModelState::Created as i32 =>
                 {
                     "creation_request".to_string()
                 }
-                (x, y)
-                    if x == ModelState::Pending as i32
-                        && y == ModelState::ContainerCreating as i32 =>
-                {
-                    "node_allocation_complete".to_string()
+                (x, y) if x == ModelState::Created as i32 && y == ModelState::Running as i32 => {
+                    "containers_started".to_string()
                 }
-                (x, y) if x == ModelState::Pending as i32 && y == ModelState::Failed as i32 => {
-                    "node_allocation_failed".to_string()
+                (x, y) if x == ModelState::Created as i32 && y == ModelState::Dead as i32 => {
+                    "startup_failed".to_string()
                 }
-                (x, y)
-                    if x == ModelState::ContainerCreating as i32
-                        && y == ModelState::Running as i32 =>
-                {
-                    "container_creation_complete".to_string()
+                (x, y) if x == ModelState::Running as i32 && y == ModelState::Paused as i32 => {
+                    "containers_paused".to_string()
                 }
-                (x, y)
-                    if x == ModelState::ContainerCreating as i32
-                        && y == ModelState::Failed as i32 =>
-                {
-                    "container_creation_failed".to_string()
+                (x, y) if x == ModelState::Running as i32 && y == ModelState::Exited as i32 => {
+                    "containers_exited".to_string()
                 }
-                (x, y) if x == ModelState::Running as i32 && y == ModelState::Succeeded as i32 => {
-                    "temporary_task_complete".to_string()
+                (x, y) if x == ModelState::Running as i32 && y == ModelState::Dead as i32 => {
+                    "containers_died".to_string()
                 }
-                (x, y) if x == ModelState::Running as i32 && y == ModelState::Failed as i32 => {
-                    "container_termination".to_string()
+                (x, y) if x == ModelState::Paused as i32 && y == ModelState::Running as i32 => {
+                    "containers_resumed".to_string()
                 }
-                (x, y)
-                    if x == ModelState::Running as i32
-                        && y == ModelState::CrashLoopBackOff as i32 =>
-                {
-                    "repeated_crash_detection".to_string()
+                (x, y) if x == ModelState::Paused as i32 && y == ModelState::Dead as i32 => {
+                    "containers_died_while_paused".to_string()
                 }
-                (x, y) if x == ModelState::Running as i32 && y == ModelState::Unknown as i32 => {
-                    "monitoring_failure".to_string()
+                (x, y) if x == ModelState::Exited as i32 && y == ModelState::Running as i32 => {
+                    "containers_restarted".to_string()
                 }
-                (x, y)
-                    if x == ModelState::CrashLoopBackOff as i32
-                        && y == ModelState::Running as i32 =>
-                {
-                    "backoff_time_elapsed".to_string()
+                (x, y) if x == ModelState::Exited as i32 && y == ModelState::Dead as i32 => {
+                    "containers_failed_to_restart".to_string()
                 }
-                (x, y)
-                    if x == ModelState::CrashLoopBackOff as i32
-                        && y == ModelState::Failed as i32 =>
-                {
-                    "maximum_retries_exceeded".to_string()
-                }
-                (x, y) if x == ModelState::Unknown as i32 && y == ModelState::Running as i32 => {
-                    "state_check_recovered".to_string()
-                }
-                (x, y) if x == ModelState::Failed as i32 && y == ModelState::Pending as i32 => {
-                    "manual_automatic_recovery".to_string()
+                (x, y) if x == ModelState::Dead as i32 && y == ModelState::Created as i32 => {
+                    "model_recreation".to_string()
                 }
                 _ => format!("transition_{current_state}_{target_state}"),
             },
@@ -1218,22 +1180,6 @@ impl StateMachine {
                     all_paused = false;
                 }
                 ModelState::Created | ModelState::Running => {
-                    all_paused = false;
-                    all_exited = false;
-                }
-                // Legacy states
-                ModelState::Failed => {
-                    dead_count += 1;
-                    all_paused = false;
-                    all_exited = false;
-                }
-                ModelState::Unknown => {
-                    all_exited = false;
-                }
-                ModelState::Succeeded => {
-                    all_paused = false;
-                }
-                _ => {
                     all_paused = false;
                     all_exited = false;
                 }

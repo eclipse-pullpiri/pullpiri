@@ -133,7 +133,6 @@ impl StateMachine {
         // Initialize transition tables for each resource type
         state_machine.initialize_scenario_transitions();
         state_machine.initialize_package_transitions();
-        state_machine.initialize_model_transitions();
 
         state_machine
     }
@@ -320,130 +319,6 @@ impl StateMachine {
 
         self.transition_tables
             .insert(ResourceType::Package, package_transitions);
-    }
-
-    /// Initialize the state transition table for Model resources
-    ///
-    /// Sets up state transitions specific to Model resources, covering:
-    /// - Model loading and initialization
-    /// - Training and inference states
-    /// - Model versioning and updates
-    /// - Resource allocation and cleanup
-    ///
-    /// # Implementation Note
-    /// Model transitions may include resource-intensive operations and
-    /// should account for memory and compute constraints.
-    fn initialize_model_transitions(&mut self) {
-        let model_transitions = vec![
-            // Initial creation
-            StateTransition {
-                from_state: ModelState::Unspecified as i32,
-                event: "creation_request".to_string(),
-                to_state: ModelState::Created as i32,
-                condition: None,
-                action: "initialize_model_create_metadata".to_string(),
-            },
-            // From Created to other states based on container states
-            StateTransition {
-                from_state: ModelState::Created as i32,
-                event: "containers_allocated".to_string(),
-                to_state: ModelState::Running as i32,
-                condition: Some("containers_running".to_string()),
-                action: "monitor_container_status".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Created as i32,
-                event: "containers_paused".to_string(),
-                to_state: ModelState::Paused as i32,
-                condition: Some("all_containers_paused".to_string()),
-                action: "update_model_state_to_paused".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Created as i32,
-                event: "containers_failed".to_string(),
-                to_state: ModelState::Dead as i32,
-                condition: Some("container_failure_detected".to_string()),
-                action: "log_container_failures_attempt_recovery".to_string(),
-            },
-            // From Running to other states
-            StateTransition {
-                from_state: ModelState::Running as i32,
-                event: "all_containers_paused".to_string(),
-                to_state: ModelState::Paused as i32,
-                condition: Some("all_containers_paused_state".to_string()),
-                action: "update_model_state_pause_monitoring".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Running as i32,
-                event: "all_containers_exited".to_string(),
-                to_state: ModelState::Exited as i32,
-                condition: Some("all_containers_exited_cleanly".to_string()),
-                action: "cleanup_resources_log_completion".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Running as i32,
-                event: "container_died".to_string(),
-                to_state: ModelState::Dead as i32,
-                condition: Some("any_container_dead".to_string()),
-                action: "log_dead_container_attempt_recovery".to_string(),
-            },
-            // From Paused to other states
-            StateTransition {
-                from_state: ModelState::Paused as i32,
-                event: "containers_resumed".to_string(),
-                to_state: ModelState::Running as i32,
-                condition: Some("containers_running_again".to_string()),
-                action: "resume_monitoring".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Paused as i32,
-                event: "container_died_while_paused".to_string(),
-                to_state: ModelState::Dead as i32,
-                condition: Some("container_failure_while_paused".to_string()),
-                action: "log_failure_during_pause".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Paused as i32,
-                event: "containers_terminated".to_string(),
-                to_state: ModelState::Exited as i32,
-                condition: Some("containers_exited_from_paused".to_string()),
-                action: "cleanup_from_paused_state".to_string(),
-            },
-            // From Exited to other states (mainly recovery)
-            StateTransition {
-                from_state: ModelState::Exited as i32,
-                event: "manual_restart".to_string(),
-                to_state: ModelState::Created as i32,
-                condition: Some("restart_requested".to_string()),
-                action: "recreate_model_from_exited".to_string(),
-            },
-            // From Dead to recovery
-            StateTransition {
-                from_state: ModelState::Dead as i32,
-                event: "recovery_attempt".to_string(),
-                to_state: ModelState::Created as i32,
-                condition: Some("recovery_initiated".to_string()),
-                action: "restart_failed_containers".to_string(),
-            },
-            // Legacy transitions for backward compatibility
-            StateTransition {
-                from_state: ModelState::Pending as i32,
-                event: "container_creation_complete".to_string(),
-                to_state: ModelState::Running as i32,
-                condition: Some("legacy_transition".to_string()),
-                action: "legacy_start_monitoring".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::ContainerCreating as i32,
-                event: "container_creation_complete".to_string(),
-                to_state: ModelState::Running as i32,
-                condition: Some("legacy_containers_started".to_string()),
-                action: "legacy_update_state".to_string(),
-            },
-        ];
-
-        self.transition_tables
-            .insert(ResourceType::Model, model_transitions);
     }
 
     // ========================================

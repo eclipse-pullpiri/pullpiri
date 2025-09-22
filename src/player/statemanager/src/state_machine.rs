@@ -1174,6 +1174,90 @@ impl StateMachine {
             _ => 0,
         }
     }
+
+    /// Determines the package state based on the states of its associated models.
+    ///
+    /// Implements the package state determination logic according to the requirements:
+    /// - No models → Package state: idle (맨 처음 package의 상태, 생성 시 기본 상태)
+    /// - All models paused → Package state: paused (모든 model이 paused 상태일 때)
+    /// - All models exited → Package state: exited (모든 model이 exited 상태일 때)  
+    /// - Some models dead (but not all) → Package state: degraded (일부 model이 dead 상태일 때)
+    /// - All models dead → Package state: error (모든 model이 dead 상태일 때)
+    /// - Otherwise → Package state: running (위 조건을 모두 만족하지 않을 때)
+    ///
+    /// # Arguments
+    /// * `model_states` - Vector of model state references associated with the package
+    ///
+    /// # Returns
+    /// * `Option<PackageState>` - Determined package state, or None if unable to determine
+    pub async fn determine_package_state(
+        model_states: &[(String, ModelState)],
+    ) -> Option<PackageState> {
+        if model_states.is_empty() {
+            return Some(PackageState::Idle); // No models = idle state (생성 시 기본 상태)
+        }
+
+        let mut all_paused = true;
+        let mut all_exited = true;
+        let mut dead_count = 0;
+        let total_models = model_states.len();
+
+        for (model_name, model_state) in model_states {
+            println!("    Model {} state: {:?}", model_name, model_state);
+
+            match model_state {
+                ModelState::Dead => {
+                    dead_count += 1;
+                    all_paused = false;
+                    all_exited = false;
+                }
+                ModelState::Paused => {
+                    all_exited = false;
+                }
+                ModelState::Exited => {
+                    all_paused = false;
+                }
+                ModelState::Created | ModelState::Running => {
+                    all_paused = false;
+                    all_exited = false;
+                }
+                // Legacy states
+                ModelState::Failed => {
+                    dead_count += 1;
+                    all_paused = false;
+                    all_exited = false;
+                }
+                ModelState::Unknown => {
+                    all_exited = false;
+                }
+                ModelState::Succeeded => {
+                    all_paused = false;
+                }
+                _ => {
+                    all_paused = false;
+                    all_exited = false;
+                }
+            }
+        }
+
+        // Apply package state determination logic based on requirements
+        if dead_count == total_models {
+            println!("  → Package state: error (모든 model이 dead 상태)");
+            Some(PackageState::Error) // All models dead = Error state
+        } else if dead_count > 0 {
+            println!("  → Package state: degraded (일부 model이 dead 상태)");
+            Some(PackageState::Degraded) // Some models dead = Degraded state
+        } else if all_paused {
+            println!("  → Package state: paused (모든 model이 paused 상태)");
+            Some(PackageState::Paused) // All models paused = Paused state
+        } else if all_exited {
+            println!("  → Package state: exited (모든 model이 exited 상태)");
+            Some(PackageState::Exited) // All models exited = Exited state
+        } else {
+            println!("  → Package state: running (기본 상태)");
+            Some(PackageState::Running) // Default running state
+        }
+    }
 }
 
 /// Default implementation that creates a new StateMachine

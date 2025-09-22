@@ -3,14 +3,14 @@
 //! This file sets up the asynchronous runtime, initializes the manager and gRPC server,
 //! and launches both concurrently. It also provides unit tests for initialization.
 
-use common::nodeagent::HandleYamlRequest;
 use clap::Parser;
+use common::nodeagent::HandleYamlRequest;
 use std::path::PathBuf;
 mod bluechi;
+pub mod config;
 pub mod grpc;
 pub mod manager;
 pub mod resource;
-pub mod config;
 
 use common::nodeagent::node_agent_connection_server::NodeAgentConnectionServer;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -19,7 +19,11 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 ///
 /// This function creates the manager, initializes it, and then runs it.
 /// If initialization or running fails, errors are printed to stderr.
-async fn launch_manager(rx_grpc: Receiver<HandleYamlRequest>, hostname: String, config: config::Config) {
+async fn launch_manager(
+    rx_grpc: Receiver<HandleYamlRequest>,
+    hostname: String,
+    config: config::Config,
+) {
     let mut manager = manager::NodeAgentManager::new(rx_grpc, hostname.clone()).await;
 
     match manager.initialize().await {
@@ -27,7 +31,7 @@ async fn launch_manager(rx_grpc: Receiver<HandleYamlRequest>, hostname: String, 
             println!("NodeAgentManager successfully initialized");
             // Add registration with API server
             let mut sender = grpc::sender::NodeAgentSender::default();
-            
+
             // Use IP address from config file
             let host_ip = config.get_host_ip();
             let node_id = format!("{}-{}", hostname, host_ip);
@@ -141,12 +145,16 @@ async fn main() {
             config
         }
         Err(err) => {
-            eprintln!("Error loading configuration from {}: {}", args.config.display(), err);
+            eprintln!(
+                "Error loading configuration from {}: {}",
+                args.config.display(),
+                err
+            );
             eprintln!("Falling back to default configuration");
             config::Config::default()
         }
     };
-    
+
     // Set global config for other parts of the application
     config::Config::set_global(app_config.clone());
 
@@ -169,13 +177,13 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::launch_manager;
     use crate::config::Config;
+    use crate::launch_manager;
     use common::nodeagent::HandleYamlRequest;
+    use std::path::PathBuf;
     use tokio::sync::mpsc::{channel, Receiver, Sender};
     use tokio::task::LocalSet;
     use tokio::time::{sleep, Duration};
-    use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_main_initializes_channels() {

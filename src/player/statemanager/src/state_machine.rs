@@ -213,26 +213,26 @@ impl StateMachine {
             StateTransition {
                 from_state: PackageState::Unspecified as i32,
                 event: "launch_request".to_string(),
-                to_state: PackageState::Initializing as i32,
+                to_state: PackageState::Idle as i32,
                 condition: None,
                 action: "start_model_creation_allocate_resources".to_string(),
             },
             StateTransition {
-                from_state: PackageState::Initializing as i32,
+                from_state: PackageState::Idle as i32,
                 event: "initialization_complete".to_string(),
                 to_state: PackageState::Running as i32,
                 condition: Some("all_models_normal".to_string()),
                 action: "update_state_announce_availability".to_string(),
             },
             StateTransition {
-                from_state: PackageState::Initializing as i32,
+                from_state: PackageState::Idle as i32,
                 event: "partial_initialization_failure".to_string(),
                 to_state: PackageState::Degraded as i32,
                 condition: Some("critical_models_normal".to_string()),
                 action: "log_warning_activate_partial_functionality".to_string(),
             },
             StateTransition {
-                from_state: PackageState::Initializing as i32,
+                from_state: PackageState::Idle as i32,
                 event: "critical_initialization_failure".to_string(),
                 to_state: PackageState::Error as i32,
                 condition: Some("critical_models_failed".to_string()),
@@ -258,6 +258,13 @@ impl StateMachine {
                 to_state: PackageState::Paused as i32,
                 condition: None,
                 action: "pause_models_preserve_state".to_string(),
+            },
+            StateTransition {
+                from_state: PackageState::Running as i32,
+                event: "all_models_exited".to_string(),
+                to_state: PackageState::Exited as i32,
+                condition: Some("all_models_exited".to_string()),
+                action: "mark_package_exited".to_string(),
             },
             StateTransition {
                 from_state: PackageState::Degraded as i32,
@@ -295,25 +302,18 @@ impl StateMachine {
                 action: "resume_models_restore_state".to_string(),
             },
             StateTransition {
-                from_state: PackageState::Running as i32,
-                event: "update_request".to_string(),
-                to_state: PackageState::Updating as i32,
-                condition: None,
-                action: "start_update_process".to_string(),
+                from_state: PackageState::Paused as i32,
+                event: "all_models_exited".to_string(),
+                to_state: PackageState::Exited as i32,
+                condition: Some("all_models_exited".to_string()),
+                action: "mark_package_exited".to_string(),
             },
             StateTransition {
-                from_state: PackageState::Updating as i32,
-                event: "update_successful".to_string(),
+                from_state: PackageState::Exited as i32,
+                event: "restart_request".to_string(),
                 to_state: PackageState::Running as i32,
-                condition: None,
-                action: "activate_new_version_update_state".to_string(),
-            },
-            StateTransition {
-                from_state: PackageState::Updating as i32,
-                event: "update_failed".to_string(),
-                to_state: PackageState::Error as i32,
-                condition: Some("depends_on_rollback_settings".to_string()),
-                action: "rollback_or_error_handling".to_string(),
+                condition: Some("successful_restart".to_string()),
+                action: "restart_models_restore_functionality".to_string(),
             },
         ];
 
@@ -337,91 +337,77 @@ impl StateMachine {
             StateTransition {
                 from_state: ModelState::Unspecified as i32,
                 event: "creation_request".to_string(),
-                to_state: ModelState::Pending as i32,
+                to_state: ModelState::Created as i32,
                 condition: None,
                 action: "start_node_selection_and_allocation".to_string(),
             },
             StateTransition {
-                from_state: ModelState::Pending as i32,
+                from_state: ModelState::Created as i32,
                 event: "node_allocation_complete".to_string(),
-                to_state: ModelState::ContainerCreating as i32,
+                to_state: ModelState::Running as i32,
                 condition: Some("sufficient_resources".to_string()),
                 action: "pull_container_images_mount_volumes".to_string(),
             },
             StateTransition {
-                from_state: ModelState::Pending as i32,
+                from_state: ModelState::Created as i32,
                 event: "node_allocation_failed".to_string(),
-                to_state: ModelState::Failed as i32,
+                to_state: ModelState::Dead as i32,
                 condition: Some("timeout_or_error".to_string()),
                 action: "log_error_retry_or_reschedule".to_string(),
             },
             StateTransition {
-                from_state: ModelState::ContainerCreating as i32,
-                event: "container_creation_complete".to_string(),
-                to_state: ModelState::Running as i32,
-                condition: Some("all_containers_started".to_string()),
-                action: "update_state_start_readiness_checks".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::ContainerCreating as i32,
-                event: "container_creation_failed".to_string(),
-                to_state: ModelState::Failed as i32,
-                condition: None,
-                action: "log_error_retry_or_reschedule".to_string(),
+                from_state: ModelState::Running as i32,
+                event: "all_containers_paused".to_string(),
+                to_state: ModelState::Paused as i32,
+                condition: Some("all_containers_paused".to_string()),
+                action: "update_state_preserve_state".to_string(),
             },
             StateTransition {
                 from_state: ModelState::Running as i32,
-                event: "temporary_task_complete".to_string(),
-                to_state: ModelState::Succeeded as i32,
-                condition: Some("one_time_task".to_string()),
-                action: "log_completion_clean_up_resources".to_string(),
+                event: "all_containers_exited".to_string(),
+                to_state: ModelState::Exited as i32,
+                condition: Some("all_containers_exited".to_string()),
+                action: "update_state_log_completion".to_string(),
             },
             StateTransition {
                 from_state: ModelState::Running as i32,
-                event: "container_termination".to_string(),
-                to_state: ModelState::Failed as i32,
-                condition: Some("unexpected_termination".to_string()),
+                event: "container_dead_or_info_failure".to_string(),
+                to_state: ModelState::Dead as i32,
+                condition: Some("one_or_more_containers_dead".to_string()),
                 action: "log_error_evaluate_automatic_restart".to_string(),
             },
             StateTransition {
-                from_state: ModelState::Running as i32,
-                event: "repeated_crash_detection".to_string(),
-                to_state: ModelState::CrashLoopBackOff as i32,
-                condition: Some("consecutive_restart_failures".to_string()),
-                action: "set_backoff_timer_collect_logs".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Running as i32,
-                event: "monitoring_failure".to_string(),
-                to_state: ModelState::Unknown as i32,
-                condition: Some("node_communication_issues".to_string()),
-                action: "attempt_diagnostics_restore_communication".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::CrashLoopBackOff as i32,
-                event: "backoff_time_elapsed".to_string(),
+                from_state: ModelState::Paused as i32,
+                event: "resume_request".to_string(),
                 to_state: ModelState::Running as i32,
-                condition: Some("restart_successful".to_string()),
-                action: "resume_monitoring_reset_counter".to_string(),
+                condition: Some("successful_resume".to_string()),
+                action: "resume_containers_restore_functionality".to_string(),
             },
             StateTransition {
-                from_state: ModelState::CrashLoopBackOff as i32,
-                event: "maximum_retries_exceeded".to_string(),
-                to_state: ModelState::Failed as i32,
-                condition: Some("retry_limit_reached".to_string()),
-                action: "log_error_notify_for_manual_intervention".to_string(),
+                from_state: ModelState::Paused as i32,
+                event: "all_containers_exited".to_string(),
+                to_state: ModelState::Exited as i32,
+                condition: Some("all_containers_exited".to_string()),
+                action: "update_state_log_completion".to_string(),
             },
             StateTransition {
-                from_state: ModelState::Unknown as i32,
-                event: "state_check_recovered".to_string(),
+                from_state: ModelState::Paused as i32,
+                event: "container_dead_or_info_failure".to_string(),
+                to_state: ModelState::Dead as i32,
+                condition: Some("one_or_more_containers_dead".to_string()),
+                action: "log_error_evaluate_recovery".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Exited as i32,
+                event: "restart_request".to_string(),
                 to_state: ModelState::Running as i32,
-                condition: Some("depends_on_actual_state".to_string()),
-                action: "synchronize_state_recover_if_needed".to_string(),
+                condition: Some("successful_restart".to_string()),
+                action: "restart_containers_restore_functionality".to_string(),
             },
             StateTransition {
-                from_state: ModelState::Failed as i32,
+                from_state: ModelState::Dead as i32,
                 event: "manual_automatic_recovery".to_string(),
-                to_state: ModelState::Pending as i32,
+                to_state: ModelState::Created as i32,
                 condition: Some("according_to_restart_policy".to_string()),
                 action: "start_model_recreation".to_string(),
             },
@@ -483,21 +469,7 @@ impl StateMachine {
             ),
         };
 
-        // Check for special CrashLoopBackOff handling
-        if current_state == ModelState::CrashLoopBackOff as i32 {
-            if let Some(backoff_time) = self.backoff_timers.get(&resource_key) {
-                if backoff_time.elapsed() < Duration::from_secs(BACKOFF_DURATION_SECS) {
-                    return TransitionResult {
-                        new_state: current_state,
-                        error_code: ErrorCode::PreconditionFailed,
-                        message: "Resource is in backoff period".to_string(),
-                        actions_to_execute: vec![],
-                        transition_id: state_change.transition_id.clone(),
-                        error_details: "Backoff timer has not elapsed yet".to_string(),
-                    };
-                }
-            }
-        }
+        // Special state-specific handling removed - using simplified state model
 
         // Find valid transition
         let transition_event = self.infer_event_from_states(
@@ -581,11 +553,7 @@ impl StateMachine {
 
             self.update_health_status(&resource_key, &transition_result);
 
-            // Handle special state-specific logic
-            if transition.to_state == ModelState::CrashLoopBackOff as i32 {
-                self.backoff_timers
-                    .insert(resource_key.clone(), Instant::now());
-            }
+            // State-specific logic removed for simplified state model
 
             transition_result
         } else {
@@ -857,27 +825,17 @@ impl StateMachine {
             },
             ResourceType::Package => match (current_state, target_state) {
                 (x, y)
-                    if x == PackageState::Unspecified as i32
-                        && y == PackageState::Initializing as i32 =>
+                    if x == PackageState::Unspecified as i32 && y == PackageState::Idle as i32 =>
                 {
                     "launch_request".to_string()
                 }
-                (x, y)
-                    if x == PackageState::Initializing as i32
-                        && y == PackageState::Running as i32 =>
-                {
+                (x, y) if x == PackageState::Idle as i32 && y == PackageState::Running as i32 => {
                     "initialization_complete".to_string()
                 }
-                (x, y)
-                    if x == PackageState::Initializing as i32
-                        && y == PackageState::Degraded as i32 =>
-                {
+                (x, y) if x == PackageState::Idle as i32 && y == PackageState::Degraded as i32 => {
                     "partial_initialization_failure".to_string()
                 }
-                (x, y)
-                    if x == PackageState::Initializing as i32
-                        && y == PackageState::Error as i32 =>
-                {
+                (x, y) if x == PackageState::Idle as i32 && y == PackageState::Error as i32 => {
                     "critical_initialization_failure".to_string()
                 }
                 (x, y)
@@ -891,10 +849,8 @@ impl StateMachine {
                 (x, y) if x == PackageState::Running as i32 && y == PackageState::Paused as i32 => {
                     "pause_request".to_string()
                 }
-                (x, y)
-                    if x == PackageState::Running as i32 && y == PackageState::Updating as i32 =>
-                {
-                    "update_request".to_string()
+                (x, y) if x == PackageState::Running as i32 && y == PackageState::Exited as i32 => {
+                    "all_models_exited".to_string()
                 }
                 (x, y)
                     if x == PackageState::Degraded as i32 && y == PackageState::Running as i32 =>
@@ -915,74 +871,48 @@ impl StateMachine {
                 (x, y) if x == PackageState::Paused as i32 && y == PackageState::Running as i32 => {
                     "resume_request".to_string()
                 }
-                (x, y)
-                    if x == PackageState::Updating as i32 && y == PackageState::Running as i32 =>
-                {
-                    "update_successful".to_string()
+                (x, y) if x == PackageState::Paused as i32 && y == PackageState::Exited as i32 => {
+                    "all_models_exited".to_string()
                 }
-                (x, y) if x == PackageState::Updating as i32 && y == PackageState::Error as i32 => {
-                    "update_failed".to_string()
+                (x, y) if x == PackageState::Exited as i32 && y == PackageState::Running as i32 => {
+                    "restart_request".to_string()
                 }
                 _ => format!("transition_{current_state}_{target_state}"),
             },
             ResourceType::Model => match (current_state, target_state) {
                 (x, y)
-                    if x == ModelState::Unspecified as i32 && y == ModelState::Pending as i32 =>
+                    if x == ModelState::Unspecified as i32 && y == ModelState::Created as i32 =>
                 {
                     "creation_request".to_string()
                 }
-                (x, y)
-                    if x == ModelState::Pending as i32
-                        && y == ModelState::ContainerCreating as i32 =>
-                {
+                (x, y) if x == ModelState::Created as i32 && y == ModelState::Running as i32 => {
                     "node_allocation_complete".to_string()
                 }
-                (x, y) if x == ModelState::Pending as i32 && y == ModelState::Failed as i32 => {
+                (x, y) if x == ModelState::Created as i32 && y == ModelState::Dead as i32 => {
                     "node_allocation_failed".to_string()
                 }
-                (x, y)
-                    if x == ModelState::ContainerCreating as i32
-                        && y == ModelState::Running as i32 =>
-                {
-                    "container_creation_complete".to_string()
+                (x, y) if x == ModelState::Running as i32 && y == ModelState::Paused as i32 => {
+                    "all_containers_paused".to_string()
                 }
-                (x, y)
-                    if x == ModelState::ContainerCreating as i32
-                        && y == ModelState::Failed as i32 =>
-                {
-                    "container_creation_failed".to_string()
+                (x, y) if x == ModelState::Running as i32 && y == ModelState::Exited as i32 => {
+                    "all_containers_exited".to_string()
                 }
-                (x, y) if x == ModelState::Running as i32 && y == ModelState::Succeeded as i32 => {
-                    "temporary_task_complete".to_string()
+                (x, y) if x == ModelState::Running as i32 && y == ModelState::Dead as i32 => {
+                    "container_dead_or_info_failure".to_string()
                 }
-                (x, y) if x == ModelState::Running as i32 && y == ModelState::Failed as i32 => {
-                    "container_termination".to_string()
+                (x, y) if x == ModelState::Paused as i32 && y == ModelState::Running as i32 => {
+                    "resume_request".to_string()
                 }
-                (x, y)
-                    if x == ModelState::Running as i32
-                        && y == ModelState::CrashLoopBackOff as i32 =>
-                {
-                    "repeated_crash_detection".to_string()
+                (x, y) if x == ModelState::Paused as i32 && y == ModelState::Exited as i32 => {
+                    "all_containers_exited".to_string()
                 }
-                (x, y) if x == ModelState::Running as i32 && y == ModelState::Unknown as i32 => {
-                    "monitoring_failure".to_string()
+                (x, y) if x == ModelState::Paused as i32 && y == ModelState::Dead as i32 => {
+                    "container_dead_or_info_failure".to_string()
                 }
-                (x, y)
-                    if x == ModelState::CrashLoopBackOff as i32
-                        && y == ModelState::Running as i32 =>
-                {
-                    "backoff_time_elapsed".to_string()
+                (x, y) if x == ModelState::Exited as i32 && y == ModelState::Running as i32 => {
+                    "restart_request".to_string()
                 }
-                (x, y)
-                    if x == ModelState::CrashLoopBackOff as i32
-                        && y == ModelState::Failed as i32 =>
-                {
-                    "maximum_retries_exceeded".to_string()
-                }
-                (x, y) if x == ModelState::Unknown as i32 && y == ModelState::Running as i32 => {
-                    "state_check_recovered".to_string()
-                }
-                (x, y) if x == ModelState::Failed as i32 && y == ModelState::Pending as i32 => {
+                (x, y) if x == ModelState::Dead as i32 && y == ModelState::Created as i32 => {
                     "manual_automatic_recovery".to_string()
                 }
                 _ => format!("transition_{current_state}_{target_state}"),

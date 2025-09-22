@@ -34,7 +34,7 @@ use common::statemanager::{
 use common::Result;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
-use tokio::time::{Duration, Instant};
+use tokio::time::Instant;
 
 // ========================================
 // CONSTANTS AND CONFIGURATION
@@ -338,7 +338,7 @@ impl StateMachine {
                 message: format!("Invalid state change request: {validation_error}"),
                 actions_to_execute: vec![],
                 transition_id: state_change.transition_id.clone(),
-                error_details: validation_error,
+                error_details: validation_error.to_string(),
             };
         }
 
@@ -459,10 +459,11 @@ impl StateMachine {
             self.update_health_status(&resource_key, &transition_result);
 
             // Handle special state-specific logic
-            if transition.to_state == ModelState::CrashLoopBackOff as i32 {
-                self.backoff_timers
-                    .insert(resource_key.clone(), Instant::now());
-            }
+            // Note: CrashLoopBackOff state not currently defined in ModelState enum
+            // if transition.to_state == ModelState::CrashLoopBackOff as i32 {
+            //     self.backoff_timers
+            //         .insert(resource_key.clone(), Instant::now());
+            // }
 
             transition_result
         } else {
@@ -583,21 +584,21 @@ impl StateMachine {
     }
 
     /// Validate state change request parameters
-    fn validate_state_change(&self, state_change: &StateChange) -> Result<(), String> {
+    fn validate_state_change(&self, state_change: &StateChange) -> Result<()> {
         if state_change.resource_name.trim().is_empty() {
-            return Err("Resource name cannot be empty".to_string());
+            return Err("Resource name cannot be empty".to_string().into());
         }
 
         if state_change.transition_id.trim().is_empty() {
-            return Err("Transition ID cannot be empty".to_string());
+            return Err("Transition ID cannot be empty".to_string().into());
         }
 
         if state_change.current_state == state_change.target_state {
-            return Err("Current and target states cannot be the same".to_string());
+            return Err("Current and target states cannot be the same".to_string().into());
         }
 
         if state_change.source.trim().is_empty() {
-            return Err("Source cannot be empty".to_string());
+            return Err("Source cannot be empty".to_string().into());
         }
 
         Ok(())
@@ -1181,6 +1182,11 @@ impl StateMachine {
                     all_paused = false;
                 }
                 ModelState::Created | ModelState::Running => {
+                    all_paused = false;
+                    all_exited = false;
+                }
+                ModelState::Unspecified => {
+                    // Handle unspecified state - treat as non-running
                     all_paused = false;
                     all_exited = false;
                 }

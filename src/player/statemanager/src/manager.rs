@@ -476,7 +476,13 @@ impl StateManagerManager {
             println!("  Associated Containers: {}", containers.len());
 
             // Get current model state from ETCD for comparison
-            let current_model_state = StateMachine::get_current_model_state(&model_name).await;
+            let current_model_state = match StateMachine::get_current_model_state(&model_name).await {
+                Ok(state) => state,
+                Err(e) => {
+                    eprintln!("  Failed to get current model state: {:?}", e);
+                    None
+                }
+            };
 
             // Determine model state based on container states
             if let Some(new_model_state) = StateMachine::determine_model_state(&containers).await {
@@ -484,9 +490,8 @@ impl StateManagerManager {
 
                 // Check if model state actually changed
                 let state_changed = match current_model_state {
-                    Ok(Some(current_state)) => current_state != new_model_state,
-                    Ok(None) => true, // No previous state, so this is a change
-                    Err(_) => true,   // Error getting state, treat as change
+                    Some(current_state) => current_state != new_model_state,
+                    None => true, // No previous state, so this is a change
                 };
 
                 if state_changed {
@@ -564,10 +569,43 @@ impl StateManagerManager {
         let arc_self = Arc::new(self);
         let grpc_manager = Arc::clone(&arc_self);
 
-        // Spawn the main gRPC processing task
+        // Spawn the main processing task
         let grpc_processor = tokio::spawn(async move {
-            if let Err(e) = grpc_manager.process_grpc_requests().await {
-                eprintln!("Error in gRPC processor: {e:?}");
+            // Main processing loop
+            loop {
+                tokio::select! {
+                    // Process container updates
+                    container_result = async {
+                        let mut rx = grpc_manager.rx_container.lock().await;
+                        rx.recv().await
+                    } => {
+                        match container_result {
+                            Some(container_list) => {
+                                grpc_manager.process_container_list(container_list).await;
+                            }
+                            None => {
+                                println!("Container channel closed, shutting down container processor");
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Process state change requests
+                    state_change_result = async {
+                        let mut rx = grpc_manager.rx_state_change.lock().await;
+                        rx.recv().await
+                    } => {
+                        match state_change_result {
+                            Some(state_change) => {
+                                grpc_manager.process_state_change(state_change).await;
+                            }
+                            None => {
+                                println!("State change channel closed, shutting down state processor");
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         });
 

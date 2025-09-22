@@ -434,58 +434,63 @@ impl StateManagerManager {
         println!("  Node Name: {}", container_list.node_name);
         println!("  Container Count: {}", container_list.containers.len());
 
+        // Group containers by model using annotations
+        let mut model_containers = std::collections::HashMap::new();
+
         // Process each container for health status analysis
         for (i, container) in container_list.containers.iter().enumerate() {
-            // container.names is a Vec<String>, so join them for display
             let container_names = container.names.join(", ");
             println!("  Container {}: {}", i + 1, container_names);
             println!("    Image: {}", container.image);
             println!("    State: {:?}", container.state);
             println!("    ID: {}", container.id);
 
-            // container.config is a HashMap, not an Option
+            // Process container annotations to identify model association
+            if !container.annotation.is_empty() {
+                println!("    Annotations: {:?}", container.annotation);
+
+                // Look for model identifier in annotations
+                if let Some(model_name) = container.annotation.get("pullpiri.model") {
+                    model_containers
+                        .entry(model_name.clone())
+                        .or_insert_with(Vec::new)
+                        .push(container);
+                    println!("    Associated with Model: {}", model_name);
+                } else {
+                    println!("    No model association found in annotations");
+                }
+            }
+
+            // Log container config if available
             if !container.config.is_empty() {
                 println!("    Config: {:?}", container.config);
             }
-
-            // Process container annotations if available
-            if !container.annotation.is_empty() {
-                println!("    Annotations: {:?}", container.annotation);
-            }
-
-            // TODO: Implement comprehensive container processing:
-            //
-            // 1. HEALTH STATUS ANALYSIS
-            //    - Analyze container state changes (running -> failed, etc.)
-            //    - Check exit codes for failure conditions
-            //    - Monitor resource usage and performance metrics
-            //    - Detect container restart loops and crash patterns
-            //
-            // 2. RESOURCE MAPPING
-            //    - Map containers to managed resources (scenarios, packages, models)
-            //    - Identify which resources are affected by container changes
-            //    - Determine impact on dependent resources
-            //
-            // 3. STATE TRANSITION TRIGGERS
-            //    - Trigger state transitions for failed containers
-            //    - Handle container recovery and restart scenarios
-            //    - Update resource states based on container health
-            //    - Escalate to recovery management for critical failures
-            //
-            // 4. HEALTH STATUS UPDATES
-            //    - Update resource health status based on container state
-            //    - Generate health check events and notifications
-            //    - Update monitoring and observability data
-            //    - Maintain health history for trend analysis
-            //
-            // 5. ASIL COMPLIANCE MONITORING
-            //    - Monitor ASIL-critical containers for safety violations
-            //    - Generate alerts for safety-critical container failures
-            //    - Implement timing constraints for container recovery
-            //    - Ensure safety systems remain operational
         }
 
-        println!("  Status: Container list processing completed (implementation pending)");
+        // Process Model state changes based on container states
+        for (model_name, containers) in model_containers {
+            println!("--- Processing Model: {} ---", model_name);
+            println!("  Associated Containers: {}", containers.len());
+
+            // Determine model state based on container states
+            if let Some(new_model_state) = self.determine_model_state(&containers).await {
+                println!("  Determined Model State: {:?}", new_model_state);
+
+                // Save the model state to etcd
+                if let Err(e) = self
+                    .save_model_state_to_etcd(&model_name, new_model_state)
+                    .await
+                {
+                    eprintln!("  Failed to save model state to etcd: {:?}", e);
+                } else {
+                    println!("  Model state saved to etcd successfully");
+                }
+            } else {
+                println!("  Could not determine model state from container states");
+            }
+        }
+
+        println!("  Status: Container list processing completed");
         println!("=====================================");
     }
 
@@ -579,6 +584,122 @@ impl StateManagerManager {
                 Err(e.into())
             }
         }
+    }
+
+    /// Determines the model state based on the states of its associated containers.
+    ///
+    /// Implements the model state determination logic according to the documentation:
+    /// - All containers paused → Model state: Paused (mapped to Unknown for existing enum)
+    /// - All containers exited → Model state: Exited (mapped to Succeeded for existing enum)  
+    /// - Any container dead → Model state: Dead (mapped to Failed for existing enum)
+    /// - Otherwise → Model state: Running
+    ///
+    /// # Arguments
+    /// * `containers` - Vector of container references associated with the model
+    ///
+    /// # Returns
+    /// * `Option<ModelState>` - Determined model state, or None if unable to determine
+    async fn determine_model_state(
+        &self,
+        containers: &[&common::monitoringserver::ContainerInfo],
+    ) -> Option<ModelState> {
+        if containers.is_empty() {
+            return Some(ModelState::Pending); // No containers = Created/Pending state
+        }
+
+        let mut all_paused = true;
+        let mut all_exited = true;
+        let mut any_dead = false;
+
+        for container in containers {
+            // Get container status from state map
+            let status = container
+                .state
+                .get("Status")
+                .map(|s| s.as_str())
+                .unwrap_or("unknown");
+            let running = container
+                .state
+                .get("Running")
+                .and_then(|s| s.parse::<bool>().ok())
+                .unwrap_or(false);
+            let paused = container
+                .state
+                .get("Paused")
+                .and_then(|s| s.parse::<bool>().ok())
+                .unwrap_or(false);
+            let dead = container
+                .state
+                .get("Dead")
+                .and_then(|s| s.parse::<bool>().ok())
+                .unwrap_or(false);
+
+            println!(
+                "    Container {} status: {} (running: {}, paused: {}, dead: {})",
+                container.id, status, running, paused, dead
+            );
+
+            // Check for dead containers first (highest priority)
+            if dead || status.to_lowercase() == "dead" {
+                any_dead = true;
+            }
+
+            // Check if all containers are paused
+            if !paused && status.to_lowercase() != "paused" {
+                all_paused = false;
+            }
+
+            // Check if all containers are exited
+            if running || (status.to_lowercase() != "exited" && !status.contains("exit")) {
+                all_exited = false;
+            }
+        }
+
+        // Apply state determination logic based on documentation
+        if any_dead {
+            println!("  → Model state: Dead (mapped to Failed)");
+            Some(ModelState::Failed) // Dead state mapped to Failed
+        } else if all_paused {
+            println!("  → Model state: Paused (mapped to Unknown)");
+            Some(ModelState::Unknown) // Paused state mapped to Unknown
+        } else if all_exited {
+            println!("  → Model state: Exited (mapped to Succeeded)");
+            Some(ModelState::Succeeded) // Exited state mapped to Succeeded
+        } else {
+            println!("  → Model state: Running");
+            Some(ModelState::Running) // Default running state
+        }
+    }
+
+    /// Saves the model state to etcd using the specified key format.
+    ///
+    /// Implements the etcd storage pattern from the documentation:
+    /// Key format: /model/{model_name}/state
+    /// Value: ModelState as string representation
+    ///
+    /// # Arguments
+    /// * `model_name` - Name/identifier of the model
+    /// * `model_state` - The determined model state to save
+    ///
+    /// # Returns
+    /// * `Result<()>` - Success or error
+    async fn save_model_state_to_etcd(
+        &self,
+        model_name: &str,
+        model_state: ModelState,
+    ) -> Result<()> {
+        let key = format!("/model/{}/state", model_name);
+        let value = model_state.as_str_name();
+
+        println!("    Saving to etcd - Key: {}, Value: {}", key, value);
+
+        if let Err(e) = common::etcd::put(&key, value).await {
+            eprintln!("    Failed to save model state to etcd: {:?}", e);
+            return Err(Box::new(e));
+        }
+
+        println!("    Successfully saved model state to etcd");
+        Ok(())
     }
 
     /// Creates a clone of self suitable for use in async tasks.

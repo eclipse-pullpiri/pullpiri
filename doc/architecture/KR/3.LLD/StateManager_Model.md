@@ -11,9 +11,9 @@
 ## 2. StateManager의 구현 구조
 main.rs: StateManager 실행의 진입점(메인 함수)입니다. 서비스 초기화, 설정 로딩, 서버 실행 등을 담당합니다.
 
-manager.rs: StateManager의 핵심 로직(상태 변경 처리, 상위/하위 리소스 상태 연쇄 관리 등)을 구현합니다.
+manager.rs: StateManager의 핵심 로직(상태 변경 처리, 상위/하위 리소스 상태 연쇄 관리 등)을 구현합니다. 상태 변경이 필요하면 state_machine.rs에 구현된 함수를 호출합니다. 
 
-state_machine.rs: 리소스(Scenario, Package, Model 등)의 상태 전이 규칙과 상태 관리 핵심 알고리즘을 담당하는 상태머신 구현 파일입니다.
+state_machine.rs: 리소스(Scenario, Package, Model 등)의 상태 전이 규칙과 상태 관리 핵심 알고리즘을 담당하는 상태머신 구현 파일입니다. 
 
 types.rs: StateManager에서 사용하는 데이터 구조체, enum, 타입 정의가 모여 있습니다.
 
@@ -41,17 +41,7 @@ grpc/
 ## 4. model의 state 변경 조건
 model의 state는 model에 포함된 container의 상태가 model의 의 특정 state 조건과 일치하면 model의 state를 변경해야 합니다.
 
-### 4.1 package 상태 정의 및 상태 전이 조건 요약표
-| 상태      | 설명 | 조건 |
-|-----------|------|---------------------------------------------------|
-| idle      | 맨 처음 package의 상태 | 생성 시 기본 상태 |
-| paused    | 모든 model이 paused 상태일 때 | 모든 model이 paused 상태 |
-| exited    | 모든 model이 exited 상태일 때 | 모든 model이 exited 상태 |
-| degraded  | 일부 model이 dead 상태일 때 | 일부(1개 이상) model이 dead 상태, 단 모든 model이 dead가 아닐 때 |
-| error     | 모든 model이 dead 상태일 때 | 모든 model이 dead 상태 |
-| running   | 위 조건을 모두 만족하지 않을 때(기본 상태) | 위 조건을 모두 만족하지 않을 때(기본 상태) |
-
-### 4.2 model 상태 정의 및 상태 전이 조건 요약표
+### 4.1 model 상태 정의 및 상태 전이 조건 요약표
 | 상태      | 설명 | 조건 |
 |-----------|------|---------------------------------------------------|
 | Created   | model의 최초 상태 | 생성 시 기본 상태 |
@@ -60,7 +50,7 @@ model의 state는 model에 포함된 container의 상태가 model의 의 특정 
 | Dead      | 하나 이상의 container가 dead 상태이거나, model 정보 조회 실패 | 하나 이상의 container가 dead 상태이거나, model 정보 조회 실패 |
 | Running   | 위 조건을 모두 만족하지 않을 때(기본 상태) | 위 조건을 모두 만족하지 않을 때(기본 상태) |
 
-### 4.3 container 상태 정의 및 상태 전이 조건 요약표
+### 4.2 container 상태 정의 및 상태 전이 조건 요약표
 | 상태     | 설명                                                                 | 조건                                                         |
 |----------|----------------------------------------------------------------------|--------------------------------------------------------------|
 | Created  | 아직 실행된 컨테이너가 없는 상태. 컨테이너가 생성되지 않았거나 모두 삭제된 경우 | 컨테이너가 생성되지 않았거나 모두 삭제된 경우                |

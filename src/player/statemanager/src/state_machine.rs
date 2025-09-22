@@ -27,11 +27,9 @@
 //! ```
 
 use crate::types::{ActionCommand, HealthStatus, ResourceState, StateTransition, TransitionResult};
-use common::monitoringserver::ContainerInfo;
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
 };
-use common::Result;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio::time::{Duration, Instant};
@@ -134,6 +132,7 @@ impl StateMachine {
         // Initialize transition tables for each resource type
         state_machine.initialize_scenario_transitions();
         state_machine.initialize_package_transitions();
+        state_machine.initialize_model_transitions();
 
         state_machine
     }
@@ -322,6 +321,116 @@ impl StateMachine {
             .insert(ResourceType::Package, package_transitions);
     }
 
+    /// Initialize the state transition table for Model resources
+    ///
+    /// Sets up state transitions specific to Model resources, covering:
+    /// - Model loading and initialization
+    /// - Training and inference states
+    /// - Model versioning and updates
+    /// - Resource allocation and cleanup
+    ///
+    /// # Implementation Note
+    /// Model transitions may include resource-intensive operations and
+    /// should account for memory and compute constraints.
+    fn initialize_model_transitions(&mut self) {
+        let model_transitions = vec![
+            StateTransition {
+                from_state: ModelState::Unspecified as i32,
+                event: "creation_request".to_string(),
+                to_state: ModelState::Pending as i32,
+                condition: None,
+                action: "start_node_selection_and_allocation".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Pending as i32,
+                event: "node_allocation_complete".to_string(),
+                to_state: ModelState::ContainerCreating as i32,
+                condition: Some("sufficient_resources".to_string()),
+                action: "pull_container_images_mount_volumes".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Pending as i32,
+                event: "node_allocation_failed".to_string(),
+                to_state: ModelState::Failed as i32,
+                condition: Some("timeout_or_error".to_string()),
+                action: "log_error_retry_or_reschedule".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::ContainerCreating as i32,
+                event: "container_creation_complete".to_string(),
+                to_state: ModelState::Running as i32,
+                condition: Some("all_containers_started".to_string()),
+                action: "update_state_start_readiness_checks".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::ContainerCreating as i32,
+                event: "container_creation_failed".to_string(),
+                to_state: ModelState::Failed as i32,
+                condition: None,
+                action: "log_error_retry_or_reschedule".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Running as i32,
+                event: "temporary_task_complete".to_string(),
+                to_state: ModelState::Succeeded as i32,
+                condition: Some("one_time_task".to_string()),
+                action: "log_completion_clean_up_resources".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Running as i32,
+                event: "container_termination".to_string(),
+                to_state: ModelState::Failed as i32,
+                condition: Some("unexpected_termination".to_string()),
+                action: "log_error_evaluate_automatic_restart".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Running as i32,
+                event: "repeated_crash_detection".to_string(),
+                to_state: ModelState::CrashLoopBackOff as i32,
+                condition: Some("consecutive_restart_failures".to_string()),
+                action: "set_backoff_timer_collect_logs".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Running as i32,
+                event: "monitoring_failure".to_string(),
+                to_state: ModelState::Unknown as i32,
+                condition: Some("node_communication_issues".to_string()),
+                action: "attempt_diagnostics_restore_communication".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::CrashLoopBackOff as i32,
+                event: "backoff_time_elapsed".to_string(),
+                to_state: ModelState::Running as i32,
+                condition: Some("restart_successful".to_string()),
+                action: "resume_monitoring_reset_counter".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::CrashLoopBackOff as i32,
+                event: "maximum_retries_exceeded".to_string(),
+                to_state: ModelState::Failed as i32,
+                condition: Some("retry_limit_reached".to_string()),
+                action: "log_error_notify_for_manual_intervention".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Unknown as i32,
+                event: "state_check_recovered".to_string(),
+                to_state: ModelState::Running as i32,
+                condition: Some("depends_on_actual_state".to_string()),
+                action: "synchronize_state_recover_if_needed".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Failed as i32,
+                event: "manual_automatic_recovery".to_string(),
+                to_state: ModelState::Pending as i32,
+                condition: Some("according_to_restart_policy".to_string()),
+                action: "start_model_recreation".to_string(),
+            },
+        ];
+
+        self.transition_tables
+            .insert(ResourceType::Model, model_transitions);
+    }
+
     // ========================================
     // CORE STATE PROCESSING
     // ========================================
@@ -374,7 +483,21 @@ impl StateMachine {
             ),
         };
 
-        // No special handling needed for current states since legacy states are removed
+        // Check for special CrashLoopBackOff handling
+        if current_state == ModelState::CrashLoopBackOff as i32 {
+            if let Some(backoff_time) = self.backoff_timers.get(&resource_key) {
+                if backoff_time.elapsed() < Duration::from_secs(BACKOFF_DURATION_SECS) {
+                    return TransitionResult {
+                        new_state: current_state,
+                        error_code: ErrorCode::PreconditionFailed,
+                        message: "Resource is in backoff period".to_string(),
+                        actions_to_execute: vec![],
+                        transition_id: state_change.transition_id.clone(),
+                        error_details: "Backoff timer has not elapsed yet".to_string(),
+                    };
+                }
+            }
+        }
 
         // Find valid transition
         let transition_event = self.infer_event_from_states(
@@ -804,39 +927,63 @@ impl StateMachine {
             },
             ResourceType::Model => match (current_state, target_state) {
                 (x, y)
-                    if x == ModelState::Unspecified as i32 && y == ModelState::Created as i32 =>
+                    if x == ModelState::Unspecified as i32 && y == ModelState::Pending as i32 =>
                 {
                     "creation_request".to_string()
                 }
-                (x, y) if x == ModelState::Created as i32 && y == ModelState::Running as i32 => {
-                    "containers_started".to_string()
+                (x, y)
+                    if x == ModelState::Pending as i32
+                        && y == ModelState::ContainerCreating as i32 =>
+                {
+                    "node_allocation_complete".to_string()
                 }
-                (x, y) if x == ModelState::Created as i32 && y == ModelState::Dead as i32 => {
-                    "startup_failed".to_string()
+                (x, y) if x == ModelState::Pending as i32 && y == ModelState::Failed as i32 => {
+                    "node_allocation_failed".to_string()
                 }
-                (x, y) if x == ModelState::Running as i32 && y == ModelState::Paused as i32 => {
-                    "containers_paused".to_string()
+                (x, y)
+                    if x == ModelState::ContainerCreating as i32
+                        && y == ModelState::Running as i32 =>
+                {
+                    "container_creation_complete".to_string()
                 }
-                (x, y) if x == ModelState::Running as i32 && y == ModelState::Exited as i32 => {
-                    "containers_exited".to_string()
+                (x, y)
+                    if x == ModelState::ContainerCreating as i32
+                        && y == ModelState::Failed as i32 =>
+                {
+                    "container_creation_failed".to_string()
                 }
-                (x, y) if x == ModelState::Running as i32 && y == ModelState::Dead as i32 => {
-                    "containers_died".to_string()
+                (x, y) if x == ModelState::Running as i32 && y == ModelState::Succeeded as i32 => {
+                    "temporary_task_complete".to_string()
                 }
-                (x, y) if x == ModelState::Paused as i32 && y == ModelState::Running as i32 => {
-                    "containers_resumed".to_string()
+                (x, y) if x == ModelState::Running as i32 && y == ModelState::Failed as i32 => {
+                    "container_termination".to_string()
                 }
-                (x, y) if x == ModelState::Paused as i32 && y == ModelState::Dead as i32 => {
-                    "containers_died_while_paused".to_string()
+                (x, y)
+                    if x == ModelState::Running as i32
+                        && y == ModelState::CrashLoopBackOff as i32 =>
+                {
+                    "repeated_crash_detection".to_string()
                 }
-                (x, y) if x == ModelState::Exited as i32 && y == ModelState::Running as i32 => {
-                    "containers_restarted".to_string()
+                (x, y) if x == ModelState::Running as i32 && y == ModelState::Unknown as i32 => {
+                    "monitoring_failure".to_string()
                 }
-                (x, y) if x == ModelState::Exited as i32 && y == ModelState::Dead as i32 => {
-                    "containers_failed_to_restart".to_string()
+                (x, y)
+                    if x == ModelState::CrashLoopBackOff as i32
+                        && y == ModelState::Running as i32 =>
+                {
+                    "backoff_time_elapsed".to_string()
                 }
-                (x, y) if x == ModelState::Dead as i32 && y == ModelState::Created as i32 => {
-                    "model_recreation".to_string()
+                (x, y)
+                    if x == ModelState::CrashLoopBackOff as i32
+                        && y == ModelState::Failed as i32 =>
+                {
+                    "maximum_retries_exceeded".to_string()
+                }
+                (x, y) if x == ModelState::Unknown as i32 && y == ModelState::Running as i32 => {
+                    "state_check_recovered".to_string()
+                }
+                (x, y) if x == ModelState::Failed as i32 && y == ModelState::Pending as i32 => {
+                    "manual_automatic_recovery".to_string()
                 }
                 _ => format!("transition_{current_state}_{target_state}"),
             },
@@ -1023,89 +1170,6 @@ impl StateMachine {
             .collect()
     }
 
-    /// Determines the model state based on the states of its associated containers.
-    ///
-    /// Implements the model state determination logic according to the updated requirements:
-    /// - No containers → Model state: Created (생성 시 기본 상태)
-    /// - All containers paused → Model state: Paused (모든 container가 paused 상태일 때)
-    /// - All containers exited → Model state: Exited (모든 container가 exited 상태일 때)  
-    /// - Any container dead → Model state: Dead (하나 이상의 container가 dead 상태이거나, model 정보 조회 실패)
-    /// - Otherwise → Model state: Running (위 조건을 모두 만족하지 않을 때)
-    ///
-    /// # Arguments
-    /// * `containers` - Vector of container references associated with the model
-    ///
-    /// # Returns
-    /// * `Option<ModelState>` - Determined model state, or None if unable to determine
-    pub async fn determine_model_state(containers: &[&ContainerInfo]) -> Option<ModelState> {
-        if containers.is_empty() {
-            return Some(ModelState::Created); // No containers = Created state (생성 시 기본 상태)
-        }
-
-        let mut all_paused = true;
-        let mut all_exited = true;
-        let mut any_dead = false;
-
-        for container in containers {
-            // Get container status from state map
-            let status = container
-                .state
-                .get("Status")
-                .map(|s| s.as_str())
-                .unwrap_or("unknown");
-            let running = container
-                .state
-                .get("Running")
-                .and_then(|s| s.parse::<bool>().ok())
-                .unwrap_or(false);
-            let paused = container
-                .state
-                .get("Paused")
-                .and_then(|s| s.parse::<bool>().ok())
-                .unwrap_or(false);
-            let dead = container
-                .state
-                .get("Dead")
-                .and_then(|s| s.parse::<bool>().ok())
-                .unwrap_or(false);
-
-            println!(
-                "    Container {} status: {} (running: {}, paused: {}, dead: {})",
-                container.id, status, running, paused, dead
-            );
-
-            // Check for dead containers first (highest priority)
-            if dead || status.to_lowercase() == "dead" {
-                any_dead = true;
-            }
-
-            // Check if all containers are paused
-            if !paused && status.to_lowercase() != "paused" {
-                all_paused = false;
-            }
-
-            // Check if all containers are exited
-            if running || (status.to_lowercase() != "exited" && !status.contains("exit")) {
-                all_exited = false;
-            }
-        }
-
-        // Apply state determination logic based on updated requirements
-        if any_dead {
-            println!("  → Model state: Dead (하나 이상의 container가 dead 상태)");
-            Some(ModelState::Dead) // Dead state for dead containers
-        } else if all_paused {
-            println!("  → Model state: Paused (모든 container가 paused 상태)");
-            Some(ModelState::Paused) // Paused state for all paused containers
-        } else if all_exited {
-            println!("  → Model state: Exited (모든 container가 exited 상태)");
-            Some(ModelState::Exited) // Exited state for all exited containers
-        } else {
-            println!("  → Model state: Running (기본 상태)");
-            Some(ModelState::Running) // Default running state
-        }
-    }
-
     // Utility: Convert state string to proto enum value
     fn state_str_to_enum(state: &str, resource_type: i32) -> i32 {
         // Map "idle" -> "SCENARIO_STATE_IDLE", etc.
@@ -1136,315 +1200,6 @@ impl StateMachine {
                 .unwrap_or(ModelState::Unspecified as i32),
             _ => 0,
         }
-    }
-
-    /// Determines the package state based on the states of its associated models.
-    ///
-    /// Implements the package state determination logic according to the requirements:
-    /// - No models → Package state: idle (맨 처음 package의 상태, 생성 시 기본 상태)
-    /// - All models paused → Package state: paused (모든 model이 paused 상태일 때)
-    /// - All models exited → Package state: exited (모든 model이 exited 상태일 때)  
-    /// - Some models dead (but not all) → Package state: degraded (일부 model이 dead 상태일 때)
-    /// - All models dead → Package state: error (모든 model이 dead 상태일 때)
-    /// - Otherwise → Package state: running (위 조건을 모두 만족하지 않을 때)
-    ///
-    /// # Arguments
-    /// * `model_states` - Vector of model state references associated with the package
-    ///
-    /// # Returns
-    /// * `Option<PackageState>` - Determined package state, or None if unable to determine
-    pub async fn determine_package_state(
-        model_states: &[(String, ModelState)],
-    ) -> Option<PackageState> {
-        if model_states.is_empty() {
-            return Some(PackageState::Idle); // No models = idle state (생성 시 기본 상태)
-        }
-
-        let mut all_paused = true;
-        let mut all_exited = true;
-        let mut dead_count = 0;
-        let total_models = model_states.len();
-
-        for (model_name, model_state) in model_states {
-            println!("    Model {} state: {:?}", model_name, model_state);
-
-            match model_state {
-                ModelState::Dead => {
-                    dead_count += 1;
-                    all_paused = false;
-                    all_exited = false;
-                }
-                ModelState::Paused => {
-                    all_exited = false;
-                }
-                ModelState::Exited => {
-                    all_paused = false;
-                }
-                ModelState::Created | ModelState::Running => {
-                    all_paused = false;
-                    all_exited = false;
-                }
-            }
-        }
-
-        // Apply package state determination logic based on requirements
-        if dead_count == total_models {
-            println!("  → Package state: error (모든 model이 dead 상태)");
-            Some(PackageState::Error) // All models dead = Error state
-        } else if dead_count > 0 {
-            println!("  → Package state: degraded (일부 model이 dead 상태)");
-            Some(PackageState::Degraded) // Some models dead = Degraded state
-        } else if all_paused {
-            println!("  → Package state: paused (모든 model이 paused 상태)");
-            Some(PackageState::Paused) // All models paused = Paused state
-        } else if all_exited {
-            println!("  → Package state: exited (모든 model이 exited 상태)");
-            Some(PackageState::Exited) // All models exited = Exited state
-        } else {
-            println!("  → Package state: running (기본 상태)");
-            Some(PackageState::Running) // Default running state
-        }
-    }
-
-    /// Process package state changes based on model states.
-    ///
-    /// This function implements the package state determination logic from the documentation,
-    /// retrieving all model states from ETCD and determining package states based on the
-    /// collective state of associated models:
-    /// - idle: No models (생성 시 기본 상태)
-    /// - paused: All models paused (모든 model이 paused 상태일 때)
-    /// - exited: All models exited (모든 model이 exited 상태일 때)
-    /// - degraded: Some models dead (일부 model이 dead 상태일 때)
-    /// - error: All models dead (모든 model이 dead 상태일 때)
-    /// - running: Default state (위 조건을 모두 만족하지 않을 때)
-    pub async fn process_package_state_changes() {
-        println!("--- Processing Package State Changes ---");
-
-        // Step 1: Get all model states from ETCD
-        let model_states = match Self::get_all_model_states_from_etcd().await {
-            Ok(states) => states,
-            Err(e) => {
-                eprintln!("  Failed to retrieve model states from ETCD: {:?}", e);
-                return;
-            }
-        };
-
-        if model_states.is_empty() {
-            println!("  No model states found in ETCD");
-            return;
-        }
-
-        println!("  Retrieved {} model states from ETCD", model_states.len());
-
-        // Step 2: Group models by package
-        // For now, we'll assume a simple naming convention: package = first part of model name before '-'
-        // In a real implementation, this would use proper metadata or annotations
-        let mut package_models: std::collections::HashMap<String, Vec<(String, ModelState)>> =
-            std::collections::HashMap::new();
-
-        for (model_name, model_state) in model_states {
-            // Extract package name from model name (simple convention)
-            let package_name = if let Some(pos) = model_name.find('-') {
-                model_name[..pos].to_string()
-            } else {
-                // If no '-' found, use the full model name as package name
-                model_name.clone()
-            };
-
-            package_models
-                .entry(package_name)
-                .or_insert_with(Vec::new)
-                .push((model_name, model_state));
-        }
-
-        println!(
-            "  Found {} packages with associated models",
-            package_models.len()
-        );
-
-        // Step 3: Process each package
-        for (package_name, models) in package_models {
-            println!("--- Processing Package: {} ---", package_name);
-            println!("  Associated Models: {}", models.len());
-
-            // Determine package state based on model states
-            if let Some(new_package_state) = Self::determine_package_state(&models).await {
-                println!("  Determined Package State: {:?}", new_package_state);
-
-                // Save the package state to etcd
-                if let Err(e) =
-                    Self::save_package_state_to_etcd(&package_name, new_package_state).await
-                {
-                    eprintln!("  Failed to save package state to etcd: {:?}", e);
-                } else {
-                    println!("  Package state saved to etcd successfully");
-                }
-
-                // Check if ActionController reconcile is needed for error state
-                if matches!(new_package_state, PackageState::Error) {
-                    println!(
-                        "  📢 Package in ERROR state - would trigger ActionController reconcile"
-                    );
-                    // In a real implementation, this would send a gRPC request to ActionController
-                    // self.trigger_action_controller_reconcile(&package_name).await;
-                }
-            } else {
-                println!("  Could not determine package state from model states");
-            }
-        }
-
-        println!("Package state processing completed");
-    }
-
-    /// Retrieve all model states from ETCD using the /model/ prefix.
-    ///
-    /// # Returns
-    /// * `Result<Vec<(String, ModelState)>>` - Vector of (model_name, model_state) tuples
-    async fn get_all_model_states_from_etcd() -> Result<Vec<(String, ModelState)>> {
-        let prefix = "/model/";
-        println!("  Querying ETCD with prefix: {}", prefix);
-
-        let kvs = common::etcd::get_all_with_prefix(prefix).await?;
-        let mut model_states = Vec::new();
-
-        for kv in kvs {
-            // Extract model name from key: "/model/{name}/state" -> "{name}"
-            if let Some(model_name) = Self::extract_model_name_from_key(&kv.key) {
-                // Parse the state value
-                if let Ok(model_state) = Self::parse_model_state(&kv.value) {
-                    println!("    Found model: {} -> {:?}", model_name, model_state);
-                    model_states.push((model_name, model_state));
-                } else {
-                    eprintln!(
-                        "    Failed to parse model state for {}: {}",
-                        model_name, kv.value
-                    );
-                }
-            } else {
-                eprintln!("    Failed to extract model name from key: {}", kv.key);
-            }
-        }
-
-        Ok(model_states)
-    }
-
-    /// Extract model name from ETCD key format "/model/{name}/state".
-    ///
-    /// # Arguments
-    /// * `key` - ETCD key in format "/model/{name}/state"
-    ///
-    /// # Returns
-    /// * `Option<String>` - Extracted model name or None if parsing fails
-    fn extract_model_name_from_key(key: &str) -> Option<String> {
-        if key.starts_with("/model/") && key.ends_with("/state") {
-            let name_part = &key[7..]; // Remove "/model/" prefix
-            if let Some(end) = name_part.rfind("/state") {
-                return Some(name_part[..end].to_string());
-            }
-        }
-        None
-    }
-
-    /// Parse model state string into ModelState enum.
-    ///
-    /// # Arguments
-    /// * `state_str` - String representation of model state
-    ///
-    /// # Returns
-    /// * `Result<ModelState>` - Parsed ModelState or error
-    fn parse_model_state(state_str: &str) -> Result<ModelState> {
-        match state_str {
-            "MODEL_STATE_CREATED" => Ok(ModelState::Created),
-            "MODEL_STATE_PAUSED" => Ok(ModelState::Paused),
-            "MODEL_STATE_EXITED" => Ok(ModelState::Exited),
-            "MODEL_STATE_DEAD" => Ok(ModelState::Dead),
-            "MODEL_STATE_RUNNING" => Ok(ModelState::Running),
-            _ => Err(format!("Unknown model state: {}", state_str).into()),
-        }
-    }
-
-    /// Get the current model state from ETCD for change detection.
-    ///
-    /// # Arguments
-    /// * `model_name` - Name/identifier of the model
-    ///
-    /// # Returns
-    /// * `Result<Option<ModelState>>` - Current model state if found, None if not found, or error
-    pub async fn get_current_model_state(model_name: &str) -> Result<Option<ModelState>> {
-        let key = format!("/model/{}/state", model_name);
-
-        match common::etcd::get(&key).await {
-            Ok(value) => {
-                // Parse the retrieved state value
-                match Self::parse_model_state(&value) {
-                    Ok(model_state) => Ok(Some(model_state)),
-                    Err(e) => {
-                        eprintln!(
-                            "  Failed to parse current model state for {}: {:?}",
-                            model_name, e
-                        );
-                        Err(e)
-                    }
-                }
-            }
-            Err(_) => {
-                // Key not found or other error - treat as no previous state
-                Ok(None)
-            }
-        }
-    }
-
-    /// Saves the model state to etcd using the specified key format.
-    ///
-    /// Implements the etcd storage pattern from the documentation:
-    /// Key format: /model/{model_name}/state
-    /// Value: ModelState as string representation
-    ///
-    /// # Arguments
-    /// * `model_name` - Name/identifier of the model
-    /// * `model_state` - The determined model state to save
-    ///
-    /// # Returns
-    /// * `Result<()>` - Success or error
-    pub async fn save_model_state_to_etcd(model_name: &str, model_state: ModelState) -> Result<()> {
-        let key = format!("/model/{}/state", model_name);
-        let value = model_state.as_str_name();
-
-        println!("    Saving to etcd - Key: {}, Value: {}", key, value);
-
-        if let Err(e) = common::etcd::put(&key, value).await {
-            eprintln!("    Failed to save model state to etcd: {:?}", e);
-            return Err(Box::new(e));
-        }
-
-        println!("    Successfully saved model state to etcd");
-        Ok(())
-    }
-
-    /// Saves package state to ETCD following the specified format.
-    ///
-    /// # Arguments
-    /// * `package_name` - Name/identifier of the package
-    /// * `package_state` - The determined package state to save
-    ///
-    /// # Returns
-    /// * `Result<()>` - Success or error
-    async fn save_package_state_to_etcd(
-        package_name: &str,
-        package_state: PackageState,
-    ) -> Result<()> {
-        let key = format!("/package/{}/state", package_name);
-        let value = package_state.as_str_name();
-
-        println!("    Saving to etcd - Key: {}, Value: {}", key, value);
-
-        if let Err(e) = common::etcd::put(&key, value).await {
-            eprintln!("    Failed to save package state to etcd: {:?}", e);
-            return Err(Box::new(e));
-        }
-
-        println!("    Successfully saved package state to etcd");
-        Ok(())
     }
 }
 

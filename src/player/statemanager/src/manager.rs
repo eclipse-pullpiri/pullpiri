@@ -434,96 +434,151 @@ impl StateManagerManager {
         println!("  Node Name: {}", container_list.node_name);
         println!("  Container Count: {}", container_list.containers.len());
 
-        // Group containers by model using annotations
-        let mut model_containers = std::collections::HashMap::new();
-
         // Process each container for health status analysis
         for (i, container) in container_list.containers.iter().enumerate() {
+            // container.names is a Vec<String>, so join them for display
             let container_names = container.names.join(", ");
             println!("  Container {}: {}", i + 1, container_names);
             println!("    Image: {}", container.image);
             println!("    State: {:?}", container.state);
             println!("    ID: {}", container.id);
 
-            // Process container annotations to identify model association
-            if !container.annotation.is_empty() {
-                println!("    Annotations: {:?}", container.annotation);
-
-                // Look for model identifier in annotations
-                if let Some(model_name) = container.annotation.get("pullpiri.model") {
-                    model_containers
-                        .entry(model_name.clone())
-                        .or_insert_with(Vec::new)
-                        .push(container);
-                    println!("    Associated with Model: {}", model_name);
-                } else {
-                    println!("    No model association found in annotations");
-                }
-            }
-
-            // Log container config if available
+            // container.config is a HashMap, not an Option
             if !container.config.is_empty() {
                 println!("    Config: {:?}", container.config);
             }
+
+            // Process container annotations if available
+            if !container.annotation.is_empty() {
+                println!("    Annotations: {:?}", container.annotation);
+            }
+
+            // TODO: Implement comprehensive container processing:
+            //
+            // 1. HEALTH STATUS ANALYSIS
+            //    - Analyze container state changes (running -> failed, etc.)
+            //    - Check exit codes for failure conditions
+            //    - Monitor resource usage and performance metrics
+            //    - Detect container restart loops and crash patterns
+            //
+            // 2. RESOURCE MAPPING
+            //    - Map containers to managed resources (scenarios, packages, models)
+            //    - Identify which resources are affected by container changes
+            //    - Determine impact on dependent resources
+            //
+            // 3. STATE TRANSITION TRIGGERS
+            //    - Trigger state transitions for failed containers
+            //    - Handle container recovery and restart scenarios
+            //    - Update resource states based on container health
+            //    - Escalate to recovery management for critical failures
+            //
+            // 4. HEALTH STATUS UPDATES
+            //    - Update resource health status based on container state
+            //    - Generate health check events and notifications
+            //    - Update monitoring and observability data
+            //    - Maintain health history for trend analysis
+            //
+            // 5. ASIL COMPLIANCE MONITORING
+            //    - Monitor ASIL-critical containers for safety violations
+            //    - Generate alerts for safety-critical container failures
+            //    - Implement timing constraints for container recovery
+            //    - Ensure safety systems remain operational
         }
 
-        // Track whether any model states changed
-        let mut model_states_changed = false;
+        println!("  Status: Container list processing completed (implementation pending)");
+        println!("=====================================");
+    }
 
-        // Process Model state changes based on container states
-        for (model_name, containers) in model_containers {
-            println!("--- Processing Model: {} ---", model_name);
-            println!("  Associated Containers: {}", containers.len());
+    /// Main message processing loop for handling gRPC requests.
+    ///
+    /// Spawns dedicated async tasks for processing different message types:
+    /// 1. Container status processing task
+    /// 2. State change processing task
+    ///
+    /// Each task runs independently to ensure optimal throughput and prevent
+    /// blocking between different message types.
+    ///
+    /// # Returns
+    /// * `Result<()>` - Success or processing error
+    ///
+    /// # Architecture Notes
+    /// - Uses separate tasks to prevent cross-contamination between message types
+    /// - Maintains proper async patterns for high-throughput processing
+    /// - Ensures graceful shutdown when channels are closed
+    pub async fn process_grpc_requests(&self) -> Result<()> {
+        let rx_container = Arc::clone(&self.rx_container);
+        let rx_state_change = Arc::clone(&self.rx_state_change);
 
-            // Get current model state from ETCD for comparison
-            let current_model_state = StateMachine::get_current_model_state(&model_name).await;
-
-            // Determine model state based on container states
-            if let Some(new_model_state) = StateMachine::determine_model_state(&containers).await {
-                println!("  Determined Model State: {:?}", new_model_state);
-
-                // Check if model state actually changed
-                let state_changed = match current_model_state {
-                    Ok(Some(current_state)) => current_state != new_model_state,
-                    Ok(None) => true, // No previous state, so this is a change
-                    Err(_) => true,   // Error getting state, treat as change
-                };
-
-                if state_changed {
-                    println!("  📊 Model state CHANGED - updating ETCD");
-                    model_states_changed = true;
-
-                    // Save the model state to etcd
-                    if let Err(e) =
-                        StateMachine::save_model_state_to_etcd(&model_name, new_model_state).await
-                    {
-                        eprintln!("  Failed to save model state to etcd: {:?}", e);
-                    } else {
-                        println!("  Model state saved to etcd successfully");
+        // ========================================
+        // CONTAINER STATUS PROCESSING TASK
+        // ========================================
+        // Handles ContainerList messages from nodeagent for container monitoring
+        let container_task = {
+            let state_manager = self.clone_for_task();
+            tokio::spawn(async move {
+                loop {
+                    let container_list_opt = {
+                        let mut rx = rx_container.lock().await;
+                        rx.recv().await
+                    };
+                    match container_list_opt {
+                        Some(container_list) => {
+                            // Process container status update with comprehensive analysis
+                            state_manager.process_container_list(container_list).await;
+                        }
+                        None => {
+                            // Channel closed - graceful shutdown
+                            println!(
+                                "Container channel closed - shutting down container processing"
+                            );
+                            break;
+                        }
                     }
-                } else {
-                    println!("  ⏸️  Model state UNCHANGED - skipping ETCD update");
                 }
-            } else {
-                println!("  Could not determine model state from container states");
+                println!("ContainerList processing task stopped");
+            })
+        };
+
+        // ========================================
+        // STATE CHANGE PROCESSING TASK
+        // ========================================
+        // Handles StateChange messages from ApiServer, FilterGateway, ActionController
+        let state_change_task = {
+            let state_manager = self.clone_for_task();
+            tokio::spawn(async move {
+                loop {
+                    let state_change_opt = {
+                        let mut rx = rx_state_change.lock().await;
+                        rx.recv().await
+                    };
+                    match state_change_opt {
+                        Some(state_change) => {
+                            // Process state change with comprehensive PICCOLO compliance
+                            state_manager.process_state_change(state_change).await;
+                        }
+                        None => {
+                            // Channel closed - graceful shutdown
+                            println!("StateChange channel closed - shutting down state processing");
+                            break;
+                        }
+                    }
+                }
+                println!("StateChange processing task stopped");
+            })
+        };
+
+        // Wait for both tasks to complete (typically on shutdown)
+        let result = tokio::try_join!(container_task, state_change_task);
+        match result {
+            Ok(_) => {
+                println!("All processing tasks completed successfully");
+                Ok(())
+            }
+            Err(e) => {
+                eprintln!("Error in processing tasks: {e:?}");
+                Err(e.into())
             }
         }
-
-        // ========================================
-        // PACKAGE STATE PROCESSING (Chain effect from model state changes)
-        // ========================================
-        if model_states_changed {
-            println!("\n=== PROCESSING PACKAGE STATE CHANGES ===");
-            println!("  📈 Model states changed - processing package state updates");
-
-            // Process package state changes based on model state changes
-            StateMachine::process_package_state_changes().await;
-        } else {
-            println!("\n⏭️  No model state changes detected - skipping package state processing");
-        }
-
-        println!("  Status: Container list processing completed");
-        println!("=====================================");
     }
 
     /// Creates a clone of self suitable for use in async tasks.

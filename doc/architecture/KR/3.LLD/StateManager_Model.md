@@ -1,3 +1,10 @@
+## 0. 문서의 목적
+이 문서는 StateManager컴포넌트에 model의 state 변경하는 기능을 추가하기 위해 작성되었습니다.
+StateManager는 NodeAgent 컴포넌트로부터 pod과 container들의 상태 정보를 전달받아 `<container, state>` 리스트가 model의 특정 state 조건과 일치하면 model의 state를 변경합니다.
+변경된 결과는 ETCD에 `<model, state>`형태로 put 요청됩니다.
+
+이 기능은 이 문서에 포함된 조건 및 규칙들을 따라야 합니다. 
+
 ## 1. StateManager의 기능 
 	- 상태 변경 요청 처리
 		- NodeAgent, FilterGateway, PolicyManager, ActionController 등 각 컴포넌트는 자신이 다루는 리소스의 상태를 변화시키기 위해 StateManager에게 상태 변경을 요청합니다.
@@ -13,7 +20,7 @@ main.rs: StateManager 실행의 진입점(메인 함수)입니다. 서비스 초
 
 manager.rs: StateManager의 핵심 로직(상태 변경 처리, 상위/하위 리소스 상태 연쇄 관리 등)을 구현합니다. 상태 변경이 필요하면 state_machine.rs에 구현된 함수를 호출합니다. 
 
-state_machine.rs: 리소스(Scenario, Package, Model 등)의 상태 전이 규칙과 상태 관리 핵심 알고리즘을 담당하는 상태머신 구현 파일입니다. 
+state_machine.rs: 리소스(Scenario, Package, Model 등)의 상태 전이는 이 파일에 함수로 구현되어야 합니다. 따라서 manager.rs는 이 파일에 구현된 각 리소스 별 상태 전이 함수를 호출해야 합니다.  
 
 types.rs: StateManager에서 사용하는 데이터 구조체, enum, 타입 정의가 모여 있습니다.
 

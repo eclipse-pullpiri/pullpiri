@@ -335,96 +335,110 @@ impl StateMachine {
     /// should account for memory and compute constraints.
     fn initialize_model_transitions(&mut self) {
         let model_transitions = vec![
+            // Initial creation
             StateTransition {
                 from_state: ModelState::Unspecified as i32,
                 event: "creation_request".to_string(),
-                to_state: ModelState::Pending as i32,
+                to_state: ModelState::Created as i32,
                 condition: None,
-                action: "start_node_selection_and_allocation".to_string(),
+                action: "initialize_model_create_metadata".to_string(),
+            },
+            // From Created to other states based on container states
+            StateTransition {
+                from_state: ModelState::Created as i32,
+                event: "containers_allocated".to_string(),
+                to_state: ModelState::Running as i32,
+                condition: Some("containers_running".to_string()),
+                action: "monitor_container_status".to_string(),
             },
             StateTransition {
-                from_state: ModelState::Pending as i32,
-                event: "node_allocation_complete".to_string(),
-                to_state: ModelState::ContainerCreating as i32,
-                condition: Some("sufficient_resources".to_string()),
-                action: "pull_container_images_mount_volumes".to_string(),
+                from_state: ModelState::Created as i32,
+                event: "containers_paused".to_string(),
+                to_state: ModelState::Paused as i32,
+                condition: Some("all_containers_paused".to_string()),
+                action: "update_model_state_to_paused".to_string(),
             },
             StateTransition {
+                from_state: ModelState::Created as i32,
+                event: "containers_failed".to_string(),
+                to_state: ModelState::Dead as i32,
+                condition: Some("container_failure_detected".to_string()),
+                action: "log_container_failures_attempt_recovery".to_string(),
+            },
+            // From Running to other states
+            StateTransition {
+                from_state: ModelState::Running as i32,
+                event: "all_containers_paused".to_string(),
+                to_state: ModelState::Paused as i32,
+                condition: Some("all_containers_paused_state".to_string()),
+                action: "update_model_state_pause_monitoring".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Running as i32,
+                event: "all_containers_exited".to_string(),
+                to_state: ModelState::Exited as i32,
+                condition: Some("all_containers_exited_cleanly".to_string()),
+                action: "cleanup_resources_log_completion".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Running as i32,
+                event: "container_died".to_string(),
+                to_state: ModelState::Dead as i32,
+                condition: Some("any_container_dead".to_string()),
+                action: "log_dead_container_attempt_recovery".to_string(),
+            },
+            // From Paused to other states
+            StateTransition {
+                from_state: ModelState::Paused as i32,
+                event: "containers_resumed".to_string(),
+                to_state: ModelState::Running as i32,
+                condition: Some("containers_running_again".to_string()),
+                action: "resume_monitoring".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Paused as i32,
+                event: "container_died_while_paused".to_string(),
+                to_state: ModelState::Dead as i32,
+                condition: Some("container_failure_while_paused".to_string()),
+                action: "log_failure_during_pause".to_string(),
+            },
+            StateTransition {
+                from_state: ModelState::Paused as i32,
+                event: "containers_terminated".to_string(),
+                to_state: ModelState::Exited as i32,
+                condition: Some("containers_exited_from_paused".to_string()),
+                action: "cleanup_from_paused_state".to_string(),
+            },
+            // From Exited to other states (mainly recovery)
+            StateTransition {
+                from_state: ModelState::Exited as i32,
+                event: "manual_restart".to_string(),
+                to_state: ModelState::Created as i32,
+                condition: Some("restart_requested".to_string()),
+                action: "recreate_model_from_exited".to_string(),
+            },
+            // From Dead to recovery
+            StateTransition {
+                from_state: ModelState::Dead as i32,
+                event: "recovery_attempt".to_string(),
+                to_state: ModelState::Created as i32,
+                condition: Some("recovery_initiated".to_string()),
+                action: "restart_failed_containers".to_string(),
+            },
+            // Legacy transitions for backward compatibility
+            StateTransition {
                 from_state: ModelState::Pending as i32,
-                event: "node_allocation_failed".to_string(),
-                to_state: ModelState::Failed as i32,
-                condition: Some("timeout_or_error".to_string()),
-                action: "log_error_retry_or_reschedule".to_string(),
+                event: "container_creation_complete".to_string(),
+                to_state: ModelState::Running as i32,
+                condition: Some("legacy_transition".to_string()),
+                action: "legacy_start_monitoring".to_string(),
             },
             StateTransition {
                 from_state: ModelState::ContainerCreating as i32,
                 event: "container_creation_complete".to_string(),
                 to_state: ModelState::Running as i32,
-                condition: Some("all_containers_started".to_string()),
-                action: "update_state_start_readiness_checks".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::ContainerCreating as i32,
-                event: "container_creation_failed".to_string(),
-                to_state: ModelState::Failed as i32,
-                condition: None,
-                action: "log_error_retry_or_reschedule".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Running as i32,
-                event: "temporary_task_complete".to_string(),
-                to_state: ModelState::Succeeded as i32,
-                condition: Some("one_time_task".to_string()),
-                action: "log_completion_clean_up_resources".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Running as i32,
-                event: "container_termination".to_string(),
-                to_state: ModelState::Failed as i32,
-                condition: Some("unexpected_termination".to_string()),
-                action: "log_error_evaluate_automatic_restart".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Running as i32,
-                event: "repeated_crash_detection".to_string(),
-                to_state: ModelState::CrashLoopBackOff as i32,
-                condition: Some("consecutive_restart_failures".to_string()),
-                action: "set_backoff_timer_collect_logs".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Running as i32,
-                event: "monitoring_failure".to_string(),
-                to_state: ModelState::Unknown as i32,
-                condition: Some("node_communication_issues".to_string()),
-                action: "attempt_diagnostics_restore_communication".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::CrashLoopBackOff as i32,
-                event: "backoff_time_elapsed".to_string(),
-                to_state: ModelState::Running as i32,
-                condition: Some("restart_successful".to_string()),
-                action: "resume_monitoring_reset_counter".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::CrashLoopBackOff as i32,
-                event: "maximum_retries_exceeded".to_string(),
-                to_state: ModelState::Failed as i32,
-                condition: Some("retry_limit_reached".to_string()),
-                action: "log_error_notify_for_manual_intervention".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Unknown as i32,
-                event: "state_check_recovered".to_string(),
-                to_state: ModelState::Running as i32,
-                condition: Some("depends_on_actual_state".to_string()),
-                action: "synchronize_state_recover_if_needed".to_string(),
-            },
-            StateTransition {
-                from_state: ModelState::Failed as i32,
-                event: "manual_automatic_recovery".to_string(),
-                to_state: ModelState::Pending as i32,
-                condition: Some("according_to_restart_policy".to_string()),
-                action: "start_model_recreation".to_string(),
+                condition: Some("legacy_containers_started".to_string()),
+                action: "legacy_update_state".to_string(),
             },
         ];
 
@@ -1173,11 +1187,12 @@ impl StateMachine {
 
     /// Determines the model state based on the states of its associated containers.
     ///
-    /// Implements the model state determination logic according to the documentation:
-    /// - All containers paused → Model state: Paused (mapped to Unknown for existing enum)
-    /// - All containers exited → Model state: Exited (mapped to Succeeded for existing enum)  
-    /// - Any container dead → Model state: Dead (mapped to Failed for existing enum)
-    /// - Otherwise → Model state: Running
+    /// Implements the model state determination logic according to the updated requirements:
+    /// - No containers → Model state: Created (생성 시 기본 상태)
+    /// - All containers paused → Model state: Paused (모든 container가 paused 상태일 때)
+    /// - All containers exited → Model state: Exited (모든 container가 exited 상태일 때)  
+    /// - Any container dead → Model state: Dead (하나 이상의 container가 dead 상태이거나, model 정보 조회 실패)
+    /// - Otherwise → Model state: Running (위 조건을 모두 만족하지 않을 때)
     ///
     /// # Arguments
     /// * `containers` - Vector of container references associated with the model
@@ -1186,7 +1201,7 @@ impl StateMachine {
     /// * `Option<ModelState>` - Determined model state, or None if unable to determine
     pub async fn determine_model_state(containers: &[&ContainerInfo]) -> Option<ModelState> {
         if containers.is_empty() {
-            return Some(ModelState::Pending); // No containers = Created/Pending state
+            return Some(ModelState::Created); // No containers = Created state (생성 시 기본 상태)
         }
 
         let mut all_paused = true;
@@ -1237,18 +1252,18 @@ impl StateMachine {
             }
         }
 
-        // Apply state determination logic based on documentation
+        // Apply state determination logic based on updated requirements
         if any_dead {
-            println!("  → Model state: Dead (mapped to Failed)");
-            Some(ModelState::Failed) // Dead state mapped to Failed
+            println!("  → Model state: Dead (하나 이상의 container가 dead 상태)");
+            Some(ModelState::Dead) // Dead state for dead containers
         } else if all_paused {
-            println!("  → Model state: Paused (mapped to Unknown)");
-            Some(ModelState::Unknown) // Paused state mapped to Unknown
+            println!("  → Model state: Paused (모든 container가 paused 상태)");
+            Some(ModelState::Paused) // Paused state for all paused containers
         } else if all_exited {
-            println!("  → Model state: Exited (mapped to Succeeded)");
-            Some(ModelState::Succeeded) // Exited state mapped to Succeeded
+            println!("  → Model state: Exited (모든 container가 exited 상태)");
+            Some(ModelState::Exited) // Exited state for all exited containers
         } else {
-            println!("  → Model state: Running");
+            println!("  → Model state: Running (기본 상태)");
             Some(ModelState::Running) // Default running state
         }
     }

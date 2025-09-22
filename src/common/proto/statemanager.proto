@@ -84,13 +84,18 @@ enum PackageState {
 // Model States
 enum ModelState {
   MODEL_STATE_UNSPECIFIED = 0;
-  MODEL_STATE_PENDING = 1;
-  MODEL_STATE_RUNNING = 2;
-  MODEL_STATE_SUCCEEDED = 3;
-  MODEL_STATE_FAILED = 4;
-  MODEL_STATE_UNKNOWN = 5;
-  MODEL_STATE_CONTAINER_CREATING = 6;
-  MODEL_STATE_CRASH_LOOP_BACK_OFF = 7;
+  MODEL_STATE_CREATED = 1;        // Model의 최초 상태 (생성 시 기본 상태)
+  MODEL_STATE_PAUSED = 2;         // 모든 container가 paused 상태일 때
+  MODEL_STATE_EXITED = 3;         // 모든 container가 exited 상태일 때
+  MODEL_STATE_DEAD = 4;           // 하나 이상의 container가 dead 상태이거나, model 정보 조회 실패
+  MODEL_STATE_RUNNING = 5;        // 위 조건을 모두 만족하지 않을 때 (기본 상태)
+  // Legacy states for backward compatibility
+  MODEL_STATE_PENDING = 6;
+  MODEL_STATE_SUCCEEDED = 7;
+  MODEL_STATE_FAILED = 8;
+  MODEL_STATE_UNKNOWN = 9;
+  MODEL_STATE_CONTAINER_CREATING = 10;
+  MODEL_STATE_CRASH_LOOP_BACK_OFF = 11;
 }
 
 // Volume States

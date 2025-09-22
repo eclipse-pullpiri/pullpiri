@@ -34,11 +34,14 @@ use common::statemanager::{
 use common::Result;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
-use tokio::time::Instant;
+use tokio::time::{Duration, Instant};
 
 // ========================================
 // CONSTANTS AND CONFIGURATION
 // ========================================
+
+/// Default backoff duration for CrashLoopBackOff states
+const BACKOFF_DURATION_SECS: u64 = 30;
 
 /// Maximum consecutive failures before marking resource as unhealthy
 const MAX_CONSECUTIVE_FAILURES: u32 = 3;
@@ -97,6 +100,12 @@ pub struct StateMachine {
     /// and contain complete state information including metadata and health status.
     resource_states: HashMap<String, ResourceState>,
 
+    /// Backoff timers for CrashLoopBackOff and retry management
+    ///
+    /// Tracks when resources that have failed transitions can be retried,
+    /// implementing exponential backoff to prevent resource thrashing.
+    backoff_timers: HashMap<String, Instant>,
+
     /// Action command sender for async execution
     action_sender: Option<mpsc::UnboundedSender<ActionCommand>>,
 }
@@ -118,6 +127,7 @@ impl StateMachine {
         let mut state_machine = StateMachine {
             transition_tables: HashMap::new(),
             resource_states: HashMap::new(),
+            backoff_timers: HashMap::new(),
             action_sender: None,
         };
 
@@ -328,7 +338,7 @@ impl StateMachine {
                 message: format!("Invalid state change request: {validation_error}"),
                 actions_to_execute: vec![],
                 transition_id: state_change.transition_id.clone(),
-                error_details: validation_error.to_string(),
+                error_details: validation_error,
             };
         }
 
@@ -449,7 +459,10 @@ impl StateMachine {
             self.update_health_status(&resource_key, &transition_result);
 
             // Handle special state-specific logic
-            // Note: Backoff handling for special states can be added here if needed
+            if transition.to_state == ModelState::CrashLoopBackOff as i32 {
+                self.backoff_timers
+                    .insert(resource_key.clone(), Instant::now());
+            }
 
             transition_result
         } else {
@@ -570,23 +583,21 @@ impl StateMachine {
     }
 
     /// Validate state change request parameters
-    fn validate_state_change(&self, state_change: &StateChange) -> Result<()> {
+    fn validate_state_change(&self, state_change: &StateChange) -> Result<(), String> {
         if state_change.resource_name.trim().is_empty() {
-            return Err("Resource name cannot be empty".to_string().into());
+            return Err("Resource name cannot be empty".to_string());
         }
 
         if state_change.transition_id.trim().is_empty() {
-            return Err("Transition ID cannot be empty".to_string().into());
+            return Err("Transition ID cannot be empty".to_string());
         }
 
         if state_change.current_state == state_change.target_state {
-            return Err("Current and target states cannot be the same"
-                .to_string()
-                .into());
+            return Err("Current and target states cannot be the same".to_string());
         }
 
         if state_change.source.trim().is_empty() {
-            return Err("Source cannot be empty".to_string().into());
+            return Err("Source cannot be empty".to_string());
         }
 
         Ok(())
@@ -951,6 +962,67 @@ impl StateMachine {
     // PUBLIC QUERY METHODS
     // ========================================
 
+    /// Retrieve the current state information for a specific resource
+    ///
+    /// Provides read-only access to the complete state information for
+    /// a resource, including metadata and health status.
+    ///
+    /// # Parameters
+    /// - `resource_name`: The unique name of the resource
+    /// - `resource_type`: The type of the resource (for validation)
+    ///
+    /// # Returns
+    /// - `Some(&ResourceState)`: If the resource exists and types match
+    /// - `None`: If the resource doesn't exist or type mismatch
+    ///
+    /// # Usage
+    /// This method is primarily used for:
+    /// - Status queries from external systems
+    /// - Health check implementations
+    /// - Audit and monitoring purposes
+    pub fn get_resource_state(
+        &self,
+        resource_name: &str,
+        resource_type: ResourceType,
+    ) -> Option<&ResourceState> {
+        let resource_key = self.generate_resource_key(resource_type, resource_name);
+        self.resource_states.get(&resource_key)
+    }
+
+    /// List all resources currently in a specific state
+    ///
+    /// Provides a filtered view of all managed resources based on their
+    /// current state, optionally filtered by resource type.
+    ///
+    /// # Parameters
+    /// - `resource_type`: Optional filter for resource type (None = all types)
+    /// - `state`: The state to filter by
+    ///
+    /// # Returns
+    /// A vector of references to all matching resource states
+    ///
+    /// # Performance Note
+    /// This method performs a linear scan of all resources. For large numbers
+    /// of resources, consider implementing indexed lookups by state.
+    ///
+    /// # Usage Examples
+    /// - Find all failed resources: `list_resources_by_state(None, "Failed")`
+    /// - Find active scenarios: `list_resources_by_state(Some(ResourceType::Scenario), "Active")`
+    pub fn list_resources_by_state(
+        &self,
+        resource_type: Option<ResourceType>,
+
+        state: i32,
+    ) -> Vec<&ResourceState> {
+        self.resource_states
+            .values()
+            .filter(|resource| {
+                resource.current_state == state
+                    && (resource_type.is_none() || resource_type == Some(resource.resource_type))
+            })
+            .collect()
+    }
+
     /// Determines the model state based on the states of its associated containers.
     ///
     /// Implements the model state determination logic according to the updated requirements:
@@ -1112,11 +1184,6 @@ impl StateMachine {
                     all_paused = false;
                     all_exited = false;
                 }
-                ModelState::Unspecified => {
-                    // Handle unspecified state - treat as non-running
-                    all_paused = false;
-                    all_exited = false;
-                }
             }
         }
 
@@ -1137,6 +1204,247 @@ impl StateMachine {
             println!("  → Package state: running (기본 상태)");
             Some(PackageState::Running) // Default running state
         }
+    }
+
+    /// Process package state changes based on model states.
+    ///
+    /// This function implements the package state determination logic from the documentation,
+    /// retrieving all model states from ETCD and determining package states based on the
+    /// collective state of associated models:
+    /// - idle: No models (생성 시 기본 상태)
+    /// - paused: All models paused (모든 model이 paused 상태일 때)
+    /// - exited: All models exited (모든 model이 exited 상태일 때)
+    /// - degraded: Some models dead (일부 model이 dead 상태일 때)
+    /// - error: All models dead (모든 model이 dead 상태일 때)
+    /// - running: Default state (위 조건을 모두 만족하지 않을 때)
+    pub async fn process_package_state_changes() {
+        println!("--- Processing Package State Changes ---");
+
+        // Step 1: Get all model states from ETCD
+        let model_states = match Self::get_all_model_states_from_etcd().await {
+            Ok(states) => states,
+            Err(e) => {
+                eprintln!("  Failed to retrieve model states from ETCD: {:?}", e);
+                return;
+            }
+        };
+
+        if model_states.is_empty() {
+            println!("  No model states found in ETCD");
+            return;
+        }
+
+        println!("  Retrieved {} model states from ETCD", model_states.len());
+
+        // Step 2: Group models by package
+        // For now, we'll assume a simple naming convention: package = first part of model name before '-'
+        // In a real implementation, this would use proper metadata or annotations
+        let mut package_models: std::collections::HashMap<String, Vec<(String, ModelState)>> =
+            std::collections::HashMap::new();
+
+        for (model_name, model_state) in model_states {
+            // Extract package name from model name (simple convention)
+            let package_name = if let Some(pos) = model_name.find('-') {
+                model_name[..pos].to_string()
+            } else {
+                // If no '-' found, use the full model name as package name
+                model_name.clone()
+            };
+
+            package_models
+                .entry(package_name)
+                .or_insert_with(Vec::new)
+                .push((model_name, model_state));
+        }
+
+        println!(
+            "  Found {} packages with associated models",
+            package_models.len()
+        );
+
+        // Step 3: Process each package
+        for (package_name, models) in package_models {
+            println!("--- Processing Package: {} ---", package_name);
+            println!("  Associated Models: {}", models.len());
+
+            // Determine package state based on model states
+            if let Some(new_package_state) = Self::determine_package_state(&models).await {
+                println!("  Determined Package State: {:?}", new_package_state);
+
+                // Save the package state to etcd
+                if let Err(e) =
+                    Self::save_package_state_to_etcd(&package_name, new_package_state).await
+                {
+                    eprintln!("  Failed to save package state to etcd: {:?}", e);
+                } else {
+                    println!("  Package state saved to etcd successfully");
+                }
+
+                // Check if ActionController reconcile is needed for error state
+                if matches!(new_package_state, PackageState::Error) {
+                    println!(
+                        "  📢 Package in ERROR state - would trigger ActionController reconcile"
+                    );
+                    // In a real implementation, this would send a gRPC request to ActionController
+                    // self.trigger_action_controller_reconcile(&package_name).await;
+                }
+            } else {
+                println!("  Could not determine package state from model states");
+            }
+        }
+
+        println!("Package state processing completed");
+    }
+
+    /// Retrieve all model states from ETCD using the /model/ prefix.
+    ///
+    /// # Returns
+    /// * `Result<Vec<(String, ModelState)>>` - Vector of (model_name, model_state) tuples
+    async fn get_all_model_states_from_etcd() -> Result<Vec<(String, ModelState)>> {
+        let prefix = "/model/";
+        println!("  Querying ETCD with prefix: {}", prefix);
+
+        let kvs = common::etcd::get_all_with_prefix(prefix).await?;
+        let mut model_states = Vec::new();
+
+        for kv in kvs {
+            // Extract model name from key: "/model/{name}/state" -> "{name}"
+            if let Some(model_name) = Self::extract_model_name_from_key(&kv.key) {
+                // Parse the state value
+                if let Ok(model_state) = Self::parse_model_state(&kv.value) {
+                    println!("    Found model: {} -> {:?}", model_name, model_state);
+                    model_states.push((model_name, model_state));
+                } else {
+                    eprintln!(
+                        "    Failed to parse model state for {}: {}",
+                        model_name, kv.value
+                    );
+                }
+            } else {
+                eprintln!("    Failed to extract model name from key: {}", kv.key);
+            }
+        }
+
+        Ok(model_states)
+    }
+
+    /// Extract model name from ETCD key format "/model/{name}/state".
+    ///
+    /// # Arguments
+    /// * `key` - ETCD key in format "/model/{name}/state"
+    ///
+    /// # Returns
+    /// * `Option<String>` - Extracted model name or None if parsing fails
+    fn extract_model_name_from_key(key: &str) -> Option<String> {
+        if key.starts_with("/model/") && key.ends_with("/state") {
+            let name_part = &key[7..]; // Remove "/model/" prefix
+            if let Some(end) = name_part.rfind("/state") {
+                return Some(name_part[..end].to_string());
+            }
+        }
+        None
+    }
+
+    /// Parse model state string into ModelState enum.
+    ///
+    /// # Arguments
+    /// * `state_str` - String representation of model state
+    ///
+    /// # Returns
+    /// * `Result<ModelState>` - Parsed ModelState or error
+    fn parse_model_state(state_str: &str) -> Result<ModelState> {
+        match state_str {
+            "MODEL_STATE_CREATED" => Ok(ModelState::Created),
+            "MODEL_STATE_PAUSED" => Ok(ModelState::Paused),
+            "MODEL_STATE_EXITED" => Ok(ModelState::Exited),
+            "MODEL_STATE_DEAD" => Ok(ModelState::Dead),
+            "MODEL_STATE_RUNNING" => Ok(ModelState::Running),
+            _ => Err(format!("Unknown model state: {}", state_str).into()),
+        }
+    }
+
+    /// Get the current model state from ETCD for change detection.
+    ///
+    /// # Arguments
+    /// * `model_name` - Name/identifier of the model
+    ///
+    /// # Returns
+    /// * `Result<Option<ModelState>>` - Current model state if found, None if not found, or error
+    pub async fn get_current_model_state(model_name: &str) -> Result<Option<ModelState>> {
+        let key = format!("/model/{}/state", model_name);
+
+        match common::etcd::get(&key).await {
+            Ok(value) => {
+                // Parse the retrieved state value
+                match Self::parse_model_state(&value) {
+                    Ok(model_state) => Ok(Some(model_state)),
+                    Err(e) => {
+                        eprintln!(
+                            "  Failed to parse current model state for {}: {:?}",
+                            model_name, e
+                        );
+                        Err(e)
+                    }
+                }
+            }
+            Err(_) => {
+                // Key not found or other error - treat as no previous state
+                Ok(None)
+            }
+        }
+    }
+
+    /// Saves the model state to etcd using the specified key format.
+    ///
+    /// Implements the etcd storage pattern from the documentation:
+    /// Key format: /model/{model_name}/state
+    /// Value: ModelState as string representation
+    ///
+    /// # Arguments
+    /// * `model_name` - Name/identifier of the model
+    /// * `model_state` - The determined model state to save
+    ///
+    /// # Returns
+    /// * `Result<()>` - Success or error
+    pub async fn save_model_state_to_etcd(model_name: &str, model_state: ModelState) -> Result<()> {
+        let key = format!("/model/{}/state", model_name);
+        let value = model_state.as_str_name();
+
+        println!("    Saving to etcd - Key: {}, Value: {}", key, value);
+
+        if let Err(e) = common::etcd::put(&key, value).await {
+            eprintln!("    Failed to save model state to etcd: {:?}", e);
+            return Err(Box::new(e));
+        }
+
+        println!("    Successfully saved model state to etcd");
+        Ok(())
+    }
+
+    /// Saves package state to ETCD following the specified format.
+    ///
+    /// # Arguments
+    /// * `package_name` - Name/identifier of the package
+    /// * `package_state` - The determined package state to save
+    ///
+    /// # Returns
+    /// * `Result<()>` - Success or error
+    async fn save_package_state_to_etcd(
+        package_name: &str,
+        package_state: PackageState,
+    ) -> Result<()> {
+        let key = format!("/package/{}/state", package_name);
+        let value = package_state.as_str_name();
+
+        println!("    Saving to etcd - Key: {}, Value: {}", key, value);
+
+        if let Err(e) = common::etcd::put(&key, value).await {
+            eprintln!("    Failed to save package state to etcd: {:?}", e);
+            return Err(Box::new(e));
+        }
+
+        println!("    Successfully saved package state to etcd");
+        Ok(())
     }
 }
 

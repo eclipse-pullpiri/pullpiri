@@ -27,6 +27,7 @@
 //! ```
 
 use crate::types::{ActionCommand, HealthStatus, ResourceState, StateTransition, TransitionResult};
+use common::monitoringserver::ContainerInfo;
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
 };
@@ -1168,6 +1169,88 @@ impl StateMachine {
                     && (resource_type.is_none() || resource_type == Some(resource.resource_type))
             })
             .collect()
+    }
+
+    /// Determines the model state based on the states of its associated containers.
+    ///
+    /// Implements the model state determination logic according to the documentation:
+    /// - All containers paused → Model state: Paused (mapped to Unknown for existing enum)
+    /// - All containers exited → Model state: Exited (mapped to Succeeded for existing enum)  
+    /// - Any container dead → Model state: Dead (mapped to Failed for existing enum)
+    /// - Otherwise → Model state: Running
+    ///
+    /// # Arguments
+    /// * `containers` - Vector of container references associated with the model
+    ///
+    /// # Returns
+    /// * `Option<ModelState>` - Determined model state, or None if unable to determine
+    pub async fn determine_model_state(containers: &[&ContainerInfo]) -> Option<ModelState> {
+        if containers.is_empty() {
+            return Some(ModelState::Pending); // No containers = Created/Pending state
+        }
+
+        let mut all_paused = true;
+        let mut all_exited = true;
+        let mut any_dead = false;
+
+        for container in containers {
+            // Get container status from state map
+            let status = container
+                .state
+                .get("Status")
+                .map(|s| s.as_str())
+                .unwrap_or("unknown");
+            let running = container
+                .state
+                .get("Running")
+                .and_then(|s| s.parse::<bool>().ok())
+                .unwrap_or(false);
+            let paused = container
+                .state
+                .get("Paused")
+                .and_then(|s| s.parse::<bool>().ok())
+                .unwrap_or(false);
+            let dead = container
+                .state
+                .get("Dead")
+                .and_then(|s| s.parse::<bool>().ok())
+                .unwrap_or(false);
+
+            println!(
+                "    Container {} status: {} (running: {}, paused: {}, dead: {})",
+                container.id, status, running, paused, dead
+            );
+
+            // Check for dead containers first (highest priority)
+            if dead || status.to_lowercase() == "dead" {
+                any_dead = true;
+            }
+
+            // Check if all containers are paused
+            if !paused && status.to_lowercase() != "paused" {
+                all_paused = false;
+            }
+
+            // Check if all containers are exited
+            if running || (status.to_lowercase() != "exited" && !status.contains("exit")) {
+                all_exited = false;
+            }
+        }
+
+        // Apply state determination logic based on documentation
+        if any_dead {
+            println!("  → Model state: Dead (mapped to Failed)");
+            Some(ModelState::Failed) // Dead state mapped to Failed
+        } else if all_paused {
+            println!("  → Model state: Paused (mapped to Unknown)");
+            Some(ModelState::Unknown) // Paused state mapped to Unknown
+        } else if all_exited {
+            println!("  → Model state: Exited (mapped to Succeeded)");
+            Some(ModelState::Succeeded) // Exited state mapped to Succeeded
+        } else {
+            println!("  → Model state: Running");
+            Some(ModelState::Running) // Default running state
+        }
     }
 
     // Utility: Convert state string to proto enum value

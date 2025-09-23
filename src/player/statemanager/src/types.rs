@@ -57,3 +57,14 @@ pub struct TransitionResult {
     pub transition_id: String,
     pub error_details: String,
 }
+
+/// Container state representation for internal processing
+#[derive(Debug, Clone, PartialEq)]
+pub enum ContainerState {
+    Created,
+    Running,
+    Paused,
+    Stopped,
+    Exited,
+    Dead,
+}

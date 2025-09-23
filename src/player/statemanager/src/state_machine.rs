@@ -26,13 +26,15 @@
 //! let result = state_machine.process_state_change(state_change);
 //! ```
 
-use crate::types::{ActionCommand, HealthStatus, ResourceState, StateTransition, TransitionResult};
+use crate::types::{
+    ActionCommand, ContainerState, HealthStatus, ResourceState, StateTransition, TransitionResult,
+};
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
 };
 use std::collections::HashMap;
 use tokio::sync::mpsc;
-use tokio::time::{Duration, Instant};
+use tokio::time::Instant;
 
 // ========================================
 // CONSTANTS AND CONFIGURATION
@@ -406,6 +408,180 @@ impl StateMachine {
 
             self.update_health_status(&resource_key, &transition_result);
             transition_result
+        }
+    }
+
+    /// Process model state update based on container states
+    ///
+    /// This method handles model state evaluation and transitions triggered by container state changes,
+    /// implementing the business logic defined in the StateManager_Model.md documentation.
+    ///
+    /// # Parameters
+    /// - `model_name`: The name of the model to update
+    /// - `containers`: List of containers associated with this model
+    ///
+    /// # Returns
+    /// - `TransitionResult`: Results of the state evaluation and transition attempt
+    ///   - Contains whether state changed, the new state, and transition details
+    pub fn process_model_state_update(
+        &mut self,
+        model_name: &str,
+        containers: &[&common::monitoringserver::ContainerInfo],
+    ) -> TransitionResult {
+        let resource_key = self.generate_resource_key(ResourceType::Model, model_name);
+        let timestamp_ns = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as i64;
+
+        // Evaluate the new model state based on container states
+        let new_model_state = self.evaluate_model_state_from_containers(containers);
+
+        // Create a pseudo state change for internal processing
+        let state_change = StateChange {
+            resource_type: ResourceType::Model as i32,
+            resource_name: model_name.to_string(),
+            current_state: self
+                .resource_states
+                .get(&resource_key)
+                .map(|rs| self.state_enum_to_str(rs.current_state, ResourceType::Model))
+                .unwrap_or_else(|| "Created".to_string()),
+            target_state: self.model_state_to_str(new_model_state),
+            transition_id: format!("model_update_{}_{}", model_name, timestamp_ns),
+            timestamp_ns,
+            source: "container_analysis".to_string(),
+        };
+
+        // Get current state from existing resource or default to Created
+        let current_state = self
+            .resource_states
+            .get(&resource_key)
+            .map(|rs| rs.current_state)
+            .unwrap_or(ModelState::Created as i32);
+
+        let target_state = new_model_state as i32;
+
+        // Check if state change is needed
+        if current_state == target_state {
+            return TransitionResult {
+                new_state: target_state,
+                error_code: ErrorCode::Success,
+                message: "Model already in target state".to_string(),
+                actions_to_execute: vec![],
+                transition_id: state_change.transition_id.clone(),
+                error_details: String::new(),
+            };
+        }
+
+        // Update internal state tracking
+        self.update_resource_state(
+            &resource_key,
+            &state_change,
+            target_state,
+            ResourceType::Model,
+        );
+
+        // Return successful transition result indicating state changed
+        TransitionResult {
+            new_state: target_state,
+            error_code: ErrorCode::Success,
+            message: format!(
+                "Model state successfully transitioned from {} to {}",
+                self.state_enum_to_str(current_state, ResourceType::Model),
+                self.model_state_to_str(new_model_state)
+            ),
+            actions_to_execute: vec!["update_etcd".to_string()],
+            transition_id: state_change.transition_id,
+            error_details: String::new(),
+        }
+    }
+
+    /// Evaluates the model state based on container states according to the state transition rules
+    fn evaluate_model_state_from_containers(
+        &self,
+        containers: &[&common::monitoringserver::ContainerInfo],
+    ) -> ModelState {
+        if containers.is_empty() {
+            return ModelState::Created;
+        }
+
+        let mut _running_count = 0;
+        let mut paused_count = 0;
+        let mut exited_count = 0;
+        let mut dead_count = 0;
+        let mut _stopped_count = 0;
+
+        for container in containers {
+            match self.parse_container_state(container) {
+                ContainerState::Running => _running_count += 1,
+                ContainerState::Paused => paused_count += 1,
+                ContainerState::Exited => exited_count += 1,
+                ContainerState::Dead => dead_count += 1,
+                ContainerState::Stopped => _stopped_count += 1,
+                ContainerState::Created => {} // Created containers don't affect model state
+            }
+        }
+
+        let total_containers = containers.len();
+
+        // Apply state transition rules from documentation
+        // Rule 1: Dead - if one or more containers are dead
+        if dead_count > 0 {
+            return ModelState::Dead;
+        }
+
+        // Rule 2: Paused - if all containers are paused
+        if paused_count == total_containers {
+            return ModelState::Paused;
+        }
+
+        // Rule 3: Exited - if all containers are exited
+        if exited_count == total_containers {
+            return ModelState::Exited;
+        }
+
+        // Rule 4: Running - default state (none of above conditions met)
+        ModelState::Running
+    }
+
+    /// Parses container state from the state HashMap
+    fn parse_container_state(
+        &self,
+        container: &common::monitoringserver::ContainerInfo,
+    ) -> ContainerState {
+        // Check the "Status" field first
+        if let Some(status) = container.state.get("Status") {
+            match status.to_lowercase().as_str() {
+                "running" => return ContainerState::Running,
+                "paused" => return ContainerState::Paused,
+                "exited" => return ContainerState::Exited,
+                "dead" => return ContainerState::Dead,
+                "stopped" => return ContainerState::Stopped,
+                "created" => return ContainerState::Created,
+                _ => {}
+            }
+        }
+
+        // Check "Running" boolean field as fallback
+        if let Some(running) = container.state.get("Running") {
+            if running == "true" {
+                return ContainerState::Running;
+            }
+        }
+
+        // Default to Created if state cannot be determined
+        ContainerState::Created
+    }
+
+    /// Convert ModelState enum to string representation
+    fn model_state_to_str(&self, state: ModelState) -> String {
+        match state {
+            ModelState::Created => "Created".to_string(),
+            ModelState::Paused => "Paused".to_string(),
+            ModelState::Exited => "Exited".to_string(),
+            ModelState::Dead => "Dead".to_string(),
+            ModelState::Running => "Running".to_string(),
+            _ => "Unknown".to_string(),
         }
     }
 
@@ -907,6 +1083,37 @@ impl StateMachine {
                 .map(|s| s as i32)
                 .unwrap_or(ModelState::Unspecified as i32),
             _ => 0,
+        }
+    }
+
+    // Utility: Convert proto enum value to state string
+    fn state_enum_to_str(&self, state: i32, resource_type: ResourceType) -> String {
+        match resource_type {
+            ResourceType::Scenario => ScenarioState::try_from(state)
+                .map(|s| {
+                    s.as_str_name()
+                        .strip_prefix("SCENARIO_STATE_")
+                        .unwrap_or(s.as_str_name())
+                        .to_string()
+                })
+                .unwrap_or_else(|_| "Unknown".to_string()),
+            ResourceType::Package => PackageState::try_from(state)
+                .map(|s| {
+                    s.as_str_name()
+                        .strip_prefix("PACKAGE_STATE_")
+                        .unwrap_or(s.as_str_name())
+                        .to_string()
+                })
+                .unwrap_or_else(|_| "Unknown".to_string()),
+            ResourceType::Model => ModelState::try_from(state)
+                .map(|s| {
+                    s.as_str_name()
+                        .strip_prefix("MODEL_STATE_")
+                        .unwrap_or(s.as_str_name())
+                        .to_string()
+                })
+                .unwrap_or_else(|_| "Unknown".to_string()),
+            _ => "Unknown".to_string(),
         }
     }
 }

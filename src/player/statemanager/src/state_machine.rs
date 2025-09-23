@@ -32,7 +32,7 @@ use common::statemanager::{
 };
 use std::collections::HashMap;
 use tokio::sync::mpsc;
-use tokio::time::{Duration, Instant};
+use tokio::time::Instant;
 
 // ========================================
 // CONSTANTS AND CONFIGURATION
@@ -406,6 +406,99 @@ impl StateMachine {
 
             self.update_health_status(&resource_key, &transition_result);
             transition_result
+        }
+    }
+
+    /// Process model state update based on container states
+    ///
+    /// This method handles model state transitions triggered by container state changes,
+    /// implementing the business logic defined in the StateManager_Model.md documentation.
+    ///
+    /// # Parameters
+    /// - `model_name`: The name of the model to update
+    /// - `new_model_state`: The new state determined by container analysis
+    ///
+    /// # Returns
+    /// - `TransitionResult`: Results of the state transition attempt
+    pub fn process_model_state_update(
+        &mut self,
+        model_name: &str,
+        new_model_state: ModelState,
+    ) -> TransitionResult {
+        let resource_key = self.generate_resource_key(ResourceType::Model, model_name);
+        let timestamp_ns = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as i64;
+
+        // Create a pseudo state change for internal processing
+        let state_change = StateChange {
+            resource_type: ResourceType::Model as i32,
+            resource_name: model_name.to_string(),
+            current_state: self
+                .resource_states
+                .get(&resource_key)
+                .map(|rs| self.state_enum_to_str(rs.current_state, ResourceType::Model))
+                .unwrap_or_else(|| "Created".to_string()),
+            target_state: self.model_state_to_str(new_model_state),
+            transition_id: format!("model_update_{}_{}", model_name, timestamp_ns),
+            timestamp_ns,
+            source: "container_analysis".to_string(),
+        };
+
+        // Get current state from existing resource or default to Created
+        let current_state = self
+            .resource_states
+            .get(&resource_key)
+            .map(|rs| rs.current_state)
+            .unwrap_or(ModelState::Created as i32);
+
+        let target_state = new_model_state as i32;
+
+        // Check if state change is needed
+        if current_state == target_state {
+            return TransitionResult {
+                new_state: target_state,
+                error_code: ErrorCode::Success,
+                message: "Model already in target state".to_string(),
+                actions_to_execute: vec![],
+                transition_id: state_change.transition_id.clone(),
+                error_details: String::new(),
+            };
+        }
+
+        // Update internal state tracking
+        self.update_resource_state(
+            &resource_key,
+            &state_change,
+            target_state,
+            ResourceType::Model,
+        );
+
+        // Return successful transition result
+        TransitionResult {
+            new_state: target_state,
+            error_code: ErrorCode::Success,
+            message: format!(
+                "Model state successfully transitioned from {} to {}",
+                self.state_enum_to_str(current_state, ResourceType::Model),
+                self.model_state_to_str(new_model_state)
+            ),
+            actions_to_execute: vec!["update_etcd".to_string()],
+            transition_id: state_change.transition_id,
+            error_details: String::new(),
+        }
+    }
+
+    /// Convert ModelState enum to string representation
+    fn model_state_to_str(&self, state: ModelState) -> String {
+        match state {
+            ModelState::Created => "Created".to_string(),
+            ModelState::Paused => "Paused".to_string(),
+            ModelState::Exited => "Exited".to_string(),
+            ModelState::Dead => "Dead".to_string(),
+            ModelState::Running => "Running".to_string(),
+            _ => "Unknown".to_string(),
         }
     }
 
@@ -907,6 +1000,37 @@ impl StateMachine {
                 .map(|s| s as i32)
                 .unwrap_or(ModelState::Unspecified as i32),
             _ => 0,
+        }
+    }
+
+    // Utility: Convert proto enum value to state string
+    fn state_enum_to_str(&self, state: i32, resource_type: ResourceType) -> String {
+        match resource_type {
+            ResourceType::Scenario => ScenarioState::try_from(state)
+                .map(|s| {
+                    s.as_str_name()
+                        .strip_prefix("SCENARIO_STATE_")
+                        .unwrap_or(s.as_str_name())
+                        .to_string()
+                })
+                .unwrap_or_else(|_| "Unknown".to_string()),
+            ResourceType::Package => PackageState::try_from(state)
+                .map(|s| {
+                    s.as_str_name()
+                        .strip_prefix("PACKAGE_STATE_")
+                        .unwrap_or(s.as_str_name())
+                        .to_string()
+                })
+                .unwrap_or_else(|_| "Unknown".to_string()),
+            ResourceType::Model => ModelState::try_from(state)
+                .map(|s| {
+                    s.as_str_name()
+                        .strip_prefix("MODEL_STATE_")
+                        .unwrap_or(s.as_str_name())
+                        .to_string()
+                })
+                .unwrap_or_else(|_| "Unknown".to_string()),
+            _ => "Unknown".to_string(),
         }
     }
 }

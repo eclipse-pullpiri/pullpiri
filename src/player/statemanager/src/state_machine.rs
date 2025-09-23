@@ -177,23 +177,30 @@ impl StateMachine {
             StateTransition {
                 from_state: ScenarioState::Waiting as i32,
                 event: "condition_met".to_string(),
-                to_state: ScenarioState::Allowed as i32,
+                to_state: ScenarioState::Satisfied as i32,
                 condition: None,
                 action: "start_policy_verification".to_string(),
             },
             StateTransition {
-                from_state: ScenarioState::Allowed as i32,
+                from_state: ScenarioState::Satisfied as i32,
                 event: "policy_verification_success".to_string(),
-                to_state: ScenarioState::Playing as i32,
+                to_state: ScenarioState::Allowed as i32,
                 condition: None,
                 action: "execute_action_on_target_package".to_string(),
             },
             StateTransition {
-                from_state: ScenarioState::Allowed as i32,
+                from_state: ScenarioState::Satisfied as i32,
                 event: "policy_verification_failure".to_string(),
                 to_state: ScenarioState::Denied as i32,
                 condition: None,
                 action: "log_denial_generate_alert".to_string(),
+            },
+            StateTransition {
+                from_state: ScenarioState::Allowed as i32,
+                event: "scenario_completion".to_string(),
+                to_state: ScenarioState::Completed as i32,
+                condition: None,
+                action: "finalize_scenario".to_string(),
             },
         ];
         self.transition_tables
@@ -1027,19 +1034,28 @@ impl StateMachine {
                     "scenario_activation".to_string()
                 }
                 (x, y)
-                    if x == ScenarioState::Waiting as i32 && y == ScenarioState::Allowed as i32 =>
+                    if x == ScenarioState::Waiting as i32
+                        && y == ScenarioState::Satisfied as i32 =>
                 {
                     "condition_met".to_string()
                 }
                 (x, y)
-                    if x == ScenarioState::Allowed as i32 && y == ScenarioState::Playing as i32 =>
+                    if x == ScenarioState::Satisfied as i32
+                        && y == ScenarioState::Allowed as i32 =>
                 {
                     "policy_verification_success".to_string()
                 }
                 (x, y)
-                    if x == ScenarioState::Allowed as i32 && y == ScenarioState::Denied as i32 =>
+                    if x == ScenarioState::Satisfied as i32
+                        && y == ScenarioState::Denied as i32 =>
                 {
                     "policy_verification_failure".to_string()
+                }
+                (x, y)
+                    if x == ScenarioState::Allowed as i32
+                        && y == ScenarioState::Completed as i32 =>
+                {
+                    "scenario_completion".to_string()
                 }
                 _ => format!("transition_{current_state}_{target_state}"),
             },

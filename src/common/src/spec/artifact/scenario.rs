@@ -36,9 +36,12 @@ pub struct ScenarioStatus {
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 enum ScenarioState {
     None,
+    Idle,
     Waiting,
-    Running,
-    Error,
+    Satisfied,
+    Allowed,
+    Denied,
+    Completed,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -164,11 +167,14 @@ mod tests {
         let waiting_status = ScenarioStatus {
             state: ScenarioState::Waiting,
         };
-        let running_status = ScenarioStatus {
-            state: ScenarioState::Running,
+        let satisfied_status = ScenarioStatus {
+            state: ScenarioState::Satisfied,
         };
-        let error_status = ScenarioStatus {
-            state: ScenarioState::Error,
+        let allowed_status = ScenarioStatus {
+            state: ScenarioState::Allowed,
+        };
+        let completed_status = ScenarioStatus {
+            state: ScenarioState::Completed,
         };
         let none_status = ScenarioStatus {
             state: ScenarioState::None,
@@ -180,13 +186,18 @@ mod tests {
             _ => assert!(false, "Incorrect state"),
         }
 
-        match running_status.state {
-            ScenarioState::Running => assert!(true),
+        match satisfied_status.state {
+            ScenarioState::Satisfied => assert!(true),
             _ => assert!(false, "Incorrect state"),
         }
 
-        match error_status.state {
-            ScenarioState::Error => assert!(true),
+        match allowed_status.state {
+            ScenarioState::Allowed => assert!(true),
+            _ => assert!(false, "Incorrect state"),
+        }
+
+        match completed_status.state {
+            ScenarioState::Completed => assert!(true),
             _ => assert!(false, "Incorrect state"),
         }
 

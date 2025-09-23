@@ -79,6 +79,7 @@ uninstall:
 	systemctl daemon-reload
 	-rm -rf /etc/piccolo/yaml
 	-rm -rf /etc/containers/systemd/*
+	podman pod rm -f timpani_test
 
 .PHONY: test
 test:

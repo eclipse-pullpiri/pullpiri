@@ -37,7 +37,8 @@ spec:
   containers:
     - name: timpani_test
       image: localhost/timpani_test:latest
-      command: ["./sample_apps", "-t", "-p", "50", "-d", "45", "-P", "70", "-a", "2", "-l", "5", "container_task"]
+      #command: ["./sample_apps", "-t", "-p", "50", "-d", "45", "-P", "70", "-a", "2", "-l", "5", "container_task"]
+      command: ["./sample_apps", "-a", "2", "-l", "5", "container_task"]
       securityContext:
         privileged: true
         capabilities:

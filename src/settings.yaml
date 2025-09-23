@@ -7,9 +7,9 @@ host:
   ip: 0.0.0.0
   type: bluechi
 guest:
-  - name: ZONE
-    ip: 192.168.0.1
-    type: bluechi
+  #  - name: ZONE
+  #    ip: 192.168.0.1
+  #    type: bluechi
 dds:
   idl_path: src/vehicle/dds/idl
   domain_id: 100

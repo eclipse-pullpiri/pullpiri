@@ -29,6 +29,7 @@
 use crate::types::{
     ActionCommand, ContainerState, HealthStatus, ResourceState, StateTransition, TransitionResult,
 };
+use common::spec::artifact::Artifact;
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
 };
@@ -607,6 +608,192 @@ impl StateMachine {
 
         // Rule 5: running - Default state when none of above conditions are met
         PackageState::Running
+    }
+
+    /// Retrieves all model states for models that belong to a given package
+    ///
+    /// This function queries ETCD to get all model states and filters them
+    /// to find models that belong to the specified package.
+    pub async fn get_models_for_package(
+        package_name: &str,
+    ) -> std::result::Result<Vec<(String, common::statemanager::ModelState)>, String> {
+        // Get package definition from ETCD to find its models
+        let package_key = format!("Package/{}", package_name);
+        let package_yaml = match common::etcd::get(&package_key).await {
+            Ok(yaml) => yaml,
+            Err(e) => {
+                println!("    Failed to get package definition: {:?}", e);
+                return Ok(Vec::new());
+            }
+        };
+
+        // Parse package YAML to extract model names
+        let package: common::spec::artifact::Package = match serde_yaml::from_str(&package_yaml) {
+            Ok(pkg) => pkg,
+            Err(e) => {
+                println!("    Failed to parse package YAML: {:?}", e);
+                return Ok(Vec::new());
+            }
+        };
+
+        let mut model_states = Vec::new();
+
+        // Get state for each model in the package
+        for model_info in package.get_models() {
+            let model_name = model_info.get_name();
+            let model_state_key = format!("/model/{}/state", model_name);
+
+            match common::etcd::get(&model_state_key).await {
+                Ok(state_str) => {
+                    let model_state = match state_str.as_str() {
+                        "Created" => common::statemanager::ModelState::Created,
+                        "Paused" => common::statemanager::ModelState::Paused,
+                        "Exited" => common::statemanager::ModelState::Exited,
+                        "Dead" => common::statemanager::ModelState::Dead,
+                        "Running" => common::statemanager::ModelState::Running,
+                        _ => common::statemanager::ModelState::Running, // Default to Running
+                    };
+                    model_states.push((model_name, model_state));
+                }
+                Err(_) => {
+                    // If model state not found, assume it's in Created state
+                    model_states.push((model_name, common::statemanager::ModelState::Created));
+                }
+            }
+        }
+
+        Ok(model_states)
+    }
+
+    /// Find all packages that contain the given model
+    pub async fn find_packages_containing_model(
+        model_name: &str,
+    ) -> std::result::Result<Vec<String>, String> {
+        let mut packages = Vec::new();
+
+        // Get all packages from ETCD with prefix
+        match common::etcd::get_all_with_prefix("Package/").await {
+            Ok(package_entries) => {
+                for kv in package_entries {
+                    match serde_yaml::from_str::<common::spec::artifact::Package>(&kv.value) {
+                        Ok(package) => {
+                            // Check if this package contains the model
+                            for model_info in package.get_models() {
+                                if model_info.get_name() == model_name {
+                                    packages.push(package.get_name());
+                                    break;
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            println!("    Failed to parse package {}: {:?}", kv.key, e);
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                println!("    Failed to get packages from ETCD: {:?}", e);
+                return Err(format!("Failed to get packages from ETCD: {:?}", e));
+            }
+        }
+
+        Ok(packages)
+    }
+
+    /// Get current package state from ETCD
+    pub async fn get_current_package_state(
+        package_name: &str,
+    ) -> Option<common::statemanager::PackageState> {
+        let key = format!("/package/{}/state", package_name);
+        match common::etcd::get(&key).await {
+            Ok(state_str) => match state_str.as_str() {
+                "PACKAGE_STATE_IDLE" | "idle" => Some(common::statemanager::PackageState::Idle),
+                "PACKAGE_STATE_PAUSED" | "paused" => {
+                    Some(common::statemanager::PackageState::Paused)
+                }
+                "PACKAGE_STATE_EXITED" | "exited" => {
+                    Some(common::statemanager::PackageState::Exited)
+                }
+                "PACKAGE_STATE_DEGRADED" | "degraded" => {
+                    Some(common::statemanager::PackageState::Degraded)
+                }
+                "PACKAGE_STATE_ERROR" | "error" => Some(common::statemanager::PackageState::Error),
+                "PACKAGE_STATE_RUNNING" | "running" => {
+                    Some(common::statemanager::PackageState::Running)
+                }
+                _ => Some(common::statemanager::PackageState::Idle),
+            },
+            Err(_) => None,
+        }
+    }
+
+    /// Evaluate and update package state based on current model states
+    pub async fn evaluate_and_update_package_state(
+        &self,
+        package_name: &str,
+    ) -> std::result::Result<(bool, common::statemanager::PackageState), String> {
+        println!("    Evaluating package state for: {}", package_name);
+
+        // Get model states for this package
+        let model_states = Self::get_models_for_package(package_name).await?;
+
+        if model_states.is_empty() {
+            println!("      No models found for package {}", package_name);
+            return Ok((false, common::statemanager::PackageState::Idle));
+        }
+
+        // Convert to format expected by state machine
+        let model_states_for_evaluation: Vec<(String, ModelState)> = model_states
+            .iter()
+            .map(|(name, state)| {
+                let converted_state = match state {
+                    common::statemanager::ModelState::Created => ModelState::Created,
+                    common::statemanager::ModelState::Paused => ModelState::Paused,
+                    common::statemanager::ModelState::Exited => ModelState::Exited,
+                    common::statemanager::ModelState::Dead => ModelState::Dead,
+                    common::statemanager::ModelState::Running => ModelState::Running,
+                    _ => ModelState::Running,
+                };
+                (name.clone(), converted_state)
+            })
+            .collect();
+
+        // Get current package state
+        let current_package_state = Self::get_current_package_state(package_name)
+            .await
+            .unwrap_or(common::statemanager::PackageState::Idle);
+
+        // Evaluate new package state using state machine
+        let evaluated_state = self.evaluate_package_state_from_models(&model_states_for_evaluation);
+
+        // Convert back to common::statemanager::PackageState
+        let new_package_state = match evaluated_state {
+            PackageState::Idle => common::statemanager::PackageState::Idle,
+            PackageState::Paused => common::statemanager::PackageState::Paused,
+            PackageState::Exited => common::statemanager::PackageState::Exited,
+            PackageState::Degraded => common::statemanager::PackageState::Degraded,
+            PackageState::Error => common::statemanager::PackageState::Error,
+            PackageState::Running => common::statemanager::PackageState::Running,
+            _ => common::statemanager::PackageState::Running,
+        };
+
+        // Check if package state changed
+        let state_changed = new_package_state != current_package_state;
+        if state_changed {
+            println!(
+                "      Package state changed: {} -> {}",
+                current_package_state.as_str_name(),
+                new_package_state.as_str_name()
+            );
+        } else {
+            println!(
+                "      Package {} state unchanged: {}",
+                package_name,
+                current_package_state.as_str_name()
+            );
+        }
+
+        Ok((state_changed, new_package_state))
     }
 
     /// Parses container state from the state HashMap

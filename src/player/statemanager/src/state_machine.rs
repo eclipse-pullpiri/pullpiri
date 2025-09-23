@@ -41,10 +41,6 @@ use tokio::time::Instant;
 // CONSTANTS AND CONFIGURATION
 // ========================================
 
-/// Default backoff duration for CrashLoopBackOff states
-#[allow(dead_code)]
-const BACKOFF_DURATION_SECS: u64 = 30;
-
 /// Maximum consecutive failures before marking resource as unhealthy
 const MAX_CONSECUTIVE_FAILURES: u32 = 3;
 
@@ -102,13 +98,6 @@ pub struct StateMachine {
     /// and contain complete state information including metadata and health status.
     resource_states: HashMap<String, ResourceState>,
 
-    /// Backoff timers for CrashLoopBackOff and retry management
-    ///
-    /// Tracks when resources that have failed transitions can be retried,
-    /// implementing exponential backoff to prevent resource thrashing.
-    #[allow(dead_code)]
-    backoff_timers: HashMap<String, Instant>,
-
     /// Action command sender for async execution
     action_sender: Option<mpsc::UnboundedSender<ActionCommand>>,
 }
@@ -130,7 +119,6 @@ impl StateMachine {
         let mut state_machine = StateMachine {
             transition_tables: HashMap::new(),
             resource_states: HashMap::new(),
-            backoff_timers: HashMap::new(),
             action_sender: None,
         };
 
@@ -841,20 +829,6 @@ impl StateMachine {
             ModelState::Dead => "Dead".to_string(),
             ModelState::Running => "Running".to_string(),
             _ => "Unknown".to_string(),
-        }
-    }
-
-    /// Convert PackageState enum to string representation
-    #[allow(dead_code)]
-    fn package_state_to_str(&self, state: PackageState) -> String {
-        match state {
-            PackageState::Idle => "idle".to_string(),
-            PackageState::Paused => "paused".to_string(),
-            PackageState::Exited => "exited".to_string(),
-            PackageState::Degraded => "degraded".to_string(),
-            PackageState::Error => "error".to_string(),
-            PackageState::Running => "running".to_string(),
-            _ => "unknown".to_string(),
         }
     }
 

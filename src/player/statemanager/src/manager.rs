@@ -13,9 +13,11 @@
 //! state transitions, monitoring, reconciliation, and recovery for all resource types
 //! (Scenario, Package, Model, Volume, Network, Node).
 
+use crate::grpc::sender;
 use crate::state_machine::StateMachine;
 use crate::types::{ActionCommand, TransitionResult};
 use common::monitoringserver::ContainerList;
+use common::spec::artifact::Artifact;
 
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
@@ -645,8 +647,10 @@ impl StateManagerManager {
                             continue;
                         }
 
-                        // If package is in error state, trigger ActionController reconcile
-                        if new_state == common::statemanager::PackageState::Error {
+                        // If package is in error or degraded state, trigger ActionController reconcile
+                        if new_state == common::statemanager::PackageState::Error
+                            || new_state == common::statemanager::PackageState::Degraded
+                        {
                             if let Err(e) = self
                                 .trigger_action_controller_reconcile(&package_name)
                                 .await
@@ -688,19 +692,80 @@ impl StateManagerManager {
             package_name
         );
 
-        // TODO: Implement actual gRPC call to ActionController
-        // For now, we'll just log the action that would be taken
-        // In a real implementation, this would:
-        // 1. Create a gRPC client to ActionController
-        // 2. Send reconcile request with package information
-        // 3. Handle the response appropriately
+        // Find scenario that contains this package
+        let scenario_name = match self.find_scenario_for_package(package_name).await {
+            Ok(Some(name)) => name,
+            Ok(None) => {
+                println!("      No scenario found for package: {}", package_name);
+                return Err(format!("No scenario found for package: {}", package_name));
+            }
+            Err(e) => {
+                println!(
+                    "      Failed to find scenario for package {}: {:?}",
+                    package_name, e
+                );
+                return Err(format!("Failed to find scenario for package: {}", e));
+            }
+        };
 
-        println!("      [PLACEHOLDER] Would send gRPC reconcile request to ActionController for package: {}", package_name);
-        println!(
-            "      [PLACEHOLDER] ActionController would attempt to recover the failed package"
-        );
+        // Create reconcile request using the gRPC sender
+        let reconcile_request = common::actioncontroller::ReconcileRequest {
+            scenario_name: scenario_name.clone(),
+            current: common::actioncontroller::PodStatus::Failed.into(),
+            desired: common::actioncontroller::PodStatus::Running.into(),
+        };
 
-        Ok(())
+        match sender::_send(reconcile_request).await {
+            Ok(response) => {
+                println!(
+                    "      Successfully sent reconcile request for scenario: {}",
+                    scenario_name
+                );
+                println!(
+                    "      ActionController response: status={:?}",
+                    response.get_ref().status
+                );
+                Ok(())
+            }
+            Err(e) => {
+                let error_msg = format!(
+                    "Failed to send reconcile request to ActionController: {:?}",
+                    e
+                );
+                println!("      {}", error_msg);
+                Err(error_msg)
+            }
+        }
+    }
+
+    /// Find scenario that contains the given package
+    async fn find_scenario_for_package(
+        &self,
+        package_name: &str,
+    ) -> std::result::Result<Option<String>, String> {
+        // Get all scenarios from ETCD
+        match common::etcd::get_all_with_prefix("Scenario/").await {
+            Ok(scenario_entries) => {
+                for kv in scenario_entries {
+                    match serde_yaml::from_str::<common::spec::artifact::Scenario>(&kv.value) {
+                        Ok(scenario) => {
+                            // Check if this scenario references the package
+                            if scenario.get_targets() == package_name {
+                                return Ok(Some(scenario.get_name()));
+                            }
+                        }
+                        Err(e) => {
+                            println!("      Failed to parse scenario {}: {:?}", kv.key, e);
+                        }
+                    }
+                }
+                Ok(None) // No scenario found containing this package
+            }
+            Err(e) => {
+                println!("      Failed to get scenarios from ETCD: {:?}", e);
+                Err(format!("Failed to get scenarios from ETCD: {:?}", e))
+            }
+        }
     }
 
     /// Main message processing loop for handling gRPC requests.

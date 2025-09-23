@@ -41,6 +41,7 @@ use tokio::time::Instant;
 // ========================================
 
 /// Default backoff duration for CrashLoopBackOff states
+#[allow(dead_code)]
 const BACKOFF_DURATION_SECS: u64 = 30;
 
 /// Maximum consecutive failures before marking resource as unhealthy
@@ -104,6 +105,7 @@ pub struct StateMachine {
     ///
     /// Tracks when resources that have failed transitions can be retried,
     /// implementing exponential backoff to prevent resource thrashing.
+    #[allow(dead_code)]
     backoff_timers: HashMap<String, Instant>,
 
     /// Action command sender for async execution
@@ -544,6 +546,69 @@ impl StateMachine {
         ModelState::Running
     }
 
+    /// Evaluates package state based on model states according to Korean documentation requirements
+    ///
+    /// This function implements the package state transition rules defined in StateManager_Package.md:
+    /// - idle: Initial package state (creation default)
+    /// - paused: All models are in paused state
+    /// - exited: All models are in exited state
+    /// - degraded: Some (1+) models are in dead state, but not all models are dead
+    /// - error: All models are in dead state
+    /// - running: Default state when none of the above conditions are met
+    ///
+    /// # Parameters
+    /// - `model_states`: List of (model_name, model_state) tuples
+    ///
+    /// # Returns
+    /// - `PackageState`: The determined package state based on model states
+    pub fn evaluate_package_state_from_models(
+        &self,
+        model_states: &[(String, ModelState)],
+    ) -> PackageState {
+        if model_states.is_empty() {
+            return PackageState::Idle;
+        }
+
+        let total_models = model_states.len();
+        let mut paused_count = 0;
+        let mut exited_count = 0;
+        let mut dead_count = 0;
+
+        // Count models in each relevant state
+        for (_, model_state) in model_states {
+            match model_state {
+                ModelState::Paused => paused_count += 1,
+                ModelState::Exited => exited_count += 1,
+                ModelState::Dead => dead_count += 1,
+                _ => {} // Other states don't directly impact package state rules
+            }
+        }
+
+        // Apply package state transition rules from documentation
+        // Rule 1: error - All models are in dead state
+        if dead_count == total_models {
+            return PackageState::Error;
+        }
+
+        // Rule 2: degraded - Some (1+) models are in dead state, but not all
+        if dead_count > 0 && dead_count < total_models {
+            return PackageState::Degraded;
+        }
+
+        // Rule 3: paused - All models are in paused state
+        if paused_count == total_models {
+            return PackageState::Paused;
+        }
+
+        // Rule 4: exited - All models are in exited state
+        if exited_count == total_models {
+            return PackageState::Exited;
+        }
+
+        // Rule 5: running - Default state when none of above conditions are met
+        PackageState::Running
+    }
+
     /// Parses container state from the state HashMap
     fn parse_container_state(
         &self,
@@ -582,6 +647,20 @@ impl StateMachine {
             ModelState::Dead => "Dead".to_string(),
             ModelState::Running => "Running".to_string(),
             _ => "Unknown".to_string(),
+        }
+    }
+
+    /// Convert PackageState enum to string representation
+    #[allow(dead_code)]
+    fn package_state_to_str(&self, state: PackageState) -> String {
+        match state {
+            PackageState::Idle => "idle".to_string(),
+            PackageState::Paused => "paused".to_string(),
+            PackageState::Exited => "exited".to_string(),
+            PackageState::Degraded => "degraded".to_string(),
+            PackageState::Error => "error".to_string(),
+            PackageState::Running => "running".to_string(),
+            _ => "unknown".to_string(),
         }
     }
 
@@ -1125,5 +1204,98 @@ impl StateMachine {
 impl Default for StateMachine {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use common::statemanager::{ModelState, PackageState};
+
+    #[test]
+    fn test_evaluate_package_state_from_models_empty() {
+        let state_machine = StateMachine::new();
+        let model_states = vec![];
+        let result = state_machine.evaluate_package_state_from_models(&model_states);
+        assert_eq!(result, PackageState::Idle);
+    }
+
+    #[test]
+    fn test_evaluate_package_state_all_dead() {
+        let state_machine = StateMachine::new();
+        let model_states = vec![
+            ("model1".to_string(), ModelState::Dead),
+            ("model2".to_string(), ModelState::Dead),
+        ];
+        let result = state_machine.evaluate_package_state_from_models(&model_states);
+        assert_eq!(result, PackageState::Error);
+    }
+
+    #[test]
+    fn test_evaluate_package_state_some_dead() {
+        let state_machine = StateMachine::new();
+        let model_states = vec![
+            ("model1".to_string(), ModelState::Dead),
+            ("model2".to_string(), ModelState::Running),
+        ];
+        let result = state_machine.evaluate_package_state_from_models(&model_states);
+        assert_eq!(result, PackageState::Degraded);
+    }
+
+    #[test]
+    fn test_evaluate_package_state_all_paused() {
+        let state_machine = StateMachine::new();
+        let model_states = vec![
+            ("model1".to_string(), ModelState::Paused),
+            ("model2".to_string(), ModelState::Paused),
+        ];
+        let result = state_machine.evaluate_package_state_from_models(&model_states);
+        assert_eq!(result, PackageState::Paused);
+    }
+
+    #[test]
+    fn test_evaluate_package_state_all_exited() {
+        let state_machine = StateMachine::new();
+        let model_states = vec![
+            ("model1".to_string(), ModelState::Exited),
+            ("model2".to_string(), ModelState::Exited),
+        ];
+        let result = state_machine.evaluate_package_state_from_models(&model_states);
+        assert_eq!(result, PackageState::Exited);
+    }
+
+    #[test]
+    fn test_evaluate_package_state_mixed_running() {
+        let state_machine = StateMachine::new();
+        let model_states = vec![
+            ("model1".to_string(), ModelState::Running),
+            ("model2".to_string(), ModelState::Created),
+        ];
+        let result = state_machine.evaluate_package_state_from_models(&model_states);
+        assert_eq!(result, PackageState::Running);
+    }
+
+    #[test]
+    fn test_evaluate_package_state_priority_dead_over_paused() {
+        let state_machine = StateMachine::new();
+        let model_states = vec![
+            ("model1".to_string(), ModelState::Dead),
+            ("model2".to_string(), ModelState::Paused),
+            ("model3".to_string(), ModelState::Paused),
+        ];
+        let result = state_machine.evaluate_package_state_from_models(&model_states);
+        assert_eq!(result, PackageState::Degraded);
+    }
+
+    #[test]
+    fn test_evaluate_package_state_priority_dead_over_exited() {
+        let state_machine = StateMachine::new();
+        let model_states = vec![
+            ("model1".to_string(), ModelState::Dead),
+            ("model2".to_string(), ModelState::Exited),
+            ("model3".to_string(), ModelState::Exited),
+        ];
+        let result = state_machine.evaluate_package_state_from_models(&model_states);
+        assert_eq!(result, PackageState::Degraded);
     }
 }

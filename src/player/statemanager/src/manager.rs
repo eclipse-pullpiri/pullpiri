@@ -16,6 +16,7 @@
 use crate::state_machine::StateMachine;
 use crate::types::{ActionCommand, TransitionResult};
 use common::monitoringserver::ContainerList;
+use common::spec::artifact::Artifact; // Import Artifact trait
 
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
@@ -477,6 +478,10 @@ impl StateManagerManager {
                         println!("    Failed to save model state to ETCD: {:?}", e);
                     } else {
                         println!("    Successfully saved model state to ETCD");
+
+                        // Trigger package state evaluation based on model state change
+                        // This implements the chain reaction described in the Korean documentation
+                        self.trigger_package_state_evaluation(&model_name).await;
                     }
                 } else {
                     println!("    Model state unchanged: {}", transition_result.message);
@@ -546,7 +551,7 @@ impl StateManagerManager {
         &self,
         model_name: &str,
         model_state: common::statemanager::ModelState,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), String> {
         let key = format!("/model/{}/state", model_name);
         let value = match model_state {
             common::statemanager::ModelState::Created => "Created",
@@ -561,8 +566,321 @@ impl StateManagerManager {
 
         if let Err(e) = common::etcd::put(&key, value).await {
             println!("    Failed to save model state: {:?}", e);
-            return Err(format!("Failed to save model state for {}: {:?}", model_name, e).into());
+            return Err(format!(
+                "Failed to save model state for {}: {:?}",
+                model_name, e
+            ));
         }
+
+        Ok(())
+    }
+
+    /// Saves package state to ETCD using the format specified in the Korean documentation
+    ///
+    /// Format: /package/{package_name}/state -> state_value (e.g., "running", "degraded", "error")
+    async fn save_package_state_to_etcd(
+        &self,
+        package_name: &str,
+        package_state: common::statemanager::PackageState,
+    ) -> std::result::Result<(), String> {
+        let key = format!("/package/{}/state", package_name);
+        let value = package_state.as_str_name();
+
+        println!(
+            "    Saving package state to ETCD - Key: {}, Value: {}",
+            key, value
+        );
+
+        if let Err(e) = common::etcd::put(&key, value).await {
+            println!("    Failed to save package state: {:?}", e);
+            return Err(format!(
+                "Failed to save package state for {}: {:?}",
+                package_name, e
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Retrieves all model states for models that belong to a given package
+    ///
+    /// This function queries ETCD to get all model states and filters them
+    /// to find models that belong to the specified package.
+    async fn get_models_for_package(
+        &self,
+        package_name: &str,
+    ) -> std::result::Result<Vec<(String, common::statemanager::ModelState)>, String> {
+        // Get package definition from ETCD to find its models
+        let package_key = format!("Package/{}", package_name);
+        let package_yaml = match common::etcd::get(&package_key).await {
+            Ok(yaml) => yaml,
+            Err(e) => {
+                println!("    Failed to get package definition: {:?}", e);
+                return Ok(Vec::new());
+            }
+        };
+
+        // Parse package YAML to extract model names
+        let package: common::spec::artifact::Package = match serde_yaml::from_str(&package_yaml) {
+            Ok(pkg) => pkg,
+            Err(e) => {
+                println!("    Failed to parse package YAML: {:?}", e);
+                return Ok(Vec::new());
+            }
+        };
+
+        let mut model_states = Vec::new();
+
+        // Get state for each model in the package
+        for model_info in package.get_models() {
+            let model_name = model_info.get_name();
+            let model_state_key = format!("/model/{}/state", model_name);
+
+            match common::etcd::get(&model_state_key).await {
+                Ok(state_str) => {
+                    let model_state = match state_str.as_str() {
+                        "Created" => common::statemanager::ModelState::Created,
+                        "Paused" => common::statemanager::ModelState::Paused,
+                        "Exited" => common::statemanager::ModelState::Exited,
+                        "Dead" => common::statemanager::ModelState::Dead,
+                        "Running" => common::statemanager::ModelState::Running,
+                        _ => common::statemanager::ModelState::Running, // Default to Running
+                    };
+                    model_states.push((model_name, model_state));
+                }
+                Err(_) => {
+                    // If model state not found, assume it's in Created state
+                    model_states.push((model_name, common::statemanager::ModelState::Created));
+                }
+            }
+        }
+
+        Ok(model_states)
+    }
+
+    /// Triggers package state evaluation and update based on model state changes
+    ///
+    /// This function implements the chain reaction described in the Korean documentation:
+    /// When a model state changes, it triggers package state evaluation to see if the
+    /// package state should also change based on the states of all models in the package.
+    async fn trigger_package_state_evaluation(&self, changed_model_name: &str) {
+        println!(
+            "  Triggering package state evaluation for model: {}",
+            changed_model_name
+        );
+
+        // Find all packages that contain this model
+        let packages = match self
+            .find_packages_containing_model(changed_model_name)
+            .await
+        {
+            Ok(pkgs) => pkgs,
+            Err(e) => {
+                println!(
+                    "    Failed to find packages for model {}: {:?}",
+                    changed_model_name, e
+                );
+                return;
+            }
+        };
+
+        // Evaluate and update state for each package
+        for package_name in packages {
+            if let Err(e) = self.evaluate_and_update_package_state(&package_name).await {
+                println!(
+                    "    Failed to evaluate package state for {}: {:?}",
+                    package_name, e
+                );
+            }
+        }
+    }
+
+    /// Find all packages that contain the given model
+    async fn find_packages_containing_model(
+        &self,
+        model_name: &str,
+    ) -> std::result::Result<Vec<String>, String> {
+        let mut packages = Vec::new();
+
+        // Get all packages from ETCD with prefix
+        match common::etcd::get_all_with_prefix("Package/").await {
+            Ok(package_entries) => {
+                for kv in package_entries {
+                    match serde_yaml::from_str::<common::spec::artifact::Package>(&kv.value) {
+                        Ok(package) => {
+                            // Check if this package contains the model
+                            for model_info in package.get_models() {
+                                if model_info.get_name() == model_name {
+                                    packages.push(package.get_name());
+                                    break;
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            println!("    Failed to parse package {}: {:?}", kv.key, e);
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                println!("    Failed to get packages from ETCD: {:?}", e);
+                return Err(format!("Failed to get packages from ETCD: {:?}", e));
+            }
+        }
+
+        Ok(packages)
+    }
+
+    /// Evaluate and update package state based on current model states
+    async fn evaluate_and_update_package_state(
+        &self,
+        package_name: &str,
+    ) -> std::result::Result<(), String> {
+        println!("    Evaluating package state for: {}", package_name);
+
+        // Get model states for this package
+        let model_states = self.get_models_for_package(package_name).await?;
+
+        if model_states.is_empty() {
+            println!("      No models found for package {}", package_name);
+            return Ok(());
+        }
+
+        // Convert to format expected by state machine
+        let model_states_for_evaluation: Vec<(String, ModelState)> = model_states
+            .iter()
+            .map(|(name, state)| {
+                let converted_state = match state {
+                    common::statemanager::ModelState::Created => ModelState::Created,
+                    common::statemanager::ModelState::Paused => ModelState::Paused,
+                    common::statemanager::ModelState::Exited => ModelState::Exited,
+                    common::statemanager::ModelState::Dead => ModelState::Dead,
+                    common::statemanager::ModelState::Running => ModelState::Running,
+                    _ => ModelState::Running,
+                };
+                (name.clone(), converted_state)
+            })
+            .collect();
+
+        // Get current package state
+        let current_package_state = self
+            .get_current_package_state(package_name)
+            .await
+            .unwrap_or(common::statemanager::PackageState::Idle);
+
+        // Evaluate new package state using state machine
+        let new_package_state = {
+            let state_machine = self.state_machine.lock().await;
+            let evaluated_state =
+                state_machine.evaluate_package_state_from_models(&model_states_for_evaluation);
+
+            // Convert back to common::statemanager::PackageState
+            match evaluated_state {
+                PackageState::Idle => common::statemanager::PackageState::Idle,
+                PackageState::Paused => common::statemanager::PackageState::Paused,
+                PackageState::Exited => common::statemanager::PackageState::Exited,
+                PackageState::Degraded => common::statemanager::PackageState::Degraded,
+                PackageState::Error => common::statemanager::PackageState::Error,
+                PackageState::Running => common::statemanager::PackageState::Running,
+                _ => common::statemanager::PackageState::Running,
+            }
+        };
+
+        // Check if package state changed
+        if new_package_state != current_package_state {
+            println!(
+                "      Package state changed: {} -> {}",
+                current_package_state.as_str_name(),
+                new_package_state.as_str_name()
+            );
+
+            // Save new state to ETCD
+            if let Err(e) = self
+                .save_package_state_to_etcd(package_name, new_package_state)
+                .await
+            {
+                println!("      Failed to save package state: {:?}", e);
+                return Err(e);
+            }
+
+            // If package is in error state, trigger ActionController reconcile
+            if new_package_state == common::statemanager::PackageState::Error {
+                if let Err(e) = self.trigger_action_controller_reconcile(package_name).await {
+                    println!(
+                        "      Failed to trigger ActionController reconcile: {:?}",
+                        e
+                    );
+                }
+            }
+
+            println!(
+                "      Successfully updated package {} state to {}",
+                package_name,
+                new_package_state.as_str_name()
+            );
+        } else {
+            println!(
+                "      Package {} state unchanged: {}",
+                package_name,
+                current_package_state.as_str_name()
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Get current package state from ETCD
+    async fn get_current_package_state(
+        &self,
+        package_name: &str,
+    ) -> Option<common::statemanager::PackageState> {
+        let key = format!("/package/{}/state", package_name);
+        match common::etcd::get(&key).await {
+            Ok(state_str) => match state_str.as_str() {
+                "PACKAGE_STATE_IDLE" | "idle" => Some(common::statemanager::PackageState::Idle),
+                "PACKAGE_STATE_PAUSED" | "paused" => {
+                    Some(common::statemanager::PackageState::Paused)
+                }
+                "PACKAGE_STATE_EXITED" | "exited" => {
+                    Some(common::statemanager::PackageState::Exited)
+                }
+                "PACKAGE_STATE_DEGRADED" | "degraded" => {
+                    Some(common::statemanager::PackageState::Degraded)
+                }
+                "PACKAGE_STATE_ERROR" | "error" => Some(common::statemanager::PackageState::Error),
+                "PACKAGE_STATE_RUNNING" | "running" => {
+                    Some(common::statemanager::PackageState::Running)
+                }
+                _ => Some(common::statemanager::PackageState::Idle),
+            },
+            Err(_) => None,
+        }
+    }
+
+    /// Trigger ActionController reconcile request for dead/error package state
+    ///
+    /// This implements the requirement from the Korean documentation to send gRPC
+    /// reconcile request to ActionController when package enters error (dead) state.
+    async fn trigger_action_controller_reconcile(
+        &self,
+        package_name: &str,
+    ) -> std::result::Result<(), String> {
+        println!(
+            "      Triggering ActionController reconcile for package: {}",
+            package_name
+        );
+
+        // TODO: Implement actual gRPC call to ActionController
+        // For now, we'll just log the action that would be taken
+        // In a real implementation, this would:
+        // 1. Create a gRPC client to ActionController
+        // 2. Send reconcile request with package information
+        // 3. Handle the response appropriately
+
+        println!("      [PLACEHOLDER] Would send gRPC reconcile request to ActionController for package: {}", package_name);
+        println!(
+            "      [PLACEHOLDER] ActionController would attempt to recover the failed package"
+        );
 
         Ok(())
     }

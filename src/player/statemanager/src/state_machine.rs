@@ -26,7 +26,9 @@
 //! let result = state_machine.process_state_change(state_change);
 //! ```
 
-use crate::types::{ActionCommand, HealthStatus, ResourceState, StateTransition, TransitionResult};
+use crate::types::{
+    ActionCommand, ContainerState, HealthStatus, ResourceState, StateTransition, TransitionResult,
+};
 use common::statemanager::{
     ErrorCode, ModelState, PackageState, ResourceType, ScenarioState, StateChange,
 };
@@ -411,25 +413,29 @@ impl StateMachine {
 
     /// Process model state update based on container states
     ///
-    /// This method handles model state transitions triggered by container state changes,
+    /// This method handles model state evaluation and transitions triggered by container state changes,
     /// implementing the business logic defined in the StateManager_Model.md documentation.
     ///
     /// # Parameters
     /// - `model_name`: The name of the model to update
-    /// - `new_model_state`: The new state determined by container analysis
+    /// - `containers`: List of containers associated with this model
     ///
     /// # Returns
-    /// - `TransitionResult`: Results of the state transition attempt
+    /// - `TransitionResult`: Results of the state evaluation and transition attempt
+    ///   - Contains whether state changed, the new state, and transition details
     pub fn process_model_state_update(
         &mut self,
         model_name: &str,
-        new_model_state: ModelState,
+        containers: &[&common::monitoringserver::ContainerInfo],
     ) -> TransitionResult {
         let resource_key = self.generate_resource_key(ResourceType::Model, model_name);
         let timestamp_ns = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_nanos() as i64;
+
+        // Evaluate the new model state based on container states
+        let new_model_state = self.evaluate_model_state_from_containers(containers);
 
         // Create a pseudo state change for internal processing
         let state_change = StateChange {
@@ -475,7 +481,7 @@ impl StateMachine {
             ResourceType::Model,
         );
 
-        // Return successful transition result
+        // Return successful transition result indicating state changed
         TransitionResult {
             new_state: target_state,
             error_code: ErrorCode::Success,
@@ -488,6 +494,83 @@ impl StateMachine {
             transition_id: state_change.transition_id,
             error_details: String::new(),
         }
+    }
+
+    /// Evaluates the model state based on container states according to the state transition rules
+    fn evaluate_model_state_from_containers(
+        &self,
+        containers: &[&common::monitoringserver::ContainerInfo],
+    ) -> ModelState {
+        if containers.is_empty() {
+            return ModelState::Created;
+        }
+
+        let mut _running_count = 0;
+        let mut paused_count = 0;
+        let mut exited_count = 0;
+        let mut dead_count = 0;
+        let mut _stopped_count = 0;
+
+        for container in containers {
+            match self.parse_container_state(container) {
+                ContainerState::Running => _running_count += 1,
+                ContainerState::Paused => paused_count += 1,
+                ContainerState::Exited => exited_count += 1,
+                ContainerState::Dead => dead_count += 1,
+                ContainerState::Stopped => _stopped_count += 1,
+                ContainerState::Created => {} // Created containers don't affect model state
+            }
+        }
+
+        let total_containers = containers.len();
+
+        // Apply state transition rules from documentation
+        // Rule 1: Dead - if one or more containers are dead
+        if dead_count > 0 {
+            return ModelState::Dead;
+        }
+
+        // Rule 2: Paused - if all containers are paused
+        if paused_count == total_containers {
+            return ModelState::Paused;
+        }
+
+        // Rule 3: Exited - if all containers are exited
+        if exited_count == total_containers {
+            return ModelState::Exited;
+        }
+
+        // Rule 4: Running - default state (none of above conditions met)
+        ModelState::Running
+    }
+
+    /// Parses container state from the state HashMap
+    fn parse_container_state(
+        &self,
+        container: &common::monitoringserver::ContainerInfo,
+    ) -> ContainerState {
+        // Check the "Status" field first
+        if let Some(status) = container.state.get("Status") {
+            match status.to_lowercase().as_str() {
+                "running" => return ContainerState::Running,
+                "paused" => return ContainerState::Paused,
+                "exited" => return ContainerState::Exited,
+                "dead" => return ContainerState::Dead,
+                "stopped" => return ContainerState::Stopped,
+                "created" => return ContainerState::Created,
+                _ => {}
+            }
+        }
+
+        // Check "Running" boolean field as fallback
+        if let Some(running) = container.state.get("Running") {
+            if running == "true" {
+                return ContainerState::Running;
+            }
+        }
+
+        // Default to Created if state cannot be determined
+        ContainerState::Created
     }
 
     /// Convert ModelState enum to string representation

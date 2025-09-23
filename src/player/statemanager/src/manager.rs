@@ -14,7 +14,7 @@
 //! (Scenario, Package, Model, Volume, Network, Node).
 
 use crate::state_machine::StateMachine;
-use crate::types::{ActionCommand, ContainerState, TransitionResult};
+use crate::types::{ActionCommand, TransitionResult};
 use common::monitoringserver::ContainerList;
 
 use common::statemanager::{
@@ -22,7 +22,6 @@ use common::statemanager::{
 };
 
 use common::Result;
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 use tokio::task;
@@ -444,20 +443,30 @@ impl StateManagerManager {
         for (model_name, containers) in model_containers {
             println!("  Processing model: {}", model_name);
 
-            // Evaluate the current model state based on its containers
-            if let Some(new_model_state) = self.evaluate_model_state(&containers).await {
-                println!("    Determined model state: {:?}", new_model_state);
+            // Process the state evaluation and transition through the state machine
+            let mut state_machine = self.state_machine.lock().await;
+            let transition_result =
+                state_machine.process_model_state_update(&model_name, &containers);
 
-                // Process the state transition through the state machine
-                let mut state_machine = self.state_machine.lock().await;
-                let transition_result =
-                    state_machine.process_model_state_update(&model_name, new_model_state);
+            if transition_result.is_success() {
+                // Check if state actually changed by looking at actions_to_execute
+                let state_changed = !transition_result.actions_to_execute.is_empty();
 
-                if transition_result.is_success() {
+                if state_changed {
                     println!(
                         "    State transition successful: {}",
                         transition_result.message
                     );
+
+                    // Extract the new model state from the transition result
+                    let new_model_state = match transition_result.new_state {
+                        1 => common::statemanager::ModelState::Created,
+                        2 => common::statemanager::ModelState::Paused,
+                        3 => common::statemanager::ModelState::Exited,
+                        4 => common::statemanager::ModelState::Dead,
+                        5 => common::statemanager::ModelState::Running,
+                        _ => common::statemanager::ModelState::Running,
+                    };
 
                     // Save the new model state to ETCD
                     drop(state_machine); // Release the lock before async operation
@@ -470,8 +479,10 @@ impl StateManagerManager {
                         println!("    Successfully saved model state to ETCD");
                     }
                 } else {
-                    println!("    State transition failed: {}", transition_result.message);
+                    println!("    Model state unchanged: {}", transition_result.message);
                 }
+            } else {
+                println!("    State evaluation failed: {}", transition_result.message);
             }
         }
 
@@ -528,83 +539,6 @@ impl StateManagerManager {
         }
 
         None
-    }
-
-    /// Evaluates the model state based on container states according to the state transition rules
-    async fn evaluate_model_state(
-        &self,
-        containers: &[&common::monitoringserver::ContainerInfo],
-    ) -> Option<common::statemanager::ModelState> {
-        if containers.is_empty() {
-            return Some(common::statemanager::ModelState::Created);
-        }
-
-        let mut running_count = 0;
-        let mut paused_count = 0;
-        let mut exited_count = 0;
-        let mut dead_count = 0;
-        let mut stopped_count = 0;
-
-        for container in containers {
-            match self.parse_container_state(container).await {
-                ContainerState::Running => running_count += 1,
-                ContainerState::Paused => paused_count += 1,
-                ContainerState::Exited => exited_count += 1,
-                ContainerState::Dead => dead_count += 1,
-                ContainerState::Stopped => stopped_count += 1,
-                ContainerState::Created => {} // Created containers don't affect model state
-            }
-        }
-
-        let total_containers = containers.len();
-
-        // Apply state transition rules from documentation
-        // Rule 1: Dead - if one or more containers are dead
-        if dead_count > 0 {
-            return Some(common::statemanager::ModelState::Dead);
-        }
-
-        // Rule 2: Paused - if all containers are paused
-        if paused_count == total_containers {
-            return Some(common::statemanager::ModelState::Paused);
-        }
-
-        // Rule 3: Exited - if all containers are exited
-        if exited_count == total_containers {
-            return Some(common::statemanager::ModelState::Exited);
-        }
-
-        // Rule 4: Running - default state (none of above conditions met)
-        Some(common::statemanager::ModelState::Running)
-    }
-
-    /// Parses container state from the state HashMap
-    async fn parse_container_state(
-        &self,
-        container: &common::monitoringserver::ContainerInfo,
-    ) -> ContainerState {
-        // Check the "Status" field first
-        if let Some(status) = container.state.get("Status") {
-            match status.to_lowercase().as_str() {
-                "running" => return ContainerState::Running,
-                "paused" => return ContainerState::Paused,
-                "exited" => return ContainerState::Exited,
-                "dead" => return ContainerState::Dead,
-                "stopped" => return ContainerState::Stopped,
-                "created" => return ContainerState::Created,
-                _ => {}
-            }
-        }
-
-        // Check "Running" boolean field as fallback
-        if let Some(running) = container.state.get("Running") {
-            if running == "true" {
-                return ContainerState::Running;
-            }
-        }
-
-        // Default to Created if state cannot be determined
-        ContainerState::Created
     }
 
     /// Saves model state to ETCD using the format specified in the documentation

@@ -80,7 +80,7 @@ pub async fn delete_symlink(model_name: &str) -> common::Result<()> {
 /// Make .kube files for Pod
 ///
 /// ### Parametets
-/// * `dir: &str, pod_name: &str` - Piccolo yaml directory path and pod name
+/// * `dir: &str, pod_name: &str` - Pullpiri yaml directory path and pod name
 /// ### Description
 /// Make .kube files for Pod
 fn make_kube_file(dir: &str, pod_name: &str) -> common::Result<()> {
@@ -113,7 +113,7 @@ Restart=no
 /// Make .yaml files for Pod
 ///
 /// ### Parametets
-/// * `dir: &str, pod: Pod` - Piccolo yaml directory path and Pod structure
+/// * `dir: &str, pod: Pod` - Pullpiri yaml directory path and Pod structure
 /// ### Description
 /// Make .yaml files for Pod
 fn make_yaml_file(dir: &str, pod: Pod) -> common::Result<()> {

@@ -62,9 +62,9 @@ kind: Model
 metadata:
   name: bms-algorithm-performance-blis
   annotations:
-    io.piccolo.annotations.package-type: blis
-    io.piccolo.annotations.package-name: bms
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: blis
+    io.pullpiri.annotations.package-name: bms
+    io.pullpiri.annotations.package-network: default
   labels:
     app: bms-blis
 spec:
@@ -79,9 +79,9 @@ kind: Model
 metadata:
   name: bms-algorithm-performance-frism
   annotations:
-    io.piccolo.annotations.package-type: frism
-    io.piccolo.annotations.package-name: bms
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: frism
+    io.pullpiri.annotations.package-name: bms
+    io.pullpiri.annotations.package-network: default
   labels:
     app: bms-frism
 spec:
@@ -96,9 +96,9 @@ kind: Model
 metadata:
   name: bms-algorithm-performance-mavd
   annotations:
-    io.piccolo.annotations.package-type: mavd
-    io.piccolo.annotations.package-name: bms
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: mavd
+    io.pullpiri.annotations.package-name: bms
+    io.pullpiri.annotations.package-network: default
   labels:
     app: bms-mavd
 spec:
@@ -116,9 +116,9 @@ kind: Model
 metadata:
   name: bms-algorithm-performance-rdv
   annotations:
-    io.piccolo.annotations.package-type: rdv
-    io.piccolo.annotations.package-name: bms
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: rdv
+    io.pullpiri.annotations.package-name: bms
+    io.pullpiri.annotations.package-network: default
   labels:
     app: bms-rdv
 spec:

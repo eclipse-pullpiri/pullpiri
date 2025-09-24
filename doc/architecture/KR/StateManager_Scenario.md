@@ -46,7 +46,7 @@ Scenario의 state는 각 컴포넌트에서 전이 조건을 만족하면 변경
 | satisfied | 조건이 만족된 상태 | 조건 만족 | ActionController | allowed 또는 denied |
 | allowed | 정책에 의해 실행이 허용된 상태 | 정책 검증 성공 | PolicyManager | completed |
 | denied | 정책에 의해 실행이 거부된 상태 | 정책 검증 실패 | PolicyManager | - |
-| completed | 시나리오 실행이 완료된 상태 | 시나리오 완료 시 | ActionController : - |
+| completed | 시나리오 실행이 완료된 상태 | 시나리오 완료 시 | ActionController| - | 
 - **인터페이스:** 외부 인터페이스(gRPC)로부터 수신, 외부 인터페이스(ETCD)로 발신
  
 ## 5. etcd로 put, get 하는 방법 규칙 

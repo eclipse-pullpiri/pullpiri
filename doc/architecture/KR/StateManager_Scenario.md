@@ -34,13 +34,11 @@ grpc/
 	- **조건:** 없음 
 	- **발신:** ETCD에 `<scenario_name, state>` put 요청
 
-## 4
-. model의 state 변경 조건
-model의 state는 model에 포함된 container의 상태가 model의 의 특정 state 조건과 일치하면 model의 state를 변경해야 합니다.
-
+## 4. Scenario의 state machine과 조건
+Scenario의 state 변경 조건
+Scenario의 state는 각 컴포넌트에서 전이 조건을 만족하면 변경됩니다.
 
 ### 4.1 시나리오 상태 머신 통합 정의
-
 | 상태 | 설명 | 전이 조건 | 담당 컴포넌트 | 다음 상태 |
 |------|------|-----------|---------------|-----------|
 | idle | 시나리오가 초기화된 상태 (아직 활성화되지 않음) | 생성 시 초기 상태 | - | waiting |
@@ -48,7 +46,7 @@ model의 state는 model에 포함된 container의 상태가 model의 의 특정 
 | satisfied | 조건이 만족된 상태 | 조건 만족 | ActionController | allowed 또는 denied |
 | allowed | 정책에 의해 실행이 허용된 상태 | 정책 검증 성공 | PolicyManager | completed |
 | denied | 정책에 의해 실행이 거부된 상태 | 정책 검증 실패 | PolicyManager | - |
-| completed | 시나리오 실행이 완료된 상태 | 시나리오 완료
+| completed | 시나리오 실행이 완료된 상태 | 시나리오 완료 시 | ActionController : - |
 - **인터페이스:** 외부 인터페이스(gRPC)로부터 수신, 외부 인터페이스(ETCD)로 발신
  
 ## 5. etcd로 put, get 하는 방법 규칙 

@@ -1,9 +1,11 @@
 use std::{thread, time::Duration};
 
+use crate::grpc::sender::statemanager::StateManagerSender;
 use crate::{grpc::sender::pharos::request_network_pod, runtime::bluechi};
 use common::{
     actioncontroller::PodStatus as Status,
     spec::artifact::{Network, Node, Package, Scenario},
+    statemanager::{ResourceType, StateChange},
     Result,
 };
 
@@ -19,6 +21,8 @@ pub struct ActionControllerManager {
     pub bluechi_nodes: Vec<String>,
     /// List of nodes managed by NodeAgent
     pub nodeagent_nodes: Vec<String>,
+    /// StateManager sender for scenario state changes
+    state_sender: StateManagerSender,
     // Add other fields as needed
 }
 
@@ -55,6 +59,7 @@ impl ActionControllerManager {
         Self {
             bluechi_nodes,
             nodeagent_nodes,
+            state_sender: StateManagerSender::new(),
         }
     }
 
@@ -187,6 +192,57 @@ impl ActionControllerManager {
                     // return Err(format!("Unknown action '{}'", action).into());
                 }
             }
+        }
+
+        // 🔍 COMMENT 2: ActionController scenario processing completion
+        // After successful scenario processing (launch/terminate/update actions),
+        // ActionController should notify StateManager of scenario state changes.
+        // This would typically involve calling StateManagerSender to report:
+        // - Action execution success/failure
+        // - Final scenario state transitions
+        // - Resource state confirmations
+
+        println!("🔄 SCENARIO STATE TRANSITION: ActionController Completion");
+        println!("   📋 Scenario: {}", scenario_name);
+        println!("   🔄 State Change: allowed → completed");
+        println!("   🔍 Reason: All scenario actions executed successfully");
+
+        // Send state change to StateManager: allowed -> completed
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as i64;
+
+        let state_change = StateChange {
+            resource_type: ResourceType::Scenario as i32,
+            resource_name: scenario_name.to_string(),
+            current_state: "allowed".to_string(),
+            target_state: "completed".to_string(),
+            transition_id: format!("actioncontroller-processing-complete-{}", timestamp),
+            timestamp_ns: timestamp,
+            source: "actioncontroller".to_string(),
+        };
+
+        println!("   📤 Sending StateChange to StateManager:");
+        println!("      • Resource Type: SCENARIO");
+        println!("      • Resource Name: {}", state_change.resource_name);
+        println!("      • Current State: {}", state_change.current_state);
+        println!("      • Target State: {}", state_change.target_state);
+        println!("      • Transition ID: {}", state_change.transition_id);
+        println!("      • Source: {}", state_change.source);
+
+        if let Err(e) = self
+            .state_sender
+            .clone()
+            .send_state_change(state_change)
+            .await
+        {
+            println!("   ❌ Failed to send state change to StateManager: {:?}", e);
+        } else {
+            println!(
+                "   ✅ Successfully notified StateManager: scenario {} allowed → completed",
+                scenario_name
+            );
         }
 
         Ok(())

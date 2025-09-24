@@ -142,6 +142,10 @@ impl Filter {
 
         if check {
             println!("Condition met for scenario: {}", self.scenario_name);
+            println!("🔄 SCENARIO STATE TRANSITION: FilterGateway Processing");
+            println!("   📋 Scenario: {}", self.scenario_name);
+            println!("   🔄 State Change: idle → waiting");
+            println!("   🔍 Reason: Scenario condition satisfied");
 
             // 🔍 COMMENT 1: FilterGateway condition registration
             // When scenario condition is met, FilterGateway triggers ActionController
@@ -164,23 +168,33 @@ impl Filter {
                 source: "filtergateway".to_string(),
             };
 
+            println!("   📤 Sending StateChange to StateManager:");
+            println!("      • Resource Type: SCENARIO");
+            println!("      • Resource Name: {}", state_change.resource_name);
+            println!("      • Current State: {}", state_change.current_state);
+            println!("      • Target State: {}", state_change.target_state);
+            println!("      • Transition ID: {}", state_change.transition_id);
+            println!("      • Source: {}", state_change.source);
+
             if let Err(e) = self
                 .state_sender
                 .clone()
                 .send_state_change(state_change)
                 .await
             {
-                println!("Failed to send state change to StateManager: {:?}", e);
+                println!("   ❌ Failed to send state change to StateManager: {:?}", e);
             } else {
                 println!(
-                    "Successfully notified StateManager: scenario {} idle -> waiting",
+                    "   ✅ Successfully notified StateManager: scenario {} idle → waiting",
                     self.scenario_name
                 );
             }
 
+            println!("   📤 Triggering ActionController via gRPC...");
             self.sender
                 .trigger_action(self.scenario_name.clone())
                 .await?;
+            println!("   ✅ ActionController triggered successfully");
             Ok(())
         } else {
             Err("cannot meet condition".into())

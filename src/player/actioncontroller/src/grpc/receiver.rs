@@ -83,6 +83,11 @@ impl ActionControllerConnection for ActionControllerReceiver {
         // state changes (e.g., from "waiting" to "satisfied" after conditions are met).
         // State change requests would be sent via StateManagerSender.
 
+        println!("🔄 SCENARIO STATE TRANSITION: ActionController Processing");
+        println!("   📋 Scenario: {}", scenario_name);
+        println!("   🔄 State Change: waiting → satisfied");
+        println!("   🔍 Reason: ActionController received trigger_action from FilterGateway");
+
         // Send state change to StateManager: waiting -> satisfied
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -99,20 +104,29 @@ impl ActionControllerConnection for ActionControllerReceiver {
             source: "actioncontroller".to_string(),
         };
 
+        println!("   📤 Sending StateChange to StateManager:");
+        println!("      • Resource Type: SCENARIO");
+        println!("      • Resource Name: {}", state_change.resource_name);
+        println!("      • Current State: {}", state_change.current_state);
+        println!("      • Target State: {}", state_change.target_state);
+        println!("      • Transition ID: {}", state_change.transition_id);
+        println!("      • Source: {}", state_change.source);
+
         if let Err(e) = self
             .state_sender
             .clone()
             .send_state_change(state_change)
             .await
         {
-            println!("Failed to send state change to StateManager: {:?}", e);
+            println!("   ❌ Failed to send state change to StateManager: {:?}", e);
         } else {
             println!(
-                "Successfully notified StateManager: scenario {} waiting -> satisfied",
+                "   ✅ Successfully notified StateManager: scenario {} waiting → satisfied",
                 scenario_name
             );
         }
 
+        println!("   🎯 Processing scenario actions...");
         let result = match self.manager.trigger_manager_action(&scenario_name).await {
             Ok(_) => Ok(Response::new(TriggerActionResponse {
                 status: 0,
@@ -393,6 +407,75 @@ mod tests {
 
         let response = receiver.reconcile(request).await.unwrap_err();
         assert!(response.message().contains("Failed to reconcile"));
+    }
+
+    #[tokio::test]
+    async fn test_scenario_state_management_workflow() {
+        println!("🧪 Testing ActionController Scenario State Management");
+        println!("===================================================");
+
+        let manager = Arc::new(ActionControllerManager::new());
+        let receiver = ActionControllerReceiver::new(manager.clone());
+
+        // Setup test scenario in ETCD
+        let scenario_yaml = r#"
+        apiVersion: v1
+        kind: Scenario
+        metadata:
+            name: test-state-scenario
+        spec:
+            condition:
+            action: update
+            target: test-state-scenario
+        "#;
+
+        common::etcd::put("scenario/test-state-scenario", scenario_yaml)
+            .await
+            .unwrap();
+
+        let package_yaml = r#"
+        apiVersion: v1
+        kind: Package
+        metadata:
+            label: null
+            name: test-state-scenario
+        spec:
+            pattern:
+              - type: plain
+            models:
+              - name: test-state-scenario-core
+                node: HPC
+                resources:
+                    volume: test-volume
+                    network: test-network
+        "#;
+
+        common::etcd::put("package/test-state-scenario", package_yaml)
+            .await
+            .unwrap();
+
+        println!("📋 Test Scenario: test-state-scenario");
+        println!("🔄 Expected State Changes:");
+        println!("   1. waiting → satisfied (on trigger_action)");
+        println!("   2. allowed → completed (on processing completion)");
+        println!("");
+
+        // Test trigger_action (waiting -> satisfied)
+        println!("🎯 Testing trigger_action state change...");
+        let request = Request::new(TriggerActionRequest {
+            scenario_name: "test-state-scenario".to_string(),
+        });
+
+        let response = receiver.trigger_action(request).await.unwrap();
+        assert_eq!(response.get_ref().status, 0);
+        println!("✅ trigger_action completed successfully");
+        println!("");
+
+        // Cleanup
+        let _ = common::etcd::delete("scenario/test-state-scenario").await;
+        let _ = common::etcd::delete("package/test-state-scenario").await;
+
+        println!("🎉 ActionController state management test completed successfully!");
     }
 
     #[test]

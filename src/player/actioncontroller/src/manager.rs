@@ -202,6 +202,11 @@ impl ActionControllerManager {
         // - Final scenario state transitions
         // - Resource state confirmations
 
+        println!("🔄 SCENARIO STATE TRANSITION: ActionController Completion");
+        println!("   📋 Scenario: {}", scenario_name);
+        println!("   🔄 State Change: allowed → completed");
+        println!("   🔍 Reason: All scenario actions executed successfully");
+
         // Send state change to StateManager: allowed -> completed
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -218,16 +223,24 @@ impl ActionControllerManager {
             source: "actioncontroller".to_string(),
         };
 
+        println!("   📤 Sending StateChange to StateManager:");
+        println!("      • Resource Type: SCENARIO");
+        println!("      • Resource Name: {}", state_change.resource_name);
+        println!("      • Current State: {}", state_change.current_state);
+        println!("      • Target State: {}", state_change.target_state);
+        println!("      • Transition ID: {}", state_change.transition_id);
+        println!("      • Source: {}", state_change.source);
+
         if let Err(e) = self
             .state_sender
             .clone()
             .send_state_change(state_change)
             .await
         {
-            println!("Failed to send state change to StateManager: {:?}", e);
+            println!("   ❌ Failed to send state change to StateManager: {:?}", e);
         } else {
             println!(
-                "Successfully notified StateManager: scenario {} allowed -> completed",
+                "   ✅ Successfully notified StateManager: scenario {} allowed → completed",
                 scenario_name
             );
         }

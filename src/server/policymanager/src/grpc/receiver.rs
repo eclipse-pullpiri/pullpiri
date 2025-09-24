@@ -30,6 +30,15 @@ impl PolicyManagerConnection for PolicyManagerGrpcServer {
             )
         };
 
+        // 🔍 COMMENT 4: PolicyManager policy satisfaction
+        // When PolicyManager determines that a scenario satisfies policy requirements
+        // (status == 0), it should notify StateManager of the scenario state change
+        // from "satisfied" to "allowed" state. This would be done via StateManagerSender.
+        // TODO: Add StateManager notification for policy approval
+        // if status == 0 {
+        //     // Send state change: scenario_name from "satisfied" to "allowed"
+        // }
+
         Ok(Response::new(CheckPolicyResponse { status, desc }))
     }
 }

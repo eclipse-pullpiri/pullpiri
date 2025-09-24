@@ -189,6 +189,15 @@ impl ActionControllerManager {
             }
         }
 
+        // 🔍 COMMENT 2: ActionController scenario processing completion
+        // After successful scenario processing (launch/terminate/update actions),
+        // ActionController should notify StateManager of scenario state changes.
+        // This would typically involve calling StateManagerSender to report:
+        // - Action execution success/failure
+        // - Final scenario state transitions
+        // - Resource state confirmations
+        // TODO: Add StateManager notification here for scenario completion
+
         Ok(())
     }
 

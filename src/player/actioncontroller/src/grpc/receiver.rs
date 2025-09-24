@@ -70,6 +70,11 @@ impl ActionControllerConnection for ActionControllerReceiver {
         let scenario_name = request.into_inner().scenario_name;
         println!("trigger_action scenario: {}", scenario_name);
 
+        // 🔍 COMMENT 3: ActionController condition satisfaction check
+        // When ActionController receives trigger_action from FilterGateway,
+        // it processes the scenario and should notify StateManager of scenario
+        // state changes (e.g., from "waiting" to "allowed" after conditions are met).
+        // State change requests would be sent via StateManagerSender.
         let result = match self.manager.trigger_manager_action(&scenario_name).await {
             Ok(_) => Ok(Response::new(TriggerActionResponse {
                 status: 0,

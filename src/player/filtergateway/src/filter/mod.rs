@@ -137,6 +137,10 @@ impl Filter {
 
         if check {
             println!("Condition met for scenario: {}", self.scenario_name);
+            // 🔍 COMMENT 1: FilterGateway condition registration
+            // When scenario condition is met, FilterGateway triggers ActionController
+            // via gRPC call. This initiates the scenario processing workflow.
+            // The ActionController will then handle state changes with StateManager.
             self.sender
                 .trigger_action(self.scenario_name.clone())
                 .await?;

@@ -170,6 +170,13 @@ impl StateManagerConnection for StateManagerReceiver {
         let req = request.into_inner();
         let transition_id = req.transition_id.clone();
 
+        // 🔍 COMMENT 5: StateManager receiving scenario state change requests
+        // This method receives state change requests from multiple components:
+        // - FilterGateway: when scenario conditions are registered and met
+        // - ActionController: when scenario processing completes or conditions are satisfied
+        // - PolicyManager: when scenario policy requirements are satisfied
+        // All scenario state transitions flow through this central point.
+
         // Comprehensive validation of StateChange message
         if let Err(validation_error) = self.validate_state_change(&req) {
             return Ok(tonic::Response::new(StateChangeResponse {

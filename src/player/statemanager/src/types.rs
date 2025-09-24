@@ -62,9 +62,10 @@ pub struct TransitionResult {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ContainerState {
     Created,
+    Initialized,
     Running,
     Paused,
-    Stopped,
     Exited,
+    Unknown,
     Dead,
 }

@@ -507,7 +507,9 @@ impl StateMachine {
         let mut paused_count = 0;
         let mut exited_count = 0;
         let mut dead_count = 0;
-        let mut _stopped_count = 0;
+        let mut _created_count = 0;
+        let mut _initialized_count = 0;
+        let mut _unknown_count = 0;
 
         for container in containers {
             match self.parse_container_state(container) {
@@ -515,15 +517,16 @@ impl StateMachine {
                 ContainerState::Paused => paused_count += 1,
                 ContainerState::Exited => exited_count += 1,
                 ContainerState::Dead => dead_count += 1,
-                ContainerState::Stopped => _stopped_count += 1,
-                ContainerState::Created => {} // Created containers don't affect model state
+                ContainerState::Created => _created_count += 1,
+                ContainerState::Initialized => _initialized_count += 1,
+                ContainerState::Unknown => _unknown_count += 1,
             }
         }
 
         let total_containers = containers.len();
 
         // Apply state transition rules from documentation
-        // Rule 1: Dead - if one or more containers are dead
+        // Rule 1: Dead - if one or more containers are dead or unknown
         if dead_count > 0 {
             return ModelState::Dead;
         }
@@ -803,9 +806,10 @@ impl StateMachine {
                 "paused" => return ContainerState::Paused,
                 "exited" => return ContainerState::Exited,
                 "dead" => return ContainerState::Dead,
-                "stopped" => return ContainerState::Stopped,
                 "created" => return ContainerState::Created,
-                _ => {}
+                "initialized" => return ContainerState::Initialized,
+                "unknown" => return ContainerState::Unknown,
+                _ => return ContainerState::Unknown,
             }
         }
 
@@ -816,8 +820,8 @@ impl StateMachine {
             }
         }
 
-        // Default to Created if state cannot be determined
-        ContainerState::Created
+        // Default to Unknown if state cannot be determined
+        ContainerState::Unknown
     }
 
     /// Convert ModelState enum to string representation
@@ -1474,5 +1478,58 @@ mod tests {
         ];
         let result = state_machine.evaluate_package_state_from_models(&model_states);
         assert_eq!(result, PackageState::Degraded);
+    }
+
+    #[test]
+    fn test_parse_container_state_new_states() {
+        use std::collections::HashMap;
+        use common::monitoringserver::ContainerInfo;
+        
+        let state_machine = StateMachine::new();
+        
+        // Test new "initialized" state
+        let mut state_map = HashMap::new();
+        state_map.insert("Status".to_string(), "initialized".to_string());
+        let container_info = ContainerInfo {
+            id: "test-id".to_string(),
+            names: vec!["test".to_string()],
+            image: "test:latest".to_string(),
+            state: state_map,
+            config: HashMap::new(),
+            annotation: HashMap::new(),
+            stats: HashMap::new(),
+        };
+        let result = state_machine.parse_container_state(&container_info);
+        assert_eq!(result, ContainerState::Initialized);
+        
+        // Test new "unknown" state
+        let mut state_map = HashMap::new();
+        state_map.insert("Status".to_string(), "unknown".to_string());
+        let container_info = ContainerInfo {
+            id: "test-id".to_string(),
+            names: vec!["test".to_string()],
+            image: "test:latest".to_string(),
+            state: state_map,
+            config: HashMap::new(),
+            annotation: HashMap::new(),
+            stats: HashMap::new(),
+        };
+        let result = state_machine.parse_container_state(&container_info);
+        assert_eq!(result, ContainerState::Unknown);
+        
+        // Test unrecognized state defaults to Unknown
+        let mut state_map = HashMap::new();
+        state_map.insert("Status".to_string(), "some_unrecognized_state".to_string());
+        let container_info = ContainerInfo {
+            id: "test-id".to_string(),
+            names: vec!["test".to_string()],
+            image: "test:latest".to_string(),
+            state: state_map,
+            config: HashMap::new(),
+            annotation: HashMap::new(),
+            stats: HashMap::new(),
+        };
+        let result = state_machine.parse_container_state(&container_info);
+        assert_eq!(result, ContainerState::Unknown);
     }
 }

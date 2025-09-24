@@ -1,6 +1,8 @@
 use crate::grpc::sender::actioncontroller::FilterGatewaySender;
+use crate::grpc::sender::statemanager::StateManagerSender;
 use crate::vehicle::dds::DdsData;
 use common::spec::artifact::Scenario;
+use common::statemanager::{ResourceType, StateChange};
 use common::Result;
 // use dust_dds::infrastructure::wait_set::Condition;
 use std::sync::Arc;
@@ -16,6 +18,8 @@ pub struct Filter {
     is_active: bool,
     /// gRPC sender for action controller
     sender: FilterGatewaySender,
+    /// gRPC sender for state manager
+    state_sender: StateManagerSender,
 }
 
 impl Filter {
@@ -42,6 +46,7 @@ impl Filter {
             scenario,
             is_active,
             sender,
+            state_sender: StateManagerSender::new(),
         }
     }
 
@@ -137,10 +142,42 @@ impl Filter {
 
         if check {
             println!("Condition met for scenario: {}", self.scenario_name);
+
             // 🔍 COMMENT 1: FilterGateway condition registration
             // When scenario condition is met, FilterGateway triggers ActionController
             // via gRPC call. This initiates the scenario processing workflow.
             // The ActionController will then handle state changes with StateManager.
+
+            // Send state change to StateManager: idle -> waiting
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos() as i64;
+
+            let state_change = StateChange {
+                resource_type: ResourceType::Scenario as i32,
+                resource_name: self.scenario_name.clone(),
+                current_state: "idle".to_string(),
+                target_state: "waiting".to_string(),
+                transition_id: format!("filtergateway-condition-met-{}", timestamp),
+                timestamp_ns: timestamp,
+                source: "filtergateway".to_string(),
+            };
+
+            if let Err(e) = self
+                .state_sender
+                .clone()
+                .send_state_change(state_change)
+                .await
+            {
+                println!("Failed to send state change to StateManager: {:?}", e);
+            } else {
+                println!(
+                    "Successfully notified StateManager: scenario {} idle -> waiting",
+                    self.scenario_name
+                );
+            }
+
             self.sender
                 .trigger_action(self.scenario_name.clone())
                 .await?;

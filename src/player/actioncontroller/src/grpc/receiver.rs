@@ -2,6 +2,7 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 // Import the generated protobuf code
+use crate::grpc::sender::statemanager::StateManagerSender;
 use common::actioncontroller::{
     action_controller_connection_server::{
         ActionControllerConnection, ActionControllerConnectionServer,
@@ -10,6 +11,7 @@ use common::actioncontroller::{
     PodStatus as ActionStatus, ReconcileRequest, ReconcileResponse, TriggerActionRequest,
     TriggerActionResponse,
 };
+use common::statemanager::{ResourceType, StateChange};
 
 /// Receiver for handling incoming gRPC requests for ActionController
 ///
@@ -20,6 +22,8 @@ use common::actioncontroller::{
 pub struct ActionControllerReceiver {
     /// Reference to the ActionController manager
     manager: Arc<crate::manager::ActionControllerManager>,
+    /// StateManager sender for scenario state changes
+    state_sender: StateManagerSender,
 }
 
 impl ActionControllerReceiver {
@@ -33,7 +37,10 @@ impl ActionControllerReceiver {
     ///
     /// A new ActionControllerReceiver instance
     pub fn new(manager: Arc<crate::manager::ActionControllerManager>) -> Self {
-        Self { manager }
+        Self {
+            manager,
+            state_sender: StateManagerSender::new(),
+        }
     }
 
     /// Get a gRPC server for this receiver
@@ -73,8 +80,39 @@ impl ActionControllerConnection for ActionControllerReceiver {
         // 🔍 COMMENT 3: ActionController condition satisfaction check
         // When ActionController receives trigger_action from FilterGateway,
         // it processes the scenario and should notify StateManager of scenario
-        // state changes (e.g., from "waiting" to "allowed" after conditions are met).
+        // state changes (e.g., from "waiting" to "satisfied" after conditions are met).
         // State change requests would be sent via StateManagerSender.
+
+        // Send state change to StateManager: waiting -> satisfied
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as i64;
+
+        let state_change = StateChange {
+            resource_type: ResourceType::Scenario as i32,
+            resource_name: scenario_name.clone(),
+            current_state: "waiting".to_string(),
+            target_state: "satisfied".to_string(),
+            transition_id: format!("actioncontroller-condition-satisfied-{}", timestamp),
+            timestamp_ns: timestamp,
+            source: "actioncontroller".to_string(),
+        };
+
+        if let Err(e) = self
+            .state_sender
+            .clone()
+            .send_state_change(state_change)
+            .await
+        {
+            println!("Failed to send state change to StateManager: {:?}", e);
+        } else {
+            println!(
+                "Successfully notified StateManager: scenario {} waiting -> satisfied",
+                scenario_name
+            );
+        }
+
         let result = match self.manager.trigger_manager_action(&scenario_name).await {
             Ok(_) => Ok(Response::new(TriggerActionResponse {
                 status: 0,

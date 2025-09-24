@@ -330,6 +330,23 @@ impl StateManagerManager {
             println!("    Success Message: {}", result.message);
             println!("    Transition ID: {}", result.transition_id);
 
+            // 🔍 COMMENT 6: Save scenario state changes to ETCD
+            // StateManager receives state change requests from FilterGateway, ActionController, and PolicyManager
+            // and saves the scenario state transitions to ETCD for persistence
+            if resource_type == ResourceType::Scenario {
+                let etcd_key = format!("/scenario/{}/state", state_change.resource_name);
+                let etcd_value = new_state_str;
+
+                if let Err(e) = common::etcd::put(&etcd_key, etcd_value).await {
+                    println!("    Failed to save scenario state to ETCD: {:?}", e);
+                } else {
+                    println!(
+                        "    Successfully saved scenario state to ETCD: {} -> {}",
+                        etcd_key, etcd_value
+                    );
+                }
+            }
+
             // Log any actions that were queued for asynchronous execution
             // Actions are processed separately to keep state transitions fast
             if !result.actions_to_execute.is_empty() {

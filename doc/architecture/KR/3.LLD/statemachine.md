@@ -1,24 +1,12 @@
-## 4.1 Scenario 정의 및 상태 전이 다이어그램
-### 4.1.1 상태 정의
-| 상태 | 설명 |
-|------|------|
-| idle | 시나리오가 초기화된 상태 (아직 활성화되지 않음) |
-| waiting | 조건이 등록된 상태 |
-| satisfied | 조건이 만족된 상태 |
-| allowed | 정책에 의해 실행이 허용된 상태 |
-| denied | 정책에 의해 실행이 거부된 상태 |
-| completed | 시나리오 실행이 완료된 상태 |
-
-### 4.1.2 상태 전이 다이어그램
-```mermaid
-stateDiagram-v2
-  [*] --> idle: 생성
-  idle --> waiting: 조건 등록
-  waiting --> satisfied: 조건 만족
-  satisfied --> allowed: 정책 검증 성공
-  satisfied --> denied: 정책 검증 실패
-  allowed --> completed: 시나리오 완료
-```
+## 1. Scenario 상태 정의 및 상태 전이 조건 요약표
+| 상태 | 설명 | 전이 조건 | 담당 컴포넌트 | 다음 상태 |
+|------|------|-----------|---------------|-----------|
+| idle | 시나리오가 초기화된 상태 (아직 활성화되지 않음) | 생성 시 초기 상태 | - | waiting |
+| waiting | 조건이 등록된 상태 | 조건 등록 | FilterGateway | satisfied |
+| satisfied | 조건이 만족된 상태 | 조건 만족 | ActionController | allowed 또는 denied |
+| allowed | 정책에 의해 실행이 허용된 상태 | 정책 검증 성공 | PolicyManager | completed |
+| denied | 정책에 의해 실행이 거부된 상태 | 정책 검증 실패 | PolicyManager | - |
+| completed | 시나리오 실행이 완료된 상태 | 시나리오 완료 시 | ActionController| - | 
 
 ## 2. package 상태 정의 및 상태 전이 조건 요약표
 | 상태      | 설명 | 조건 |
@@ -40,7 +28,6 @@ stateDiagram-v2
 | Running   | 위 조건을 모두 만족하지 않을 때(기본 상태) | 위 조건을 모두 만족하지 않을 때(기본 상태) |
 
 ## 4. container 상태 정의 및 상태 전이 조건 요약표
-‘created’, ‘initialized’, ‘exited’, ‘paused’, ‘running’, ‘unknown’
 | 상태     | 설명                                                                 | 조건 |
 |----------|----------------------------------------------------------------------|---------------------------------------------------|
 | Created  | 컨테이너가 생성되었지만 아직 실행되지 않은 상태 |설정은 완료되었으나 프로세스가 실행되지 않음 |

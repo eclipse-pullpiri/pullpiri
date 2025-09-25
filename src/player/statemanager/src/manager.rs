@@ -679,7 +679,7 @@ impl StateManagerManager {
                             || new_state == common::statemanager::PackageState::Degraded
                         {
                             if let Err(e) = self
-                                .trigger_action_controller_reconcile(&package_name)
+                                .trigger_action_controller_reconcile_internal(&package_name)
                                 .await
                             {
                                 println!(
@@ -710,7 +710,16 @@ impl StateManagerManager {
     ///
     /// This implements the requirement from the Korean documentation to send gRPC
     /// reconcile request to ActionController when package enters error (dead) state.
-    async fn trigger_action_controller_reconcile(
+    #[cfg(test)]
+    pub async fn trigger_action_controller_reconcile(
+        &self,
+        package_name: &str,
+    ) -> std::result::Result<(), String> {
+        self.trigger_action_controller_reconcile_internal(package_name).await
+    }
+
+    /// Internal implementation of ActionController reconcile trigger
+    async fn trigger_action_controller_reconcile_internal(
         &self,
         package_name: &str,
     ) -> std::result::Result<(), String> {
@@ -1180,3 +1189,205 @@ async fn execute_action(command: ActionCommand) {
 //    - Resource usage monitoring and optimization
 //    - Health check automation and reporting
 //    - Metrics collection and observability integration
+
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+    use common::actioncontroller::{
+        action_controller_connection_server::{ActionControllerConnection, ActionControllerConnectionServer},
+        ReconcileRequest, ReconcileResponse, TriggerActionRequest, TriggerActionResponse,
+        CompleteNetworkSettingRequest, CompleteNetworkSettingResponse,
+    };
+    use std::sync::Arc;
+    use tonic::{transport::Server, Request, Response, Status};
+
+    /// Mock ActionController receiver for testing
+    #[derive(Clone)]
+    struct MockActionControllerReceiver {
+        reconcile_requests: Arc<tokio::sync::Mutex<Vec<ReconcileRequest>>>,
+    }
+
+    impl MockActionControllerReceiver {
+        fn new() -> Self {
+            Self {
+                reconcile_requests: Arc::new(tokio::sync::Mutex::new(Vec::new())),
+            }
+        }
+
+        async fn get_received_requests(&self) -> Vec<ReconcileRequest> {
+            self.reconcile_requests.lock().await.clone()
+        }
+    }
+
+    #[tonic::async_trait]
+    impl ActionControllerConnection for MockActionControllerReceiver {
+        async fn trigger_action(
+            &self,
+            _request: Request<TriggerActionRequest>,
+        ) -> std::result::Result<Response<TriggerActionResponse>, Status> {
+            Ok(Response::new(TriggerActionResponse {
+                status: 0,
+                desc: "Mock trigger action success".to_string(),
+            }))
+        }
+
+        async fn reconcile(
+            &self,
+            request: Request<ReconcileRequest>,
+        ) -> std::result::Result<Response<ReconcileResponse>, Status> {
+            let req = request.into_inner();
+            println!("📨 Mock ActionController received reconcile request:");
+            println!("   - Scenario: {}", req.scenario_name);
+            println!("   - Current: {}", req.current);
+            println!("   - Desired: {}", req.desired);
+            
+            // Store the request for verification
+            self.reconcile_requests.lock().await.push(req.clone());
+            
+            Ok(Response::new(ReconcileResponse {
+                status: 0,
+                desc: "Mock reconcile success".to_string(),
+            }))
+        }
+
+        async fn complete_network_setting(
+            &self,
+            _request: Request<CompleteNetworkSettingRequest>,
+        ) -> std::result::Result<Response<CompleteNetworkSettingResponse>, Status> {
+            Ok(Response::new(CompleteNetworkSettingResponse {
+                acknowledged: true,
+            }))
+        }
+    }
+
+    #[tokio::test]
+    async fn test_statemanager_actioncontroller_communication() {
+        println!("🧪 Testing StateManager → ActionController Communication");
+        println!("=========================================================");
+
+        // Setup mock ActionController receiver
+        let mock_receiver = MockActionControllerReceiver::new();
+        let receiver_clone = mock_receiver.clone();
+
+        // Start mock ActionController server
+        let addr = "127.0.0.1:47001".parse().unwrap();
+        let server_handle = tokio::spawn(async move {
+            println!("🚀 Starting mock ActionController server on {}", addr);
+            Server::builder()
+                .add_service(ActionControllerConnectionServer::new(receiver_clone))
+                .serve(addr)
+                .await
+                .unwrap();
+        });
+
+        // Give server time to start
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+        // Create test scenario and package data in etcd
+        let scenario_yaml = r#"
+apiVersion: v1
+kind: Scenario
+metadata:
+    name: test-communication-scenario
+spec:
+    condition:
+        express: eq
+        value: "true"
+        operands:
+            type: DDS
+            name: value
+            value: TestSignal
+    action: update
+    target: test-communication-package
+"#;
+
+        let package_yaml = r#"
+apiVersion: v1
+kind: Package
+metadata:
+    name: test-communication-package
+spec:
+    node: TestNode
+    image: test-image:latest
+    network:
+        mode: host
+"#;
+
+        // Put test data in etcd
+        common::etcd::put("Scenario/test-communication-scenario", scenario_yaml)
+            .await
+            .expect("Failed to put scenario in etcd");
+        
+        common::etcd::put("Package/test-communication-package", package_yaml)
+            .await
+            .expect("Failed to put package in etcd");
+
+        // Create StateManager and test the reconcile communication
+        let (tx_container, rx_container) = tokio::sync::mpsc::channel(100);
+        let (tx_state_change, rx_state_change) = tokio::sync::mpsc::channel(100);
+        
+        let mut state_manager = StateManagerManager::new(rx_container, rx_state_change).await;
+        state_manager.initialize().await.expect("Failed to initialize StateManager");
+
+        println!("🔄 Testing trigger_action_controller_reconcile...");
+        
+        // Call the function we're testing
+        let result = state_manager
+            .trigger_action_controller_reconcile("test-communication-package")
+            .await;
+
+        // Verify the result
+        assert!(result.is_ok(), "trigger_action_controller_reconcile should succeed: {:?}", result);
+        println!("✅ StateManager successfully sent reconcile request");
+
+        // Give some time for the request to be processed
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+        // Verify that ActionController received the request
+        let received_requests = mock_receiver.get_received_requests().await;
+        assert_eq!(received_requests.len(), 1, "ActionController should receive exactly one reconcile request");
+        
+        let received_request = &received_requests[0];
+        assert_eq!(received_request.scenario_name, "test-communication-scenario");
+        assert_eq!(received_request.current, 5); // PodStatus::FAILED
+        assert_eq!(received_request.desired, 3); // PodStatus::RUNNING
+
+        println!("✅ ActionController properly received reconcile request:");
+        println!("   - Scenario: {}", received_request.scenario_name);
+        println!("   - Current Status: {} (FAILED)", received_request.current);
+        println!("   - Desired Status: {} (RUNNING)", received_request.desired);
+
+        // Cleanup
+        common::etcd::delete("Scenario/test-communication-scenario")
+            .await
+            .expect("Failed to cleanup scenario from etcd");
+        
+        common::etcd::delete("Package/test-communication-package")
+            .await
+            .expect("Failed to cleanup package from etcd");
+
+        server_handle.abort();
+        println!("🎉 Test completed successfully!");
+    }
+
+    #[tokio::test]
+    async fn test_statemanager_error_handling() {
+        println!("🧪 Testing StateManager Error Handling");
+        println!("======================================");
+
+        // Test with package that doesn't have an associated scenario
+        let (tx_container, rx_container) = tokio::sync::mpsc::channel(100);
+        let (tx_state_change, rx_state_change) = tokio::sync::mpsc::channel(100);
+        
+        let mut state_manager = StateManagerManager::new(rx_container, rx_state_change).await;
+        state_manager.initialize().await.expect("Failed to initialize StateManager");
+
+        let result = state_manager
+            .trigger_action_controller_reconcile("nonexistent-package")
+            .await;
+
+        assert!(result.is_err(), "Should return error for nonexistent package");
+        assert!(result.unwrap_err().contains("No scenario found for package"));
+        println!("✅ Properly handles nonexistent package error");
+    }
+}

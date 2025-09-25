@@ -533,6 +533,7 @@ mod tests {
         let manager = ActionControllerManager {
             bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
+            state_sender: StateManagerSender::new(),
         };
         let result = manager
             .reconcile_do("antipinch-enable".into(), Status::Running, Status::Running)
@@ -585,6 +586,7 @@ spec:
         let manager = ActionControllerManager {
             bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
+            state_sender: StateManagerSender::new(),
         };
 
         let result = manager.trigger_manager_action("antipinch-enable").await;
@@ -612,6 +614,7 @@ spec:
         let manager: ActionControllerManager = ActionControllerManager {
             bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
+            state_sender: StateManagerSender::new(),
         };
 
         let result = manager.trigger_manager_action("invalid_scenario").await;
@@ -624,6 +627,7 @@ spec:
         let manager = ActionControllerManager {
             bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
+            state_sender: StateManagerSender::new(),
         };
 
         let result = manager
@@ -638,6 +642,7 @@ spec:
         let manager = ActionControllerManager {
             bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
+            state_sender: StateManagerSender::new(),
         };
 
         let result: std::result::Result<(), Box<dyn Error>> = manager
@@ -652,6 +657,7 @@ spec:
         let manager: ActionControllerManager = ActionControllerManager {
             bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec![],
+            state_sender: StateManagerSender::new(),
         };
 
         let result = manager
@@ -674,6 +680,7 @@ spec:
         let manager = ActionControllerManager {
             bluechi_nodes: vec![],
             nodeagent_nodes: vec![],
+            state_sender: StateManagerSender::new(),
         };
 
         assert!(manager.create_workload("test".into()).await.is_ok());
@@ -688,6 +695,7 @@ spec:
         let manager = ActionControllerManager {
             bluechi_nodes: vec!["HPC".to_string()],
             nodeagent_nodes: vec!["ZONE".to_string()],
+            state_sender: StateManagerSender::new(),
         };
 
         // Test that nodes are properly categorized

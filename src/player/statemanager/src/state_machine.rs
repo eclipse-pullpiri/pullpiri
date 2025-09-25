@@ -1482,11 +1482,11 @@ mod tests {
 
     #[test]
     fn test_parse_container_state_new_states() {
-        use std::collections::HashMap;
         use common::monitoringserver::ContainerInfo;
-        
+        use std::collections::HashMap;
+
         let state_machine = StateMachine::new();
-        
+
         // Test new "initialized" state
         let mut state_map = HashMap::new();
         state_map.insert("Status".to_string(), "initialized".to_string());
@@ -1501,7 +1501,7 @@ mod tests {
         };
         let result = state_machine.parse_container_state(&container_info);
         assert_eq!(result, ContainerState::Initialized);
-        
+
         // Test new "unknown" state
         let mut state_map = HashMap::new();
         state_map.insert("Status".to_string(), "unknown".to_string());
@@ -1516,7 +1516,7 @@ mod tests {
         };
         let result = state_machine.parse_container_state(&container_info);
         assert_eq!(result, ContainerState::Unknown);
-        
+
         // Test unrecognized state defaults to Unknown
         let mut state_map = HashMap::new();
         state_map.insert("Status".to_string(), "some_unrecognized_state".to_string());

@@ -715,7 +715,8 @@ impl StateManagerManager {
         &self,
         package_name: &str,
     ) -> std::result::Result<(), String> {
-        self.trigger_action_controller_reconcile_internal(package_name).await
+        self.trigger_action_controller_reconcile_internal(package_name)
+            .await
     }
 
     /// Internal implementation of ActionController reconcile trigger
@@ -1194,9 +1195,11 @@ async fn execute_action(command: ActionCommand) {
 mod integration_tests {
     use super::*;
     use common::actioncontroller::{
-        action_controller_connection_server::{ActionControllerConnection, ActionControllerConnectionServer},
-        ReconcileRequest, ReconcileResponse, TriggerActionRequest, TriggerActionResponse,
-        CompleteNetworkSettingRequest, CompleteNetworkSettingResponse,
+        action_controller_connection_server::{
+            ActionControllerConnection, ActionControllerConnectionServer,
+        },
+        CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, ReconcileRequest,
+        ReconcileResponse, TriggerActionRequest, TriggerActionResponse,
     };
     use std::sync::Arc;
     use tonic::{transport::Server, Request, Response, Status};
@@ -1240,10 +1243,10 @@ mod integration_tests {
             println!("   - Scenario: {}", req.scenario_name);
             println!("   - Current: {}", req.current);
             println!("   - Desired: {}", req.desired);
-            
+
             // Store the request for verification
             self.reconcile_requests.lock().await.push(req.clone());
-            
+
             Ok(Response::new(ReconcileResponse {
                 status: 0,
                 desc: "Mock reconcile success".to_string(),
@@ -1317,7 +1320,7 @@ spec:
         common::etcd::put("Scenario/test-communication-scenario", scenario_yaml)
             .await
             .expect("Failed to put scenario in etcd");
-        
+
         common::etcd::put("Package/test-communication-package", package_yaml)
             .await
             .expect("Failed to put package in etcd");
@@ -1325,19 +1328,26 @@ spec:
         // Create StateManager and test the reconcile communication
         let (tx_container, rx_container) = tokio::sync::mpsc::channel(100);
         let (tx_state_change, rx_state_change) = tokio::sync::mpsc::channel(100);
-        
+
         let mut state_manager = StateManagerManager::new(rx_container, rx_state_change).await;
-        state_manager.initialize().await.expect("Failed to initialize StateManager");
+        state_manager
+            .initialize()
+            .await
+            .expect("Failed to initialize StateManager");
 
         println!("🔄 Testing trigger_action_controller_reconcile...");
-        
+
         // Call the function we're testing
         let result = state_manager
             .trigger_action_controller_reconcile("test-communication-package")
             .await;
 
         // Verify the result
-        assert!(result.is_ok(), "trigger_action_controller_reconcile should succeed: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "trigger_action_controller_reconcile should succeed: {:?}",
+            result
+        );
         println!("✅ StateManager successfully sent reconcile request");
 
         // Give some time for the request to be processed
@@ -1345,23 +1355,33 @@ spec:
 
         // Verify that ActionController received the request
         let received_requests = mock_receiver.get_received_requests().await;
-        assert_eq!(received_requests.len(), 1, "ActionController should receive exactly one reconcile request");
-        
+        assert_eq!(
+            received_requests.len(),
+            1,
+            "ActionController should receive exactly one reconcile request"
+        );
+
         let received_request = &received_requests[0];
-        assert_eq!(received_request.scenario_name, "test-communication-scenario");
+        assert_eq!(
+            received_request.scenario_name,
+            "test-communication-scenario"
+        );
         assert_eq!(received_request.current, 5); // PodStatus::FAILED
         assert_eq!(received_request.desired, 3); // PodStatus::RUNNING
 
         println!("✅ ActionController properly received reconcile request:");
         println!("   - Scenario: {}", received_request.scenario_name);
         println!("   - Current Status: {} (FAILED)", received_request.current);
-        println!("   - Desired Status: {} (RUNNING)", received_request.desired);
+        println!(
+            "   - Desired Status: {} (RUNNING)",
+            received_request.desired
+        );
 
         // Cleanup
         common::etcd::delete("Scenario/test-communication-scenario")
             .await
             .expect("Failed to cleanup scenario from etcd");
-        
+
         common::etcd::delete("Package/test-communication-package")
             .await
             .expect("Failed to cleanup package from etcd");
@@ -1378,16 +1398,24 @@ spec:
         // Test with package that doesn't have an associated scenario
         let (tx_container, rx_container) = tokio::sync::mpsc::channel(100);
         let (tx_state_change, rx_state_change) = tokio::sync::mpsc::channel(100);
-        
+
         let mut state_manager = StateManagerManager::new(rx_container, rx_state_change).await;
-        state_manager.initialize().await.expect("Failed to initialize StateManager");
+        state_manager
+            .initialize()
+            .await
+            .expect("Failed to initialize StateManager");
 
         let result = state_manager
             .trigger_action_controller_reconcile("nonexistent-package")
             .await;
 
-        assert!(result.is_err(), "Should return error for nonexistent package");
-        assert!(result.unwrap_err().contains("No scenario found for package"));
+        assert!(
+            result.is_err(),
+            "Should return error for nonexistent package"
+        );
+        assert!(result
+            .unwrap_err()
+            .contains("No scenario found for package"));
         println!("✅ Properly handles nonexistent package error");
     }
 }

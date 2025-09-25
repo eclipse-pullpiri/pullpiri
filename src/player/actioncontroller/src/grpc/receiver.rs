@@ -496,4 +496,131 @@ mod tests {
         let receiver = ActionControllerReceiver::new(manager);
         let _service = receiver.into_service();
     }
+
+    #[tokio::test]
+    async fn test_reconcile_communication_behavior() {
+        println!("🧪 Testing ActionController reconcile communication behavior");
+
+        let manager = Arc::new(ActionControllerManager::new());
+        let receiver = ActionControllerReceiver::new(manager.clone());
+
+        // Test 1: StateManager pattern - FAILED → RUNNING (should be rejected)
+        let failed_request = Request::new(ReconcileRequest {
+            scenario_name: "test-scenario".to_string(),
+            current: 5, // PodStatus::FAILED (what StateManager sends)
+            desired: 3, // PodStatus::RUNNING (what StateManager sends)
+        });
+
+        println!("📨 Testing FAILED → RUNNING (StateManager pattern):");
+        let failed_response = receiver.reconcile(failed_request).await;
+
+        assert!(
+            failed_response.is_err(),
+            "ActionController should reject FAILED → RUNNING"
+        );
+        let error = failed_response.unwrap_err();
+        assert!(error.message().contains("Invalid current status: Failed"));
+        println!("   ✅ Correctly rejected: {}", error.message());
+
+        // Test 2: Equal states (should succeed)
+        let equal_request = Request::new(ReconcileRequest {
+            scenario_name: "test-scenario".to_string(),
+            current: 3, // PodStatus::RUNNING
+            desired: 3, // PodStatus::RUNNING
+        });
+
+        println!("📨 Testing RUNNING → RUNNING (equal states):");
+        let equal_response = receiver.reconcile(equal_request).await;
+
+        assert!(equal_response.is_ok(), "Equal states should succeed");
+        let response = equal_response.unwrap();
+        assert_eq!(response.get_ref().status, 0);
+        assert!(response.get_ref().desc.contains("equal"));
+        println!(
+            "   ✅ Equal states handled correctly: {}",
+            response.get_ref().desc
+        );
+
+        // Test 3: Different valid states (will fail due to missing scenario, but that's expected)
+        let valid_request = Request::new(ReconcileRequest {
+            scenario_name: "nonexistent-scenario".to_string(),
+            current: 2, // PodStatus::READY
+            desired: 3, // PodStatus::RUNNING
+        });
+
+        println!("📨 Testing READY → RUNNING (nonexistent scenario):");
+        let valid_response = receiver.reconcile(valid_request).await;
+
+        // This should fail due to missing scenario, which is expected behavior
+        assert!(
+            valid_response.is_err(),
+            "Should fail for nonexistent scenario"
+        );
+        let error = valid_response.unwrap_err();
+        println!(
+            "   ℹ️  Expected failure for nonexistent scenario: {}",
+            error.message()
+        );
+
+        println!("🎉 Communication behavior test completed!");
+        println!("📝 Summary:");
+        println!("   • ActionController properly validates status transitions");
+        println!("   • FAILED → RUNNING reconcile is rejected (business logic)");
+        println!("   • Equal state transitions are handled correctly");
+        println!("   • Missing scenarios are properly detected and reported");
+    }
+
+    #[tokio::test]
+    async fn test_reconcile_different_status_transitions() {
+        println!("🧪 Testing ActionController reconcile with different status transitions");
+
+        let manager = Arc::new(ActionControllerManager::new());
+        let receiver = ActionControllerReceiver::new(manager.clone());
+
+        // Test different status transition scenarios
+        let test_cases = vec![
+            ("FAILED to RUNNING", 5, 3), // StateManager pattern
+            ("NONE to RUNNING", 0, 3),   // Initial startup
+            ("READY to RUNNING", 2, 3),  // Normal transition
+            ("RUNNING to DONE", 3, 4),   // Completion
+        ];
+
+        for (description, current, desired) in test_cases {
+            println!("🔄 Testing transition: {}", description);
+
+            let request = Request::new(ReconcileRequest {
+                scenario_name: "test-scenario".to_string(),
+                current,
+                desired,
+            });
+
+            let response_result = receiver.reconcile(request).await;
+
+            if current == desired {
+                // Should succeed with "equal states" message
+                assert!(response_result.is_ok(), "Equal states should succeed");
+                let response = response_result.unwrap();
+                assert_eq!(response.get_ref().status, 0);
+                assert!(response.get_ref().desc.contains("equal"));
+                println!("   ✅ Equal states handled correctly");
+            } else {
+                // Different states - may succeed or fail depending on scenario existence
+                // For this test, we expect it to fail since scenario doesn't exist in etcd
+                match response_result {
+                    Ok(response) => {
+                        println!("   ✅ Reconcile succeeded: {}", response.get_ref().desc);
+                    }
+                    Err(status) => {
+                        println!(
+                            "   ℹ️  Reconcile failed (expected for nonexistent scenario): {}",
+                            status.message()
+                        );
+                        assert!(status.message().contains("Failed to reconcile"));
+                    }
+                }
+            }
+        }
+
+        println!("🎉 Status transition tests completed successfully!");
+    }
 }

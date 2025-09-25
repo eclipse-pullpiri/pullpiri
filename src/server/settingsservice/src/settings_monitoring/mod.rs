@@ -371,81 +371,6 @@ impl MonitoringManager {
         }
     }
 
-    /// Create a new container
-    pub async fn create_container(
-        &mut self,
-        container: &ContainerInfo,
-    ) -> Result<(), SettingsError> {
-        debug!("Creating container: {}", container.id);
-
-        // Store container info in etcd
-        crate::monitoring_etcd::store_container_info(container)
-            .await
-            .map_err(|e| {
-                SettingsError::Storage(crate::settings_utils::error::StorageError::OperationFailed(
-                    format!("Failed to store container: {}", e),
-                ))
-            })?;
-
-        info!("Successfully created container: {}", container.id);
-        Ok(())
-    }
-
-    /// Delete a container by ID
-    pub async fn delete_container(&mut self, container_id: &str) -> Result<(), SettingsError> {
-        debug!("Deleting container: {}", container_id);
-
-        // Check if container exists first
-        match crate::monitoring_etcd::get_container_info(container_id).await {
-            Ok(_) => {
-                // Container exists, proceed with deletion
-                crate::monitoring_etcd::delete_container_info(container_id)
-                    .await
-                    .map_err(|e| {
-                        SettingsError::Storage(
-                            crate::settings_utils::error::StorageError::OperationFailed(format!(
-                                "Failed to delete container: {}",
-                                e
-                            )),
-                        )
-                    })?;
-
-                info!("Successfully deleted container: {}", container_id);
-                Ok(())
-            }
-            Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Err(
-                SettingsError::Storage(crate::settings_utils::error::StorageError::NotFound(
-                    format!("Container {} not found", container_id),
-                )),
-            ),
-            Err(e) => Err(SettingsError::Storage(
-                crate::settings_utils::error::StorageError::OperationFailed(format!(
-                    "Failed to check container existence: {}",
-                    e
-                )),
-            )),
-        }
-    }
-
-    /// Store container metadata (labels, description, etc.)
-    pub async fn store_container_metadata(
-        &mut self,
-        container_id: &str,
-        metadata: &serde_json::Value,
-    ) -> Result<(), SettingsError> {
-        debug!("Storing metadata for container: {}", container_id);
-
-        crate::monitoring_etcd::store_container_metadata(container_id, metadata)
-            .await
-            .map_err(|e| {
-                SettingsError::Storage(crate::settings_utils::error::StorageError::OperationFailed(
-                    format!("Failed to store container metadata: {}", e),
-                ))
-            })?;
-
-        Ok(())
-    }
-
     /// Get container logs
     pub async fn get_container_logs(
         &mut self,
@@ -1047,52 +972,6 @@ impl MonitoringManager {
             node_name
         );
         Ok(metrics)
-    }
-
-    /// Store container with node_name and hostname labeling
-    pub async fn create_container_with_node(
-        &mut self,
-        container: &ContainerInfo,
-        node_name: &str,
-        hostname: Option<&str>,
-    ) -> Result<(), SettingsError> {
-        debug!(
-            "Creating container: {} for node: {}",
-            container.id, node_name
-        );
-
-        // Clone container and enhance with node information
-        let mut enhanced_container = container.clone();
-
-        // Add node_name to all relevant fields
-        enhanced_container
-            .state
-            .insert("node_name".to_string(), node_name.to_string());
-        enhanced_container
-            .config
-            .insert("node_name".to_string(), node_name.to_string());
-        enhanced_container
-            .annotation
-            .insert("node_name".to_string(), node_name.to_string());
-        enhanced_container
-            .stats
-            .insert("node_name".to_string(), node_name.to_string());
-
-        // Add hostname if provided
-        if let Some(hostname) = hostname {
-            enhanced_container
-                .state
-                .insert("hostname".to_string(), hostname.to_string());
-            enhanced_container
-                .config
-                .insert("hostname".to_string(), hostname.to_string());
-            enhanced_container
-                .annotation
-                .insert("hostname".to_string(), hostname.to_string());
-        }
-
-        // Store the enhanced container
-        self.create_container(&enhanced_container).await
     }
 
     /// Get containers with enhanced node information

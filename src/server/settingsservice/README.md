@@ -11,6 +11,7 @@ The Settings Service is a core component of the PICCOLO framework that provides 
 - **Resource Management**: List vehicle orchestration resources (nodes, containers, SoCs, boards)
 - **Multiple Interfaces**: REST API interface
 - **ETCD Integration**: Direct integration with monitoring ETCD storage for real-time vehicle orchestration data
+- **YAML Artifact Management**: Apply and withdraw YAML artifacts through API Server integration
 
 ## Architecture
 
@@ -19,7 +20,7 @@ The Settings Service consists of the following modules:
 - `settings_core`: Service initialization and coordination
 - `settings_config`: Configuration management with YAML/JSON support
 - `settings_history`: Change history tracking and rollback
-- `settings_monitoring`: High-level metrics data retrieval and filtering with caching
+- `settings_monitoring`: High-level metrics data retrieval and filtering with caching (returns both Metric objects with labels and raw resource objects)
 - `monitoring_etcd`: Direct ETCD operations for monitoring data (`/piccolo/metrics/`, `/piccolo/logs/`)
 - `monitoring_types`: Type definitions for vehicle orchestration metrics (NodeInfo, SocInfo, BoardInfo)
 - `settings_storage`: ETCD client for configuration data persistence
@@ -77,8 +78,6 @@ The Settings Service provides a comprehensive REST API:
 **Container Management:**
 - `GET /api/v1/containers` - List all containers
 - `GET /api/v1/containers/{id}` - Get specific container (includes logs)
-- `POST /api/v1/containers` - Create new container (enhanced with hostname labeling)
-- `DELETE /api/v1/containers/{id}` - Delete container
 
 **SoC Management:**
 - `GET /api/v1/socs` - List all SoCs
@@ -87,6 +86,12 @@ The Settings Service provides a comprehensive REST API:
 **Board Management:**
 - `GET /api/v1/boards` - List all boards
 - `GET /api/v1/boards/{name}` - Get specific board
+
+### YAML Artifact Management
+
+**New endpoints for YAML operations:**
+- `POST /api/v1/yaml` - Apply YAML artifact (forwards to API Server)
+- `DELETE /api/v1/yaml` - Withdraw YAML artifact (forwards to API Server)
 
 ### Metrics Management (Vehicle Orchestration)
 
@@ -205,14 +210,21 @@ curl http://localhost:8080/api/v1/metrics/containers
 curl http://localhost:8080/api/v1/containers/vehicle-diagnostics
 ```
 
-### Filter Metrics with Query Parameters
+### Get Metrics with Labels (returns Metric objects)
+
+```bash
+# Get all metrics with labels and filtering support
+curl http://localhost:8080/api/v1/metrics
+
+# Get only container metrics with labels
+curl "http://localhost:8080/api/v1/metrics?component=container"
+```
+
+### Filter Resources with Query Parameters
 
 ```bash
 # Get only node metrics, limit to 10 items
-curl "http://localhost:8080/api/v1/metrics?component=node&max_items=10"
-
-# Get all container metrics
-curl "http://localhost:8080/api/v1/metrics?component=container"
+curl "http://localhost:8080/api/v1/metrics/nodes?page_size=10"
 
 # Filter containers by name
 curl "http://localhost:8080/api/v1/containers?filter=diagnostics"
@@ -224,6 +236,75 @@ curl "http://localhost:8080/api/v1/metrics/socs"
 curl "http://localhost:8080/api/v1/metrics/boards"
 ```
 
+### Apply YAML Artifacts
+
+```bash
+curl -X POST http://localhost:8080/api/v1/yaml \
+  -H "Content-Type: text/plain" \
+  -d 'apiVersion: v1
+kind: Scenario
+metadata:
+  name: helloworld
+spec:
+  condition: null
+  action: update
+  target: helloworld
+---
+apiVersion: v1
+kind: Package
+metadata:
+  label: null
+  name: helloworld
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: helloworld
+      node: lge-NUC11TNHi5
+      resources:
+        volume:
+        network:
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: helloworld
+  annotations:
+    io.piccolo.annotations.package-type: helloworld
+    io.piccolo.annotations.package-name: helloworld
+    io.piccolo.annotations.package-network: default
+  labels:
+    app: helloworld
+spec:
+  hostNetwork: true
+  containers:
+    - name: helloworld
+      image: quay.io/podman/hello:latest
+  terminationGracePeriodSeconds: 0
+  restartPolicy: Always'
+```
+
+### Withdraw YAML Artifacts
+
+To withdraw (delete) a YAML artifact, you must also provide a **multi-document YAML** containing all required kinds (`Scenario`, `Package`, and `Model`). The API Server expects the full artifact definition for proper deletion.
+
+```bash
+curl -X DELETE http://localhost:8080/api/v1/yaml \
+  -H "Content-Type: text/plain" \
+  -d 'apiVersion: v1
+kind: Scenario
+metadata:
+  name: helloworld
+spec:
+  condition: null
+  action: update
+  target: helloworld'
+```
+
+**Note:**  
+- Always pass the full YAML artifact (Scenario, Package, Model) for both apply and withdraw operations.
+- The API Server will reject requests missing required kinds.
+
 ### Enable Debug Logging for Troubleshooting
 
 ```bash
@@ -232,18 +313,13 @@ RUST_LOG=debug ./target/debug/settingsservice
 
 ## Request/Response Schemas
 
-### Container Creation Request
+### YAML Artifact Request
 
-```json
-{
-  "name": "string (required)",
-  "image": "string (required)", 
-  "node_name": "string (required)",
-  "description": "string (optional)",
-  "labels": {
-    "key": "value"
-  }
-}
+```bash
+# Content-Type: text/plain
+# Body: Raw YAML content
+POST /api/v1/yaml
+DELETE /api/v1/yaml
 ```
 
 ### Pod Metrics Response (Enhanced)
@@ -270,12 +346,51 @@ RUST_LOG=debug ./target/debug/settingsservice
 }
 ```
 
+### Metric Response (with labels)
+
+```json
+{
+  "id": "string",
+  "component": "node|container|soc|board",
+  "metric_type": "NodeInfo|ContainerInfo|SocInfo|BoardInfo",
+  "labels": {
+    "container_id": "string",
+    "image": "string",
+    "status": "string",
+    "hostname": "string"
+  },
+  "value": {
+    "type": "ContainerInfo|NodeInfo|SocInfo|BoardInfo",
+    "value": "... resource object ..."
+  },
+  "timestamp": "ISO 8601 timestamp"
+}
+```
+
 ### Query Parameters (Enhanced)
 
-**Pod and Container queries now support:**
+**All resource queries support:**
 - `?page=N` - Page number for pagination
 - `?page_size=N` - Number of items per page
-- `?filter=search_term` - Filter by container name, node_name, or hostname
+- `?filter=search_term` - Filter by resource name/ID
+
+**Metrics queries additionally support:**
+- `?component=node|container|soc|board` - Filter by component type
+- `?metric_type=NodeInfo|ContainerInfo|SocInfo|BoardInfo` - Filter by metric type
+- `?filter_id=string` - Use existing filter by ID
+
+## API Response Types
+
+The Settings Service provides two types of responses for resource data:
+
+1. **Raw Resource Objects** (e.g., `/api/v1/metrics/containers`)
+   - Returns `ContainerInfo`, `NodeInfo`, `SocInfo`, `BoardInfo` directly
+   - Suitable for simple resource listing and details
+
+2. **Metric Objects with Labels** (e.g., `/api/v1/metrics`)
+   - Returns `Metric` objects containing resource data plus metadata
+   - Includes labels, timestamps, and filtering capabilities
+   - Suitable for advanced monitoring and analytics
 
 ## Vehicle Service Orchestration Integration
 
@@ -283,13 +398,14 @@ The Settings Service integrates directly with the Pullpiri vehicle orchestration
 
 - **MonitoringServer**: Stores vehicle node, container, SoC, and board metrics in ETCD at `/piccolo/metrics/`
 - **NodeAgent**: Reports node resource utilization and container status to MonitoringServer
-- **APIServer**: Consumes configurations for orchestration policies and resource management
+- **APIServer**: Consumes configurations for orchestration policies and resource management; receives YAML artifacts forwarded by Settings Service
 - **ETCD**: Central storage for both configurations (`/piccolo/settings/`) and real-time metrics (`/piccolo/metrics/`)
 
 ## Port Usage
 
 Following Pullpiri networking conventions:
 - **Settings Service**: `8080` (configurable within Pullpiri's 47001-47099 range)
+- **API Server**: `47099` (for YAML artifact forwarding)
 - **ETCD**: `2379, 2380` (standard ETCD ports)
 - **Other Pullpiri Services**: `47001-47099` (gRPC: 47001+, REST: up to 47099)
 
@@ -316,6 +432,7 @@ Error responses include detailed error messages:
 - Rust 1.70+
 - ETCD 3.5+
 - Protocol Buffers compiler (protoc)
+- API Server (for YAML artifact operations)
 
 ## License
 

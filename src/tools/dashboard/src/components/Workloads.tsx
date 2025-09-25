@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
@@ -43,6 +43,34 @@ export function Workloads({ onPodClick, pods, setPods }: WorkloadsProps) {
     top: number;
     right: number;
   } | null>(null);
+
+  // LGSI changes:
+  const [nodesDataToUse, setNodesDataToUse] = useState<any[]>([]); // Replace mock with fetched data
+  const [nodesFetchSuccess, setNodesFetchSuccess] = useState(false);
+
+  useEffect(() => {
+    const settingserviceApiUrl = import.meta.env.VITE_SETTING_SERVICE_API_URL;
+    if (!settingserviceApiUrl) {
+      console.error("VITE_SETTING_SERVICE_API_URL is not defined");
+      return;}
+    fetch(`${settingserviceApiUrl}/api/v1/metrics/nodes`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setNodesDataToUse(data);
+          setNodesFetchSuccess(true);
+          console.log("✅ Nodes API fetched:", data);
+        } else {
+          setNodesFetchSuccess(false);
+          setNodesDataToUse([]);
+        }
+      })
+      .catch(e => {
+        setNodesFetchSuccess(false);
+        setNodesDataToUse([]);
+        console.error("❌ Nodes API fetch failed:", e);
+      });
+  }, []);
 
   // Dialog states
   const [logsDialog, setLogsDialog] = useState<{
@@ -150,38 +178,49 @@ export function Workloads({ onPodClick, pods, setPods }: WorkloadsProps) {
   const failedPods = pods.filter((pod) => pod.status === "Failed").length;
 */
   // Nodes data with more detailed information
-  const nodesData = [
-    {
-      name: "worker-node-1",
-      pods: pods.filter((pod) => pod.node === "worker-node-1").length,
+  const nodesData = nodesFetchSuccess
+  ? nodesDataToUse.map((node: any) => ({
+      name: node.node_name,
+      pods: pods.filter((pod) => pod.node === node.node_name).length,
       status: "Ready",
-      cpu: "2.4/4",
-      memory: "3.2/8",
-      cpuUsage: 60,
-      memoryUsage: 40,
-      storageUsage: 35,
-    },
-    {
-      name: "worker-node-2",
-      pods: pods.filter((pod) => pod.node === "worker-node-2").length,
-      status: "Ready",
-      cpu: "1.8/4",
-      memory: "2.1/8",
-      cpuUsage: 45,
-      memoryUsage: 26,
-      storageUsage: 50,
-    },
-    {
-      name: "worker-node-3",
-      pods: pods.filter((pod) => pod.node === "worker-node-3").length,
-      status: "Ready",
-      cpu: "0.8/4",
-      memory: "1.5/8",
-      cpuUsage: 20,
-      memoryUsage: 19,
-      storageUsage: 60,
-    },
-  ];
+      cpu: `${(node.cpu_usage / 100 * node.cpu_count).toFixed(1)}/${node.cpu_count}`,
+      memory: `${(node.used_memory / 1024 / 1024 / 1024).toFixed(1)}/${(node.total_memory / 1024 / 1024 / 1024).toFixed(1)}`,
+      cpuUsage: Number(node.cpu_usage.toFixed(1)),
+      memoryUsage: Number(node.mem_usage.toFixed(1)),
+      storageUsage: 0, // If you have storage info, fill here
+    }))
+  : [
+      {
+        name: "worker-node-1",
+        pods: pods.filter((pod) => pod.node === "worker-node-1").length,
+        status: "Ready",
+        cpu: "2.4/4",
+        memory: "3.2/8",
+        cpuUsage: 60,
+        memoryUsage: 40,
+        storageUsage: 35,
+      },
+      {
+        name: "worker-node-2",
+        pods: pods.filter((pod) => pod.node === "worker-node-2").length,
+        status: "Ready",
+        cpu: "1.8/4",
+        memory: "2.1/8",
+        cpuUsage: 45,
+        memoryUsage: 26,
+        storageUsage: 50,
+      },
+      {
+        name: "worker-node-3",
+        pods: pods.filter((pod) => pod.node === "worker-node-3").length,
+        status: "Ready",
+        cpu: "0.8/4",
+        memory: "1.5/8",
+        cpuUsage: 20,
+        memoryUsage: 19,
+        storageUsage: 60,
+      },
+    ];
 
   // Get unique node names from pods
   const availableNodes = Array.from(new Set(pods.map((pod) => pod.node)));
@@ -210,13 +249,13 @@ export function Workloads({ onPodClick, pods, setPods }: WorkloadsProps) {
   // Calculate cluster health based on actual data
   /* const totalPods = pods.length; //2025-09-23 comment out
   const runningPodPercentage =
-    totalPods > 0 ? (runningPods / totalPods) * 100 : 100; 
+    totalPods > 0 ? (runningPods / totalPods) * 100 : 100;
   const healthyNodeCount = nodesData.filter(
     (node) => node.status === "Ready"
   ).length;
   const totalNodeCount = nodesData.length;
   const nodeHealthPercentage =
-    totalNodeCount > 0 ? (healthyNodeCount / totalNodeCount) * 100 : 100; 
+    totalNodeCount > 0 ? (healthyNodeCount / totalNodeCount) * 100 : 100;
   */
   // Determine cluster health status
   /*const getClusterHealth = () => {   //2025-09-23 comment out

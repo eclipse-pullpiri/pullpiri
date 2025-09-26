@@ -193,17 +193,14 @@ impl ApiServer {
             .route("/api/v1/metrics/filters", get(get_filters))
             .route("/api/v1/metrics/filters", post(create_filter))
             .route("/api/v1/metrics/filters/:id", get(get_filter))
-            .route("/api/v1/metrics/filters/:id", put(update_filter))
             .route("/api/v1/metrics/filters/:id", delete(delete_filter))
             // Configuration endpoints
             .route("/api/v1/settings", get(list_configs))
             .route("/api/v1/settings/:path", get(get_config))
             .route("/api/v1/settings/:path", post(create_config))
-            .route("/api/v1/settings/:path", put(update_config))
             .route("/api/v1/settings/:path", delete(delete_config))
             .route("/api/v1/settings/validate", post(validate_config))
             .route("/api/v1/settings/schemas/:schema_type", get(get_schema))
-            .route("/api/v1/settings/schemas/:schema_type", put(save_schema))
             // History endpoints
             .route("/api/v1/history/:path", get(get_history))
             .route("/api/v1/history/:path/version/:version", get(get_version))
@@ -219,19 +216,16 @@ impl ApiServer {
             .route("/api/v1/nodes", get(list_nodes))
             .route("/api/v1/nodes/:name", get(get_node))
             .route("/api/v1/nodes/:name/pods/metrics", get(get_pod_metrics))
-            // Container Management APIs
-            .route(
-                "/api/v1/containers",
-                get(list_containers).post(create_container),
-            )
-            .route(
-                "/api/v1/containers/:id",
-                get(get_container).delete(delete_container),
-            )
+            // Container Management APIs - CHANGED
+            .route("/api/v1/containers", get(list_containers))
+            .route("/api/v1/containers/:id", get(get_container))
             .route(
                 "/api/v1/nodes/:name/containers",
                 get(get_containers_by_node),
             )
+            // YAML Management APIs - NEW (replacing container create/delete)
+            .route("/api/v1/yaml", post(apply_yaml_artifact))
+            .route("/api/v1/yaml", delete(withdraw_yaml_artifact))
             // SoC Management APIs - READ ONLY
             .route("/api/v1/socs", get(list_socs))
             .route("/api/v1/socs/:name", get(get_soc))
@@ -385,21 +379,6 @@ async fn get_filter(
     }
 }
 
-async fn update_filter(
-    Path(id): Path<String>,
-    State(state): State<ApiState>,
-    Json(filter): Json<MetricsFilter>,
-) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
-    debug!("PUT /api/v1/metrics/filters/{}", id);
-
-    let mut monitoring_manager = state.monitoring_manager.write().await;
-
-    match monitoring_manager.update_filter(&id, &filter).await {
-        Ok(_) => Ok(StatusCode::OK),
-        Err(e) => Err(internal_error(&format!("Failed to update filter: {}", e))),
-    }
-}
-
 async fn delete_filter(
     Path(id): Path<String>,
     State(state): State<ApiState>,
@@ -473,34 +452,6 @@ async fn create_config(
     }
 }
 
-async fn update_config(
-    Path(path): Path<String>,
-    State(state): State<ApiState>,
-    Json(request): Json<ConfigRequest>,
-) -> Result<Json<Config>, (StatusCode, Json<ErrorResponse>)> {
-    debug!("PUT /api/v1/settings/{}", path);
-
-    let mut config_manager = state.config_manager.write().await;
-    let mut history_manager = state.history_manager.write().await;
-
-    match config_manager
-        .update_config(
-            &path,
-            request.content,
-            &request.author,
-            request.comment,
-            Some(&mut *history_manager),
-        )
-        .await
-    {
-        Ok(config) => Ok(Json(config)),
-        Err(e) => Err(bad_request_error(&format!(
-            "Failed to update config: {}",
-            e
-        ))),
-    }
-}
-
 async fn delete_config(
     Path(path): Path<String>,
     State(state): State<ApiState>,
@@ -544,21 +495,6 @@ async fn get_schema(
     match config_manager.get_schema(&schema_type).await {
         Ok(schema) => Ok(Json(schema)),
         Err(_) => Err(not_found_error("Schema not found")),
-    }
-}
-
-async fn save_schema(
-    Path(schema_type): Path<String>,
-    State(state): State<ApiState>,
-    Json(schema): Json<Value>,
-) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
-    debug!("PUT /api/v1/settings/schemas/{}", schema_type);
-
-    let mut config_manager = state.config_manager.write().await;
-
-    match config_manager.save_schema(&schema_type, &schema).await {
-        Ok(_) => Ok(StatusCode::OK),
-        Err(e) => Err(bad_request_error(&format!("Failed to save schema: {}", e))),
     }
 }
 
@@ -1097,132 +1033,6 @@ async fn get_container(
     }
 }
 
-async fn create_container(
-    State(state): State<ApiState>,
-    Json(request): Json<CreateContainerRequest>,
-) -> Result<Json<ContainerInfo>, (StatusCode, Json<ErrorResponse>)> {
-    debug!("POST /api/v1/containers with request: {:?}", request);
-
-    // Validate required fields
-    if request.name.is_empty() {
-        return Err(bad_request_error("Container name is required"));
-    }
-    if request.image.is_empty() {
-        return Err(bad_request_error("Container image is required"));
-    }
-    if request.node_name.is_empty() {
-        return Err(bad_request_error("Node name is required"));
-    }
-
-    let mut monitoring_manager = state.monitoring_manager.write().await;
-
-    // Create state HashMap
-    let mut state_map = HashMap::new();
-    state_map.insert("status".to_string(), "Created".to_string());
-    state_map.insert("node_name".to_string(), request.node_name.clone());
-
-    let hostname = resolve_hostname_for_node(&request.node_name)
-        .await
-        .unwrap_or_else(|| request.node_name.clone());
-    state_map.insert("hostname".to_string(), hostname.clone());
-
-    // Create config HashMap
-    let mut config_map = HashMap::new();
-    config_map.insert("image".to_string(), request.image.clone());
-    config_map.insert("hostname".to_string(), hostname.clone());
-    if let Some(ref description) = request.description {
-        config_map.insert("description".to_string(), description.clone());
-    }
-
-    // Create annotation HashMap with labels and metadata
-    let mut annotation_map = HashMap::new();
-    annotation_map.insert("node_name".to_string(), request.node_name.clone());
-    annotation_map.insert("hostname".to_string(), hostname.clone());
-    if let Some(ref description) = request.description {
-        annotation_map.insert("description".to_string(), description.clone());
-    }
-    // Add labels to annotations
-    for (key, value) in &request.labels {
-        annotation_map.insert(format!("label.{}", key), value.clone());
-    }
-
-    // Create stats HashMap (empty for new container)
-    let stats_map = HashMap::new();
-
-    // Create ContainerInfo from request with proper field types
-    let container_info = ContainerInfo {
-        id: request.name.clone(),
-        names: vec![request.name.clone()],
-        image: request.image.clone(),
-        state: state_map,
-        config: config_map,
-        annotation: annotation_map,
-        stats: stats_map,
-    };
-
-    // Store the container
-    match monitoring_manager.create_container(&container_info).await {
-        Ok(_) => {
-            // Store labels and metadata separately if needed
-            if !request.labels.is_empty() || request.description.is_some() {
-                let metadata = serde_json::json!({
-                    "image": request.image,
-                    "description": request.description,
-                    "labels": request.labels,
-                    "node_name": request.node_name
-                });
-
-                if let Err(e) = monitoring_manager
-                    .store_container_metadata(&request.name, &metadata)
-                    .await
-                {
-                    return Err(internal_error(&format!(
-                        "Failed to store container metadata: {}",
-                        e
-                    )));
-                }
-            }
-
-            info!(
-                "Successfully created container: {} with image: {} on node: {}",
-                request.name, request.image, request.node_name
-            );
-            Ok(Json(container_info))
-        }
-        Err(e) => Err(internal_error(&format!(
-            "Failed to create container: {}",
-            e
-        ))),
-    }
-}
-
-async fn delete_container(
-    Path(id): Path<String>,
-    State(state): State<ApiState>,
-) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
-    debug!("DELETE /api/v1/containers/{}", id);
-
-    let mut monitoring_manager = state.monitoring_manager.write().await;
-
-    match monitoring_manager.delete_container(&id).await {
-        Ok(_) => {
-            info!("Successfully deleted container: {}", id);
-            Ok(StatusCode::NO_CONTENT)
-        }
-        Err(e) => {
-            // Check if it's a not found error by examining the error message
-            if e.to_string().contains("not found") {
-                Err(not_found_error("Container not found"))
-            } else {
-                Err(internal_error(&format!(
-                    "Failed to delete container: {}",
-                    e
-                )))
-            }
-        }
-    }
-}
-
 async fn get_containers_by_node(
     Path(node_name): Path<String>,
     Query(query): Query<ResourceQuery>,
@@ -1265,6 +1075,91 @@ async fn resolve_hostname_for_node(node_name: &str) -> Option<String> {
     match crate::monitoring_etcd::get_node_info(node_name).await {
         Ok(node_info) => Some(node_info.node_name.clone()),
         Err(_) => None,
+    }
+}
+
+// YAML artifact operations that forward to API Server
+async fn apply_yaml_artifact(
+    State(_state): State<ApiState>,
+    body: String,
+) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
+    debug!("POST /api/v1/yaml - Applying YAML artifact");
+
+    // Forward to API Server's /api/artifact endpoint
+    match send_artifact_to_api_server(&body, "POST").await {
+        Ok(response) => {
+            info!("Successfully applied YAML artifact to API Server");
+            Ok(Json(SuccessResponse {
+                message: format!("YAML artifact applied successfully: {}", response),
+            }))
+        }
+        Err(e) => {
+            error!("Failed to apply YAML artifact: {}", e);
+            Err(internal_error(&format!(
+                "Failed to apply YAML artifact: {}",
+                e
+            )))
+        }
+    }
+}
+
+async fn withdraw_yaml_artifact(
+    State(_state): State<ApiState>,
+    body: String,
+) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
+    debug!("DELETE /api/v1/yaml - Withdrawing YAML artifact");
+
+    // Forward to API Server's /api/artifact endpoint
+    match send_artifact_to_api_server(&body, "DELETE").await {
+        Ok(response) => {
+            info!("Successfully withdrew YAML artifact from API Server");
+            Ok(Json(SuccessResponse {
+                message: format!("YAML artifact withdrawn successfully: {}", response),
+            }))
+        }
+        Err(e) => {
+            error!("Failed to withdraw YAML artifact: {}", e);
+            Err(internal_error(&format!(
+                "Failed to withdraw YAML artifact: {}",
+                e
+            )))
+        }
+    }
+}
+
+// Helper function to send artifact to API Server
+async fn send_artifact_to_api_server(yaml_content: &str, method: &str) -> Result<String, String> {
+    use reqwest::Client;
+
+    let client = Client::new();
+    let api_server_url = "http://localhost:47099/api/artifact";
+
+    let request = match method {
+        "POST" => client.post(api_server_url),
+        "DELETE" => client.delete(api_server_url),
+        _ => return Err("Unsupported HTTP method".to_string()),
+    };
+
+    let response = request
+        .header("Content-Type", "text/plain")
+        .body(yaml_content.to_string())
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?;
+
+    if response.status().is_success() {
+        let response_text = response
+            .text()
+            .await
+            .map_err(|e| format!("Failed to read response: {}", e))?;
+        Ok(response_text)
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+        Err(format!("API Server returned {}: {}", status, error_text))
     }
 }
 

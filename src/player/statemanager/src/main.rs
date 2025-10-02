@@ -145,6 +145,49 @@ async fn initialize_grpc_server(
     println!("=== StateManager gRPC Server Stopped ===");
 }
 
+async fn initialize_timpani_server() {
+    println!("=== Timpani gRPC Server Starting ===");
+
+    // Create the gRPC service handler for Timpani
+    let timpani_server = grpc::receiver::timpani::TimpaniReceiver::default();
+    println!("TimpaniReceiver instance created successfully");
+
+    // Parse the Timpani server address from configuration
+    let addr = match "127.0.0.1:50053".parse() {
+        Ok(addr) => {
+            println!("Timpani gRPC server will bind to: {addr}");
+            addr
+        }
+        Err(e) => {
+            eprintln!("Failed to parse Timpani server address: {e:?}");
+            eprintln!("Check Timpani address configuration in common module");
+            return; // Exit gracefully without panicking
+        }
+    };
+
+    // Start the gRPC server for Timpani with comprehensive error handling
+    println!("Starting Timpani gRPC server...");
+    match Server::builder()
+        .add_service(
+            common::external::fault_service_server::FaultServiceServer::new(timpani_server),
+        )
+        .serve(addr)
+        .await
+    {
+        Ok(_) => {
+            println!("Timpani gRPC server stopped gracefully");
+        }
+        Err(e) => {
+            eprintln!("Timpani gRPC server error: {e:?}");
+            eprintln!(
+                "This may indicate network issues, port conflicts, or configuration problems"
+            );
+        }
+    }
+
+    println!("=== Timpani gRPC Server Stopped ===");
+}
+
 /// Main entry point for the StateManager service.
 ///
 /// This function orchestrates the complete StateManager service startup:

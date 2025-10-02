@@ -131,6 +131,14 @@ pub mod pharos_service {
         format!("http://{}:{}", crate::setting::get_config().host.ip, 47006)
     }
 }
+
+pub mod external {
+    tonic::include_proto!("schedinfo.v1");
+    pub fn connect_timpani_server() -> String {
+        format!("http://{}:{}", crate::setting::get_config().host.ip, 50052)
+    }
+}
+
 //Unit Test Cases
 #[cfg(test)]
 mod tests {

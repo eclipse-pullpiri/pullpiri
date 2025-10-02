@@ -49,6 +49,7 @@ impl ModelInfo {
 pub struct Resource {
     volume: Option<String>,
     network: Option<String>,
+    realtime: Option<bool>,
 }
 
 impl Resource {
@@ -57,6 +58,9 @@ impl Resource {
     }
     pub fn get_network(&self) -> Option<String> {
         self.network.clone()
+    }
+    pub fn get_realtime(&self) -> Option<bool> {
+        self.realtime
     }
 }
 
@@ -109,6 +113,7 @@ mod tests {
                         resources: Resource {
                             volume: Some("vol1".to_string()),
                             network: Some("net1".to_string()),
+                            realtime: None,
                         },
                     },
                     ModelInfo {
@@ -117,6 +122,7 @@ mod tests {
                         resources: Resource {
                             volume: Some("vol2".to_string()),
                             network: None,
+                            realtime: None,
                         },
                     },
                 ],
@@ -159,6 +165,7 @@ mod tests {
             resources: Resource {
                 volume: Some("test-vol".to_string()),
                 network: Some("test-net".to_string()),
+                realtime: None,
             },
         };
 
@@ -175,20 +182,24 @@ mod tests {
         let resource_with_both = Resource {
             volume: Some("vol1".to_string()),
             network: Some("net1".to_string()),
+            realtime: None,
         };
 
         let resource_with_volume_only = Resource {
             volume: Some("vol2".to_string()),
             network: None,
+            realtime: None,
         };
 
         let resource_with_nothing = Resource {
             volume: None,
             network: None,
+            realtime: None,
         };
 
         assert_eq!(resource_with_both.get_volume(), Some("vol1".to_string()));
         assert_eq!(resource_with_both.get_network(), Some("net1".to_string()));
+        assert_eq!(resource_with_both.get_realtime(), None);
 
         assert_eq!(
             resource_with_volume_only.get_volume(),

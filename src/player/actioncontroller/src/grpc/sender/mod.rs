@@ -8,3 +8,4 @@
 pub mod pharos;
 pub mod policymanager;
 pub mod statemanager;
+pub mod timpani;

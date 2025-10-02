@@ -17,6 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "proto/policymanager.proto",
                 "proto/statemanager.proto",
                 "proto/pharos_service.proto",
+                "proto/external/timpani/schedinfo.proto",
             ],
             &["proto"],
         )?;

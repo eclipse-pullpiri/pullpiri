@@ -3,11 +3,13 @@
 
 .PHONY: default build
 build:
+	cargo build --manifest-path=agent/Cargo.toml
 	cargo build --manifest-path=player/Cargo.toml
 	cargo build --manifest-path=server/Cargo.toml
 
 .PHONY: clean
 clean:
+	cargo clean --manifest-path=agent/Cargo.toml
 	cargo clean --manifest-path=common/Cargo.toml
 	cargo clean --manifest-path=player/Cargo.toml
 	cargo clean --manifest-path=server/Cargo.toml
@@ -19,6 +21,7 @@ tool:
 
 .PHONY: fmt
 fmt:
+	cd agent && cargo fmt
 	cd common && cargo fmt
 	cd player && cargo fmt
 	cd server && cargo fmt
@@ -26,6 +29,7 @@ fmt:
 
 .PHONY: clippy
 clippy:
+	cd agent && cargo clippy
 	cd common && cargo clippy
 	cd player && cargo clippy
 	cd server && cargo clippy

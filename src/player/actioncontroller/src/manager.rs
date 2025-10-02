@@ -280,6 +280,11 @@ impl ActionControllerManager {
                     self.start_workload(&model_name, &model_node, &node_type)
                         .await
                         .map_err(|e| format!("Failed to start workload '{}': {}", model_name, e))?;
+
+                    // If pod need realtime feature, send sched info to timpani
+                    if mi.get_resources().get_realtime().unwrap_or(false) {
+                        crate::grpc::sender::timpani::add_sched_info().await;
+                    }
                 }
                 _ => {
                     // Ignore unknown action for now, or optionally return error:

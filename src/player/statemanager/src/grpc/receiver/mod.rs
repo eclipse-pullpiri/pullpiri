@@ -11,6 +11,7 @@
 //!
 //! The implementation supports the complete PICCOLO Resource State Management specification,
 //! including state changes, resource queries, recovery management, and event notifications.
+pub mod timpani;
 
 use common::monitoringserver::{ContainerList, SendContainerListResponse};
 use common::statemanager::{

@@ -1,11 +1,7 @@
-use common::nodeagent::{
-    node_agent_connection_client::NodeAgentConnectionClient, HandleYamlRequest,
-};
 use common::policymanager::{
     policy_manager_connection_client::PolicyManagerConnectionClient, CheckPolicyRequest,
 };
 use common::Result;
-use tonic::Request;
 
 /// Check if a scenario is allowed by policy
 ///

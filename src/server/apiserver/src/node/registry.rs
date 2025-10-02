@@ -49,11 +49,10 @@ impl NodeRegistry {
     ) -> Result<ClusterTopology, Box<dyn std::error::Error + Send + Sync>> {
         let topology_key = "cluster/topology";
 
-        let mut buf = Vec::new();
-        prost::Message::encode(&topology, &mut buf)?;
-        let encoded = base64::engine::general_purpose::STANDARD.encode(&buf);
+        // 인코딩을 제거하고 json string으로 변환
+        let topology_json = serde_json::to_string(&topology)?;
 
-        etcd::put(topology_key, &encoded).await?;
+        etcd::put(topology_key, &topology_json).await?;
 
         println!("Updated cluster topology: {}", topology.cluster_name);
         Ok(topology)

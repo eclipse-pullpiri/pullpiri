@@ -5,11 +5,9 @@
 
 //! Controls the flow of data between each module.
 use crate::node::node_lookup::{find_guest_nodes, find_node_by_hostname, get_node_ip};
-use crate::node::NodeManager;
 use common::apiserver::api_server_connection_server::ApiServerConnectionServer;
 use common::filtergateway::{Action, HandleScenarioRequest};
 use common::nodeagent::HandleYamlRequest;
-use prost::Message;
 use tonic::transport::Server;
 
 /// Launch REST API listener, gRPC server, and reload scenario data in etcd

@@ -11,6 +11,7 @@ dependencies = [
  "dbus",
  "prost",
  "serde",
+ "serde_json",
  "serde_yaml",
  "tokio",
  "tonic",

@@ -5,11 +5,9 @@
 
 //! Node manager for cluster operations
 
-use base64::Engine;
 use common::apiserver::NodeInfo;
 use common::etcd;
 use common::nodeagent::{NodeRegistrationRequest, NodeStatus};
-use prost::Message;
 
 /// Node manager for handling cluster node operations
 #[derive(Clone)]
@@ -43,22 +41,18 @@ impl NodeManager {
             metadata: request.metadata,
         };
 
-        // Use prost to serialize to binary format (more efficient for etcd)
-        let mut buf = Vec::new();
-        prost::Message::encode(&node_info, &mut buf)?;
 
-        // Store in etcd as base64 encoded binary
-        let encoded = base64::engine::general_purpose::STANDARD.encode(&buf);
-        etcd::put(&node_key, &encoded).await?;
+    // 1. cluster/nodes/{hostname}: 노드 정보(json string)
+    let node_json = serde_json::to_string(&node_info)?;
+    etcd::put(&node_key, &node_json).await?;
 
-        // Also add to simple keys for quick lookup
-        // 1. IP 주소로 조회하는 키
-        let ip_key = format!("nodes/{}", request.ip_address);
-        etcd::put(&ip_key, &request.ip_address).await?;
+    // 2. nodes/{ip_address}: hostname(plain string)
+    let ip_key = format!("nodes/{}", request.ip_address);
+    etcd::put(&ip_key, &request.hostname).await?;
 
-        // 2. 호스트 이름으로 조회하는 키
-        let hostname_key = format!("nodes/{}", request.hostname);
-        etcd::put(&hostname_key, &request.ip_address).await?;
+    // 3. nodes/{hostname}: ip 주소(plain string)
+    let hostname_key = format!("nodes/{}", request.hostname);
+    etcd::put(&hostname_key, &request.ip_address).await?;
 
         println!("Node {} registered successfully", request.node_id);
         Ok(format!("cluster-token-{}", request.node_id))
@@ -73,21 +67,14 @@ impl NodeManager {
 
         let mut nodes = Vec::new();
         for kv in kvs {
-            match base64::engine::general_purpose::STANDARD.decode(&kv.value) {
-                Ok(buf) => match NodeInfo::decode(&buf[..]) {
-                    Ok(node) => nodes.push(node),
-                    Err(e) => {
-                        eprintln!("Failed to decode node data for key {}: {}", kv.key, e);
-                        continue;
-                    }
-                },
+            match serde_json::from_str::<NodeInfo>(&kv.value) {
+                Ok(node) => nodes.push(node),
                 Err(e) => {
-                    eprintln!("Failed to decode base64 for key {}: {}", kv.key, e);
+                    eprintln!("Failed to parse node json for key {}: {}", kv.key, e);
                     continue;
                 }
             }
         }
-
         Ok(nodes)
     }
 
@@ -107,9 +94,8 @@ impl NodeManager {
         let node_key = format!("cluster/nodes/{}", node_id);
 
         match etcd::get(&node_key).await {
-            Ok(encoded) => {
-                let buf = base64::engine::general_purpose::STANDARD.decode(&encoded)?;
-                let node_info = NodeInfo::decode(&buf[..])?;
+            Ok(json_str) => {
+                let node_info = serde_json::from_str::<NodeInfo>(&json_str)?;
                 Ok(Some(node_info))
             }
             Err(_) => Ok(None), // Node not found
@@ -127,14 +113,11 @@ impl NodeManager {
 
             // node_name으로 키 생성
             let node_key = format!("cluster/nodes/{}", node.hostname);
-            let mut buf = Vec::new();
-            prost::Message::encode(&node, &mut buf)?;
-            let encoded = base64::engine::general_purpose::STANDARD.encode(&buf);
-            etcd::put(&node_key, &encoded).await?;
+            let node_json = serde_json::to_string(&node)?;
+            etcd::put(&node_key, &node_json).await?;
 
             println!("Updated heartbeat for node {}", node_id);
         }
-
         Ok(())
     }
 
@@ -150,14 +133,11 @@ impl NodeManager {
 
             // node.hostname을 사용하여 키 생성 (node_id 대신)
             let node_key = format!("cluster/nodes/{}", node.hostname);
-            let mut buf = Vec::new();
-            prost::Message::encode(&node, &mut buf)?;
-            let encoded = base64::engine::general_purpose::STANDARD.encode(&buf);
-            etcd::put(&node_key, &encoded).await?;
+            let node_json = serde_json::to_string(&node)?;
+            etcd::put(&node_key, &node_json).await?;
 
             println!("Updated status for node {} to {:?}", node_id, status);
         }
-
         Ok(())
     }
 

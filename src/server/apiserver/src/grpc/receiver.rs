@@ -8,7 +8,7 @@ use base64::Engine;
 use common::apiserver::api_server_connection_server::ApiServerConnection;
 use common::apiserver::{
     ClusterTopology, GetNodeRequest, GetNodeResponse, GetNodesRequest, GetNodesResponse,
-    GetTopologyRequest, GetTopologyResponse, NodeInfo, TopologyType, UpdateTopologyRequest,
+    GetTopologyRequest, GetTopologyResponse, TopologyType, UpdateTopologyRequest,
     UpdateTopologyResponse,
 };
 use common::etcd;
@@ -50,11 +50,10 @@ impl NodeRegistry {
     ) -> Result<ClusterTopology, Box<dyn std::error::Error + Send + Sync>> {
         let topology_key = "cluster/topology";
 
-        let mut buf = Vec::new();
-        prost::Message::encode(&topology, &mut buf)?;
-        let encoded = base64::engine::general_purpose::STANDARD.encode(&buf);
-
-        etcd::put(topology_key, &encoded).await?;
+        // 인코딩을 제거하고 json string으로 변환
+        let topology_json = serde_json::to_string(&topology)?;
+        
+        etcd::put(topology_key, &topology_json).await?;
 
         println!("Updated cluster topology: {}", topology.cluster_name);
         Ok(topology)
@@ -166,14 +165,13 @@ impl ApiServerConnection for ApiServerReceiver {
                     metadata: req.metadata.clone(),
                 };
 
-                let mut buf = Vec::new();
-                prost::Message::encode(&node_info, &mut buf).unwrap();
-                let encoded = base64::engine::general_purpose::STANDARD.encode(&buf);
+                // 인코딩을 제거하고 json string으로 저장
+                let node_json = serde_json::to_string(&node_info).unwrap();
 
                 // 두 가지 키로 저장
-                // 1. IP 주소로 빠른 조회용 (기존 코드)
-                let _ = common::etcd::put(&format!("nodes/{}", req.ip_address), &encoded).await;
-                println!("Node info stored at IP key: nodes/{}", req.ip_address);
+                // 1. IP 주소로 빠른 조회용 (json 문자열로 변경)
+                let _ = common::etcd::put(&format!("nodes/{}", req.ip_address), &req.hostname).await;
+                println!("Hostname stored at IP key: nodes/{}", req.ip_address);
 
                 // 2. 호스트 이름으로 빠른 조회용 (ActionController용)
                 let _ =

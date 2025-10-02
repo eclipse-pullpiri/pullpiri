@@ -26,7 +26,7 @@ spec:
     - name: systemd
       mountPath: /etc/containers/systemd
     - name: config-path
-      mountPath: /piccolo/settings.yaml
+      mountPath: /etc/piccolo/settings.yaml
   - name: statemanager
     image: localhost/pullpiri:latest
     command: ["/piccolo/statemanager"]
@@ -38,7 +38,7 @@ spec:
     - name: systemd
       mountPath: /etc/containers/systemd
     - name: config-path
-      mountPath: /piccolo/settings.yaml
+      mountPath: /etc/piccolo/settings.yaml
   volumes:
   - name: piccolo-yaml
     hostPath:

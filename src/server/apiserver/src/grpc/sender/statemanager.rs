@@ -14,7 +14,7 @@
 //! StateManager in the PICCOLO framework.
 
 use common::statemanager::{
-    connect_server, state_manager_connection_client::StateManagerConnectionClient, ResourceType,
+    connect_server, state_manager_connection_client::StateManagerConnectionClient,
     StateChange, StateChangeResponse,
 };
 use tonic::{Request, Status};

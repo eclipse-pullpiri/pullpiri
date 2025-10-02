@@ -2,14 +2,14 @@ use std::{thread, time::Duration};
 
 use crate::grpc::sender::statemanager::StateManagerSender;
 use crate::{grpc::sender::pharos::request_network_pod, runtime::bluechi};
-use base64::Engine;
+use serde_json;
 use common::{
     actioncontroller::PodStatus as Status,
-    spec::artifact::{Network, Node, Package, Scenario},
+    spec::artifact::{Package, Scenario},
     statemanager::{ResourceType, StateChange},
     Result,
 };
-use prost::Message; // Prost Message 트레이트 추가 // base64 Engine 트레이트 추가
+ // Prost Message 트레이트 추가 // base64 Engine 트레이트 추가
 
 /// Manager for coordinating scenario actions and workload operations
 ///
@@ -80,9 +80,9 @@ impl ActionControllerManager {
             }
         };
 
-        // 2. 이제 cluster/nodes 접두사에서 상세 정보 조회 시도
+        // 2. 이제 cluster/nodes 접두사에서 상세 정보 조회 시도 (json string)
         let cluster_node_key = format!("cluster/nodes/{}", node_name);
-        let encoded = match common::etcd::get(&cluster_node_key).await {
+        let node_json = match common::etcd::get(&cluster_node_key).await {
             Ok(value) => value,
             Err(e) => {
                 println!(
@@ -106,9 +106,8 @@ impl ActionControllerManager {
             }
         };
 
-        // 3. base64 디코드 및 NodeInfo 디코드
-        let buf = base64::engine::general_purpose::STANDARD.decode(&encoded)?;
-        let node_info = common::apiserver::NodeInfo::decode(buf.as_slice())?;
+        // 3. json 파싱
+        let node_info: common::apiserver::NodeInfo = serde_json::from_str(&node_json)?;
 
         // 4. node_role 값에 따라 노드 유형 결정 (node_role: 3 = Bluechi, 2 = Nodeagent)
         let role = if node_info.node_role == 3 {

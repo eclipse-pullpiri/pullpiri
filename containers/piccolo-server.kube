@@ -11,3 +11,5 @@ Yaml=/etc/containers/systemd/piccolo/piccolo-server.yaml
 
 [Service]
 Restart=always
+# settings.yaml에서 IP를 읽어서 yaml 파일을 동적으로 수정하는 스크립트 실행
+ExecStartPre=/etc/containers/systemd/piccolo/update_server_ip.sh

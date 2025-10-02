@@ -11,6 +11,4 @@ pub mod registry;
 pub mod status;
 
 pub use manager::NodeManager;
-pub use node_lookup::{add_node_to_simple_keys, get_node_ip};
-pub use registry::NodeRegistry;
-pub use status::{ClusterHealthSummary, ClusterStatus, NodeStatusManager};
+pub use node_lookup::get_node_ip;

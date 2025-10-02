@@ -15,7 +15,10 @@ spec:
   - name: etcd
     image: gcr.io/etcd-development/etcd:v3.5.11
     command: ["/usr/local/bin/etcd"]
-    args: ["--data-dir=/etcd-data"]
+    args: 
+    - "--data-dir=/etcd-data"
+    - "--listen-client-urls=http://127.0.0.1:2379,http://$(HOST_IP):2379"
+    - "--advertise-client-urls=http://$(HOST_IP):2379"
     volumeMounts:
     - name: etcd-data
       mountPath: /etcd-data
@@ -26,7 +29,7 @@ spec:
     - name: piccolo-yaml
       mountPath: /etc/piccolo/yaml
     - name: config-path
-      mountPath: /piccolo/settings.yaml
+      mountPath: /etc/piccolo/settings.yaml
   - name: policymanager
     image: localhost/pullpiri:latest
     command: ["/piccolo/policymanager"]
@@ -40,7 +43,7 @@ spec:
     - name: piccolo-yaml
       mountPath: /etc/piccolo/yaml
     - name: config-path
-      mountPath: /piccolo/settings.yaml
+      mountPath: /etc/piccolo/settings.yaml
   volumes:
   - name: piccolo-yaml
     hostPath:

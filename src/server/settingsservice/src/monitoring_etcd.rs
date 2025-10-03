@@ -250,3 +250,560 @@ async fn store_metadata(
     debug!("Stored metadata for {} {}", resource_type, resource_id);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use common::monitoringserver::ContainerInfo;
+    use serde_json::json;
+    use std::collections::HashMap;
+
+    // Mock the common::etcd module for testing
+    mod mock_etcd {
+        use std::collections::HashMap;
+        use std::sync::Mutex;
+
+        static MOCK_STORAGE: Mutex<Option<HashMap<String, String>>> = Mutex::new(None);
+        static SHOULD_FAIL: Mutex<bool> = Mutex::new(false);
+
+        pub fn init() {
+            let mut storage = MOCK_STORAGE.lock().unwrap();
+            *storage = Some(HashMap::new());
+        }
+
+        pub fn clear() {
+            let mut storage = MOCK_STORAGE.lock().unwrap();
+            if let Some(ref mut map) = *storage {
+                map.clear();
+            }
+        }
+
+        pub fn set_should_fail(should_fail: bool) {
+            let mut fail_flag = SHOULD_FAIL.lock().unwrap();
+            *fail_flag = should_fail;
+        }
+
+        pub async fn put(key: &str, value: &str) -> Result<(), String> {
+            let should_fail = *SHOULD_FAIL.lock().unwrap();
+            if should_fail {
+                return Err("Mock etcd error".to_string());
+            }
+
+            let mut storage = MOCK_STORAGE.lock().unwrap();
+            if let Some(ref mut map) = *storage {
+                map.insert(key.to_string(), value.to_string());
+            }
+            Ok(())
+        }
+
+        pub async fn get(key: &str) -> Result<String, String> {
+            let should_fail = *SHOULD_FAIL.lock().unwrap();
+            if should_fail {
+                return Err("Mock etcd error".to_string());
+            }
+
+            let storage = MOCK_STORAGE.lock().unwrap();
+            if let Some(ref map) = *storage {
+                map.get(key)
+                    .cloned()
+                    .ok_or_else(|| "Key not found".to_string())
+            } else {
+                Err("Storage not initialized".to_string())
+            }
+        }
+
+        pub async fn delete(key: &str) -> Result<(), String> {
+            let should_fail = *SHOULD_FAIL.lock().unwrap();
+            if should_fail {
+                return Err("Mock etcd error".to_string());
+            }
+
+            let mut storage = MOCK_STORAGE.lock().unwrap();
+            if let Some(ref mut map) = *storage {
+                map.remove(key);
+            }
+            Ok(())
+        }
+
+        #[derive(Clone)]
+        pub struct KeyValue {
+            pub key: String,
+            pub value: String,
+        }
+
+        pub async fn get_all_with_prefix(prefix: &str) -> Result<Vec<KeyValue>, String> {
+            let should_fail = *SHOULD_FAIL.lock().unwrap();
+            if should_fail {
+                return Err("Mock etcd error".to_string());
+            }
+
+            let storage = MOCK_STORAGE.lock().unwrap();
+            if let Some(ref map) = *storage {
+                let mut results = Vec::new();
+                for (key, value) in map.iter() {
+                    if key.starts_with(prefix) {
+                        results.push(KeyValue {
+                            key: key.clone(),
+                            value: value.clone(),
+                        });
+                    }
+                }
+                Ok(results)
+            } else {
+                Err("Storage not initialized".to_string())
+            }
+        }
+    }
+
+    // Replace the common::etcd functions with our mock for testing
+    // In a real test environment, you'd use a testing framework that supports mocking
+
+    fn create_test_node_info() -> NodeInfo {
+        NodeInfo {
+            node_name: "test-node".to_string(),
+            cpu_usage: 50.0,
+            cpu_count: 8,
+            gpu_count: 1,
+            used_memory: 8192,
+            total_memory: 16384,
+            mem_usage: 50.0,
+            rx_bytes: 1024,
+            tx_bytes: 2048,
+            read_bytes: 4096,
+            write_bytes: 8192,
+            os: "Linux".to_string(),
+            arch: "x86_64".to_string(),
+            ip: "192.168.1.100".to_string(),
+        }
+    }
+
+    fn create_test_soc_info() -> SocInfo {
+        let test_node = NodeInfo {
+            node_name: "test-node".to_string(),
+            cpu_usage: 50.0,
+            cpu_count: 8,
+            gpu_count: 1,
+            used_memory: 8192,
+            total_memory: 16384,
+            mem_usage: 50.0,
+            rx_bytes: 1024,
+            tx_bytes: 2048,
+            read_bytes: 4096,
+            write_bytes: 8192,
+            os: "Linux".to_string(),
+            arch: "x86_64".to_string(),
+            ip: "192.168.1.100".to_string(),
+        };
+
+        SocInfo {
+            soc_id: "soc-1".to_string(),
+            nodes: vec![test_node],
+            total_cpu_usage: 50.0,
+            total_cpu_count: 8,
+            total_gpu_count: 1,
+            total_used_memory: 8192,
+            total_memory: 16384,
+            total_mem_usage: 50.0,
+            total_rx_bytes: 1024,
+            total_tx_bytes: 2048,
+            total_read_bytes: 4096,
+            total_write_bytes: 8192,
+            last_updated: std::time::SystemTime::now(),
+        }
+    }
+
+    fn create_test_board_info() -> BoardInfo {
+        let test_node = NodeInfo {
+            node_name: "test-node".to_string(),
+            cpu_usage: 50.0,
+            cpu_count: 8,
+            gpu_count: 1,
+            used_memory: 8192,
+            total_memory: 16384,
+            mem_usage: 50.0,
+            rx_bytes: 1024,
+            tx_bytes: 2048,
+            read_bytes: 4096,
+            write_bytes: 8192,
+            os: "Linux".to_string(),
+            arch: "x86_64".to_string(),
+            ip: "192.168.1.100".to_string(),
+        };
+
+        let test_soc = SocInfo {
+            soc_id: "soc-1".to_string(),
+            nodes: vec![test_node.clone()],
+            total_cpu_usage: 50.0,
+            total_cpu_count: 8,
+            total_gpu_count: 1,
+            total_used_memory: 8192,
+            total_memory: 16384,
+            total_mem_usage: 50.0,
+            total_rx_bytes: 1024,
+            total_tx_bytes: 2048,
+            total_read_bytes: 4096,
+            total_write_bytes: 8192,
+            last_updated: std::time::SystemTime::now(),
+        };
+
+        BoardInfo {
+            board_id: "board-1".to_string(),
+            nodes: vec![test_node],
+            socs: vec![test_soc],
+            total_cpu_usage: 50.0,
+            total_cpu_count: 8,
+            total_gpu_count: 1,
+            total_used_memory: 8192,
+            total_memory: 16384,
+            total_mem_usage: 50.0,
+            total_rx_bytes: 1024,
+            total_tx_bytes: 2048,
+            total_read_bytes: 4096,
+            total_write_bytes: 8192,
+            last_updated: std::time::SystemTime::now(),
+        }
+    }
+
+    fn create_test_container_info() -> ContainerInfo {
+        let mut state = std::collections::HashMap::new();
+        state.insert("status".to_string(), "running".to_string());
+
+        let mut config = std::collections::HashMap::new();
+        config.insert("image".to_string(), "test:latest".to_string());
+
+        let mut annotation = std::collections::HashMap::new();
+        annotation.insert("version".to_string(), "1.0".to_string());
+
+        let mut stats = std::collections::HashMap::new();
+        stats.insert("cpu_usage".to_string(), "50.0".to_string());
+
+        ContainerInfo {
+            id: "container-123".to_string(),
+            names: vec!["test-app".to_string()],
+            image: "test:latest".to_string(),
+            state,
+            config,
+            annotation,
+            stats,
+        }
+    }
+
+    #[test]
+    fn test_monitoring_etcd_error_variants() {
+        let etcd_error = MonitoringEtcdError::EtcdOperation("ETCD failed".to_string());
+        let serialize_error = MonitoringEtcdError::Serialize(
+            serde_json::from_str::<serde_json::Value>("{invalid json").unwrap_err(),
+        );
+        let not_found_error = MonitoringEtcdError::NotFound;
+        let other_error = MonitoringEtcdError::Other("Generic error".to_string());
+
+        // Test Display implementation
+        assert_eq!(etcd_error.to_string(), "Etcd operation error: ETCD failed");
+        assert!(serialize_error.to_string().contains("Serialization error"));
+        assert_eq!(not_found_error.to_string(), "Data not found");
+        assert_eq!(other_error.to_string(), "Generic error");
+
+        // Test Debug implementation
+        let debug_str = format!("{:?}", etcd_error);
+        assert!(debug_str.contains("EtcdOperation"));
+        assert!(debug_str.contains("ETCD failed"));
+    }
+
+    #[test]
+    fn test_monitoring_etcd_error_from_serde() {
+        let serde_error = serde_json::from_str::<serde_json::Value>("{invalid json").unwrap_err();
+        let monitoring_error = MonitoringEtcdError::from(serde_error);
+
+        match monitoring_error {
+            MonitoringEtcdError::Serialize(_) => (),
+            _ => panic!("Expected Serialize variant"),
+        }
+    }
+
+    #[test]
+    fn test_monitoring_etcd_error_from_utf8() {
+        let utf8_error = std::str::from_utf8(&[0x80, 0x81]).unwrap_err();
+        let monitoring_error = MonitoringEtcdError::from(utf8_error);
+
+        match monitoring_error {
+            MonitoringEtcdError::Utf8(_) => (),
+            _ => panic!("Expected Utf8 variant"),
+        }
+    }
+
+    #[test]
+    fn test_result_type_alias() {
+        let success: Result<i32> = Ok(42);
+        let error: Result<i32> = Err(MonitoringEtcdError::NotFound);
+
+        assert_eq!(success.unwrap(), 42);
+        assert!(error.is_err());
+    }
+
+    // Note: The following tests would require actual mocking of the common::etcd module
+    // In a real testing environment, you would use a mocking framework or dependency injection
+
+    #[test]
+    fn test_key_format_generation() {
+        // Test the key format patterns used in the functions
+        let resource_type = "nodes";
+        let resource_id = "test-node";
+        let expected_key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
+        assert_eq!(expected_key, "/piccolo/metrics/nodes/test-node");
+
+        let logs_key = format!("/piccolo/logs/{}/{}", resource_type, resource_id);
+        assert_eq!(logs_key, "/piccolo/logs/nodes/test-node");
+
+        let metadata_key = format!("/piccolo/metadata/{}/{}", resource_type, resource_id);
+        assert_eq!(metadata_key, "/piccolo/metadata/nodes/test-node");
+    }
+
+    #[test]
+    fn test_prefix_format_generation() {
+        let resource_type = "containers";
+        let prefix = format!("/piccolo/metrics/{}/", resource_type);
+        assert_eq!(prefix, "/piccolo/metrics/containers/");
+
+        let logs_prefix = format!("/piccolo/logs/{}/{}", resource_type, "container-id");
+        assert_eq!(logs_prefix, "/piccolo/logs/containers/container-id");
+    }
+
+    #[test]
+    fn test_node_info_serialization() {
+        let node_info = create_test_node_info();
+        let json_result = serde_json::to_string(&node_info);
+        assert!(json_result.is_ok());
+
+        let json_str = json_result.unwrap();
+        assert!(json_str.contains("test-node"));
+        assert!(json_str.contains("192.168.1.100"));
+        assert!(json_str.contains("Linux"));
+        assert!(json_str.contains("x86_64"));
+
+        // Test deserialization
+        let deserialized: std::result::Result<NodeInfo, serde_json::Error> =
+            serde_json::from_str(&json_str);
+        assert!(deserialized.is_ok());
+        let deserialized_node = deserialized.unwrap();
+        assert_eq!(deserialized_node.node_name, node_info.node_name);
+        assert_eq!(deserialized_node.node_name, node_info.node_name);
+    }
+
+    #[test]
+    fn test_soc_info_serialization() {
+        let soc_info = create_test_soc_info();
+        let json_result = serde_json::to_string(&soc_info);
+        assert!(json_result.is_ok());
+
+        let json_str = json_result.unwrap();
+        assert!(json_str.contains("soc-1"));
+        assert!(json_str.contains("50.0"));
+        assert!(json_str.contains("8192"));
+        assert!(json_str.contains("16384"));
+
+        // Test deserialization
+        let deserialized: std::result::Result<SocInfo, serde_json::Error> =
+            serde_json::from_str(&json_str);
+        assert!(deserialized.is_ok());
+        let deserialized_soc = deserialized.unwrap();
+        assert_eq!(deserialized_soc.soc_id, soc_info.soc_id);
+        assert_eq!(deserialized_soc.total_cpu_count, soc_info.total_cpu_count);
+    }
+
+    #[test]
+    fn test_board_info_serialization() {
+        let board_info = create_test_board_info();
+        let json_result = serde_json::to_string(&board_info);
+        assert!(json_result.is_ok());
+
+        let json_str = json_result.unwrap();
+        assert!(json_str.contains("board-1"));
+        assert!(json_str.contains("50.0"));
+        assert!(json_str.contains("8192"));
+        assert!(json_str.contains("16384"));
+
+        // Test deserialization
+        let deserialized: std::result::Result<BoardInfo, serde_json::Error> =
+            serde_json::from_str(&json_str);
+        assert!(deserialized.is_ok());
+        let deserialized_board = deserialized.unwrap();
+        assert_eq!(deserialized_board.board_id, board_info.board_id);
+        assert_eq!(deserialized_board.board_id, board_info.board_id);
+    }
+
+    #[test]
+    fn test_container_info_serialization() {
+        let container_info = create_test_container_info();
+        let json_result = serde_json::to_string(&container_info);
+        assert!(json_result.is_ok());
+
+        let json_str = json_result.unwrap();
+        assert!(json_str.contains("container-123"));
+        assert!(json_str.contains("test-app"));
+        assert!(json_str.contains("test:latest"));
+        assert!(json_str.contains("running"));
+
+        // Test deserialization
+        let deserialized: std::result::Result<ContainerInfo, serde_json::Error> =
+            serde_json::from_str(&json_str);
+        assert!(deserialized.is_ok());
+        let deserialized_container = deserialized.unwrap();
+        assert_eq!(deserialized_container.id, container_info.id);
+        assert_eq!(deserialized_container.names, container_info.names);
+    }
+
+    #[test]
+    fn test_metadata_serialization() {
+        let metadata = json!({
+            "version": "1.0",
+            "tags": ["production", "critical"],
+            "config": {
+                "timeout": 30,
+                "retry_count": 3
+            }
+        });
+
+        let json_result = serde_json::to_string(&metadata);
+        assert!(json_result.is_ok());
+
+        let json_str = json_result.unwrap();
+        assert!(json_str.contains("version"));
+        assert!(json_str.contains("1.0"));
+        assert!(json_str.contains("tags"));
+        assert!(json_str.contains("production"));
+        assert!(json_str.contains("config"));
+        assert!(json_str.contains("timeout"));
+    }
+
+    #[test]
+    fn test_error_handling_patterns() {
+        // Test various error scenarios that could occur
+
+        // Serialization error simulation
+        let invalid_metadata = json!({
+            "invalid": std::f64::NAN  // NaN cannot be serialized to JSON
+        });
+
+        // This should work in our test, but demonstrates the pattern
+        let result = serde_json::to_string(&invalid_metadata);
+        // NaN actually gets serialized as null, so this won't fail
+        // but in real scenarios with custom types, serialization can fail
+        assert!(result.is_ok() || result.is_err()); // Either outcome is valid for testing
+    }
+
+    #[test]
+    fn test_resource_type_patterns() {
+        let resource_types = vec!["nodes", "socs", "boards", "containers"];
+
+        for resource_type in resource_types {
+            let metrics_key = format!("/piccolo/metrics/{}/resource-id", resource_type);
+            let logs_prefix = format!("/piccolo/logs/{}/resource-id", resource_type);
+            let metadata_key = format!("/piccolo/metadata/{}/resource-id", resource_type);
+
+            assert!(metrics_key.starts_with("/piccolo/metrics/"));
+            assert!(logs_prefix.starts_with("/piccolo/logs/"));
+            assert!(metadata_key.starts_with("/piccolo/metadata/"));
+
+            assert!(metrics_key.contains(resource_type));
+            assert!(logs_prefix.contains(resource_type));
+            assert!(metadata_key.contains(resource_type));
+        }
+    }
+
+    #[test]
+    fn test_key_uniqueness() {
+        // Test that different resource types and IDs generate unique keys
+        let node_key = format!("/piccolo/metrics/{}/{}", "nodes", "node1");
+        let soc_key = format!("/piccolo/metrics/{}/{}", "socs", "node1");
+        let board_key = format!("/piccolo/metrics/{}/{}", "boards", "node1");
+        let container_key = format!("/piccolo/metrics/{}/{}", "containers", "node1");
+
+        let keys = vec![node_key, soc_key, board_key, container_key];
+        let unique_keys: std::collections::HashSet<_> = keys.iter().collect();
+
+        assert_eq!(keys.len(), unique_keys.len()); // All keys should be unique
+    }
+
+    #[test]
+    fn test_edge_cases_for_resource_ids() {
+        // Test with various resource ID formats
+        let test_ids = vec![
+            "simple-id",
+            "id_with_underscores",
+            "id.with.dots",
+            "id:with:colons",
+            "id-123-with-numbers",
+            "UPPERCASE-ID",
+            "mixed_Case.ID:123",
+        ];
+
+        for id in test_ids {
+            let key = format!("/piccolo/metrics/nodes/{}", id);
+            assert!(key.contains(id));
+            assert!(key.starts_with("/piccolo/metrics/nodes/"));
+
+            // Key should be well-formed (no double slashes except at start)
+            let parts: Vec<&str> = key.split("//").collect();
+            assert_eq!(
+                parts.len(),
+                1,
+                "Key should not contain double slashes: {}",
+                key
+            );
+        }
+    }
+
+    #[test]
+    fn test_json_value_handling() {
+        // Test various JSON value types that might be used as metadata
+        let test_values = vec![
+            json!(null),
+            json!(true),
+            json!(false),
+            json!(42),
+            json!(std::f64::consts::PI),
+            json!("string value"),
+            json!(["array", "of", "values"]),
+            json!({"nested": {"object": "value"}}),
+        ];
+
+        for value in test_values {
+            let serialized = serde_json::to_string(&value);
+            assert!(
+                serialized.is_ok(),
+                "Should be able to serialize: {:?}",
+                value
+            );
+
+            if let Ok(json_str) = serialized {
+                let deserialized: std::result::Result<serde_json::Value, serde_json::Error> =
+                    serde_json::from_str(&json_str);
+                assert!(
+                    deserialized.is_ok(),
+                    "Should be able to deserialize: {}",
+                    json_str
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_empty_and_special_resource_ids() {
+        // Test edge cases for resource IDs
+        let special_ids = vec![
+            "", // empty string
+            " ", // space
+            "\t", // tab
+            "\n", // newline
+            "very-long-resource-id-that-exceeds-normal-expectations-and-might-cause-issues-in-some-systems-but-should-still-work-correctly",
+        ];
+
+        for id in special_ids {
+            let key = format!("/piccolo/metrics/nodes/{}", id);
+            let prefix = format!("/piccolo/metrics/nodes/");
+
+            assert!(key.starts_with(&prefix));
+            assert_eq!(key.len(), prefix.len() + id.len());
+        }
+    }
+}

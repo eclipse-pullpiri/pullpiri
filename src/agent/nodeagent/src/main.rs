@@ -195,6 +195,12 @@ async fn main() {
     tokio::join!(mgr, grpc);
 }
 
+#[cfg(feature = "tarpaulin_include")]
+fn main() {
+    // Dummy main for coverage builds
+    println!("Tarpaulin coverage build: main function stub.");
+}
+
 #[cfg(test)]
 mod tests {
     use crate::config::Config;

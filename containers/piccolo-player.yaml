@@ -15,6 +15,11 @@ spec:
   - name: filtergateway
     image: localhost/pullpiri:latest
     command: ["/piccolo/filtergateway"]
+    volumeMounts:
+    - name: piccolo-yaml
+      mountPath: /root/piccolo_yaml
+    - name: config-path
+      mountPath: /etc/piccolo/settings.yaml
   - name: actioncontroller
     image: localhost/pullpiri:latest
     command: ["/piccolo/actioncontroller"]

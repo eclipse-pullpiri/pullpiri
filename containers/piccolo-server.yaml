@@ -36,6 +36,11 @@ spec:
   - name: monitoringserver
     image: localhost/pullpiri:latest
     command: ["/piccolo/monitoringserver"]
+    volumeMounts:
+    - name: piccolo-yaml
+      mountPath: /etc/piccolo/yaml
+    - name: config-path
+      mountPath: /etc/piccolo/settings.yaml
   - name: settingsservice
     image: localhost/pullpiri:latest
     command: ["/piccolo/settingsservice", "--bind-address=0.0.0.0", "--bind-port=8080", "--log-level=info"]

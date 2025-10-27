@@ -812,7 +812,7 @@ mod tests {
         let node = sample_node("node1", "192.168.10.201");
         let soc = SocInfo::new("192.168.10.200".to_string(), node.clone());
         ds.socs.insert("192.168.10.200".to_string(), soc.clone());
-        let mut board = BoardInfo::new("192.168.10.200".to_string(), node.clone());
+        let board = BoardInfo::new("192.168.10.200".to_string(), node.clone());
         ds.boards
             .insert("192.168.10.200".to_string(), board.clone());
 

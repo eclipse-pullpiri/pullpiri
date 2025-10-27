@@ -8,6 +8,7 @@
 use crate::data_structures::{BoardInfo, SocInfo};
 use common::monitoringserver::{ContainerInfo, NodeInfo}; // Use protobuf types
 use serde::{de::DeserializeOwned, Serialize};
+use serde_json::Value;
 
 /// Generic function to store info in etcd
 async fn store_info<T: Serialize>(
@@ -229,6 +230,37 @@ pub async fn get_all_containers() -> common::Result<Vec<ContainerInfo>> {
     Ok(containers)
 }
 
+/// Store a raw stress metric JSON string in etcd under /piccolo/metrics/stress/{process}/{pid}:{ts}
+pub async fn store_stress_metric_json(json_str: &str) -> common::Result<()> {
+    // parse & validate JSON
+    let v: Value = serde_json::from_str(json_str)
+        .map_err(|e| format!("Failed to parse stress metric JSON: {}", e))?;
+
+    let process_name = v
+        .get("process_name")
+        .and_then(|s| s.as_str())
+        .unwrap_or("unknown");
+    let pid_str = v
+        .get("pid")
+        .and_then(|p| p.as_i64().map(|n| n.to_string()))
+        .unwrap_or_else(|| "0".to_string());
+
+    let resource_id = format!("{}/{}", process_name, pid_str);
+
+    // store_info - serde_json::Value implements Serialize
+    store_info("stress", &resource_id, &v).await
+}
+
+/// Retrieve all stored stress metrics as JSON values.
+pub async fn get_all_stress_metrics() -> common::Result<Vec<Value>> {
+    get_all_info("stress").await
+}
+
+/// Delete a stored stress metric by resource id (the id returned/used when storing)
+pub async fn delete_stress_metric(resource_id: &str) -> common::Result<()> {
+    delete_info("stress", resource_id).await
+}
+
 /// Delete NodeInfo from etcd
 pub async fn delete_node_info(node_name: &str) -> common::Result<()> {
     delete_info("nodes", node_name).await
@@ -254,7 +286,6 @@ mod tests {
     use super::*;
     use crate::data_structures::{BoardInfo, SocInfo};
     use common::monitoringserver::{ContainerInfo, NodeInfo};
-    use std::collections::HashMap;
     use std::time::SystemTime;
 
     fn sample_node(name: &str, ip: &str) -> NodeInfo {

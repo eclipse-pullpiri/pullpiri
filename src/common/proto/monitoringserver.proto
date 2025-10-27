@@ -10,6 +10,7 @@ package monitoringserver;
 service MonitoringServerConnection {
   rpc SendContainerList (ContainerList) returns (SendContainerListResponse);
   rpc SendNodeInfo (NodeInfo) returns (SendNodeInfoResponse);
+  rpc SendStressMonitoringMetric (StressMonitoringMetric) returns (StressMonitoringMetricResponse);
 }
 
 message SendContainerListResponse {
@@ -50,4 +51,13 @@ message NodeInfo {
   string os = 12;
   string arch = 13;
   string ip = 14;
+}
+
+// Stress monitoring metric: single JSON string payload from App Data Provider
+message StressMonitoringMetric {
+  string json = 1; // JSON string containing process_name, pid, core_masking, core_count, fps, latency, cpu_loads, etc.
+}
+
+message StressMonitoringMetricResponse {
+  string resp = 1;
 }

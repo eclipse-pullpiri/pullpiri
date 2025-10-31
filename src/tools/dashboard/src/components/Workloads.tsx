@@ -309,13 +309,13 @@ export function Workloads({ onPodClick, pods, setPods, recentEvents, setRecentEv
       ? pods
       : pods.filter((pod) => pod.node === selectedNode);
   const nodeRunningPods = currentPods.filter(
-    (pod) => pod.status === "Running"
+    (pod) => pod.status === "running"
   ).length;
   const nodePendingPods = currentPods.filter(
-    (pod) => pod.status === "Pending"
+    (pod) => pod.status === "pending"
   ).length;
   const nodeFailedPods = currentPods.filter(
-    (pod) => pod.status === "Failed"
+    (pod) => pod.status === "failed"
   ).length;
 
   // Calculate cluster health based on actual data

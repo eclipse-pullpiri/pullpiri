@@ -90,23 +90,34 @@ impl FilterGatewayManager {
         for scenario in etcd_scenario {
             let scenario: Scenario = serde_yaml::from_str(&scenario)?;
             println!("Scenario: {:?}", scenario);
-            let topic_name = scenario
-                .get_conditions()
-                .as_ref()
-                .map(|cond| cond.get_operand_value())
-                .unwrap_or_default();
-            let data_type_name = scenario
-                .get_conditions()
-                .as_ref()
-                .map(|cond| cond.get_operand_value())
-                .unwrap_or_default();
-            let mut vehicle_manager = self.vehicle_manager.lock().await;
-            if let Err(e) = vehicle_manager
-                .subscribe_topic(topic_name, data_type_name)
-                .await
-            {
-                eprintln!("Error subscribing to vehicle data: {:?}", e);
+
+            // Only subscribe to vehicle data if the scenario has conditions with valid topic
+            if let Some(conditions) = scenario.get_conditions().as_ref() {
+                let topic_name = conditions.get_operand_value();
+                let data_type_name = conditions.get_operand_value();
+
+                // Skip subscription if topic name is empty
+                if !topic_name.is_empty() {
+                    let mut vehicle_manager = self.vehicle_manager.lock().await;
+                    if let Err(e) = vehicle_manager
+                        .subscribe_topic(topic_name, data_type_name)
+                        .await
+                    {
+                        eprintln!("Error subscribing to vehicle data: {:?}", e);
+                    }
+                } else {
+                    println!(
+                        "Skipping DDS subscription for scenario '{}': empty topic name",
+                        scenario.get_name()
+                    );
+                }
+            } else {
+                println!(
+                    "Scenario '{}' has no conditions, skipping DDS subscription",
+                    scenario.get_name()
+                );
             }
+
             self.launch_scenario_filter(scenario).await?;
         }
 
@@ -185,25 +196,31 @@ impl FilterGatewayManager {
                     match param.action {
                         0 => {
                             // Allow
-                            // Subscribe to vehicle data
-                            let topic_name = param
-                                .scenario
-                                .get_conditions()
-                                .as_ref()
-                                .map(|cond| cond.get_operand_value())
-                                .unwrap_or_default();
-                            let data_type_name = param
-                                .scenario
-                                .get_conditions()
-                                .as_ref()
-                                .map(|cond| cond.get_operand_value())
-                                .unwrap_or_default();
-                            let mut vehicle_manager = self.vehicle_manager.lock().await;
-                            if let Err(e) = vehicle_manager
-                                .subscribe_topic(topic_name, data_type_name)
-                                .await
-                            {
-                                eprintln!("Error subscribing to vehicle data: {:?}", e);
+                            // Subscribe to vehicle data only if conditions exist and topic is valid
+                            if let Some(conditions) = param.scenario.get_conditions().as_ref() {
+                                let topic_name = conditions.get_operand_value();
+                                let data_type_name = conditions.get_operand_value();
+
+                                // Only subscribe if topic name is not empty
+                                if !topic_name.is_empty() {
+                                    let mut vehicle_manager = self.vehicle_manager.lock().await;
+                                    if let Err(e) = vehicle_manager
+                                        .subscribe_topic(topic_name, data_type_name)
+                                        .await
+                                    {
+                                        eprintln!("Error subscribing to vehicle data: {:?}", e);
+                                    }
+                                } else {
+                                    println!(
+                                        "Skipping DDS subscription for scenario '{}': empty topic name",
+                                        param.scenario.get_name()
+                                    );
+                                }
+                            } else {
+                                println!(
+                                    "Scenario '{}' has no conditions, skipping DDS subscription",
+                                    param.scenario.get_name()
+                                );
                             }
                             self.launch_scenario_filter(param.scenario).await?;
                         }

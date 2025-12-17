@@ -20,20 +20,32 @@ use common::spec::artifact::Volume;
 /// ### Parametets
 /// * `body: &str` - whole yaml string of piccolo artifact
 /// ### Returns
-/// * `Result(String, String)` - scenario and package yaml in downloaded artifact
+/// * `Result(Vec<String>)` - vector of scenario yaml strings in downloaded artifact
 /// ### Description
 /// Write artifact in etcd
-pub async fn apply(body: &str) -> common::Result<String> {
+/// Note: Returns ALL scenarios from the YAML, not just the last one
+pub async fn apply(body: &str) -> common::Result<Vec<String>> {
     use std::time::Instant;
     let total_start = Instant::now();
 
     let docs: Vec<&str> = body.split("---").collect();
-    let mut scenario_str = String::new();
-    let mut package_str = String::new();
+    let mut scenario_strs: Vec<String> = Vec::new();
+    let mut has_package = false;
 
     for doc in docs {
+        // Skip empty documents
+        if doc.trim().is_empty() {
+            continue;
+        }
+
         let parse_start = Instant::now();
-        let value: serde_yaml::Value = serde_yaml::from_str(doc)?;
+        let value: serde_yaml::Value = match serde_yaml::from_str(doc) {
+            Ok(v) => v,
+            Err(e) => {
+                println!("apply: failed to parse YAML document: {:?}", e);
+                continue;
+            }
+        };
         let artifact_str = serde_yaml::to_string(&value)?;
         let parse_elapsed = parse_start.elapsed();
         println!("apply: YAML parse elapsed = {:?}", parse_elapsed);
@@ -60,7 +72,8 @@ pub async fn apply(body: &str) -> common::Result<String> {
 
             match kind {
                 "Scenario" => {
-                    scenario_str = artifact_str;
+                    // Collect ALL scenarios, not just the last one
+                    scenario_strs.push(artifact_str);
 
                     // Set initial scenario state to idle via StateManager
                     println!("🔄 SCENARIO STATE INITIALIZATION: ApiServer Setting Initial State");
@@ -98,7 +111,7 @@ pub async fn apply(body: &str) -> common::Result<String> {
                         println!("   ✅ Successfully set scenario {} to idle state", name);
                     }
                 }
-                "Package" => package_str = artifact_str,
+                "Package" => has_package = true,
                 _ => continue,
             };
         }
@@ -106,13 +119,14 @@ pub async fn apply(body: &str) -> common::Result<String> {
 
     let total_elapsed = total_start.elapsed();
     println!("apply: total elapsed = {:?}", total_elapsed);
+    println!("apply: found {} scenarios", scenario_strs.len());
 
-    if scenario_str.is_empty() {
+    if scenario_strs.is_empty() {
         Err("There is not any scenario in yaml string".into())
-    } else if package_str.is_empty() {
+    } else if !has_package {
         Err("There is not any package in yaml string".into())
     } else {
-        Ok(scenario_str)
+        Ok(scenario_strs)
     }
 }
 
@@ -241,9 +255,13 @@ spec:
             result.err()
         );
 
-        // Assert: scenario and package strings should not be empty
-        let scenario = result.unwrap();
-        assert!(!scenario.is_empty(), "Scenario YAML should not be empty");
+        // Assert: scenarios vector should not be empty
+        let scenarios = result.unwrap();
+        assert!(!scenarios.is_empty(), "Scenarios vector should not be empty");
+        assert!(
+            !scenarios[0].is_empty(),
+            "First scenario YAML should not be empty"
+        );
     }
 
     /// Test apply() with missing `action` field (invalid Scenario)

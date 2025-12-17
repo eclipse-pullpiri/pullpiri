@@ -134,9 +134,9 @@ async fn reload() {
 /// ### Description
 /// write artifact in etcd
 /// (optional) make yaml, kube files for Bluechi
-/// send a gRPC message to gateway
+/// send a gRPC message to gateway for ALL scenarios in the YAML
 pub async fn apply_artifact(body: &str) -> common::Result<()> {
-    let scenario = crate::artifact::apply(body).await?;
+    let scenarios = crate::artifact::apply(body).await?;
 
     let handle_yaml = HandleYamlRequest {
         yaml: body.to_string(),
@@ -246,11 +246,21 @@ pub async fn apply_artifact(body: &str) -> common::Result<()> {
         }
     }
 
-    let req: HandleScenarioRequest = HandleScenarioRequest {
-        action: Action::Apply.into(),
-        scenario,
-    };
-    crate::grpc::sender::filtergateway::send(req).await?;
+    // Send ALL scenarios to filtergateway, not just the last one
+    println!(
+        "apply_artifact: Sending {} scenarios to FilterGateway",
+        scenarios.len()
+    );
+    for scenario in scenarios {
+        let req: HandleScenarioRequest = HandleScenarioRequest {
+            action: Action::Apply.into(),
+            scenario,
+        };
+        if let Err(e) = crate::grpc::sender::filtergateway::send(req).await {
+            eprintln!("Error sending scenario to FilterGateway: {:?}", e);
+        }
+    }
+
     Ok(())
 }
 
@@ -774,21 +784,23 @@ spec:
     }
 
     /// Mocked version of apply_artifact function.
-    /// Instead of full production logic, this sends a gRPC request to the mock server.
+    /// Instead of full production logic, this sends gRPC requests for ALL scenarios to the mock server.
     async fn apply_artifact(
         body: &str,
         grpc_addr: SocketAddr,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let scenario = crate::artifact::apply(body).await?;
+        let scenarios = crate::artifact::apply(body).await?;
 
-        // Prepare the gRPC request with Apply action
-        let req = HandleScenarioRequest {
-            action: Action::Apply.into(),
-            scenario,
-        };
+        // Send ALL scenarios to the mock gRPC server
+        for scenario in scenarios {
+            let req = HandleScenarioRequest {
+                action: Action::Apply.into(),
+                scenario,
+            };
+            mock_send(req, grpc_addr).await?;
+        }
 
-        // Send request to the mock gRPC server
-        mock_send(req, grpc_addr).await
+        Ok(())
     }
 
     /// Mocked version of withdraw_artifact function.

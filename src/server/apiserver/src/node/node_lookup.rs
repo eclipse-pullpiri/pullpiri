@@ -12,21 +12,60 @@ use prost::Message;
 use std::error::Error;
 
 /// Find a node by IP address from simplified node keys
+/// Filters out invalid IPs like 0.0.0.0 and empty strings
 pub async fn find_node_by_simple_key() -> Option<String> {
     println!("Checking simplified node keys in etcd...");
     match etcd::get_all_with_prefix("nodes/").await {
         Ok(kvs) => {
             println!("Found {} simplified node keys", kvs.len());
-            if let Some(kv) = kvs.first() {
+            // Iterate through all nodes and find the first valid IP
+            for kv in kvs {
                 println!("Node key: {}", kv.key);
                 let ip_address = kv.key.trim_start_matches("nodes/");
-                println!("Found node IP directly from key: {}", ip_address);
+
+                // Skip invalid IPs: empty, 0.0.0.0, or localhost when looking for remote nodes
+                if ip_address.is_empty()
+                    || ip_address == "0.0.0.0"
+                    || ip_address == "127.0.0.1"
+                {
+                    println!("Skipping invalid IP: {}", ip_address);
+                    continue;
+                }
+
+                println!("Found valid node IP from key: {}", ip_address);
                 return Some(ip_address.to_string());
             }
+            println!("No valid node IPs found in simplified keys");
             None
         }
         Err(e) => {
             println!("Error checking simplified nodes: {}", e);
+            None
+        }
+    }
+}
+
+/// Find a node by specific target IP address from simplified node keys
+/// Returns the IP if it exists and is valid, None otherwise
+pub async fn find_node_by_target_ip(target_ip: &str) -> Option<String> {
+    if target_ip.is_empty() || target_ip == "0.0.0.0" {
+        return None;
+    }
+
+    println!("Looking for specific node IP: {}", target_ip);
+    let key = format!("nodes/{}", target_ip);
+
+    match etcd::get(&key).await {
+        Ok(Some(_)) => {
+            println!("Found target node IP in etcd: {}", target_ip);
+            Some(target_ip.to_string())
+        }
+        Ok(None) => {
+            println!("Target node IP not found in etcd: {}", target_ip);
+            None
+        }
+        Err(e) => {
+            println!("Error checking for target IP {}: {}", target_ip, e);
             None
         }
     }

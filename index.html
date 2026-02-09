@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eclipse-pullpiri</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        /* Light mode (default) */
+        body {
+            background-color: #ffffff;
+            color: #18181b;
+        }
+        
+        /* Header styles */
+        header {
+            background-color: rgba(255, 255, 255, 1);
+            border-bottom: 1px solid #e4e4e7;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        
+        .header-title {
+            color: #18181b;
+            font-weight: 600;
+        }
+        
+        /* Tab buttons */
+        .tab-btn {
+            color: #71717a;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 400;
+        }
+        
+        .tab-btn:hover {
+            color: #18181b;
+        }
+        
+        .tab-btn.active {
+            color: #18181b;
+            font-weight: 500;
+        }
+        
+        /* Language dropdown */
+        .lang-dropdown {
+            position: relative;
+        }
+        
+        .lang-dropdown-content {
+            position: absolute;
+            right: 0;
+            margin-top: 0.5rem;
+            width: 8rem;
+            background-color: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            padding: 0.25rem 0;
+            display: none;
+        }
+        
+        .lang-dropdown-content.show {
+            display: block;
+        }
+        
+        .lang-option {
+            width: 100%;
+            text-align: left;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #3f3f46;
+        }
+        
+        .lang-option:hover {
+            background-color: #f4f4f5;
+        }
+        
+        .lang-option.active {
+            color: #06b6d4;
+            font-weight: 500;
+        }
+        
+        /* Tab content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Why Pullpiri specific styles */
+        .why-section-bg {
+            background-color: #fafafa;
+        }
+
+        .solution-card {
+            background-color: #f4f4f5;
+        }
+
+        .constraint-title {
+            color: #ef4444;
+        }
+
+        .solution-title {
+            color: #a855f7;
+        }
+
+        .solution-subtitle {
+            color: #a855f7;
+        }
+
+        .highlight-text {
+            color: #a855f7;
+            font-weight: 600;
+        }
+
+        .feature-card {
+            background-color: #f4f4f5;
+        }
+
+        .card-subtitle {
+            color: #71717a;
+        }
+        
+        .card-text {
+            color: #18181b;
+        }
+        
+        .card-title {
+            color: #18181b;
+        }
+        
+        .section-title {
+            color: #18181b;
+        }
+        
+        .section-desc {
+            color: #52525b;
+        }
+        
+        /* Modal Styles */
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .image-modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            position: relative;
+            max-width: 80rem;
+            max-height: 90vh;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: -3rem;
+            right: 0;
+            color: white;
+            background: none;
+            border: none;
+            font-size: 2.5rem;
+            cursor: pointer;
+            font-weight: 300;
+            line-height: 1;
+        }
+        
+        .modal-close:hover {
+            color: #d4d4d8;
+        }
+        
+        .modal-image {
+            max-width: 100%;
+            max-height: 90vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+        
+        .architecture-diagram {
+            width: 100%;
+            height: auto;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .architecture-diagram:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div style="max-width: 1280px; margin: 0 auto; padding: 0 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; height: 4rem;">
+                <div style="display: flex; align-items: center;">
+                    <span class="header-title" style="font-size: 1.125rem;">Eclipse-pullpiri</span>
+                </div>
+                <nav style="display: flex; gap: 2rem;">
+                    <button onclick="switchTab('main')" class="tab-btn active" data-tab="main" style="background: none; border: none; cursor: pointer;">Main</button>
+                    <button onclick="switchTab('whypullpiri')" class="tab-btn" data-tab="whypullpiri" style="background: none; border: none; cursor: pointer;">Why Pullpiri</button>
+                    <button onclick="switchTab('architecture')" class="tab-btn" data-tab="architecture" style="background: none; border: none; cursor: pointer;">Architecture</button>
+                </nav>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <!-- Language Dropdown -->
+                    <div class="lang-dropdown">
+                        <button onclick="toggleLangDropdown()" class="tab-btn" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
+                            Language
+                            <svg style="width: 1rem; height: 1rem;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m6 9 6 6 6-6"/>
+                            </svg>
+                        </button>
+                        <div id="lang-dropdown" class="lang-dropdown-content">
+                            <button onclick="changeLang('en')" class="lang-option active" data-lang="en">English</button>
+                            <button onclick="changeLang('ko')" class="lang-option" data-lang="ko">Korean</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Main Page -->
+        <div id="main" class="tab-content active">
+            <div style="background-color: inherit; transition: background-color 0.3s;">
+                <!-- Hero Section -->
+                <div style="padding: 4rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <div style="margin-bottom: 2rem;">
+                            <!-- Logo will be added here -->
+                            <div style="width: 420px; height: 150px; transform: scale(0.65); transform-origin: left;">
+                                <div style="position: relative; width: 100%; height: 100%;">
+                                    <!-- SVG Logo -->
+                                    <div style="position: absolute; height: 180.036px; left: 26.6px; top: 7.65px; width: 113.342px;">
+                                        <svg style="display: block; width: 100%; height: 100%;" fill="none" preserveAspectRatio="none" viewBox="0 0 116.987 185.576">
+                                            <g id="pullpiri_logo">
+                                                <path d="M58.4933 2.17518L115.164 39.1164L58.4933 76.0575L1.82222 39.1164L58.4933 2.17518Z" fill="#7DDCED" />
+                                                <path d="M115.164 39.1164V88.415L58.4933 126.75V76.0575L115.164 39.1164Z" fill="#A66CED" />
+                                                <path d="M58.4933 76.0575V182.211L1.82222 145.221V39.1164L58.4933 76.0575Z" fill="#FFBB4E" />
+                                                <path id="logo-outline" d="M115.164 39.1164L58.4933 2.17518L1.82222 39.1164M115.164 39.1164L58.4933 76.0575M115.164 39.1164V88.415L58.4933 126.75V76.0575M58.4933 76.0575L1.82222 39.1164M58.4933 76.0575V182.211L1.82222 145.221V39.1164" stroke="white" stroke-width="3.64444" />
+                                            </g>
+                                        </svg>
+                                    </div>
+                                    <!-- Text "ullpiri" -->
+                                    <p id="logo-text-ullpiri" style="position: absolute; font-family: 'Inter', 'Pretendard', sans-serif; font-weight: 700; height: 120.267px; line-height: normal; left: 116.26px; font-size: 100.222px; color: white; top: 71.43px; width: 277.889px; margin: 0;">ullpiri</p>
+                                </div>
+                            </div>
+                        </div>
+                        <h1 style="font-size: 3rem; font-weight: 700; color: #18181b; margin-bottom: 1rem; line-height: 1.2;" id="hero-title">
+                            Container Orchestration Platform<br>Optimized for Automotive Environments
+                        </h1>
+                        <p style="font-size: 1.25rem; color: #52525b; margin-bottom: 2rem; line-height: 1.6;" id="hero-subtitle">
+                            Pullpiri safely orchestrates various workloads in a way optimized for automotive environments.
+                        </p>
+                        <div style="display: flex; gap: 1rem;">
+                            <button onclick="window.open('https://github.com/eclipse-pullpiri', '_blank')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background-color: #06b6d4; color: white; border-radius: 0.375rem; border: none; cursor: pointer; transition: all 0.3s; font-weight: 500;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" x2="21" y1="14" y2="3"></line>
+                                </svg>
+                                <span id="btn-getstarted">Get started</span>
+                            </button>
+                            <button onclick="window.open('https://github.com/eclipse-pullpiri/pullpiri', '_blank')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: transparent; border: 2px solid #d4d4d8; color: #18181b; border-radius: 0.375rem; cursor: pointer; transition: all 0.3s; font-weight: 500;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                </svg>
+                                <span id="btn-github">View on github</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- What is Pullpiri Section -->
+                <div style="padding: 4rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <h2 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 1.5rem; color: #18181b;" id="what-title">What is Pullpiri?</h2>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <p style="font-size: 1.125rem; color: #27272a; line-height: 1.75;" id="what-desc1">
+                                Pullpiri is an open‑source orchestration platform optimized for in‑vehicle environments.
+                            </p>
+                            <p style="font-size: 1.125rem; color: #52525b; line-height: 1.75;" id="what-desc2">
+                                Based on the Kubernetes orchestration model, it has been redesigned to account for the unique constraints of automotive systems, including limited resources, real‑time requirements, and safety demands.
+                            </p>
+                            <p style="font-size: 1.125rem; color: #52525b; line-height: 1.75;" id="what-desc3">
+                                It enables consistent, container‑based execution, management, and deployment of software within the vehicle.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features Section -->
+                <div style="padding: 4rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <h2 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 3rem; color: #18181b;" id="features-title">Pullpiri's Features</h2>
+                        <div id="features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem;">
+                            <!-- Features will be dynamically loaded -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Why Pullpiri Page -->
+        <div id="whypullpiri" class="tab-content">
+            <div id="why-content">
+                <!-- Content will be dynamically loaded -->
+            </div>
+        </div>
+
+        <!-- Architecture Page -->
+        <div id="architecture" class="tab-content">
+            <div id="arch-content">
+                <!-- Content will be dynamically loaded -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Language data
+        const translations = {
+            ko: {
+                heroTitle: '차량 환경에 최적화된<br>컨테이너 오케스트레이션 플랫폼',
+                heroSubtitle: 'Pullpiri는 차량 환경에 최적화된 방식으로 다양한 워크로드를 안전하게 조율합니다.',
+                getStarted: 'Get started',
+                viewGithub: 'View on github',
+                whatTitle: 'What is Pullpiri?',
+                whatDesc1: 'Pullpiri는 차량 환경에 최적화된 오픈소스 오케스트레이션 플랫폼입니다.',
+                whatDesc2: 'Kubernetes 모델을 기반으로 차량 특유의 리소스 제약·실시간성·안전 요구조건을 반영해 재설계되었습니다.',
+                whatDesc3: '차량 내 소프트웨어를 컨테이너 기반으로 일관되게 실행·관리·배포하도록 지원합니다.',
+                featuresTitle: "Pullpiri's Feature",
+                features: [
+                    {
+                        title: '조건 기반 워크로드 제어',
+                        subtitle: 'Condition‑based Workload Control',
+                        description: 'Pullpiri는 차량 신호와 시스템 상태 등 조건에 따라 사전 정의된 정책을 적용해 워크로드의 실행과 전환을 자동·동적으로 제어합니다.'
+                    },
+                    {
+                        title: '리소스 인지 기반 워크로드 오케스트레이션',
+                        subtitle: 'Resource-aware Workload Monitoring & Offloading',
+                        description: 'Pullpiri는 CPU, 메모리 사용량 및 컨테이너 상태를 지속적으로 모니터링하고,시스템 리소스 상태에 따라 워크로드의 실행, 재배치, 오프로딩을 동적으로 제어합니다.'
+                    },
+                    {
+                        title: '컨테이너 생명주기 통합 관리',
+                        subtitle: 'Unified Container Lifecycle Management',
+                        description: 'Pullpiri는 컨테이너의 배포, 실행, 업데이트, 종료까지 전 생명주기를 일관되게 통합 관리함으로써, 차량 내 소프트웨어 운영의 안정성과 효율성을 향상합니다.'
+                    },
+                    {
+                        title: '소프트웨어 컴포넌트의 표준화된 운영',
+                        subtitle: 'Standardized Component Packaging',
+                        description: 'Pullpiri는 차량 내 다양한 소프트웨어 컴포넌트를 컨테이너라는 표준화된 형식으로 패키징·실행할 수 있도록 지원하여, 아키텍처의 일관성, 확장성, 그리고 모듈화를 강화합니다.'
+                    },
+                    {
+                        title: 'OEM 정책 기반 오케스트레이션',
+                        subtitle: 'OEM Policy‑driven Control',
+                        description: 'OEM의 운용 정책과 제약 조건을 오케스트레이션 정책으로 반영할 수 있습니다. 소프트웨어 실행 우선순위, 리소스 할당, 허용 범위 등을 OEM 요구사항에 맞게 제어합니다.'
+                    },
+                    {
+                        title: '혼합 중요도 워크로드 오케스트레이션',
+                        subtitle: 'Mixed-Criticality Orchestration',
+                        description: 'Pullpiri는 ADAS·제어 등 고중요도 워크로드와 인포테인먼트 등 중요하지 않은 워크로드를 하나의 시스템에서 동시에 실행하되, 격리와 실시간·안전 우선순위를 유지해 안정적으로 운영합니다.'
+                    }
+                ],
+                // Why Pullpiri content
+                whyTitle: 'Pullpiri: Safety MEETS Developer Experience',
+                whyIntro: {
+                    p1: 'Pullpiri는 차량 환경에 특화된 컨테이너 오케스트레이션 오픈소스 플랫폼입니다.',
+                    p2: '현대 차량에는 다양한 애플리케이션이 빠르게 탑재되면서 소프트웨어 복잡도가 급증하고 있습니다. Pullpiri는 클라우드에서 검증된 Kubernetes 기반 기술을 차량에 최적화하여, 하드웨어 플랫폼에 구애받지 않고 컨테이너화된 애플리케이션을 신속하게 배포하고 관리합니다.',
+                    p3: '개발자는 복잡한 크로스 컴파일이나 플랫폼별 최적화 없이 표준화된 컨테이너로 어떤 차량에도 일관되게 배포할 수 있습니다. Pullpiri는 컨테이너의 안정적인 실행을 위해 모니터링과 자동 복구 시스템을 제공하며, 차량의 안전성과 개발 효율성을 동시에 확보합니다.'
+                },
+                whyVehicleTitle: 'Why Vehicle-Native Orchestration Matters',
+                whyVehicleIntro: {
+                    p1: '기존에는 애플리케이션을 차량에 배포하기 위해 복잡한 빌드 과정, 의존성 관리, 플랫폼별 최적화 등 여러 단계를 거쳐야 했습니다. Pullpiri는 이러한 과정을 간소화하여 표준화된 컨테이너 형태로 어떤 차량 플랫폼에도 일관되게 배포할 수 있게 합니다.',
+                    p2: '차량에 컨테이너 오케스트레이션이 적용되면 애플리케이션의 배포와 관리가 획기적으로 간소화됩니다. 하지만 차량용 컨테이너 오케스트레이션은 일반 클라우드 환경과 달리 차량만의 특수성을 반드시 고려해야 합니다. Pullpiri는 이러한 차량 환경의 특수성을 다음과 같이 해결합니다.'
+                },
+                solutions: [
+                    {
+                        number: '1',
+                        title: 'SoC별 안전 등급 제약',
+                        constraintTitle: '차량 환경의 제약',
+                        constraintText: '클라우드에서 사용되는 일반적인 컨테이너 오케스트레이션은 모든 노드를 동등하게 보지만, 차량은 SoC마다 안전 등급이 다릅니다. High Safety SoC에는 절대 엔터테인먼트 앱을 배포할 수 없습니다. 이런 하드웨어 정책 검증은 차량 내에서 반드시 필요한 과정입니다.',
+                        solutionTitle: 'Solution',
+                        solutionSubtitle: 'Safety First: 자동 안전 정책 검증',
+                        solutionText: 'Pullpiri는 SoC 안전 등급에 부합하지 않는 컨테이너 설치를 자동으로 차단합니다. 개발자는 복잡한 안전 정책을 일일이 확인할 필요가 없으며, 인적 오류로 인한 잘못된 배포를 원천 차단합니다.'
+                    },
+                    {
+                        number: '2',
+                        title: '차량 신호 기반의 의사결정 지원',
+                        constraintTitle: '차량 환경의 제약',
+                        constraintText: '차량은 달리는 동안 변화하는 많은 데이터를 기반으로 애플리케이션들의 의사결정이 필요한 순간이 존재합니다. 따라서 차량 데이터를 수신하는 프로토콜의 지원이 필요합니다.',
+                        solutionTitle: 'Solution',
+                        solutionSubtitle: 'Data from Driving: 차량 데이터 기반 의사결정',
+                        solutionText: 'Pullpiri는 CAN, FlexRay, Ethernet 등 차량 통신 프로토콜을 지원하여 차량 신호 기반의 의사결정 방법을 지원합니다. 차량에서 수집되는 신호를 기반으로 애플리케이션에 적용할 액션을 선택할 수 있습니다.'
+                    },
+                    {
+                        number: '3',
+                        title: '컨테이너 통합 관리',
+                        constraintTitle: '차량 환경의 제약',
+                        constraintText: '하나의 차량 기능은 여러 컨테이너들이 상호 의존적으로 동작합니다. 예를 들어 자율주행 기능은 센서 데이터 수집, 경로 계획, 제어 명령 등 여러 컨테이너가 연동되어야 하며, 컨테이너 간 설치 및 실행 의존성이 존재합니다. 뿐만 아니라 하나의 컨테이너 장애가 연쇄적으로 전체 기능에 영향을 미칩니다.',
+                        constraintText2: '이러한 이유로 기능 간 의존성을 고려한 순차적 설치와 기능 단위의 통합 관리가 필수적입니다.',
+                        solutionTitle: 'Solution',
+                        solutionSubtitle: 'Cascade-free Recovery: 의존성 기반 순차 배포 및 연쇄 장애 방지',
+                        solutionText: 'Pullpiri는 컨테이너 간 의존 관계를 기반으로 올바른 순서로 배포하고, ',
+                        solutionHighlight: '연쇄 장애를 방지하는 복구 기능',
+                        solutionText2: '을 제공합니다. 하나의 컨테이너 오류가 해당 기능에 미치는 영향을 자동으로 감지하여 연쇄적 상태 변경 후 기능 전체로 복구를 수행합니다.'
+                    }
+                ],
+                // Architecture content
+                archTitle: 'PICCOLO 클러스터링 시스템',
+                archSubtitle: '임베디드 환경에 최적화된 경량 컨테이너 오케스트레이션',
+                archOverview: {
+                    title: '프로젝트 개요',
+                    projectName: 'PICCOLO 클러스터링 시스템',
+                    purpose: '임베디드 환경에 최적화된 경량 컨테이너 오케스트레이션 클러스터 시스템 개발',
+                    mainFeatures: '노드 관리, 클러스터 설정, 상태 모니터링, 노드 간 통신',
+                    targetUsers: '임베디드 시스템 개발자, 관리자, 운영자',
+                    labels: { projectName: '프로젝트 명', purpose: '목적/배경', mainFeatures: '주요 기능', targetUsers: '대상 사용자' }
+                },
+                archObjectives: {
+                    title: '목적',
+                    description: 'PICCOLO 클러스터링 시스템은 임베디드 환경에 최적화된 분산 컨테이너 관리 시스템을 구현하기 위해 설계되었습니다.',
+                    items: [
+                        '제한된 리소스 환경에서도 효율적으로 동작하는 경량 클러스터 아키텍처 제공',
+                        '마스터 노드와 서브 노드 간의 원활한 통신 및 상태 관리 구현',
+                        '네트워크 불안정성에 강건한 클러스터 시스템 구축',
+                        '소규모 클러스터에 최적화된 운영 모델 제공'
+                    ]
+                },
+                archFeatures: {
+                    title: '주요 기능',
+                    items: [
+                        {
+                            title: '노드 관리',
+                            list: [
+                                '마스터-서브 노드 구조 관리',
+                                '노드 등록 및 인증',
+                                '노드 상태 모니터링 및 관리',
+                                '노드 시스템 준비 상태 검증'
+                            ]
+                        },
+                        {
+                            title: '클러스터 토폴로지 관리',
+                            list: [
+                                '임베디드 클러스터 토폴로지 구성',
+                                '하이브리드 클라우드 연결 구성',
+                                '다중 임베디드 클러스터 연결',
+                                '지역 분산 클러스터 구성'
+                            ]
+                        },
+                        {
+                            title: '상태 동기화',
+                            list: [
+                                'etcd 기반 상태 정보 관리',
+                                '노드 간 상태 정보 동기화',
+                                '상태 변경 감지 및 통지',
+                                '오프라인 모드 지원 및 재연결 동기화'
+                            ]
+                        },
+                        {
+                            title: '배포 및 운영',
+                            list: [
+                                'NodeAgent 자동 배포 및 설치',
+                                '시스템 체크 및 준비 상태 확인',
+                                '하트비트 기반 노드 상태 모니터링',
+                                '장애 감지 및 복구'
+                            ]
+                        }
+                    ]
+                },
+                archScope: {
+                    title: '적용 범위',
+                    items: [
+                        '2-10개 노드 규모의 소규모 임베디드 클러스터',
+                        '마스터 노드 및 서브 노드 간 통신 관리',
+                        '클라우드 노드와 임베디드 노드 간 연계',
+                        'Podman 기반 컨테이너 모니터링 및 관리'
+                    ]
+                },
+                archArchitecture: {
+                    title: '아키텍처',
+                    description: 'PICCOLO 클러스터링 시스템은 마스터-서브 노드 구조를 기반으로 하며, 임베디드 환경에 최적화된 경량 설계를 채택하고 있습니다.',
+                    systemStructure: '시스템 구조',
+                    components: {
+                        title: '핵심 컴포넌트',
+                        headers: { component: '컴포넌트', role: '역할', interaction: '상호작용' },
+                        items: [
+                            { name: 'API Server', role: '클러스터 관리, 노드 등록, 정책 배포', interaction: 'NodeAgent, StateManager, etcd' },
+                            { name: 'NodeAgent', role: '노드 상태 모니터링, 마스터 노드와 통신', interaction: 'API Server, StateManager, MonitoringServer' },
+                            { name: 'StateManager', role: '클러스터 상태 관리 및 동기화', interaction: 'API Server, NodeAgent, etcd' },
+                            { name: 'etcd', role: '클러스터 상태 정보 저장소', interaction: '모든 컴포넌트' },
+                            { name: '설치 스크립트', role: 'NodeAgent 배포 및 설정', interaction: '노드 시스템' },
+                            { name: '시스템 체크 스크립트', role: '노드 준비 상태 검증', interaction: '노드 시스템' }
+                        ]
+                    },
+                    techStack: {
+                        title: '기술 스택',
+                        headers: { layer: '계층', tech: '기술', description: '설명' },
+                        items: [
+                            { layer: '코어 서비스', tech: 'Rust', description: '고성능, 메모리 안전성을 위한 핵심 서비스 구현 언어' },
+                            { layer: '통신 프로토콜', tech: 'gRPC', description: '마스터-서브 노드 간 효율적인 통신을 위한 프로토콜' },
+                            { layer: '상태 저장소', tech: 'etcd', description: '분산 키-값 저장소로 클러스터 상태 정보 관리' },
+                            { layer: '컨테이너 런타임', tech: 'Podman', description: '데몬리스 아키텍처의 경량 컨테이너 관리 도구' },
+                            { layer: '서비스 관리', tech: 'systemd', description: '노드 서비스 관리 및 자동 시작 설정' },
+                            { layer: '배포 도구', tech: 'Bash 스크립트', description: '노드 설치 및 설정 자동화 도구' }
+                        ]
+                    }
+                }
+            },
+            en: {
+                heroTitle: 'Container Orchestration Platform<br>Optimized for Automotive Environments',
+                heroSubtitle: 'Pullpiri safely orchestrates various workloads in a way optimized for automotive environments.',
+                getStarted: 'Get started',
+                viewGithub: 'View on github',
+                whatTitle: 'What is Pullpiri?',
+                whatDesc1: 'Pullpiri is an open‑source orchestration platform optimized for in‑vehicle environments.',
+                whatDesc2: 'Based on the Kubernetes orchestration model, it has been redesigned to account for the unique constraints of automotive systems, including limited resources, real‑time requirements, and safety demands.',
+                whatDesc3: 'It enables consistent, container‑based execution, management, and deployment of software within the vehicle.',
+                featuresTitle: "Pullpiri's Features",
+                features: [
+                    {
+                        title: 'Condition‑based Workload Control',
+                        subtitle: '',
+                        description: 'Pullpiri applies predefined condition‑based policies to control workload execution and switching automatically and dynamically.'
+                    },
+                    {
+                        title: 'Resource-aware Workload Monitoring & Offloading',
+                        subtitle: '',
+                        description: 'Pullpiri continuously monitors CPU, memory usage, and container states, and dynamically controls the execution, redeployment, and offloading of workloads according to system resource status.'
+                    },
+                    {
+                        title: 'Unified Container Lifecycle Management',
+                        subtitle: '',
+                        description: 'Pullpiri provides an integrated management framework for the entire container lifecycle—including deployment, execution, updates, and termination—enhancing the stability and operational efficiency of in‑vehicle software.'
+                    },
+                    {
+                        title: 'Standardized Component Packaging',
+                        subtitle: '',
+                        description: 'Pullpiri enables automotive software components to be packaged and executed in a standardized container format, strengthening architectural consistency, scalability, and modularity across the vehicle system.'
+                    },
+                    {
+                        title: 'OEM Policy-driven Control',
+                        subtitle: '',
+                        description: 'OEM operational policies and constraints can be directly reflected in orchestration policies. This includes software execution priorities, resource allocation rules, and allowable operating ranges specified by the OEM.'
+                    },
+                    {
+                        title: 'Mixed-Criticality Orchestration',
+                        subtitle: '',
+                        description: 'Pullpiri runs criticality workloads (e.g., ADAS, control) alongside non‑criticality services (e.g., infotainment) within one system, ensuring strict isolation and required safety/real‑time priorities.'
+                    }
+                ],
+                // Why Pullpiri content
+                whyTitle: 'Pullpiri: Safety MEETS Developer Experience',
+                whyIntro: {
+                    p1: 'Pullpiri is an open-source container orchestration platform specialized for vehicle environments.',
+                    p2: 'As modern vehicles integrate an increasing number of applications, overall software complexity continues to rise. Pullpiri adapts Kubernetes‑based orchestration—proven in cloud environments—to automotive constraints, enabling rapid deployment and management of containerized applications across diverse hardware platforms.',
+                    p3: 'Developers can deploy applications consistently to any vehicle using standardized containers, without complex cross‑compilation or platform‑specific optimization. Pullpiri also provides monitoring and automated recovery mechanisms that ensure stable container execution, supporting both vehicle safety and developer productivity.'
+                },
+                whyVehicleTitle: 'Why Vehicle-Native Orchestration Matters',
+                whyVehicleIntro: {
+                    p1: 'Previously, deploying applications to vehicles required multiple steps including complex build processes, dependency management, and platform-specific optimization. Pullpiri simplifies this process, enabling consistent deployment to any vehicle platform in standardized container form.',
+                    p2: 'Container orchestration in vehicles dramatically simplifies application deployment and management. However, vehicle container orchestration must consider vehicle-specific characteristics unlike general cloud environments. Pullpiri addresses these vehicle environment specificities as follows:'
+                },
+                solutions: [
+                    {
+                        number: '1',
+                        title: 'Safety-Level Constraints per SoC',
+                        constraintTitle: 'Vehicle Environment Constraints',
+                        constraintText: 'Unlike cloud orchestration—where nodes are treated equally—vehicle SoCs differ in safety levels. For example, entertainment apps must never be deployed on high‑safety SoCs. Enforcing hardware safety policies is essential.',
+                        solutionTitle: 'Solution',
+                        solutionSubtitle: 'Safety First: Automatic Safety‑Level Policy Enforcement',
+                        solutionText: 'Pullpiri automatically blocks deployments that violate safety‑level constraints. This eliminates manual checking and prevents mis‑deployments caused by human error.'
+                    },
+                    {
+                        number: '2',
+                        title: 'Vehicle Signal-Based Decision Support',
+                        constraintTitle: 'Vehicle Environment Constraints',
+                        constraintText: 'Vehicles require application logic that reacts to continuously changing driving data. Therefore, support for in‑vehicle communication protocols is critical.',
+                        solutionTitle: 'Solution',
+                        solutionSubtitle: 'Driving Data‑Driven Decision Making',
+                        solutionText: 'Pullpiri supports CAN, FlexRay, and Automotive Ethernet, enabling runtime decisions based on real‑time vehicle signals.'
+                    },
+                    {
+                        number: '3',
+                        title: 'Integrated Container Management',
+                        constraintTitle: 'Vehicle Environment Constraints',
+                        constraintText: 'Many vehicle functions rely on multiple interdependent containers.',
+                        constraintText2: 'For example, autonomous driving requires coordinated operation of sensors, planning, and control modules. A single container failure can cascade across the entire function.',
+                        solutionTitle: 'Solution',
+                        solutionSubtitle: 'Cascade‑Free Recovery: Dependency‑Aware Sequential Deployment',
+                        solutionText: 'Pullpiri installs and launches containers in correct dependency order and prevents cascade failures.',
+                        solutionText2: 'It detects the functional impact of container errors, propagates state changes, and recovers the function as a whole.'
+                    }
+                ],
+                // Architecture content
+                archTitle: 'PICCOLO Clustering System',
+                archSubtitle: 'Lightweight Container Orchestration Optimized for Embedded Environments',
+                archOverview: {
+                    title: 'Project Overview',
+                    projectName: 'PICCOLO Clustering System',
+                    purpose: 'Development of a lightweight container orchestration cluster system optimized for embedded environments',
+                    mainFeatures: 'Node management, cluster configuration, status monitoring, inter-node communication',
+                    targetUsers: 'Embedded system developers, administrators, operators',
+                    labels: { projectName: 'Project Name', purpose: 'Purpose/Background', mainFeatures: 'Main Features', targetUsers: 'Target Users' }
+                },
+                archObjectives: {
+                    title: 'Purpose',
+                    description: 'The PICCOLO Clustering System is designed to implement a distributed container management system optimized for embedded environments.',
+                    items: [
+                        'Provide a lightweight cluster architecture that operates efficiently in resource-constrained environments',
+                        'Implement seamless communication and status management between master and sub nodes',
+                        'Build a cluster system resilient to network instability',
+                        'Provide an operational model optimized for small-scale clusters'
+                    ]
+                },
+                archFeatures: {
+                    title: 'Key Features',
+                    items: [
+                        {
+                            title: 'Node Management',
+                            list: [
+                                'Manage master-sub node structure',
+                                'Node registration and authentication',
+                                'Node status monitoring and management',
+                                'Node system readiness verification'
+                            ]
+                        },
+                        {
+                            title: 'Cluster Topology Management',
+                            list: [
+                                'Configure embedded cluster topology',
+                                'Configure hybrid cloud connections',
+                                'Connect multiple embedded clusters',
+                                'Configure geographically distributed clusters'
+                            ]
+                        },
+                        {
+                            title: 'State Synchronization',
+                            list: [
+                                'Manage state information based on etcd',
+                                'Synchronize state information between nodes',
+                                'Detect and notify state changes',
+                                'Support offline mode and resynchronization upon reconnection'
+                            ]
+                        },
+                        {
+                            title: 'Deployment and Operations',
+                            list: [
+                                'Automatic deployment and installation of NodeAgent',
+                                'System checks and readiness verification',
+                                'Heartbeat-based node status monitoring',
+                                'Fault detection and recovery'
+                            ]
+                        }
+                    ]
+                },
+                archScope: {
+                    title: 'Scope',
+                    items: [
+                        'Small-scale embedded clusters of 2–10 nodes',
+                        'Communication management between master and sub nodes',
+                        'Integration between cloud nodes and embedded nodes',
+                        'Podman-based container monitoring and management'
+                    ]
+                },
+                archArchitecture: {
+                    title: 'Architecture',
+                    description: 'The PICCOLO Clustering System is based on a master-sub node structure and adopts a lightweight design optimized for embedded environments.',
+                    systemStructure: 'System Structure',
+                    components: {
+                        title: 'Core Components',
+                        headers: { component: 'Component', role: 'Role', interaction: 'Interaction' },
+                        items: [
+                            { name: 'API Server', role: 'Cluster management, node registration, policy distribution', interaction: 'NodeAgent, StateManager, etcd' },
+                            { name: 'NodeAgent', role: 'Node status monitoring, communication with master node', interaction: 'API Server, StateManager, MonitoringServer' },
+                            { name: 'StateManager', role: 'Cluster state management and synchronization', interaction: 'API Server, NodeAgent, etcd' },
+                            { name: 'etcd', role: 'Cluster state information storage', interaction: 'All components' },
+                            { name: 'Installation Script', role: 'Deploy and configure NodeAgent', interaction: 'Node system' },
+                            { name: 'System Check Script', role: 'Verify node readiness', interaction: 'Node system' }
+                        ]
+                    },
+                    techStack: {
+                        title: 'Technology Stack',
+                        headers: { layer: 'Layer', tech: 'Technology', description: 'Description' },
+                        items: [
+                            { layer: 'Core Service', tech: 'Rust', description: 'High-performance, memory-safe core service implementation language' },
+                            { layer: 'Communication Protocol', tech: 'gRPC', description: 'Efficient protocol for master-sub node communication' },
+                            { layer: 'State Storage', tech: 'etcd', description: 'Distributed key-value store for cluster state management' },
+                            { layer: 'Container Runtime', tech: 'Podman', description: 'Daemonless lightweight container management tool' },
+                            { layer: 'Service Management', tech: 'systemd', description: 'Node service management and auto-start configuration' },
+                            { layer: 'Deployment Tool', tech: 'Bash scripts', description: 'Automation tool for node installation and configuration' }
+                        ]
+                    }
+                }
+            }
+        };
+
+        let currentLang = 'en';
+
+        // Update logo colors
+        function updateIcons() {
+            const logoOutline = document.getElementById('logo-outline');
+            const logoText = document.getElementById('logo-text-ullpiri');
+            if (logoOutline && logoText) {
+                logoOutline.setAttribute('stroke', 'white');
+                logoText.style.color = 'white';
+            }
+        }
+
+        // Language dropdown toggle
+        function toggleLangDropdown() {
+            const dropdown = document.getElementById('lang-dropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Change language
+        function changeLang(lang) {
+            currentLang = lang;
+            
+            // Update URL parameter
+            const url = new URL(window.location);
+            url.searchParams.set('lang', lang);
+            window.history.pushState({}, '', url);
+            
+            // Update active state
+            document.querySelectorAll('.lang-option').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.lang === lang) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update content
+            updateContent();
+            
+            // Close dropdown
+            document.getElementById('lang-dropdown').classList.remove('show');
+        }
+
+        // Update Why Pullpiri content
+        function updateWhyContent() {
+            const t = translations[currentLang];
+            const whyContent = document.getElementById('why-content');
+            
+            let html = `
+                <!-- Introduction Section -->
+                <section style="padding: 5rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <h2 style="font-size: 1.875rem; font-weight: 700; color: #18181b; margin-bottom: 1.5rem;">${t.whyTitle}</h2>
+                        <p style="font-size: 1.125rem; color: #52525b; line-height: 1.75; margin-bottom: 1rem;">${t.whyIntro.p1}</p>
+                        <p style="font-size: 1.125rem; color: #52525b; line-height: 1.75; margin-bottom: 1rem;">${t.whyIntro.p2}</p>
+                        <p style="font-size: 1.125rem; color: #52525b; line-height: 1.75;">${t.whyIntro.p3}</p>
+                    </div>
+                </section>
+
+                <!-- Why Vehicle-Native Section -->
+                <section class="why-section-bg" style="padding: 5rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <h2 style="font-size: 1.875rem; font-weight: 700; color: #18181b; margin-bottom: 1.5rem;">${t.whyVehicleTitle}</h2>
+                        <p style="font-size: 1.125rem; color: #52525b; line-height: 1.75; margin-bottom: 1rem;">${t.whyVehicleIntro.p1}</p>
+                        <p style="font-size: 1.125rem; color: #52525b; line-height: 1.75;">${t.whyVehicleIntro.p2}</p>
+                    </div>
+                </section>
+
+                <!-- Solutions Section -->
+                <section style="padding: 5rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+            `;
+
+            t.solutions.forEach((solution, index) => {
+                html += `
+                    <div style="margin-bottom: ${index < t.solutions.length - 1 ? '4rem' : '0'};">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                            <div style="width: 2rem; height: 2rem; background-color: #27272a; color: white; display: flex; align-items: center; justify-content: center; border-radius: 0.25rem; font-size: 0.875rem; font-weight: 700;">
+                                ${solution.number}
+                            </div>
+                            <h3 style="font-size: 1.25rem; font-weight: 700; color: #18181b;">${solution.title}</h3>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+                            <div class="solution-card" style="padding: 1.5rem; border-radius: 0.5rem;">
+                                <h4 class="constraint-title" style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                    <span>📊</span> ${solution.constraintTitle}
+                                </h4>
+                                <p style="font-size: 0.875rem; color: #52525b; line-height: 1.5;">${solution.constraintText}</p>
+                                ${solution.constraintText2 ? `<p style="font-size: 0.875rem; color: #52525b; line-height: 1.5; margin-top: 0.75rem;">${solution.constraintText2}</p>` : ''}
+                            </div>
+
+                            <div class="solution-card" style="padding: 1.5rem; border-radius: 0.5rem;">
+                                <h4 class="solution-title" style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                    <span>✓</span> ${solution.solutionTitle}
+                                </h4>
+                                <p class="solution-subtitle" style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">${solution.solutionSubtitle}</p>
+                                <p style="font-size: 0.875rem; color: #52525b; line-height: 1.5;">
+                                    ${solution.solutionText}${solution.solutionHighlight ? `<span class="highlight-text">${solution.solutionHighlight}</span>` : ''}${solution.solutionText2 || ''}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </section>
+            `;
+
+            whyContent.innerHTML = html;
+        }
+
+        // Update Architecture content
+        function updateArchContent() {
+            const t = translations[currentLang];
+            const archContent = document.getElementById('arch-content');
+            
+            let html = `
+                <!-- Hero Section -->
+                <section style="padding: 5rem 1.5rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(168, 85, 237, 0.1), rgba(251, 191, 36, 0.1));">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <h1 style="font-size: 2.25rem; font-weight: 700; color: #18181b; margin-bottom: 1rem;">${t.archTitle}</h1>
+                        <p style="font-size: 1.25rem; color: #52525b; margin-bottom: 2rem;">${t.archSubtitle}</p>
+                        <div style="font-size: 0.75rem; color: #71717a; padding-top: 1rem; border-top: 1px solid #e4e4e7; line-height: 1.6;">
+                            <p>Document No.: PICCOLO-CLUSTERING-HLD-2025-001</p>
+                            <p>Version: 1.0</p>
+                            <p>Date: 2025-09-04</p>
+                            <p>Author: PICCOLO Team</p>
+                            <p>Classification: HLD (High-Level Design)</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Overview Section -->
+                <section style="padding: 5rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <h2 class="section-title" style="font-size: 1.875rem; font-weight: 700; margin-bottom: 2rem;">${t.archOverview.title}</h2>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+                            <div class="feature-card" style="padding: 1.5rem; border-radius: 0.5rem;">
+                                <h3 class="card-subtitle" style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">${t.archOverview.labels.projectName}</h3>
+                                <p class="card-text" style="font-size: 1rem;">${t.archOverview.projectName}</p>
+                            </div>
+                            <div class="feature-card" style="padding: 1.5rem; border-radius: 0.5rem;">
+                                <h3 class="card-subtitle" style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">${t.archOverview.labels.purpose}</h3>
+                                <p class="card-text" style="font-size: 1rem;">${t.archOverview.purpose}</p>
+                            </div>
+                            <div class="feature-card" style="padding: 1.5rem; border-radius: 0.5rem;">
+                                <h3 class="card-subtitle" style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">${t.archOverview.labels.mainFeatures}</h3>
+                                <p class="card-text" style="font-size: 1rem;">${t.archOverview.mainFeatures}</p>
+                            </div>
+                            <div class="feature-card" style="padding: 1.5rem; border-radius: 0.5rem;">
+                                <h3 class="card-subtitle" style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">${t.archOverview.labels.targetUsers}</h3>
+                                <p class="card-text" style="font-size: 1rem;">${t.archOverview.targetUsers}</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Objectives Section -->
+                <section class="why-section-bg" style="padding: 5rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <h2 class="section-title" style="font-size: 1.875rem; font-weight: 700; margin-bottom: 1.5rem;">${t.archObjectives.title}</h2>
+                        <p class="section-desc" style="font-size: 1.125rem; line-height: 1.75; margin-bottom: 2rem;">${t.archObjectives.description}</p>
+                        <ul style="list-style: none; padding: 0;">
+            `;
+
+            t.archObjectives.items.forEach(item => {
+                html += `
+                    <li style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+                        <span style="color: #06b6d4; margin-top: 0.25rem;">•</span>
+                        <span class="section-desc" style="font-size: 1rem; line-height: 1.75;">${item}</span>
+                    </li>
+                `;
+            });
+
+            html += `
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Features Section -->
+                <section style="padding: 5rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <h2 class="section-title" style="font-size: 1.875rem; font-weight: 700; margin-bottom: 3rem;">${t.archFeatures.title}</h2>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+            `;
+
+            t.archFeatures.items.forEach(feature => {
+                html += `
+                    <div class="feature-card" style="padding: 2rem; border-radius: 0.5rem;">
+                        <h3 class="card-title" style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">${feature.title}</h3>
+                        <ul style="list-style: none; padding: 0;">
+                `;
+                
+                feature.list.forEach(item => {
+                    html += `
+                        <li style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <span style="color: #a855f7; margin-top: 0.25rem;">•</span>
+                            <span class="card-text" style="font-size: 0.875rem;">${item}</span>
+                        </li>
+                    `;
+                });
+
+                html += `
+                        </ul>
+                    </div>
+                `;
+            });
+
+            html += `
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Scope Section -->
+                <section class="why-section-bg" style="padding: 5rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <h2 class="section-title" style="font-size: 1.875rem; font-weight: 700; margin-bottom: 2rem;">${t.archScope.title}</h2>
+                        <ul style="list-style: none; padding: 0;">
+            `;
+
+            t.archScope.items.forEach(item => {
+                html += `
+                    <li style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+                        <span style="color: #06b6d4; margin-top: 0.25rem;">•</span>
+                        <span class="section-desc" style="font-size: 1rem; line-height: 1.75;">${item}</span>
+                    </li>
+                `;
+            });
+
+            html += `
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Architecture Section -->
+                <section style="padding: 5rem 1.5rem;">
+                    <div style="max-width: 64rem; margin: 0 auto;">
+                        <h2 class="section-title" style="font-size: 1.875rem; font-weight: 700; margin-bottom: 1.5rem;">${t.archArchitecture.title}</h2>
+                        <p class="section-desc" style="font-size: 1.125rem; line-height: 1.75; margin-bottom: 3rem;">${t.archArchitecture.description}</p>
+
+                        <!-- System Structure -->
+                        <div style="margin-bottom: 4rem;">
+                            <h3 class="section-title" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem;">${t.archArchitecture.systemStructure}</h3>
+                            <div onclick="openImageModal()" style="cursor: pointer; position: relative;">
+                                <img id="architectureImage" src="assets/architecture-overview.png" 
+                                     alt="${currentLang === 'ko' ? 'PICCOLO 클러스터링 시스템 구조 다이어그램' : 'PICCOLO Clustering System Architecture Diagram'}" 
+                                     class="architecture-diagram"
+                                     style="width: 100%; height: auto; border: 1px solid #e4e4e7; border-radius: 0.5rem; background: white; padding: 2rem;"
+                                     onerror="this.onerror=null; this.src='architecture-diagram.svg';" />
+                            </div>
+                        </div>
+
+                        <!-- Components Table -->
+                        <div style="margin-bottom: 4rem;">
+                            <h3 style="font-size: 1.5rem; font-weight: 700; color: #18181b; margin-bottom: 2rem;">${t.archArchitecture.components.title}</h3>
+                            <div style="overflow-x: auto;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background-color: #f4f4f5;">
+                                            <th style="text-align: left; padding: 1rem; font-size: 0.875rem; font-weight: 600; color: #18181b; border-bottom: 1px solid #e4e4e7;">${t.archArchitecture.components.headers.component}</th>
+                                            <th style="text-align: left; padding: 1rem; font-size: 0.875rem; font-weight: 600; color: #18181b; border-bottom: 1px solid #e4e4e7;">${t.archArchitecture.components.headers.role}</th>
+                                            <th style="text-align: left; padding: 1rem; font-size: 0.875rem; font-weight: 600; color: #18181b; border-bottom: 1px solid #e4e4e7;">${t.archArchitecture.components.headers.interaction}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+            `;
+
+            t.archArchitecture.components.items.forEach(component => {
+                html += `
+                    <tr style="border-bottom: 1px solid #e4e4e7;">
+                        <td style="padding: 1rem; font-size: 0.875rem; font-weight: 500; color: #18181b;">${component.name}</td>
+                        <td style="padding: 1rem; font-size: 0.875rem; color: #52525b;">${component.role}</td>
+                        <td style="padding: 1rem; font-size: 0.875rem; color: #52525b;">${component.interaction}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tech Stack Table -->
+                        <div>
+                            <h3 style="font-size: 1.5rem; font-weight: 700; color: #18181b; margin-bottom: 2rem;">${t.archArchitecture.techStack.title}</h3>
+                            <div style="overflow-x: auto;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background-color: #f4f4f5;">
+                                            <th style="text-align: left; padding: 1rem; font-size: 0.875rem; font-weight: 600; color: #18181b; border-bottom: 1px solid #e4e4e7;">${t.archArchitecture.techStack.headers.layer}</th>
+                                            <th style="text-align: left; padding: 1rem; font-size: 0.875rem; font-weight: 600; color: #18181b; border-bottom: 1px solid #e4e4e7;">${t.archArchitecture.techStack.headers.tech}</th>
+                                            <th style="text-align: left; padding: 1rem; font-size: 0.875rem; font-weight: 600; color: #18181b; border-bottom: 1px solid #e4e4e7;">${t.archArchitecture.techStack.headers.description}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+            `;
+
+            t.archArchitecture.techStack.items.forEach(tech => {
+                html += `
+                    <tr style="border-bottom: 1px solid #e4e4e7;">
+                        <td style="padding: 1rem; font-size: 0.875rem; font-weight: 500; color: #18181b;">${tech.layer}</td>
+                        <td style="padding: 1rem; font-size: 0.875rem; font-weight: 600; color: #a855f7;">${tech.tech}</td>
+                        <td style="padding: 1rem; font-size: 0.875rem; color: #52525b;">${tech.description}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            `;
+
+            archContent.innerHTML = html;
+        }
+
+        // Update content based on language
+        function updateContent() {
+            const t = translations[currentLang];
+            
+            document.getElementById('hero-title').innerHTML = t.heroTitle;
+            document.getElementById('hero-subtitle').textContent = t.heroSubtitle;
+            document.getElementById('btn-getstarted').textContent = t.getStarted;
+            document.getElementById('btn-github').textContent = t.viewGithub;
+            document.getElementById('what-title').textContent = t.whatTitle;
+            document.getElementById('what-desc1').textContent = t.whatDesc1;
+            document.getElementById('what-desc2').textContent = t.whatDesc2;
+            document.getElementById('what-desc3').textContent = t.whatDesc3;
+            document.getElementById('features-title').textContent = t.featuresTitle;
+            
+            // Update features
+            const featuresGrid = document.getElementById('features-grid');
+            featuresGrid.innerHTML = '';
+            
+            t.features.forEach(feature => {
+                const featureDiv = document.createElement('div');
+                featureDiv.style.cssText = 'background-color: #f4f4f5; padding: 1.5rem; border-radius: 0.5rem;';
+                
+                featureDiv.innerHTML = `
+                    <div style="display: flex; align-items: start; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <svg style="width: 1.25rem; height: 1.25rem; color: #06b6d4; flex-shrink: 0; margin-top: 0.125rem;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="8" height="8" x="3" y="3" rx="2"></rect>
+                            <path d="M7 11v4a2 2 0 0 0 2 2h4"></path>
+                            <rect width="8" height="8" x="13" y="13" rx="2"></rect>
+                        </svg>
+                        <h3 style="font-size: 1rem; font-weight: 700; color: #18181b;">${feature.title}</h3>
+                    </div>
+                    ${feature.subtitle ? `<p style="font-size: 0.875rem; color: #71717a; margin-bottom: 0.5rem;">${feature.subtitle}</p>` : ''}
+                    <p style="font-size: 0.875rem; color: #52525b; line-height: 1.5;">${feature.description}</p>
+                `;
+                
+                featuresGrid.appendChild(featureDiv);
+            });
+
+            // Update Why Pullpiri content
+            updateWhyContent();
+            
+            // Update Architecture content
+            updateArchContent();
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const allContents = document.querySelectorAll('.tab-content');
+            allContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active state from all tab buttons
+            const allButtons = document.querySelectorAll('.tab-btn');
+            allButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const selectedContent = document.getElementById(tabName);
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+            }
+            
+            // Add active state to selected tab button
+            const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('active');
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const langDropdown = document.querySelector('.lang-dropdown');
+            if (!langDropdown.contains(event.target)) {
+                document.getElementById('lang-dropdown').classList.remove('show');
+            }
+        });
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            updateIcons();
+            
+            // Check for language in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const langParam = urlParams.get('lang');
+            
+            if (langParam && (langParam === 'ko' || langParam === 'en')) {
+                currentLang = langParam;
+                
+                // Update active state
+                document.querySelectorAll('.lang-option').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.lang === langParam) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+            
+            // Initial content update
+            updateContent();
+        });
+        
+        // Image modal functions
+        function openImageModal() {
+            document.getElementById('imageModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+    </script>
+    
+    <!-- Image Modal -->
+    <div id="imageModal" class="image-modal" onclick="closeImageModal()">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeImageModal()">×</button>
+            <img id="modalImage" src="assets/architecture-overview.png" 
+                 alt="Architecture Diagram" 
+                 class="modal-image"
+                 onerror="this.onerror=null; this.src='architecture-diagram.svg';" />
+        </div>
+    </div>
+</body>
+</html>

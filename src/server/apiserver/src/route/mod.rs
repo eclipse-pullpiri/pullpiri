@@ -133,12 +133,14 @@ mod tests {
             .allow_headers(Any);
 
         let app = Router::new()
+            .route("/api/health", get(|| async { StatusCode::OK }))
             .route("/api/notify", get(|| async { StatusCode::OK }))
             .route("/api/artifact", post(|| async { StatusCode::OK }))
             .route("/api/artifact", delete(|| async { StatusCode::OK }))
             .layer(cors);
 
         let test_cases = [
+            ("GET", "/api/health", StatusCode::OK),
             ("GET", "/api/notify", StatusCode::OK),
             ("POST", "/api/artifact", StatusCode::OK),
             ("DELETE", "/api/artifact", StatusCode::OK),

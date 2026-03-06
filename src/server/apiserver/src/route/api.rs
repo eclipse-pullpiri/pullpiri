@@ -17,9 +17,18 @@ use axum::{
 /// None
 pub fn router() -> Router {
     Router::new()
+        .route("/api/health", get(health))
         .route("/api/notify", get(notify))
         .route("/api/artifact", post(apply_artifact))
         .route("/api/artifact", delete(withdraw_artifact))
+}
+
+/// Health check endpoint
+///
+/// ### Parameters
+/// None
+async fn health() -> Response {
+    super::status(Ok(()))
 }
 
 /// Notify of new artifact release in the cloud
@@ -118,6 +127,7 @@ spec:
     /// Setup the test app router overriding handlers with mocks
     async fn setup_app() -> Router {
         Router::new()
+            .route("/api/health", get(mock_health))
             .route("/api/notify", get(mock_notify))
             .route("/api/artifact", post(mock_apply_artifact))
             .route("/api/artifact", delete(mock_withdraw_artifact))
@@ -126,6 +136,11 @@ spec:
     // ------------------
     // Mocked Handlers
     // ------------------
+
+    /// Mock implementation of health that returns OK
+    async fn mock_health() -> Response {
+        status(Ok(()))
+    }
 
     /// Mock implementation of apply_artifact that sets flag and returns OK
     async fn mock_apply_artifact(_body: String) -> Response {
@@ -277,6 +292,40 @@ spec:
         let req = Request::builder()
             .method("PUT")
             .uri("/api/artifact")
+            .body(Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+        assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
+    }
+
+    // -------------------
+    // Health Endpoint Tests
+    // -------------------
+
+    /// Positive test: GET /api/health returns 200 OK
+    #[tokio::test]
+    async fn test_health_positive() {
+        let app = setup_app().await;
+
+        let req = Request::builder()
+            .method("GET")
+            .uri("/api/health")
+            .body(Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    /// Negative test: POST /api/health returns 405 Method Not Allowed
+    #[tokio::test]
+    async fn test_health_invalid_method() {
+        let app = setup_app().await;
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/api/health")
             .body(Body::empty())
             .unwrap();
 

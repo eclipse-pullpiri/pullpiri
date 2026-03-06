@@ -125,6 +125,14 @@ impl SettingsClient {
         }
     }
 
+    /// Check if the API Server is reachable
+    pub async fn api_health_check(&self) -> Result<bool> {
+        match self.get("/api/health").await {
+            Ok(_) => Ok(true),
+            Err(_) => Ok(false),
+        }
+    }
+
     /// Apply YAML artifact (POST with text/plain content)
     ///
     /// # Arguments

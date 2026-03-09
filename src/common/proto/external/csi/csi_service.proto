@@ -1,0 +1,34 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+package csi.api.v1;
+
+// CSI Volume Manager service for Resource Manager
+service CsiVolumeManager {
+  rpc CreateVolume(VolumeCreateRequest) returns (VolumeCreateResponse);
+  rpc DeleteVolume(VolumeDeleteRequest) returns (VolumeDeleteResponse);
+}
+
+message VolumeCreateRequest {
+  string volume_name = 1;
+  string capacity = 2;          // e.g., "10Gi", "1Ti"
+  string mountpath = 3;         // e.g., "/mnt/data"
+  string asil_level = 4;        // e.g., "ASIL-A", "ASIL-B", "ASIL-D", "QM"
+}
+
+message VolumeCreateResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message VolumeDeleteRequest {
+  string volume_name = 1;
+}
+
+message VolumeDeleteResponse {
+  bool success = 1;
+  string message = 2;
+}

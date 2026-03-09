@@ -1,0 +1,42 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+package resourcemanager;
+
+// Resource Manager service - receives requests from API Server
+service ResourceManagerService {
+  rpc CreateNetworkResource(NetworkResourceRequest) returns (ResourceResponse);
+  rpc CreateVolumeResource(VolumeResourceRequest) returns (ResourceResponse);
+  rpc DeleteNetworkResource(DeleteResourceRequest) returns (ResourceResponse);
+  rpc DeleteVolumeResource(DeleteResourceRequest) returns (ResourceResponse);
+}
+
+// Network Resource Request (from API Server)
+message NetworkResourceRequest {
+  string network_name = 1;
+  string network_mode = 2;      // bridge, host, overlay, macvlan, etc.
+  string node_name = 3;         // Target node name (optional)
+}
+
+// Volume Resource Request (from API Server)
+message VolumeResourceRequest {
+  string volume_name = 1;
+  string capacity = 2;          // e.g., "10Gi", "1Ti"
+  string mountpath = 3;         // e.g., "/mnt/data"
+  string asil_level = 4;        // e.g., "ASIL-A", "ASIL-B", "ASIL-D", "QM"
+  string node_name = 5;         // Target node name (optional)
+}
+
+// Delete Resource Request
+message DeleteResourceRequest {
+  string resource_name = 1;
+}
+
+// Generic Resource Response
+message ResourceResponse {
+  bool success = 1;
+  string message = 2;
+}

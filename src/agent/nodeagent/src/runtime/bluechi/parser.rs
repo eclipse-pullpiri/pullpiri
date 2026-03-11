@@ -75,23 +75,14 @@ pub async fn get_complete_model(
                     if let Some(volume_name) = mi.get_resources().get_volume() {
                         let key = format!("Volume/{}", volume_name);
                         let volume_str: String = common::etcd::get(&key).await?;
-                        let volume: Volume = serde_yaml::from_str(&volume_str)?;
-
-                        if let Some(volume_spec) = volume.get_spec() {
-                            model
-                                .get_podspec()
-                                .volumes
-                                .clone_from(volume_spec.get_volume());
-                        }
+                        let _volume: Volume = serde_yaml::from_str(&volume_str)?;
+                        // TODO: Apply volume configuration with new VolumeSpec structure
                     }
                     if let Some(network_name) = mi.get_resources().get_network() {
                         let key = format!("Network/{}", network_name);
                         let network_str = common::etcd::get(&key).await?;
-                        let network: Network = serde_yaml::from_str(&network_str)?;
-
-                        if let Some(_network_spec) = network.get_spec() {
-                            // TODO
-                        }
+                        let _network: Network = serde_yaml::from_str(&network_str)?;
+                        // TODO: Apply network configuration with new NetworkSpec structure
                     }
                     base_models.push(model.clone());
                 } else {

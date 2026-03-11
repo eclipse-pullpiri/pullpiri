@@ -23,11 +23,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "proto/statemanager.proto",
                 "proto/nodeagent.proto",
                 "proto/logd.proto",
+                "proto/resourcemanager.proto",
                 "proto/external/pharos/pharos_service.proto",
                 "proto/external/timpani/schedinfo.proto",
+                "proto/external/csi/csi_service.proto",
                 "proto/rocksdbservice.proto", // Add RocksDB service proto
-                "proto/resourcemanager.proto", // Add Resource Manager proto
-                "proto/external/csi/csi_service.proto", // Add CSI service proto
             ],
             &["proto"],
         )?;

@@ -210,14 +210,8 @@ async fn load_model_with_resources(
     // Load volume if specified
     if let Some(volume_name) = model_info.get_resources().get_volume() {
         let volume_str = common::etcd::get(&format!("{}/{}", KIND_VOLUME, volume_name)).await?;
-        let volume: Volume = serde_yaml::from_str(&volume_str)?;
-
-        if let Some(volume_spec) = volume.get_spec() {
-            model
-                .get_podspec_mut()
-                .volumes
-                .clone_from(volume_spec.get_volume());
-        }
+        let _volume: Volume = serde_yaml::from_str(&volume_str)?;
+        // TODO: Apply volume configuration with new VolumeSpec structure
     }
 
     // Load network if specified

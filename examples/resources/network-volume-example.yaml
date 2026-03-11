@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+apiVersion: v1
+kind: Network
+metadata:
+  name: vehicle-network
+spec:
+  networkName: vehicle-network
+  networkMode: bridge
+---
+apiVersion: v1
+kind: Volume
+metadata:
+  name: app-data-volume
+spec:
+  volumeName: app-data-volume
+  capacity: 10Gi
+  mountPath: /var/app/data
+  asilLevel: D

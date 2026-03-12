@@ -82,3 +82,13 @@ podman run -d \
   -v /run/piccololog/:/run/piccololog/ \
   ${CONTAINER_IMAGE} \
   /piccolo/settingsservice --bind-address=${MASTER_IP} --bind-port=8080 --log-level=debug
+
+# Run resourcemanager container
+podman run -d \
+  --pod piccolo-server \
+  --name piccolo-resourcemanager \
+  -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
+  -v /etc/piccolo/settings.yaml:/etc/piccolo/settings.yaml:Z \
+  -v /run/piccololog/:/run/piccololog/ \
+  ${CONTAINER_IMAGE} \
+  /piccolo/resourcemanager

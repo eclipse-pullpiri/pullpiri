@@ -96,6 +96,26 @@ async fn notify_scenario_state(scenario_name: &str, target_state: &str) {
     }
 }
 
+/// Send resource YAML to ResourceManager (Network or Volume)
+async fn send_resource_to_resourcemanager(artifact_str: &str, kind: &str) {
+    use common::resourcemanager::Action;
+
+    logd!(1, "RESOURCE: Sending {} YAML to ResourceManager", kind);
+
+    let mut sender = crate::grpc::sender::resourcemanager::ResourceManagerSender::new();
+    match sender.send(artifact_str.to_string(), Action::Apply).await {
+        Ok(response) => {
+            let resp = response.into_inner();
+            if resp.success {
+                logd!(1, "   Successfully sent {} resource to ResourceManager", kind);
+            } else {
+                logd!(5, "   {} resource handling failed: {}", kind, resp.message);
+            }
+        }
+        Err(e) => logd!(5, "   Failed to send {} to ResourceManager: {:?}", kind, e),
+    }
+}
+
 /// Process and store a single artifact document
 async fn process_artifact_document(doc: &str) -> common::Result<Option<(String, String)>> {
     use std::time::Instant;
@@ -128,8 +148,16 @@ async fn process_artifact_document(doc: &str) -> common::Result<Option<(String, 
         etcd_start.elapsed()
     );
 
-    if kind == KIND_SCENARIO {
-        notify_scenario_state(&name, "idle").await;
+    // Handle artifact-specific actions
+    match kind.as_str() {
+        KIND_SCENARIO => {
+            notify_scenario_state(&name, "idle").await;
+        }
+        KIND_NETWORK | KIND_VOLUME => {
+            // Send raw YAML to ResourceManager for parsing
+            send_resource_to_resourcemanager(&artifact_str, &kind).await;
+        }
+        _ => {}
     }
 
     Ok(Some((kind, artifact_str)))
@@ -150,12 +178,16 @@ pub async fn apply(body: &str) -> common::Result<String> {
     let docs: Vec<&str> = body.split(YAML_SEPARATOR).collect();
     let mut scenario_str = String::new();
     let mut package_str = String::new();
+    let mut resource_processed = false;
 
     for doc in docs {
         if let Some((kind, artifact_str)) = process_artifact_document(doc).await? {
             match kind.as_str() {
                 KIND_SCENARIO => scenario_str = artifact_str,
                 KIND_PACKAGE => package_str = artifact_str,
+                KIND_NETWORK | KIND_VOLUME => {
+                    resource_processed = true;
+                }
                 _ => continue,
             }
         }
@@ -163,7 +195,10 @@ pub async fn apply(body: &str) -> common::Result<String> {
 
     logd!(1, "apply: total elapsed = {:?}", total_start.elapsed());
 
-    if scenario_str.is_empty() {
+    // If only resource artifacts (Network/Volume) were processed, return success
+    if resource_processed && scenario_str.is_empty() && package_str.is_empty() {
+        Ok("Resource artifacts processed successfully".to_string())
+    } else if scenario_str.is_empty() {
         Err("There is not any scenario in yaml string".into())
     } else if package_str.is_empty() {
         Err("There is not any package in yaml string".into())

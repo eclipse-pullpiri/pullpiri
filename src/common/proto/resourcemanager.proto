@@ -6,37 +6,26 @@
 syntax = "proto3";
 package resourcemanager;
 
-// Resource Manager service - receives requests from API Server
+// Resource Manager service - receives YAML from API Server and parses internally
 service ResourceManagerService {
-  rpc CreateNetworkResource(NetworkResourceRequest) returns (ResourceResponse);
-  rpc CreateVolumeResource(VolumeResourceRequest) returns (ResourceResponse);
-  rpc DeleteNetworkResource(DeleteResourceRequest) returns (ResourceResponse);
-  rpc DeleteVolumeResource(DeleteResourceRequest) returns (ResourceResponse);
+  // Handle resource YAML (Network or Volume) - API Server sends raw YAML
+  rpc HandleResource(HandleResourceRequest) returns (HandleResourceResponse);
 }
 
-// Network Resource Request (from API Server)
-message NetworkResourceRequest {
-  string network_name = 1;
-  string network_mode = 2;      // bridge, host, overlay, macvlan, etc.
-  string node_name = 3;         // Target node name (optional)
+// Action type for resource handling
+enum Action {
+  APPLY = 0;
+  WITHDRAW = 1;
 }
 
-// Volume Resource Request (from API Server)
-message VolumeResourceRequest {
-  string volume_name = 1;
-  string capacity = 2;          // e.g., "10Gi", "1Ti"
-  string mountpath = 3;         // e.g., "/mnt/data"
-  string asil_level = 4;        // e.g., "ASIL-A", "ASIL-B", "ASIL-D", "QM"
-  string node_name = 5;         // Target node name (optional)
+// Handle Resource Request - receives raw YAML from API Server
+message HandleResourceRequest {
+  string resource_yaml = 1;     // Raw YAML string (Network or Volume artifact)
+  Action action = 2;            // APPLY or WITHDRAW
 }
 
-// Delete Resource Request
-message DeleteResourceRequest {
-  string resource_name = 1;
-}
-
-// Generic Resource Response
-message ResourceResponse {
+// Handle Resource Response
+message HandleResourceResponse {
   bool success = 1;
   string message = 2;
 }

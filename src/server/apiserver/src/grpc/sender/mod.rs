@@ -7,4 +7,5 @@
 
 pub mod filtergateway;
 pub mod nodeagent;
+pub mod resourcemanager;
 pub mod statemanager;

@@ -76,6 +76,7 @@ COPY --from=builder /piccolo/target/release/monitoringserver /piccolo/
 COPY --from=builder /piccolo/target/release/policymanager /piccolo/
 COPY --from=builder /piccolo/target/release/settingsservice /piccolo/
 COPY --from=builder /piccolo/target/release/logservice /piccolo/
+COPY --from=builder /piccolo/target/release/resourcemanager /piccolo/
 #COPY --from=builder /piccolo/target/release/nodeagent /piccolo/
 COPY --from=builder /piccolo/target/release/actioncontroller /piccolo/
 COPY --from=builder /piccolo/target/release/filtergateway /piccolo/

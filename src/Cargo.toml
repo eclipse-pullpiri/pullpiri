@@ -13,6 +13,7 @@ members = [
     "server/apiserver",
     "server/monitoringserver",
     "server/policymanager",
+    "server/resourcemanager",
     "server/settingsservice",
     "server/logservice",
 #   "server/rocksdbservice",

@@ -141,6 +141,11 @@ async fn reload() {
 pub async fn apply_artifact(body: &str) -> common::Result<()> {
     let scenario = crate::artifact::apply(body).await?;
 
+    // If only resource artifacts (Network/Volume) were processed, skip filtergateway
+    if scenario == "Resource artifacts processed successfully" {
+        return Ok(());
+    }
+
     let req: HandleScenarioRequest = HandleScenarioRequest {
         action: Action::Apply.into(),
         scenario,

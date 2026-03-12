@@ -127,6 +127,18 @@ pub mod statemanager {
     }
 }
 
+pub mod resourcemanager {
+    include!("generated/resourcemanager.rs");
+
+    pub fn open_server() -> String {
+        super::open_server(47008)
+    }
+
+    pub fn connect_server() -> String {
+        super::connect_server(47008)
+    }
+}
+
 pub mod logd;
 
 pub mod external {
@@ -140,7 +152,14 @@ pub mod external {
     pub mod pharos {
         include!("generated/pharos.api.v1.rs");
         pub fn connect_pharos_server() -> String {
-            format!("http://{}:{}", crate::setting::get_config().host.ip, 47006)
+            format!("http://{}:{}", crate::setting::get_config().host.ip, 50054)
+        }
+    }
+
+    pub mod csi {
+        include!("generated/csi.api.v1.rs");
+        pub fn connect_csi_server() -> String {
+            format!("http://{}:{}", crate::setting::get_config().host.ip, 50055)
         }
     }
 }

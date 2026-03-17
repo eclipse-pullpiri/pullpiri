@@ -72,12 +72,12 @@ impl FilterGatewayReceiver {
         let param = ScenarioParameter { action, scenario };
 
         self.tx.send(param).await.map_err(|e| {
-            logd!(5, "Failed to send scenario: {}", e);
+            println!("Failed to send scenario: {}", e);
             Error::other("Failed to send scenario")
         })?;
 
         let elapsed = start.elapsed();
-        logd!(1, "handle_scenario: elapsed = {:?}", elapsed);
+        println!("handle_scenario: elapsed = {:?}", elapsed);
 
         Ok(())
     }
@@ -90,15 +90,15 @@ impl FilterGatewayConnection for FilterGatewayReceiver {
         request: Request<HandleScenarioRequest>,
     ) -> std::result::Result<Response<HandleScenarioResponse>, Status> {
         let req = request.into_inner();
-        logd!(2, "Received scenario handling request");
+        println!("Received scenario handling request");
 
         // Extract the scenario YAML string and action from the request
         match self.handle_scenario(req.scenario, req.action).await {
             Ok(_) => {
-                logd!(2, "Successfully handled scenario");
+                println!("Successfully handled scenario");
             }
             Err(e) => {
-                logd!(5, "Error handling scenario: {}", e);
+                println!("Error handling scenario: {}", e);
                 return Err(Status::internal(format!(
                     "Failed to handle scenario: {}",
                     e

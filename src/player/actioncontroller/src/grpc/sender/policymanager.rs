@@ -89,9 +89,9 @@ mod tests {
 
     //     let result = check_policy(scenario_name).await;
     //     if let Err(ref e) = result {
-    //         logd!(5, "Error in test_check_policy_success: {:?}", e);
+    //         println!("Error in test_check_policy_success: {:?}", e);
     //     } else {
-    //         logd!(2, "test_check_policy_success successful");
+    //         println!("test_check_policy_success successful");
     //     }
     //     assert!(result.is_ok());
     // }

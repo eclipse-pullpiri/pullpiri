@@ -8,10 +8,9 @@ use common::external::timpani::{
     connect_timpani_server, sched_info_service_client::SchedInfoServiceClient, Response, SchedInfo,
     SchedPolicy, TaskInfo,
 };
-use common::logd;
 
 pub async fn add_sched_info(workload_id: String, task_name: &str, node_id: &str) {
-    logd!(1, "Connecting to Timpani server ....");
+    println!("Connecting to Timpani server ....");
     let mut client = SchedInfoServiceClient::connect(connect_timpani_server())
         .await
         .unwrap();
@@ -37,10 +36,10 @@ pub async fn add_sched_info(workload_id: String, task_name: &str, node_id: &str)
 
     match response {
         Ok(res) => {
-            logd!(3, "[add_sched_info] RESPONSE={:?}", res);
+            println!("[add_sched_info] RESPONSE={:?}", res);
         }
         Err(e) => {
-            logd!(5, "[add_sched_info] ERROR={:?}", e);
+            println!("[add_sched_info] ERROR={:?}", e);
         }
     }
 }

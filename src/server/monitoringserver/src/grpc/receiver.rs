@@ -326,7 +326,7 @@ mod tests {
         // wait briefly for manager to process and store to etcd
         tokio::time::sleep(Duration::from_millis(300)).await;
         // verify etcd has at least one stress metric with expected process_name
-        // NOTE: requires working etcd and correct common::etcd configuration
+        // NOTE: requires working etcd and correct common::persistency configuration
         let metrics = etcd_storage::get_all_stress_metrics().await;
         assert!(
             metrics.is_ok(),

@@ -15,6 +15,7 @@ members = [
     "server/policymanager",
     "server/settingsservice",
     "server/logservice",
+    "server/persistency-service",
 #   "server/rocksdbservice",
 ]
 exclude = [

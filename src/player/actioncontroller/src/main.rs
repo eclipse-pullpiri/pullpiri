@@ -29,10 +29,10 @@ async fn initialize(skip_grpc: bool) -> Result<(), Box<dyn Error>> {
 
     // 설정 파일의 호스트 정보 확인 (노드 역할 사전 설정)
     let hostname = &config.host.name;
-    let node_type = &config.host.r#type;
+    let _node_type = &config.host.r#type;
 
     /*if node_type == "bluechi" {
-        logd!(2, "Adding {} to bluechi_nodes from settings.yaml", hostname);
+        println!("Adding {} to bluechi_nodes from settings.yaml", hostname);
         manager.bluechi_nodes.push(hostname.clone());
     } else*/
     {
@@ -66,7 +66,7 @@ async fn initialize(skip_grpc: bool) -> Result<(), Box<dyn Error>> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let _ = logger::init_async_logger("actioncontroller").await;
-    logd!(1, "initiailize action controller");
+    println!("initiailize action controller");
 
     // Initialize the controller
     initialize(false).await?;
@@ -75,7 +75,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Keep the application running
     tokio::signal::ctrl_c().await?;
-    logd!(3, "Shutting down ActionController...");
+    println!("Shutting down ActionController...");
 
     Ok(())
 }

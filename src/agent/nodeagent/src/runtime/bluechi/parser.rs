@@ -74,7 +74,7 @@ pub async fn get_complete_model(
                 if model.get_name() == model_name {
                     if let Some(volume_name) = mi.get_resources().get_volume() {
                         let key = format!("Volume/{}", volume_name);
-                        let volume_str: String = common::etcd::get(&key).await?;
+                        let volume_str: String = common::persistency::get(&key).await?;
                         let volume: Volume = serde_yaml::from_str(&volume_str)?;
 
                         if let Some(volume_spec) = volume.get_spec() {
@@ -86,7 +86,7 @@ pub async fn get_complete_model(
                     }
                     if let Some(network_name) = mi.get_resources().get_network() {
                         let key = format!("Network/{}", network_name);
-                        let network_str = common::etcd::get(&key).await?;
+                        let network_str = common::persistency::get(&key).await?;
                         let network: Network = serde_yaml::from_str(&network_str)?;
 
                         if let Some(_network_spec) = network.get_spec() {
@@ -185,7 +185,7 @@ spec:
     - name: data
       emptyDir: {}
 "#;
-        common::etcd::put("Volume/test-volume", volume_yaml)
+        common::persistency::put("Volume/test-volume", volume_yaml)
             .await
             .unwrap();
 
@@ -200,7 +200,7 @@ spec:
     - name: eth0
       bridge: br0
 "#;
-        common::etcd::put("Network/test-network", network_yaml)
+        common::persistency::put("Network/test-network", network_yaml)
             .await
             .unwrap();
 
@@ -232,7 +232,7 @@ spec:
       image: test
 "#;
 
-        common::etcd::put("Model/test-model", model_yaml)
+        common::persistency::put("Model/test-model", model_yaml)
             .await
             .unwrap();
 

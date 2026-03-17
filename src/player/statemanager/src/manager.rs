@@ -356,9 +356,9 @@ impl StateManagerManager {
                 logd!(1, "   📤 Saving to ETCD:");
                 logd!(1, "      • Key: {}", etcd_key);
                 logd!(1, "      • Value: {}", etcd_value);
-                logd!(1, "      • Operation: common::etcd::put()");
+                logd!(1, "      • Operation: common::persistency::put()");
 
-                if let Err(e) = common::etcd::put(&etcd_key, etcd_value).await {
+                if let Err(e) = common::persistency::put(&etcd_key, etcd_value).await {
                     logd!(4, "   ❌ Failed to save scenario state to ETCD: {:?}", e);
                 } else {
                     logd!(
@@ -622,7 +622,7 @@ impl StateManagerManager {
 
         logd!(1, "    Saving to ETCD - Key: {}, Value: {}", key, value);
 
-        if let Err(e) = common::etcd::put(&key, value).await {
+        if let Err(e) = common::persistency::put(&key, value).await {
             logd!(5, "    Failed to save model state: {:?}", e);
             return Err(format!(
                 "Failed to save model state for {}: {:?}",
@@ -651,7 +651,7 @@ impl StateManagerManager {
             value
         );
 
-        if let Err(e) = common::etcd::put(&key, value).await {
+        if let Err(e) = common::persistency::put(&key, value).await {
             logd!(5, "    Failed to save package state: {:?}", e);
             return Err(format!(
                 "Failed to save package state for {}: {:?}",
@@ -825,7 +825,7 @@ impl StateManagerManager {
         package_name: &str,
     ) -> std::result::Result<Option<String>, String> {
         // Get all scenarios from ETCD
-        match common::etcd::get_all_with_prefix("Scenario/").await {
+        match common::persistency::get_all_with_prefix("Scenario/").await {
             Ok(scenario_entries) => {
                 for kv in scenario_entries {
                     match serde_yaml::from_str::<common::spec::artifact::Scenario>(&kv.1) {
@@ -1397,11 +1397,11 @@ spec:
 "#;
 
         // Put test data in etcd
-        common::etcd::put("Scenario/test-communication-scenario", scenario_yaml)
+        common::persistency::put("Scenario/test-communication-scenario", scenario_yaml)
             .await
             .expect("Failed to put scenario in etcd");
 
-        common::etcd::put("Package/test-communication-package", package_yaml)
+        common::persistency::put("Package/test-communication-package", package_yaml)
             .await
             .expect("Failed to put package in etcd");
 
@@ -1437,11 +1437,11 @@ spec:
         let received_requests = mock_receiver.get_received_requests().await;
 
         // Cleanup
-        common::etcd::delete("Scenario/test-communication-scenario")
+        common::persistency::delete("Scenario/test-communication-scenario")
             .await
             .expect("Failed to cleanup scenario from etcd");
 
-        common::etcd::delete("Package/test-communication-package")
+        common::persistency::delete("Package/test-communication-package")
             .await
             .expect("Failed to cleanup package from etcd");
 
@@ -1997,7 +1997,7 @@ mod unit_tests {
 
         // Check etcd key exists for scenario state
         let key = format!("/scenario/{}/state", sc.resource_name);
-        let val = common::etcd::get(&key)
+        let val = common::persistency::get(&key)
             .await
             .expect("etcd get should succeed");
         assert!(val == "Waiting" || val == "Allowed" || !val.is_empty());
@@ -2012,7 +2012,7 @@ mod unit_tests {
         let manager = StateManagerManager::new(rx_container, rx_state_change).await;
 
         // Ensure no packages exist for this test model
-        let _ = common::etcd::delete("Package/no-packages").await;
+        let _ = common::persistency::delete("Package/no-packages").await;
 
         // Should run without panic even if no packages found
         manager
@@ -2031,12 +2031,12 @@ mod unit_tests {
         // Create a package with a single model that is Dead -> package should become Error
         let pkg_key = "Package/pkg-update";
         let pkg_yaml = r#"{"apiVersion":"v1","kind":"Package","metadata":{"name":"pkg-update"},"spec":{"pattern":[],"models":[{"name":"mup","node":"n","resources":{"volume":"","network":"","realtime":false}}]}}"#;
-        let _ = common::etcd::put(pkg_key, pkg_yaml).await;
+        let _ = common::persistency::put(pkg_key, pkg_yaml).await;
 
         // Set model state to Dead
-        let _ = common::etcd::put("/model/mup/state", "Dead").await;
+        let _ = common::persistency::put("/model/mup/state", "Dead").await;
         // Set current package state to running so a change is detected
-        let _ = common::etcd::put("/package/pkg-update/state", "running").await;
+        let _ = common::persistency::put("/package/pkg-update/state", "running").await;
 
         // Trigger evaluation
         manager.trigger_package_state_evaluation("mup").await;
@@ -2056,7 +2056,7 @@ mod unit_tests {
         let manager = StateManagerManager::new(rx_container, rx_state_change).await;
 
         // Ensure no scenarios present
-        let _ = common::etcd::delete("Scenario/nonexistent").await;
+        let _ = common::persistency::delete("Scenario/nonexistent").await;
 
         let res = manager.find_scenario_for_package("no-scn").await;
         assert!(res.is_ok());

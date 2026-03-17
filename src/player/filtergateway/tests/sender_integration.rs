@@ -13,7 +13,7 @@ use tokio::time::{sleep, Duration};
 #[tokio::test]
 async fn test_trigger_action_valid_scenario() {
     // Insert mock Scenario YAML into etcd
-    common::etcd::put(
+    common::persistency::put(
         "Scenario/antipinch-enable",
         r#"
 apiVersion: v1
@@ -29,7 +29,7 @@ spec:
     .await
     .unwrap();
 
-    common::etcd::put(
+    common::persistency::put(
         "Node/antipinch-enable",
         r#"
 apiVersion: v1
@@ -41,7 +41,7 @@ metadata:
     )
     .await
     .unwrap();
-    common::etcd::put(
+    common::persistency::put(
         "Network/antipinch-enable",
         r#"
 apiVersion: v1
@@ -55,7 +55,7 @@ metadata:
     .unwrap();
 
     // Insert mock Package YAML into etcd
-    common::etcd::put(
+    common::persistency::put(
         "Package/antipinch-enable",
         r#"
 apiVersion: v1
@@ -85,16 +85,16 @@ spec:
         result.err()
     );
     // Cleanup after test
-    common::etcd::delete("Scenario/antipinch-enable")
+    common::persistency::delete("Scenario/antipinch-enable")
         .await
         .unwrap();
-    common::etcd::delete("Package/antipinch-enable")
+    common::persistency::delete("Package/antipinch-enable")
         .await
         .unwrap();
-    common::etcd::delete("Network/antipinch-enable")
+    common::persistency::delete("Network/antipinch-enable")
         .await
         .unwrap();
-    common::etcd::delete("Node/antipinch-enable").await.unwrap();
+    common::persistency::delete("Node/antipinch-enable").await.unwrap();
 }
 
 /// Test Case: Empty Scenario Name

@@ -53,7 +53,7 @@ impl DdsManager {
     }
     /// Scan and process IDL directory at runtime
     pub async fn scan_idl_directory(&mut self, dir: &Path) -> Result<Vec<String>> {
-        logd!(3, "Scanning IDL directory at runtime: {:?}", dir);
+        println!("Scanning IDL directory at runtime: {:?}", dir);
         let mut found_types = Vec::new();
 
         // Check if directory exists
@@ -74,7 +74,7 @@ impl DdsManager {
             }
         }
 
-        logd!(3, "Found {} IDL types at runtime", found_types.len());
+        println!("Found {} IDL types at runtime", found_types.len());
         Ok(found_types)
     }
     /// 타입명에 맞는 특화된 리스너 생성
@@ -85,7 +85,7 @@ impl DdsManager {
     ) -> Result<()> {
         // 이미 존재하는 리스너인지 확인
         if self.listeners.contains_key(&topic_name) {
-            logd!(4, "Listener for topic '{}' already exists", topic_name);
+            println!("Listener for topic '{}' already exists", topic_name);
             return Ok(());
         }
         logd!(
@@ -198,7 +198,7 @@ impl DdsManager {
     pub async fn stop_all(&mut self) -> Result<()> {
         for (_, mut listener) in std::mem::take(&mut self.listeners) {
             if let Err(e) = listener.stop().await {
-                logd!(5, "Failed to stop listener: {:?}", e);
+                println!("Failed to stop listener: {:?}", e);
             }
         }
 
@@ -215,7 +215,7 @@ impl DdsManager {
         &mut self,
         settings_path: P,
     ) -> Result<()> {
-        logd!(3, "Initializing DDS Manager");
+        println!("Initializing DDS Manager");
         let default_domain_id = 0;
 
         let settings_path = settings_path.into().unwrap_or_else(|| {
@@ -224,7 +224,7 @@ impl DdsManager {
                 .unwrap_or_else(|_| PathBuf::from("/etc/piccolo/settings.yaml"))
         });
 
-        logd!(3, "Reading settings from {:?}", settings_path);
+        println!("Reading settings from {:?}", settings_path);
         let content = fs::read_to_string(&settings_path)?;
 
         // JSON 또는 YAML 파싱
@@ -237,7 +237,7 @@ impl DdsManager {
             .map(|id| id as i32)
             .unwrap_or(default_domain_id);
 
-        logd!(3, "Domain ID from settings: {}", domain_id);
+        println!("Domain ID from settings: {}", domain_id);
 
         // Check OUT_DIR value (not used at runtime, only for logging)
         if let Some(out_dir) = settings
@@ -245,7 +245,7 @@ impl DdsManager {
             .and_then(|dds| dds.get("out_dir"))
             .and_then(|path| path.as_str())
         {
-            logd!(3, "Output directory from settings: {}", out_dir);
+            println!("Output directory from settings: {}", out_dir);
         }
 
         self.domain_id = domain_id;

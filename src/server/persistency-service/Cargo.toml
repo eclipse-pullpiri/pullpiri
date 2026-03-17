@@ -9,7 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Persistency KVS library
-rust_kvs = { path = "../../../../persistency/src/rust/rust_kvs" }
+rust_kvs = { path = "../../../libs/rust_kvs" }
 
 # gRPC and async
 tokio = { version = "1.0", features = ["full"] }

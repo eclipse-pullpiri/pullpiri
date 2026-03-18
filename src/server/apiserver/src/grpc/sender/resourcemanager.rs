@@ -82,3 +82,28 @@ impl ResourceManagerSender {
         }
     }
 }
+
+/// Send resource YAML to ResourceManager (helper function like filtergateway::send)
+///
+/// # Arguments
+/// * `kind` - Resource kind (Network or Volume)
+/// * `yaml` - Raw YAML string
+/// * `action` - Action type (Apply or Withdraw)
+pub async fn send(kind: &str, yaml: &str, action: Action) {
+    use common::logd;
+
+    logd!(1, "RESOURCE: Sending {} YAML to ResourceManager", kind);
+
+    let mut sender = ResourceManagerSender::new();
+    match sender.send(yaml.to_string(), action).await {
+        Ok(response) => {
+            let resp = response.into_inner();
+            if resp.success {
+                logd!(1, "   Successfully sent {} resource to ResourceManager", kind);
+            } else {
+                logd!(5, "   {} resource handling failed: {}", kind, resp.message);
+            }
+        }
+        Err(e) => logd!(5, "   Failed to send {} to ResourceManager: {:?}", kind, e),
+    }
+}

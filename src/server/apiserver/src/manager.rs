@@ -139,18 +139,27 @@ async fn reload() {
 /// (optional) make yaml, kube files for Bluechi
 /// send a gRPC message to gateway
 pub async fn apply_artifact(body: &str) -> common::Result<()> {
-    let scenario = crate::artifact::apply(body).await?;
+    let result = crate::artifact::apply(body).await?;
 
-    // If only resource artifacts (Network/Volume) were processed, skip filtergateway
-    if scenario == "Resource artifacts processed successfully" {
-        return Ok(());
+    // Send resources to ResourceManager
+    for (kind, yaml) in &result.resources {
+        crate::grpc::sender::resourcemanager::send(
+            kind,
+            yaml,
+            common::resourcemanager::Action::Apply,
+        )
+        .await;
     }
 
-    let req: HandleScenarioRequest = HandleScenarioRequest {
-        action: Action::Apply.into(),
-        scenario,
-    };
-    crate::grpc::sender::filtergateway::send(req).await?;
+    // Send scenario to FilterGateway
+    if let Some(scenario) = result.scenario {
+        let req = HandleScenarioRequest {
+            action: Action::Apply.into(),
+            scenario,
+        };
+        crate::grpc::sender::filtergateway::send(req).await?;
+    }
+
     Ok(())
 }
 
@@ -163,13 +172,26 @@ pub async fn apply_artifact(body: &str) -> common::Result<()> {
 /// (optional) delete yaml, kube files for Bluechi
 /// send a gRPC message to gateway
 pub async fn withdraw_artifact(body: &str) -> common::Result<()> {
-    let scenario = crate::artifact::withdraw(body).await?;
+    let result = crate::artifact::withdraw(body).await?;
 
-    let req = HandleScenarioRequest {
-        action: Action::Withdraw.into(),
-        scenario,
-    };
-    crate::grpc::sender::filtergateway::send(req).await?;
+    // Send resources to ResourceManager
+    for (kind, yaml) in &result.resources {
+        crate::grpc::sender::resourcemanager::send(
+            kind,
+            yaml,
+            common::resourcemanager::Action::Withdraw,
+        )
+        .await;
+    }
+
+    // Send scenario to FilterGateway
+    if let Some(scenario) = result.scenario {
+        let req = HandleScenarioRequest {
+            action: Action::Withdraw.into(),
+            scenario,
+        };
+        crate::grpc::sender::filtergateway::send(req).await?;
+    }
 
     Ok(())
 }
@@ -679,16 +701,20 @@ spec:
         body: &str,
         grpc_addr: SocketAddr,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let scenario = crate::artifact::apply(body).await?;
+        let result = crate::artifact::apply(body).await?;
 
-        // Prepare the gRPC request with Apply action
-        let req = HandleScenarioRequest {
-            action: Action::Apply.into(),
-            scenario,
-        };
+        // Send resources to ResourceManager (skipped in mock test)
 
-        // Send request to the mock gRPC server
-        mock_send(req, grpc_addr).await
+        // If scenario exists, send to mock gRPC server
+        if let Some(scenario) = result.scenario {
+            let req = HandleScenarioRequest {
+                action: Action::Apply.into(),
+                scenario,
+            };
+            mock_send(req, grpc_addr).await?;
+        }
+
+        Ok(())
     }
 
     /// Mocked version of withdraw_artifact function.
@@ -697,14 +723,20 @@ spec:
         body: &str,
         grpc_addr: SocketAddr,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let scenario = crate::artifact::withdraw(body).await?;
+        let result = crate::artifact::withdraw(body).await?;
 
-        let req = HandleScenarioRequest {
-            action: Action::Withdraw.into(),
-            scenario,
-        };
+        // Send resources to ResourceManager (skipped in mock test)
 
-        mock_send(req, grpc_addr).await
+        // If scenario exists, send to mock gRPC server
+        if let Some(scenario) = result.scenario {
+            let req = HandleScenarioRequest {
+                action: Action::Withdraw.into(),
+                scenario,
+            };
+            mock_send(req, grpc_addr).await?;
+        }
+
+        Ok(())
     }
 
     /// Mocked version of reload function.

@@ -96,30 +96,6 @@ async fn notify_scenario_state(scenario_name: &str, target_state: &str) {
     }
 }
 
-/// Send resource YAML to ResourceManager (Network or Volume)
-async fn send_resource_to_resourcemanager(artifact_str: &str, kind: &str) {
-    use common::resourcemanager::Action;
-
-    logd!(1, "RESOURCE: Sending {} YAML to ResourceManager", kind);
-
-    let mut sender = crate::grpc::sender::resourcemanager::ResourceManagerSender::new();
-    match sender.send(artifact_str.to_string(), Action::Apply).await {
-        Ok(response) => {
-            let resp = response.into_inner();
-            if resp.success {
-                logd!(
-                    1,
-                    "   Successfully sent {} resource to ResourceManager",
-                    kind
-                );
-            } else {
-                logd!(5, "   {} resource handling failed: {}", kind, resp.message);
-            }
-        }
-        Err(e) => logd!(5, "   Failed to send {} to ResourceManager: {:?}", kind, e),
-    }
-}
-
 /// Process and store a single artifact document
 async fn process_artifact_document(doc: &str) -> common::Result<Option<(String, String)>> {
     use std::time::Instant;
@@ -152,19 +128,18 @@ async fn process_artifact_document(doc: &str) -> common::Result<Option<(String, 
         etcd_start.elapsed()
     );
 
-    // Handle artifact-specific actions
-    match kind.as_str() {
-        KIND_SCENARIO => {
-            notify_scenario_state(&name, "idle").await;
-        }
-        KIND_NETWORK | KIND_VOLUME => {
-            // Send raw YAML to ResourceManager for parsing
-            send_resource_to_resourcemanager(&artifact_str, &kind).await;
-        }
-        _ => {}
+    if kind == KIND_SCENARIO {
+        notify_scenario_state(&name, "idle").await;
     }
 
     Ok(Some((kind, artifact_str)))
+}
+
+/// Result of apply operation containing scenario and resource information
+#[derive(Debug, Default)]
+pub struct ApplyResult {
+    pub scenario: Option<String>,
+    pub resources: Vec<(String, String)>, // (kind, yaml)
 }
 
 /// Apply downloaded artifact to etcd
@@ -172,17 +147,17 @@ async fn process_artifact_document(doc: &str) -> common::Result<Option<(String, 
 /// ### Parametets
 /// * `body: &str` - whole yaml string of piccolo artifact
 /// ### Returns
-/// * `Result(String, String)` - scenario and package yaml in downloaded artifact
+/// * `Result<ApplyResult>` - scenario and resource yamls in downloaded artifact
 /// ### Description
 /// Write artifact in etcd
-pub async fn apply(body: &str) -> common::Result<String> {
+pub async fn apply(body: &str) -> common::Result<ApplyResult> {
     use std::time::Instant;
     let total_start = Instant::now();
 
     let docs: Vec<&str> = body.split(YAML_SEPARATOR).collect();
     let mut scenario_str = String::new();
     let mut package_str = String::new();
-    let mut resource_processed = false;
+    let mut resources: Vec<(String, String)> = Vec::new();
 
     for doc in docs {
         if let Some((kind, artifact_str)) = process_artifact_document(doc).await? {
@@ -190,7 +165,7 @@ pub async fn apply(body: &str) -> common::Result<String> {
                 KIND_SCENARIO => scenario_str = artifact_str,
                 KIND_PACKAGE => package_str = artifact_str,
                 KIND_NETWORK | KIND_VOLUME => {
-                    resource_processed = true;
+                    resources.push((kind, artifact_str));
                 }
                 _ => continue,
             }
@@ -200,16 +175,29 @@ pub async fn apply(body: &str) -> common::Result<String> {
     logd!(1, "apply: total elapsed = {:?}", total_start.elapsed());
 
     // If only resource artifacts (Network/Volume) were processed, return success
-    if resource_processed && scenario_str.is_empty() && package_str.is_empty() {
-        Ok("Resource artifacts processed successfully".to_string())
+    if !resources.is_empty() && scenario_str.is_empty() && package_str.is_empty() {
+        Ok(ApplyResult {
+            scenario: None,
+            resources,
+        })
     } else if scenario_str.is_empty() {
         Err("There is not any scenario in yaml string".into())
     } else if package_str.is_empty() {
         Err("There is not any package in yaml string".into())
     } else {
         save_pod_yaml_from_package(&package_str).await?;
-        Ok(scenario_str)
+        Ok(ApplyResult {
+            scenario: Some(scenario_str),
+            resources: Vec::new(), // Ignore resources when scenario/package present
+        })
     }
+}
+
+/// Result of withdraw operation containing scenario and resource information
+#[derive(Debug, Default)]
+pub struct WithdrawResult {
+    pub scenario: Option<String>,
+    pub resources: Vec<(String, String)>, // (kind, yaml)
 }
 
 /// Delete downloaded artifact to etcd
@@ -217,26 +205,49 @@ pub async fn apply(body: &str) -> common::Result<String> {
 /// ### Parametets
 /// * `body: &str` - whole yaml string of piccolo artifact
 /// ### Returns
-/// * `Result(String)` - scenario yaml in downloaded artifact
+/// * `Result<WithdrawResult>` - scenario and resource yamls in downloaded artifact
 /// ### Description
-/// Delete scenario yaml only, because other scenario can use a package with same name
-pub async fn withdraw(body: &str) -> common::Result<String> {
+/// Delete scenario and resource yamls
+pub async fn withdraw(body: &str) -> common::Result<WithdrawResult> {
     let docs: Vec<&str> = body.split(YAML_SEPARATOR).collect();
+    let mut scenario_str = String::new();
+    let mut resources: Vec<(String, String)> = Vec::new();
 
     for doc in docs {
         let value: serde_yaml::Value = serde_yaml::from_str(doc)?;
 
         if let Some((kind, name)) = parse_artifact_info(&value) {
-            if kind == KIND_SCENARIO {
-                let artifact_str = serde_yaml::to_string(&value)?;
-                let key = format!("{}/{}", KIND_SCENARIO, name);
-                data::delete_at_etcd(&key).await?;
-                return Ok(artifact_str);
+            let artifact_str = serde_yaml::to_string(&value)?;
+            let key = format!("{}/{}", kind, name);
+
+            match kind.as_str() {
+                KIND_SCENARIO => {
+                    data::delete_at_etcd(&key).await?;
+                    scenario_str = artifact_str;
+                }
+                KIND_NETWORK | KIND_VOLUME => {
+                    data::delete_at_etcd(&key).await?;
+                    resources.push((kind, artifact_str));
+                }
+                _ => {}
             }
         }
     }
 
-    Err("There is not any scenario in yaml string".into())
+    // If only resource artifacts (Network/Volume) were processed, return success
+    if !resources.is_empty() && scenario_str.is_empty() {
+        Ok(WithdrawResult {
+            scenario: None,
+            resources,
+        })
+    } else if scenario_str.is_empty() {
+        Err("There is not any scenario in yaml string".into())
+    } else {
+        Ok(WithdrawResult {
+            scenario: Some(scenario_str),
+            resources: Vec::new(), // Ignore resources when scenario present
+        })
+    }
 }
 
 /// Load model with optional volume and network resources
@@ -404,9 +415,12 @@ spec:
             result.err()
         );
 
-        // Assert: scenario and package strings should not be empty
-        let scenario = result.unwrap();
-        assert!(!scenario.is_empty(), "Scenario YAML should not be empty");
+        // Assert: scenario should not be empty
+        let apply_result = result.unwrap();
+        assert!(
+            apply_result.scenario.is_some(),
+            "Scenario YAML should not be empty"
+        );
 
         // Cleanup: Remove the created Model
         let _ = data::delete_at_etcd("Model/helloworld-core").await;
@@ -463,9 +477,9 @@ spec:
         );
 
         // Assert: returned scenario YAML should not be empty
-        let scenario = result.unwrap();
+        let withdraw_result = result.unwrap();
         assert!(
-            !scenario.is_empty(),
+            withdraw_result.scenario.is_some(),
             "Returned scenario YAML should not be empty"
         );
     }

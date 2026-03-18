@@ -10,8 +10,8 @@
 //! to ResourceManager for parsing and processing.
 
 use common::resourcemanager::{
-    connect_server, resource_manager_service_client::ResourceManagerServiceClient,
-    Action, HandleResourceRequest, HandleResourceResponse,
+    connect_server, resource_manager_service_client::ResourceManagerServiceClient, Action,
+    HandleResourceRequest, HandleResourceResponse,
 };
 use tonic::{Request, Response, Status};
 

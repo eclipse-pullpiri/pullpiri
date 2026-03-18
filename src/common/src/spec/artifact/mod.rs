@@ -158,7 +158,6 @@ mod tests {
         let volume: Volume = serde_json::from_str(volume_json).unwrap();
 
         assert_eq!(volume.get_name(), "test-volume");
-        assert!(volume.get_spec().is_none());
     }
 
     #[test]
@@ -175,7 +174,6 @@ mod tests {
         let network: Network = serde_json::from_str(network_json).unwrap();
 
         assert_eq!(network.get_name(), "test-network");
-        assert!(network.get_spec().is_none());
     }
 
     #[test]

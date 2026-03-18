@@ -107,7 +107,11 @@ async fn send_resource_to_resourcemanager(artifact_str: &str, kind: &str) {
         Ok(response) => {
             let resp = response.into_inner();
             if resp.success {
-                logd!(1, "   Successfully sent {} resource to ResourceManager", kind);
+                logd!(
+                    1,
+                    "   Successfully sent {} resource to ResourceManager",
+                    kind
+                );
             } else {
                 logd!(5, "   {} resource handling failed: {}", kind, resp.message);
             }

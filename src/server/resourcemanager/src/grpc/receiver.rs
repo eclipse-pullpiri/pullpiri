@@ -41,7 +41,11 @@ impl ResourceManagerGrpcServer {
     }
 
     /// Process Network resource
-    async fn process_network(&self, yaml_str: &str, action: Action) -> Result<HandleResourceResponse, String> {
+    async fn process_network(
+        &self,
+        yaml_str: &str,
+        action: Action,
+    ) -> Result<HandleResourceResponse, String> {
         let network: Network = serde_yaml::from_str(yaml_str)
             .map_err(|e| format!("Failed to parse Network YAML: {}", e))?;
 
@@ -108,7 +112,11 @@ impl ResourceManagerGrpcServer {
     }
 
     /// Process Volume resource
-    async fn process_volume(&self, yaml_str: &str, action: Action) -> Result<HandleResourceResponse, String> {
+    async fn process_volume(
+        &self,
+        yaml_str: &str,
+        action: Action,
+    ) -> Result<HandleResourceResponse, String> {
         let volume: Volume = serde_yaml::from_str(yaml_str)
             .map_err(|e| format!("Failed to parse Volume YAML: {}", e))?;
 

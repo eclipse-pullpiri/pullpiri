@@ -87,22 +87,27 @@ fn build_host_config(
         }
     }
 
-    // Mounts (volumeMounts → Mounts)
+    // Mounts (volumeMounts → Mounts array for Podman API v4.0 compat)
     if let Some(volume_mounts) = container["volumeMounts"].as_array() {
         if let Some(volumes) = spec["volumes"].as_array() {
-            let mut mounts = Vec::new();
+            let mut mounts: Vec<serde_json::Value> = Vec::new();
             for mount in volume_mounts {
                 let mount_name = mount["name"].as_str().unwrap_or("");
                 let mount_path = mount["mountPath"].as_str().unwrap_or("");
                 for volume in volumes {
                     if volume["name"].as_str() == Some(mount_name) {
-                        if let Some(host_path) = volume["hostPath"]["path"].as_str() {
-                            mounts.push(json!({
-                                "Type": "bind",
-                                "Source": host_path,
-                                "Target": mount_path
-                            }));
-                        }
+                        // hostPath가 있으면 hostPath를 Source로, 없으면 mountPath를 Source로 사용
+                        let source = if let Some(host_path) = volume["hostPath"]["path"].as_str() {
+                            host_path
+                        } else {
+                            // hostPath 정보가 없으면 mountPath를 그대로 사용
+                            mount_path
+                        };
+                        mounts.push(json!({
+                            "Type": "bind",
+                            "Source": source,
+                            "Target": mount_path
+                        }));
                         break;
                     }
                 }
@@ -114,6 +119,16 @@ fn build_host_config(
     }
 
     json!(host_config)
+}
+
+/// Get network mode for container creation (Docker-compatible API)
+/// Returns the first network name from spec, or None if not specified
+fn get_network_mode(spec: &serde_json::Value) -> Option<String> {
+    spec["networks"]
+        .as_array()
+        .and_then(|networks| networks.first())
+        .and_then(|network| network["name"].as_str())
+        .map(|s| s.to_string())
 }
 
 /// Build environment variables array
@@ -177,7 +192,18 @@ async fn create_container(
     });
 
     // Add HostConfig
-    let host_config = build_host_config(container, spec, host_network);
+    let mut host_config = build_host_config(container, spec, host_network);
+    
+    // Add NetworkMode to HostConfig (Docker-compatible API)
+    if !host_network {
+        if let Some(network_mode) = get_network_mode(spec) {
+            host_config
+                .as_object_mut()
+                .unwrap()
+                .insert("NetworkMode".to_string(), json!(network_mode));
+        }
+    }
+    
     if !host_config.as_object().unwrap().is_empty() {
         create_body["HostConfig"] = host_config;
     }

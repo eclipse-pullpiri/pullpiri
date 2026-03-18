@@ -120,14 +120,12 @@ pub async fn receive_config(
 mod tests {
     use crate::grpc::receiver::{NodeAgentConnection, NodeAgentReceiver};
     use common::nodeagent::fromapiserver::{
-        ClusterConfig, ConfigRequest, ConfigResponse, HandleYamlRequest, HandleYamlResponse,
-        HeartbeatRequest, HeartbeatResponse, NodeRegistrationRequest, NodeRegistrationResponse,
-        StatusAck, StatusReport,
+        ConfigRequest, HandleYamlRequest, HeartbeatRequest, NodeRegistrationRequest, StatusReport,
     };
     use std::sync::Arc;
     use tokio::sync::mpsc;
     use tokio::sync::Mutex;
-    use tonic::{Request, Status};
+    use tonic::Request;
 
     const VALID_ARTIFACT_YAML: &str = r#"
 apiVersion: v1

@@ -597,7 +597,7 @@ spec:
 "#;
     use crate::desired_state::DesiredState;
     use crate::manager::NodeAgentManager;
-    use common::monitoringserver::{ContainerInfo, ContainerList, NodeInfo};
+    use common::monitoringserver::ContainerInfo;
     use common::nodeagent::fromapiserver::HandleYamlRequest;
     use std::collections::HashMap;
     use std::sync::Arc;

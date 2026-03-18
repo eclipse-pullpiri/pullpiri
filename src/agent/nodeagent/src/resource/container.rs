@@ -167,9 +167,7 @@ pub async fn get_stats(
 //Unit Test Cases
 #[cfg(test)]
 mod tests {
-    use super::{get_inspect, get_list, inspect, Container, ContainerError, ContainerInspect};
-    use common::monitoringserver::ContainerInfo;
-    use std::collections::HashMap;
+    use super::{get_inspect, get_list, inspect};
     use tokio;
 
     #[tokio::test]

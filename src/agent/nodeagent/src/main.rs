@@ -238,7 +238,6 @@ mod tests {
     use crate::{initialize, launch_manager};
     use common::nodeagent::fromapiserver::{HandleYamlRequest, NodeRegistrationRequest};
     use std::collections::HashMap;
-    use std::path::PathBuf;
     use std::sync::Arc;
     use tokio::sync::mpsc::{channel, Receiver, Sender};
     use tokio::sync::Mutex;

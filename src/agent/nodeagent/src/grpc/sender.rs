@@ -181,15 +181,11 @@ impl NodeAgentSender {
 #[cfg(test)]
 mod tests {
     use crate::grpc::sender::NodeAgentSender;
-    use common::monitoringserver::{
-        ContainerList, NodeInfo, SendContainerListResponse, SendNodeInfoResponse,
-    };
+    use common::monitoringserver::{ContainerList, NodeInfo};
     use common::nodeagent::fromapiserver::{
-        HeartbeatRequest, HeartbeatResponse, NodeRegistrationRequest, NodeRegistrationResponse,
-        StatusAck, StatusReport,
+        HeartbeatRequest, NodeRegistrationRequest, StatusReport,
     };
     use common::statemanager::{Action, Response as SMResponse};
-    use tonic::{Request, Response, Status};
 
     #[tokio::test]
     async fn test_trigger_action_success() {

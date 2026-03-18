@@ -79,14 +79,14 @@ impl Filter {
         let target_value = condition.get_value();
         let express = condition.get_express();
 
-        logd!(1,
+        println!(
         "Checking condition for scenario: {}\nTopic: {}\nTarget Value: {}\nValue Name: {}\nExpression: {}\n",
         self.scenario_name, topic, target_value, value_name, express
     );
 
         if !data.name.eq(&topic) {
             let elapsed = start.elapsed();
-            logd!(1, "meet_scenario_condition: elapsed = {:?}", elapsed);
+            println!("meet_scenario_condition: elapsed = {:?}", elapsed);
             return Err("data topic does not match".into());
         }
 
@@ -94,7 +94,7 @@ impl Filter {
             Some(v) => v,
             None => {
                 let elapsed = start.elapsed();
-                logd!(3, "meet_scenario_condition: elapsed = {:?}", elapsed);
+                println!("meet_scenario_condition: elapsed = {:?}", elapsed);
                 return Err(format!("field '{}' not found in data.fields", value_name).into());
             }
         };
@@ -139,20 +139,20 @@ impl Filter {
             }
             _ => {
                 let elapsed = start.elapsed();
-                logd!(3, "meet_scenario_condition: elapsed = {:?}", elapsed);
+                println!("meet_scenario_condition: elapsed = {:?}", elapsed);
                 return Err("wrong expression in condition".into());
             }
         };
 
         let elapsed = start.elapsed();
-        logd!(1, "meet_scenario_condition: elapsed = {:?}", elapsed);
+        println!("meet_scenario_condition: elapsed = {:?}", elapsed);
 
         if check {
-            logd!(1, "Condition met for scenario: {}", self.scenario_name);
-            logd!(1, "🔄 SCENARIO STATE TRANSITION: FilterGateway Processing");
-            logd!(1, "   📋 Scenario: {}", self.scenario_name);
-            logd!(1, "   🔄 State Change: idle → waiting");
-            logd!(1, "   🔍 Reason: Scenario condition satisfied");
+            println!("Condition met for scenario: {}", self.scenario_name);
+            println!("🔄 SCENARIO STATE TRANSITION: FilterGateway Processing");
+            println!("   📋 Scenario: {}", self.scenario_name);
+            println!("   🔄 State Change: idle → waiting");
+            println!("   🔍 Reason: Scenario condition satisfied");
 
             // 🔍 COMMENT 1: FilterGateway condition registration
             // When scenario condition is met, FilterGateway triggers ActionController
@@ -175,13 +175,13 @@ impl Filter {
                 source: "filtergateway".to_string(),
             };
 
-            logd!(1, "   📤 Sending StateChange to StateManager:");
-            logd!(1, "      • Resource Type: SCENARIO");
-            logd!(1, "      • Resource Name: {}", state_change.resource_name);
-            logd!(1, "      • Current State: {}", state_change.current_state);
-            logd!(1, "      • Target State: {}", state_change.target_state);
-            logd!(1, "      • Transition ID: {}", state_change.transition_id);
-            logd!(1, "      • Source: {}", state_change.source);
+            println!("   📤 Sending StateChange to StateManager:");
+            println!("      • Resource Type: SCENARIO");
+            println!("      • Resource Name: {}", state_change.resource_name);
+            println!("      • Current State: {}", state_change.current_state);
+            println!("      • Target State: {}", state_change.target_state);
+            println!("      • Transition ID: {}", state_change.transition_id);
+            println!("      • Source: {}", state_change.source);
 
             if let Err(e) = self
                 .state_sender
@@ -202,11 +202,11 @@ impl Filter {
                 );
             }
 
-            logd!(1, "   📤 Triggering ActionController via gRPC...");
+            println!("   📤 Triggering ActionController via gRPC...");
             self.sender
                 .trigger_action(self.scenario_name.clone())
                 .await?;
-            logd!(2, "   ✅ ActionController triggered successfully");
+            println!("   ✅ ActionController triggered successfully");
             Ok(())
         } else {
             Err("cannot meet condition".into())
@@ -297,14 +297,14 @@ impl Filter {
         // Perform condition check
         match self.meet_scenario_condition(data).await {
             Ok(_) => {
-                logd!(1, "Action triggered for scenario: {}", self.scenario_name);
+                println!("Action triggered for scenario: {}", self.scenario_name);
                 // Disable filter after condition is met (run only once)
                 // Add self.is_active = false; code if needed
             }
             Err(e) => {
                 // Condition not met is a normal case, only log at debug level
                 if e.to_string() != "cannot meet condition" {
-                    logd!(5, "Error checking condition: {:?}", e);
+                    println!("Error checking condition: {:?}", e);
                 }
             }
         }

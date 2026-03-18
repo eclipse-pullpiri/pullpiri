@@ -6,7 +6,7 @@
 //! Node manager for cluster operations
 
 use common::apiserver::NodeInfo;
-use common::etcd;
+use common::persistency;
 use common::logd;
 use common::nodeagent::fromapiserver::{NodeRegistrationRequest, NodeStatus};
 
@@ -44,15 +44,15 @@ impl NodeManager {
 
         // 1. cluster/nodes/{hostname}: 노드 정보(json string)
         let node_json = serde_json::to_string(&node_info)?;
-        etcd::put(&node_key, &node_json).await?;
+        persistency::put(&node_key, &node_json).await?;
 
         // 2. nodes/{ip_address}: hostname(plain string)
         let ip_key = format!("nodes/{}", request.ip_address);
-        etcd::put(&ip_key, &request.hostname).await?;
+        persistency::put(&ip_key, &request.hostname).await?;
 
         // 3. nodes/{hostname}: ip 주소(plain string)
         let hostname_key = format!("nodes/{}", request.hostname);
-        etcd::put(&hostname_key, &request.ip_address).await?;
+        persistency::put(&hostname_key, &request.ip_address).await?;
 
         logd!(2, "Node {} registered successfully", request.node_id);
         Ok(format!("cluster-token-{}", request.node_id))
@@ -63,7 +63,7 @@ impl NodeManager {
         &self,
     ) -> Result<Vec<NodeInfo>, Box<dyn std::error::Error + Send + Sync>> {
         let prefix = "cluster/nodes/";
-        let kvs = etcd::get_all_with_prefix(prefix).await?;
+        let kvs = persistency::get_all_with_prefix(prefix).await?;
 
         let mut nodes = Vec::new();
         for kv in kvs {
@@ -93,7 +93,7 @@ impl NodeManager {
         // node_id를 직접 사용 (hostname으로 간주)
         let node_key = format!("cluster/nodes/{}", node_id);
 
-        match etcd::get(&node_key).await {
+        match persistency::get(&node_key).await {
             Ok(json_str) => {
                 let node_info = serde_json::from_str::<NodeInfo>(&json_str)?;
                 Ok(Some(node_info))
@@ -114,7 +114,7 @@ impl NodeManager {
             // node_name으로 키 생성
             let node_key = format!("cluster/nodes/{}", node.hostname);
             let node_json = serde_json::to_string(&node)?;
-            etcd::put(&node_key, &node_json).await?;
+            persistency::put(&node_key, &node_json).await?;
 
             logd!(1, "Updated heartbeat for node {}", node_id);
         }
@@ -134,7 +134,7 @@ impl NodeManager {
             // node.hostname을 사용하여 키 생성 (node_id 대신)
             let node_key = format!("cluster/nodes/{}", node.hostname);
             let node_json = serde_json::to_string(&node)?;
-            etcd::put(&node_key, &node_json).await?;
+            persistency::put(&node_key, &node_json).await?;
 
             logd!(1, "Updated status for node {} to {:?}", node_id, status);
         }
@@ -149,7 +149,7 @@ impl NodeManager {
         // get_node를 사용하여 노드 정보를 얻고 hostname을 추출
         if let Some(node) = self.get_node(node_id).await? {
             let node_key = format!("cluster/nodes/{}", node.hostname);
-            etcd::delete(&node_key).await?;
+            persistency::delete(&node_key).await?;
 
             logd!(2, "Removed node {} from cluster", node_id);
             return Ok(());

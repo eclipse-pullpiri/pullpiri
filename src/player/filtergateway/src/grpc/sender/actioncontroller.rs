@@ -52,7 +52,7 @@ impl FilterGatewaySender {
         let request = TriggerActionRequest { scenario_name };
 
         client.trigger_action(request).await.map_err(|e| {
-            common::logd!(5, "Failed to trigger action: {:?}", e);
+            println!("Failed to trigger action: {:?}", e);
             anyhow::anyhow!("Failed to trigger action: {:?}", e)
         })?;
 

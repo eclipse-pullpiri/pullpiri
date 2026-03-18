@@ -8,16 +8,16 @@ use async_trait::async_trait;
 use serde_json::Value;
 use tracing::debug;
 
-/// ETCD client wrapper for Settings Service (now using common::etcd)
+/// ETCD client wrapper for Settings Service (now using common::persistency)
 pub struct EtcdClient {
-    // No longer need direct etcd client - use common::etcd interface
+    // No longer need direct etcd client - use common::persistency interface
 }
 
 impl EtcdClient {
-    /// Create a new ETCD client (now using common::etcd)
+    /// Create a new ETCD client (now using common::persistency)
     pub async fn new(_endpoints: Vec<String>) -> Result<Self, StorageError> {
-        debug!("Using common::etcd interface for RocksDB storage");
-        // No need to connect to etcd endpoints - common::etcd handles RocksDB initialization
+        debug!("Using common::persistency interface for RocksDB storage");
+        // No need to connect to etcd endpoints - common::persistency handles RocksDB initialization
         Ok(Self {})
     }
 
@@ -25,7 +25,7 @@ impl EtcdClient {
     pub async fn get(&mut self, key: &str) -> Result<Option<String>, StorageError> {
         debug!("Getting key: {}", key);
 
-        match common::etcd::get(key).await {
+        match common::persistency::get(key).await {
             Ok(value) => Ok(Some(value)),
             Err(_) => Ok(None), // Key not found
         }
@@ -35,7 +35,7 @@ impl EtcdClient {
     pub async fn put(&mut self, key: &str, value: &str) -> Result<(), StorageError> {
         debug!("Putting key: {}, value length: {}", key, value.len());
 
-        common::etcd::put(key, value)
+        common::persistency::put(key, value)
             .await
             .map_err(|e| StorageError::OperationFailed(format!("Put operation failed: {}", e)))?;
 
@@ -46,7 +46,7 @@ impl EtcdClient {
     pub async fn delete(&mut self, key: &str) -> Result<bool, StorageError> {
         debug!("Deleting key: {}", key);
 
-        match common::etcd::delete(key).await {
+        match common::persistency::delete(key).await {
             Ok(()) => Ok(true),
             Err(_) => Ok(false), // Key didn't exist
         }
@@ -56,7 +56,7 @@ impl EtcdClient {
     pub async fn list(&mut self, prefix: &str) -> Result<Vec<(String, String)>, StorageError> {
         debug!("Listing keys with prefix: {}", prefix);
 
-        let kvs = common::etcd::get_all_with_prefix(prefix)
+        let kvs = common::persistency::get_all_with_prefix(prefix)
             .await
             .map_err(|e| StorageError::OperationFailed(format!("List operation failed: {}", e)))?;
 

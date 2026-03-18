@@ -42,7 +42,7 @@ impl VehicleManager {
         match self.dds_manager.init().await {
             Ok(_) => {}
             Err(e) => {
-                logd!(5, "Failed to initialize DDS manager with settings file: {}. Using default settings.", e);
+                println!("Failed to initialize DDS manager with settings file: {}. Using default settings.", e);
                 // 기본 설정 적용
                 self.set_domain_id(100); // Set default domain ID
             }
@@ -73,7 +73,7 @@ impl VehicleManager {
             .await?;
 
         let elapsed = start.elapsed();
-        logd!(1, "subscribe_topic: elapsed = {:?}", elapsed);
+        println!("subscribe_topic: elapsed = {:?}", elapsed);
 
         Ok(())
     }

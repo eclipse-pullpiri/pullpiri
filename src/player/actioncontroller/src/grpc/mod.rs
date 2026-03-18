@@ -5,7 +5,6 @@
 pub mod receiver;
 pub mod sender;
 
-use common::logd;
 use std::sync::Arc;
 use tonic::transport::Server;
 
@@ -29,7 +28,7 @@ pub async fn init(manager: crate::manager::ActionControllerManager) -> common::R
     let grpc_server = receiver::ActionControllerReceiver::new(arc_manager.clone());
 
     let addr = common::actioncontroller::open_server().parse()?;
-    logd!(1, "Starting gRPC server on {}", addr);
+    println!("Starting gRPC server on {}", addr);
 
     tokio::spawn(async move {
         if let Err(e) = Server::builder()
@@ -37,11 +36,11 @@ pub async fn init(manager: crate::manager::ActionControllerManager) -> common::R
             .serve(addr)
             .await
         {
-            logd!(5, "gRPC server error: {}", e);
+            println!("gRPC server error: {}", e);
         }
     });
 
-    logd!(1, "gRPC server started and listening");
+    println!("gRPC server started and listening");
 
     Ok(())
 }

@@ -7,7 +7,7 @@
 
 use base64::Engine;
 use common::apiserver::{ClusterTopology, TopologyType};
-use common::etcd;
+use common::persistency;
 use common::logd;
 use prost::Message;
 
@@ -23,7 +23,7 @@ impl NodeRegistry {
     ) -> Result<ClusterTopology, Box<dyn std::error::Error + Send + Sync>> {
         let topology_key = "cluster/topology";
 
-        match etcd::get(topology_key).await {
+        match persistency::get(topology_key).await {
             Ok(encoded) => {
                 let buf = base64::engine::general_purpose::STANDARD.decode(&encoded)?;
                 let topology = ClusterTopology::decode(&buf[..])?;
@@ -54,7 +54,7 @@ impl NodeRegistry {
         // 인코딩을 제거하고 json string으로 변환
         let topology_json = serde_json::to_string(&topology)?;
 
-        etcd::put(topology_key, &topology_json).await?;
+        persistency::put(topology_key, &topology_json).await?;
 
         logd!(2, "Updated cluster topology: {}", topology.cluster_name);
         Ok(topology)

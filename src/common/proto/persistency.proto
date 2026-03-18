@@ -1,0 +1,160 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+
+package persistency;
+
+// Persistency Service for multi-process access
+service PersistencyService {
+    // Health check
+    rpc Health(HealthRequest) returns (HealthResponse);
+
+    // Basic KVS operations
+    rpc Put(PutRequest) returns (PutResponse);
+    rpc Get(GetRequest) returns (GetResponse);
+    rpc Delete(DeleteRequest) returns (DeleteResponse);
+
+    // Batch operations
+    rpc BatchPut(BatchPutRequest) returns (BatchPutResponse);
+    rpc GetByPrefix(GetByPrefixRequest) returns (GetByPrefixResponse);
+
+    // Advanced operations
+    rpc ListKeys(ListKeysRequest) returns (ListKeysResponse);
+    rpc KeyExists(KeyExistsRequest) returns (KeyExistsResponse);
+
+    // System operations
+    rpc Reset(ResetRequest) returns (ResetResponse);
+    rpc Flush(FlushRequest) returns (FlushResponse);
+}
+
+// KVS value types - similar to persistency/rust_kvs KvsValue enum
+message KvsValue {
+  oneof value {
+    int32 i32_value = 1;
+    uint32 u32_value = 2;
+    int64 i64_value = 3;
+    uint64 u64_value = 4;
+    double f64_value = 5;
+    bool boolean_value = 6;
+    string string_value = 7;
+    NullValue null_value = 8;
+    KvsArray array_value = 9;
+    KvsObject object_value = 10;
+  }
+}
+
+message NullValue {}
+
+message KvsArray {
+  repeated KvsValue values = 1;
+}
+
+message KvsObject {
+  map<string, KvsValue> values = 1;
+}
+
+// Health check messages
+message HealthRequest {}
+
+message HealthResponse {
+    string status = 1;
+    string version = 2;
+    string database_path = 3;
+}
+
+// Basic operation messages
+message PutRequest {
+    string key = 1;
+    KvsValue value = 2;
+}
+
+message PutResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+message GetRequest {
+    string key = 1;
+}
+
+message GetResponse {
+    bool success = 1;
+    KvsValue value = 2;
+    string error = 3;
+}
+
+message DeleteRequest {
+    string key = 1;
+}
+
+message DeleteResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+// Batch operation messages
+message KeyKvsValue {
+    string key = 1;
+    KvsValue value = 2;
+}
+
+message BatchPutRequest {
+    repeated KeyKvsValue pairs = 1;
+}
+
+message BatchPutResponse {
+    bool success = 1;
+    int32 processed_count = 2;
+    string error = 3;
+}
+
+message GetByPrefixRequest {
+    string prefix = 1;
+    int32 limit = 2; // Optional limit
+}
+
+message GetByPrefixResponse {
+    repeated KeyKvsValue pairs = 1;
+    int32 total_count = 2;
+    string error = 3;
+}
+
+// Advanced operation messages
+message ListKeysRequest {
+    string prefix = 1; // Optional prefix filter
+    int32 limit = 2;   // Optional limit
+}
+
+message ListKeysResponse {
+    repeated string keys = 1;
+    int32 total_count = 2;
+    string error = 3;
+}
+
+message KeyExistsRequest {
+    string key = 1;
+}
+
+message KeyExistsResponse {
+    bool success = 1;
+    bool exists = 2;
+    string error = 3;
+}
+
+// System operation messages
+message ResetRequest {}
+
+message ResetResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+message FlushRequest {}
+
+message FlushResponse {
+    bool success = 1;
+    string error = 2;
+}

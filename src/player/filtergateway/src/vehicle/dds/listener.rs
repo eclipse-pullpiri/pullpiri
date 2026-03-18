@@ -136,7 +136,7 @@ impl DdsTopicListener for TopicListener {
         // Spawn the listener task
         let task = tokio::spawn(async move {
             if let Err(e) = Self::listener_loop(topic_name, data_type_name, tx, domain_id).await {
-                logd!(5, "Error in listener loop: {:?}", e);
+                println!("Error in listener loop: {:?}", e);
             }
         });
 
@@ -175,7 +175,7 @@ impl TopicListener {
         domain_id: i32,
     ) -> Result<()> {
         // 도메인 참여자 생성
-        logd!(3, "Generic listener started for topic '{}'", topic_name);
+        println!("Generic listener started for topic '{}'", topic_name);
 
         let domain_participant_factory = DomainParticipantFactory::get_instance();
         let participant = domain_participant_factory
@@ -212,7 +212,7 @@ impl TopicListener {
 
             // 데이터 전송 채널이 닫히면 루프 종료
             if tx.send(dds_data).await.is_err() {
-                logd!(4, "Channel closed, stopping listener for {}", topic_name);
+                println!("Channel closed, stopping listener for {}", topic_name);
                 break;
             }
         }
@@ -352,14 +352,14 @@ impl<
 
                             // Send data through channel
                             if tx.send(dds_data).await.is_err() {
-                                logd!(4, "Channel closed, stopping listener for {}", topic_name);
+                                println!("Channel closed, stopping listener for {}", topic_name);
                                 return Ok(());
                             }
                         }
                     }
                 }
                 Err(e) => {
-                    logd!(5, "No new samples available: {:?}", e);
+                    println!("No new samples available: {:?}", e);
                 }
             }
         }

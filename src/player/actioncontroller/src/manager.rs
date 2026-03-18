@@ -6,7 +6,6 @@ use std::{collections::HashMap, thread, time::Duration};
 
 use crate::grpc::sender::pharos::request_network_pod;
 use crate::grpc::sender::statemanager::StateManagerSender;
-use common::logd;
 use common::{
     actioncontroller::PodStatus as Status,
     spec::artifact::{package::ModelInfo, Model, Package, Scenario},
@@ -14,15 +13,15 @@ use common::{
     Result,
 };
 
-// ETCD key prefixes
-const ETCD_SCENARIO_PREFIX: &str = "Scenario";
-const ETCD_PACKAGE_PREFIX: &str = "Package";
-const ETCD_POD_PREFIX: &str = "Pod";
-const ETCD_MODEL_PREFIX: &str = "Model";
-const ETCD_NETWORK_PREFIX: &str = "Network";
-const ETCD_NODE_PREFIX: &str = "Node";
-const ETCD_NODES_PREFIX: &str = "nodes";
-const ETCD_CLUSTER_NODES_PREFIX: &str = "cluster/nodes";
+// persistency key prefixes
+const PERSISTENCY_SCENARIO_PREFIX: &str = "Scenario";
+const PERSISTENCY_PACKAGE_PREFIX: &str = "Package";
+const PERSISTENCY_POD_PREFIX: &str = "Pod";
+const PERSISTENCY_MODEL_PREFIX: &str = "Model";
+const PERSISTENCY_NETWORK_PREFIX: &str = "Network";
+const PERSISTENCY_NODE_PREFIX: &str = "Node";
+const PERSISTENCY_NODES_PREFIX: &str = "nodes";
+const PERSISTENCY_CLUSTER_NODES_PREFIX: &str = "cluster/nodes";
 
 // Node types
 const NODE_TYPE_NODEAGENT: &str = "nodeagent";
@@ -47,23 +46,23 @@ impl ActionControllerManager {
     /// Creates a new ActionControllerManager instance
     ///
     /// Initializes the manager with empty node lists. Node information
-    /// will be loaded from etcd when needed during trigger_manager_action.
+    /// will be loaded from persistency when needed during trigger_manager_action.
     ///
     /// # Returns
     ///
     /// A new ActionControllerManager instance
     pub fn new() -> Self {
         // 초기화 단계에서는 빈 노드 목록으로 시작
-        // 실제 노드 정보는 trigger_manager_action에서 etcd로부터 가져옴
+        // 실제 노드 정보는 trigger_manager_action에서 persistency로부터 가져옴
         Self {
             nodeagent_nodes: Vec::new(),
             state_sender: StateManagerSender::new(),
         }
     }
 
-    /// Fetches node role information from etcd
+    /// Fetches node role information from persistency
     ///
-    /// Retrieves node information from etcd to determine if it is a nodeagent node.
+    /// Retrieves node information from persistency to determine if it is a nodeagent node.
     ///
     /// # Arguments
     ///
@@ -73,15 +72,13 @@ impl ActionControllerManager {
     ///
     /// * `Ok(String)` with node role ("nodeagent") if found
     /// * `Err(...)` if the node could not be found or role determined
-    async fn get_node_role_from_etcd(&self, node_name: &str) -> Result<String> {
-        let node_info_key = format!("{}/{}", ETCD_NODES_PREFIX, node_name);
+    async fn get_node_role_from_persistency(&self, node_name: &str) -> Result<String> {
+        let node_info_key = format!("{}/{}",PERSISTENCY_NODES_PREFIX, node_name);
         #[allow(unused_variables)]
-        let node_ip = match common::etcd::get(&node_info_key).await {
+        let node_ip = match common::persistency::get(&node_info_key).await {
             Ok(ip) => ip,
             Err(e) => {
-                logd!(
-                    4,
-                    "Warning: Failed to get IP for node '{}' from etcd: {}",
+                println!("Warning: Failed to get IP for node '{}' from persistency: {}",
                     node_name,
                     e
                 );
@@ -89,13 +86,11 @@ impl ActionControllerManager {
             }
         };
 
-        let cluster_node_key = format!("{}/{}", ETCD_CLUSTER_NODES_PREFIX, node_name);
-        let node_json = match common::etcd::get(&cluster_node_key).await {
+        let cluster_node_key = format!("{}/{}", PERSISTENCY_CLUSTER_NODES_PREFIX, node_name);
+        let node_json = match common::persistency::get(&cluster_node_key).await {
             Ok(value) => value,
             Err(e) => {
-                logd!(
-                    4,
-                    "Warning: Failed to get details for node '{}' from etcd: {}",
+                println!("Warning: Failed to get details for node '{}' from persistency: {}",
                     node_name,
                     e
                 );
@@ -110,7 +105,7 @@ impl ActionControllerManager {
             return Err(format!("Unknown node role: {}", node_info.node_role).into());
         };
 
-        logd!(2, "Node {} role loaded from etcd: {}", node_name, role);
+        println!("Node {} role loaded from persistency: {}", node_name, role);
         Ok(role)
     }
 
@@ -118,7 +113,7 @@ impl ActionControllerManager {
     fn get_fallback_node_ip(&self, node_name: &str) -> Result<String> {
         let config = common::setting::get_config();
         if config.host.name == node_name {
-            logd!(2, "Using host IP from settings.yaml: {}", config.host.ip);
+            println!("Using host IP from settings.yaml: {}", config.host.ip);
             Ok(config.host.ip.clone())
         } else {
             Err(format!("No IP found for node '{}'", node_name).into())
@@ -129,7 +124,7 @@ impl ActionControllerManager {
     fn get_fallback_node_role(&self, node_name: &str) -> Result<String> {
         let config = common::setting::get_config();
         if config.host.name == node_name {
-            logd!(2, "Using role from settings.yaml for node '{}'", node_name);
+            println!("Using role from settings.yaml for node '{}'", node_name);
             Ok(NODE_TYPE_NODEAGENT.to_string())
         } else {
             Err(format!("No details found for node '{}'", node_name).into())
@@ -146,22 +141,18 @@ impl ActionControllerManager {
                 continue;
             }
 
-            match self.get_node_role_from_etcd(&model_node).await {
+            match self.get_node_role_from_persistency(&model_node).await {
                 Ok(role) => {
                     node_roles.insert(model_node.clone(), role);
                 }
                 Err(e) => {
-                    logd!(
-                        4,
-                        "Warning: Failed to get role for node '{}' from etcd: {}",
+                    println!("Warning: Failed to get role for node '{}' from persistency: {}",
                         model_node,
                         e
                     );
                     if self.nodeagent_nodes.contains(&model_node) {
                         node_roles.insert(model_node.clone(), NODE_TYPE_NODEAGENT.to_string());
-                        logd!(
-                            2,
-                            "Node {} found in nodeagent_nodes from cached list",
+                        println!("Node {} found in nodeagent_nodes from cached list",
                             model_node
                         );
                     }
@@ -172,22 +163,22 @@ impl ActionControllerManager {
         node_roles
     }
 
-    /// Get ETCD keys for scenario resources
+    /// Get persistency keys for scenario resources
     async fn get_scenario_resources(
         &self,
         scenario_name: &str,
     ) -> Result<(Scenario, Package, Option<String>, Option<String>)> {
-        let etcd_scenario_key = format!("{}/{}", ETCD_SCENARIO_PREFIX, scenario_name);
-        let scenario_str = common::etcd::get(&etcd_scenario_key)
+        let persistency_scenario_key = format!("{}/{}", PERSISTENCY_SCENARIO_PREFIX, scenario_name);
+        let scenario_str = common::persistency::get(&persistency_scenario_key)
             .await
             .map_err(|e| format!("Scenario '{}' not found: {}", scenario_name, e))?;
         let scenario: Scenario = serde_yaml::from_str(&scenario_str)
             .map_err(|e| format!("Failed to parse scenario '{}': {}", scenario_name, e))?;
 
-        let etcd_package_key = format!("{}/{}", ETCD_PACKAGE_PREFIX, scenario.get_targets());
-        let package_str = common::etcd::get(&etcd_package_key)
+        let persistency_package_key = format!("{}/{}", PERSISTENCY_PACKAGE_PREFIX, scenario.get_targets());
+        let package_str = common::persistency::get(&persistency_package_key)
             .await
-            .map_err(|e| format!("Package key '{}' not found: {}", etcd_package_key, e))?;
+            .map_err(|e| format!("Package key '{}' not found: {}", persistency_package_key, e))?;
         let package: Package = serde_yaml::from_str(&package_str).map_err(|e| {
             format!(
                 "Failed to parse package '{}': {}",
@@ -196,10 +187,10 @@ impl ActionControllerManager {
             )
         })?;
 
-        let network_str = common::etcd::get(&format!("{}/{}", ETCD_NETWORK_PREFIX, scenario_name))
+        let network_str = common::persistency::get(&format!("{}/{}", PERSISTENCY_NETWORK_PREFIX, scenario_name))
             .await
             .ok();
-        let node_str = common::etcd::get(&format!("{}/{}", ETCD_NODE_PREFIX, scenario_name))
+        let node_str = common::persistency::get(&format!("{}/{}", PERSISTENCY_NODE_PREFIX, scenario_name))
             .await
             .ok();
 
@@ -218,7 +209,7 @@ impl ActionControllerManager {
     ) -> Result<()> {
         let model_name = model_info.get_name();
         let model_node = model_info.get_node();
-        let pod = common::etcd::get(&format!("{}/{}", ETCD_POD_PREFIX, model_name)).await?;
+        let pod = common::persistency::get(&format!("{}/{}", PERSISTENCY_POD_PREFIX, model_name)).await?;
 
         match action {
             "launch" => {
@@ -257,7 +248,7 @@ impl ActionControllerManager {
     /// Handle realtime scheduling for a model
     async fn handle_realtime_sched(&self, model_info: &ModelInfo, model_node: &str) -> Result<()> {
         let model_str =
-            common::etcd::get(&format!("{}/{}", ETCD_MODEL_PREFIX, model_info.get_name())).await?;
+            common::persistency::get(&format!("{}/{}", PERSISTENCY_MODEL_PREFIX, model_info.get_name())).await?;
         let model: Model = serde_yaml::from_str(&model_str)?;
 
         if let Some(command) = model.get_podspec().containers[0].command.clone() {
@@ -297,15 +288,11 @@ impl ActionControllerManager {
             .send_state_change(state_change)
             .await
         {
-            logd!(
-                5,
-                "  ❌ Failed to send state change to StateManager: {:?}",
+            println!("  ❌ Failed to send state change to StateManager: {:?}",
                 e
             );
         } else {
-            logd!(
-                3,
-                "  ✅ Successfully notified StateManager: scenario {}, {} → {}",
+            println!("  ✅ Successfully notified StateManager: scenario {}, {} → {}",
                 scenario_name,
                 current,
                 target
@@ -341,7 +328,7 @@ impl ActionControllerManager {
 
     /// Processes a trigger action request for a specific scenario
     ///
-    /// Retrieves scenario information from ETCD and performs the
+    /// Retrieves scenario information from persistency and performs the
     /// appropriate actions based on the scenario definition.
     ///
     /// # Arguments
@@ -360,7 +347,7 @@ impl ActionControllerManager {
     /// - The scenario is not allowed by policy
     /// - The runtime operation fails
     pub async fn trigger_manager_action(&self, scenario_name: &str) -> Result<()> {
-        logd!(2, "trigger_manager_action in manager {:?}", scenario_name);
+        println!("trigger_manager_action in manager {:?}", scenario_name);
 
         if scenario_name.trim().is_empty() {
             return Err(format!("Scenario '{}' is invalid: cannot be empty", scenario_name).into());
@@ -377,18 +364,16 @@ impl ActionControllerManager {
 
             let node_type = match node_roles.get(&model_node) {
                 Some(role) => {
-                    logd!(2, "Using node {} as {}", model_node, role);
+                    println!("Using node {} as {}", model_node, role);
                     role.as_str()
                 }
                 None => {
-                    logd!(4, "Warning: Node '{}' is not configured or cannot determine its role. Skipping deployment.", model_node);
+                    println!("Warning: Node '{}' is not configured or cannot determine its role. Skipping deployment.", model_node);
                     continue;
                 }
             };
 
-            logd!(
-                2,
-                "Processing model '{}' on node '{}' with action '{}'",
+            println!("Processing model '{}' on node '{}' with action '{}'",
                 model_name,
                 model_node,
                 action
@@ -464,12 +449,12 @@ impl ActionControllerManager {
             .into());
         }
 
-        let etcd_scenario_key: String = format!("scenario/{}", scenario_name);
-        let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
+        let persistency_scenario_key: String = format!("scenario/{}", scenario_name);
+        let scenario_str = common::persistency::get(&persistency_scenario_key).await?;
         let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;
 
-        let etcd_package_key = format!("package/{}", scenario.get_targets());
-        let package_str = common::etcd::get(&etcd_package_key).await?;
+        let persistency_package_key = format!("package/{}", scenario.get_targets());
+        let package_str = common::persistency::get(&persistency_package_key).await?;
         let package: Package = serde_yaml::from_str(&package_str)?;
 
         for mi in package.get_models() {
@@ -479,9 +464,7 @@ impl ActionControllerManager {
                 "nodeagent"
             } else {
                 // Log warning for unknown node types and skip processing
-                logd!(
-                    4,
-                    "Warning: Node '{}' is not explicitly configured. Skipping deployment.",
+                println!("Warning: Node '{}' is not explicitly configured. Skipping deployment.",
                     model_node
                 );
                 continue;
@@ -649,43 +632,43 @@ mod tests {
     use std::error::Error;
 
     #[tokio::test]
-    async fn test_get_node_role_from_etcd_invalid_json() {
+    async fn test_get_node_role_from_persistency_invalid_json() {
         // Setup: Insert nodes/{name} and invalid JSON in cluster/nodes/{name}
-        common::etcd::put("nodes/TestInvalid", "192.168.1.103")
+        common::persistency::put("nodes/TestInvalid", "192.168.1.103")
             .await
             .ok();
-        common::etcd::put("cluster/nodes/TestInvalid", "not valid json")
+        common::persistency::put("cluster/nodes/TestInvalid", "not valid json")
             .await
             .ok();
 
         let manager = ActionControllerManager::new();
-        let result = manager.get_node_role_from_etcd("TestInvalid").await;
+        let result = manager.get_node_role_from_persistency("TestInvalid").await;
 
         // Must error because JSON is invalid
         assert!(result.is_err());
 
         // Cleanup
-        common::etcd::delete("nodes/TestInvalid").await.ok();
-        common::etcd::delete("cluster/nodes/TestInvalid").await.ok();
+        common::persistency::delete("nodes/TestInvalid").await.ok();
+        common::persistency::delete("cluster/nodes/TestInvalid").await.ok();
     }
 
     #[tokio::test]
-    async fn test_get_node_role_from_etcd_etcd_missing_cluster_info() {
+    async fn test_get_node_role_from_persistency_persistency_missing_cluster_info() {
         // Setup: Only nodes/{hostname} exists but not cluster/nodes/{hostname}
         // This should fallback to settings.yaml
-        common::etcd::put("nodes/TestMissing", "192.168.1.104")
+        common::persistency::put("nodes/TestMissing", "192.168.1.104")
             .await
             .ok();
 
         let manager = ActionControllerManager::new();
-        let result = manager.get_node_role_from_etcd("TestMissing").await;
+        let result = manager.get_node_role_from_persistency("TestMissing").await;
 
         // Should fallback to settings.yaml configuration
         // Result depends on settings.yaml, so we accept both ok and err
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("nodes/TestMissing").await.ok();
+        common::persistency::delete("nodes/TestMissing").await.ok();
     }
 
     // ==================== trigger_manager_action Tests ====================
@@ -722,7 +705,7 @@ mod tests {
     #[tokio::test]
     async fn test_trigger_manager_action_invalid_scenario_yaml() {
         // Setup: Insert invalid YAML for scenario
-        common::etcd::put("Scenario/invalid-yaml", "{ invalid: yaml: ]")
+        common::persistency::put("Scenario/invalid-yaml", "{ invalid: yaml: ]")
             .await
             .unwrap();
 
@@ -736,13 +719,13 @@ mod tests {
             .contains("Failed to parse scenario"));
 
         // Cleanup
-        common::etcd::delete("Scenario/invalid-yaml").await.unwrap();
+        common::persistency::delete("Scenario/invalid-yaml").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_package_not_found() {
         // Setup: Insert scenario but no corresponding package
-        common::etcd::put(
+        common::persistency::put(
             "Scenario/test-scenario",
             r#"
 apiVersion: v1
@@ -765,7 +748,7 @@ spec:
         assert!(result.unwrap_err().to_string().contains("not found"));
 
         // Cleanup
-        common::etcd::delete("Scenario/test-scenario")
+        common::persistency::delete("Scenario/test-scenario")
             .await
             .unwrap();
     }
@@ -773,7 +756,7 @@ spec:
     #[tokio::test]
     async fn test_trigger_manager_action_invalid_package_yaml() {
         // Setup: Insert valid scenario and invalid package
-        common::etcd::put(
+        common::persistency::put(
             "Scenario/test-scenario",
             r#"
 apiVersion: v1
@@ -789,7 +772,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put("Package/invalid-pkg", "invalid: yaml: ]")
+        common::persistency::put("Package/invalid-pkg", "invalid: yaml: ]")
             .await
             .unwrap();
 
@@ -803,16 +786,16 @@ spec:
             .contains("Failed to parse package"));
 
         // Cleanup
-        common::etcd::delete("Scenario/test-scenario")
+        common::persistency::delete("Scenario/test-scenario")
             .await
             .unwrap();
-        common::etcd::delete("Package/invalid-pkg").await.unwrap();
+        common::persistency::delete("Package/invalid-pkg").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_launch_success() {
         // Setup: Insert valid scenario and package
-        common::etcd::put(
+        common::persistency::put(
             "Scenario/launch-test",
             r#"
 apiVersion: v1
@@ -828,7 +811,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::persistency::put(
             "Package/launch-pkg",
             r#"
 apiVersion: v1
@@ -860,14 +843,14 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/launch-test").await.unwrap();
-        common::etcd::delete("Package/launch-pkg").await.unwrap();
+        common::persistency::delete("Scenario/launch-test").await.unwrap();
+        common::persistency::delete("Package/launch-pkg").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_terminate_success() {
         // Setup: Insert valid scenario with terminate action
-        common::etcd::put(
+        common::persistency::put(
             "Scenario/terminate-test",
             r#"
 apiVersion: v1
@@ -883,7 +866,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::persistency::put(
             "Package/terminate-pkg",
             r#"
 apiVersion: v1
@@ -909,16 +892,16 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/terminate-test")
+        common::persistency::delete("Scenario/terminate-test")
             .await
             .unwrap();
-        common::etcd::delete("Package/terminate-pkg").await.unwrap();
+        common::persistency::delete("Package/terminate-pkg").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_update_success() {
         // Setup: Insert valid scenario with update action
-        common::etcd::put(
+        common::persistency::put(
             "Scenario/update-test",
             r#"
 apiVersion: v1
@@ -934,7 +917,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::persistency::put(
             "Package/update-pkg",
             r#"
 apiVersion: v1
@@ -961,14 +944,14 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/update-test").await.unwrap();
-        common::etcd::delete("Package/update-pkg").await.unwrap();
+        common::persistency::delete("Scenario/update-test").await.unwrap();
+        common::persistency::delete("Package/update-pkg").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_rollback_success() {
         // Setup: Insert valid scenario with rollback action
-        common::etcd::put(
+        common::persistency::put(
             "Scenario/rollback-test",
             r#"
 apiVersion: v1
@@ -984,7 +967,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::persistency::put(
             "Package/rollback-pkg",
             r#"
 apiVersion: v1
@@ -1010,16 +993,16 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/rollback-test")
+        common::persistency::delete("Scenario/rollback-test")
             .await
             .unwrap();
-        common::etcd::delete("Package/rollback-pkg").await.unwrap();
+        common::persistency::delete("Package/rollback-pkg").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_unknown_node() {
         // Setup: Insert scenario with unknown node
-        common::etcd::put(
+        common::persistency::put(
             "Scenario/unknown-node-test",
             r#"
 apiVersion: v1
@@ -1034,7 +1017,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::persistency::put(
             "Package/unknown-node-pkg",
             r#"
 apiVersion: v1
@@ -1062,10 +1045,10 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/unknown-node-test")
+        common::persistency::delete("Scenario/unknown-node-test")
             .await
             .unwrap();
-        common::etcd::delete("Package/unknown-node-pkg")
+        common::persistency::delete("Package/unknown-node-pkg")
             .await
             .unwrap();
     }
@@ -1073,7 +1056,7 @@ spec:
     #[tokio::test]
     async fn test_trigger_manager_action_nodeagent_workload() {
         // Setup: Insert scenario with nodeagent node
-        common::etcd::put(
+        common::persistency::put(
             "Scenario/nodeagent-test",
             r#"
 apiVersion: v1
@@ -1088,7 +1071,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::persistency::put(
             "Package/nodeagent-pkg",
             r#"
 apiVersion: v1
@@ -1114,10 +1097,10 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/nodeagent-test")
+        common::persistency::delete("Scenario/nodeagent-test")
             .await
             .unwrap();
-        common::etcd::delete("Package/nodeagent-pkg").await.unwrap();
+        common::persistency::delete("Package/nodeagent-pkg").await.unwrap();
     }
 
     // ==================== reconcile_do Tests ====================
@@ -1247,7 +1230,7 @@ spec:
 
     #[tokio::test]
     async fn test_trigger_manager_action_with_valid_data() {
-        common::etcd::put(
+        common::persistency::put(
             "Scenario/antipinch-enable",
             r#"
 apiVersion: v1
@@ -1263,7 +1246,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::persistency::put(
             "Package/antipinch-enable",
             r#"
 apiVersion: v1
@@ -1300,10 +1283,10 @@ spec:
 
         assert!(result.is_ok());
 
-        common::etcd::delete("Scenario/antipinch-enable")
+        common::persistency::delete("Scenario/antipinch-enable")
             .await
             .unwrap();
-        common::etcd::delete("Package/antipinch-enable")
+        common::persistency::delete("Package/antipinch-enable")
             .await
             .unwrap();
     }

@@ -11,7 +11,6 @@ use common::external::pharos::{
     RequestNetworkPodRequest, RequestNetworkPodResponse,
 };
 
-use common::logd;
 use tonic::{Request, Response, Status};
 
 /// Send request to Pharos to set up network for a pod
@@ -29,7 +28,7 @@ pub async fn request_network_pod(
     pod_name: String,
     network_yamls: String,
 ) -> Result<Response<RequestNetworkPodResponse>, Status> {
-    logd!(1, "Connecting to Pharos server ....");
+    println!("Connecting to Pharos server ....");
     // Create the request
     let request = RequestNetworkPodRequest {
         node_yaml,

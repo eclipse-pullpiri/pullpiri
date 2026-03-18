@@ -618,7 +618,7 @@ impl StateMachine {
     ) -> std::result::Result<Vec<(String, common::statemanager::ModelState)>, String> {
         // Get package definition from ETCD to find its models
         let package_key = format!("Package/{}", package_name);
-        let package_yaml = match common::etcd::get(&package_key).await {
+        let package_yaml = match common::persistency::get(&package_key).await {
             Ok(yaml) => yaml,
             Err(e) => {
                 logd!(4, "    Failed to get package definition: {:?}", e);
@@ -642,7 +642,7 @@ impl StateMachine {
             let model_name = model_info.get_name();
             let model_state_key = format!("/model/{}/state", model_name);
 
-            match common::etcd::get(&model_state_key).await {
+            match common::persistency::get(&model_state_key).await {
                 Ok(state_str) => {
                     let model_state = match state_str.as_str() {
                         "Created" => common::statemanager::ModelState::Created,
@@ -671,7 +671,7 @@ impl StateMachine {
         let mut packages = Vec::new();
 
         // Get all packages from ETCD with prefix
-        match common::etcd::get_all_with_prefix("Package/").await {
+        match common::persistency::get_all_with_prefix("Package/").await {
             Ok(package_entries) => {
                 for kv in package_entries {
                     match serde_yaml::from_str::<common::spec::artifact::Package>(&kv.1) {
@@ -704,7 +704,7 @@ impl StateMachine {
         package_name: &str,
     ) -> Option<common::statemanager::PackageState> {
         let key = format!("/package/{}/state", package_name);
-        match common::etcd::get(&key).await {
+        match common::persistency::get(&key).await {
             Ok(state_str) => match state_str.as_str() {
                 "PACKAGE_STATE_IDLE" | "idle" => Some(common::statemanager::PackageState::Idle),
                 "PACKAGE_STATE_PAUSED" | "paused" => {
@@ -1960,7 +1960,7 @@ mod tests {
     async fn test_get_current_package_state_reads_etcd() {
         // Put a package state into etcd and verify mapping
         let key = "/package/testpkg/state";
-        let _ = common::etcd::put(key, "running").await;
+        let _ = common::persistency::put(key, "running").await;
         let res = StateMachine::get_current_package_state("testpkg").await;
         assert!(res.is_some());
         assert_eq!(res.unwrap(), common::statemanager::PackageState::Running);
@@ -1972,11 +1972,11 @@ mod tests {
         let pkg_key = "Package/pkg-dead";
         let pkg_yaml = r#"{"apiVersion":"v1","kind":"Package","metadata":{"name":"pkg-dead"},"spec":{"pattern":[],"models":[{"name":"mdead1","node":"n","resources":{"volume":"","network":"","realtime":false}},{"name":"mdead2","node":"n","resources":{"volume":"","network":"","realtime":false}}]}}"#;
 
-        let _ = common::etcd::put(pkg_key, pkg_yaml).await;
-        let _ = common::etcd::put("/model/mdead1/state", "Dead").await;
-        let _ = common::etcd::put("/model/mdead2/state", "Dead").await;
+        let _ = common::persistency::put(pkg_key, pkg_yaml).await;
+        let _ = common::persistency::put("/model/mdead1/state", "Dead").await;
+        let _ = common::persistency::put("/model/mdead2/state", "Dead").await;
         // Set current package state to running to ensure a state change is detected
-        let _ = common::etcd::put("/package/pkg-dead/state", "running").await;
+        let _ = common::persistency::put("/package/pkg-dead/state", "running").await;
 
         let sm = StateMachine::new();
         let (changed, state) = sm
@@ -1996,10 +1996,10 @@ mod tests {
         let pkg_key = "Package/pkg-degraded";
         let pkg_yaml = r#"{"apiVersion":"v1","kind":"Package","metadata":{"name":"pkg-degraded"},"spec":{"pattern":[],"models":[{"name":"mdeg1","node":"n","resources":{"volume":"","network":"","realtime":false}},{"name":"mdeg2","node":"n","resources":{"volume":"","network":"","realtime":false}}]}}"#;
 
-        let _ = common::etcd::put(pkg_key, pkg_yaml).await;
-        let _ = common::etcd::put("/model/mdeg1/state", "Dead").await;
-        let _ = common::etcd::put("/model/mdeg2/state", "Running").await;
-        let _ = common::etcd::put("/package/pkg-degraded/state", "running").await;
+        let _ = common::persistency::put(pkg_key, pkg_yaml).await;
+        let _ = common::persistency::put("/model/mdeg1/state", "Dead").await;
+        let _ = common::persistency::put("/model/mdeg2/state", "Running").await;
+        let _ = common::persistency::put("/package/pkg-degraded/state", "running").await;
 
         let sm = StateMachine::new();
         let (changed, state) = sm
@@ -2016,7 +2016,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_models_for_package_missing_returns_empty() {
         // Ensure package key is absent
-        let _ = common::etcd::delete("Package/missing-package").await;
+        let _ = common::persistency::delete("Package/missing-package").await;
         let res = StateMachine::get_models_for_package("missing-package").await;
         assert!(
             res.is_ok(),
@@ -2033,7 +2033,7 @@ mod tests {
     async fn test_get_models_for_package_invalid_yaml_returns_empty() {
         // Put an invalid YAML string into etcd under the package key
         let pkg_key = "Package/pkg-invalid-yaml";
-        let _ = common::etcd::put(pkg_key, "::: not valid yaml :::").await;
+        let _ = common::persistency::put(pkg_key, "::: not valid yaml :::").await;
         let res = StateMachine::get_models_for_package("pkg-invalid-yaml").await;
         assert!(
             res.is_ok(),
@@ -2054,8 +2054,8 @@ mod tests {
         let pkg_b_key = "Package/pkg-without-model";
         let pkg_b_yaml = r#"{"apiVersion":"v1","kind":"Package","metadata":{"name":"pkg-without-model"},"spec":{"pattern":[],"models":[]}}"#;
 
-        let _ = common::etcd::put(pkg_a_key, pkg_a_yaml).await;
-        let _ = common::etcd::put(pkg_b_key, pkg_b_yaml).await;
+        let _ = common::persistency::put(pkg_a_key, pkg_a_yaml).await;
+        let _ = common::persistency::put(pkg_b_key, pkg_b_yaml).await;
 
         let res = StateMachine::find_packages_containing_model("target_model").await;
         assert!(res.is_ok());
@@ -2069,7 +2069,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_current_package_state_none_when_missing() {
         // Ensure no state key exists for this package
-        let _ = common::etcd::delete("/package/no-state/state").await;
+        let _ = common::persistency::delete("/package/no-state/state").await;
         let res = StateMachine::get_current_package_state("no-state").await;
         assert!(
             res.is_none(),
@@ -2096,7 +2096,7 @@ mod tests {
     async fn test_evaluate_and_update_package_state_no_models() {
         let sm = StateMachine::new();
         // Ensure no package data is present in etcd for this test package
-        let _ = common::etcd::delete("Package/nonexistent-package").await;
+        let _ = common::persistency::delete("Package/nonexistent-package").await;
         let (changed, state) = sm
             .evaluate_and_update_package_state("nonexistent-package")
             .await

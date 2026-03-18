@@ -6,12 +6,27 @@ pub use crate::error::Result;
 
 pub mod error;
 pub mod etcd;
+pub mod persistency;
+pub mod persistency_client;
 pub mod setting;
 pub mod spec;
 
 // gRPC protobuf module for RocksDB service
 pub mod rocksdbservice {
     include!("generated/rocksdbservice.rs");
+}
+
+// gRPC protobuf module for Persistency service
+pub mod persistency_proto {
+    include!("generated/persistency.rs");
+
+    pub fn connect_server() -> String {
+        super::connect_server(47007)
+    }
+
+    pub fn open_server() -> String {
+        super::open_server(47007)
+    }
 }
 
 fn open_server(port: u16) -> String {

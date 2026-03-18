@@ -6,7 +6,7 @@
 //! Node lookup utilities for finding nodes in the cluster
 
 use common::apiserver::NodeInfo;
-use common::etcd;
+use common::persistency;
 use common::logd;
 use serde_json;
 use std::error::Error;
@@ -14,7 +14,7 @@ use std::error::Error;
 /// Find a node by IP address from simplified node keys
 pub async fn find_node_by_simple_key() -> Option<String> {
     logd!(1, "Checking simplified node keys in etcd...");
-    match etcd::get_all_with_prefix("nodes/").await {
+    match persistency::get_all_with_prefix("nodes/").await {
         Ok(kvs) => {
             logd!(2, "Found {} simplified node keys", kvs.len());
             // Find first non-empty key
@@ -38,7 +38,7 @@ pub async fn find_node_by_simple_key() -> Option<String> {
 /// Find a node directly from etcd using cluster/nodes/ prefix
 pub async fn find_node_from_etcd() -> Option<String> {
     logd!(1, "Checking cluster/nodes/ prefix in etcd...");
-    let kvs = match etcd::get_all_with_prefix("cluster/nodes/").await {
+    let kvs = match persistency::get_all_with_prefix("cluster/nodes/").await {
         Ok(kvs) => kvs,
         Err(e) => {
             logd!(5, "Error getting nodes: {}", e);
@@ -110,9 +110,10 @@ pub async fn find_node_from_manager() -> Option<String> {
 }
 
 /// Find a node by hostname
+#[allow(unused)]
 pub async fn find_node_by_hostname(hostname: &str) -> Option<common::apiserver::NodeInfo> {
     logd!(1, "Looking for node with hostname: {}", hostname);
-    let kvs = match common::etcd::get_all_with_prefix("cluster/nodes/").await {
+    let kvs = match common::persistency::get_all_with_prefix("cluster/nodes/").await {
         Ok(kvs) => kvs,
         Err(e) => {
             logd!(5, "Error searching for hostname {}: {}", hostname, e);
@@ -180,7 +181,7 @@ pub async fn get_node_ip() -> String {
 #[allow(dead_code)]
 pub async fn add_node_to_simple_keys(ip_address: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
     let key = format!("nodes/{}", ip_address);
-    etcd::put(&key, ip_address).await?;
+    persistency::put(&key, ip_address).await?;
     logd!(2, "Added node IP to simple keys: {}", ip_address);
     Ok(())
 }
@@ -188,7 +189,7 @@ pub async fn add_node_to_simple_keys(ip_address: &str) -> Result<(), Box<dyn Err
 /// 게스트 노드 정보를 etcd에서 검색하는 함수
 pub async fn find_guest_nodes() -> Vec<NodeInfo> {
     logd!(1, "Finding guest nodes from etcd...");
-    let kvs = match etcd::get_all_with_prefix("cluster/nodes/").await {
+    let kvs = match persistency::get_all_with_prefix("cluster/nodes/").await {
         Ok(kvs) => kvs,
         Err(e) => {
             logd!(5, "Error searching for guest nodes: {}", e);

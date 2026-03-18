@@ -29,7 +29,7 @@ use common::logd::logger;
 #[tokio::main]
 async fn main() {
     let _ = logger::init_async_logger("filtergateway").await;
-    logd!(1, "Initializing FilterGateway");
+    println!("Initializing FilterGateway");
 
     // Initialize tracing subscriber for logging
     let (tx_grpc, rx_grpc): (Sender<ScenarioParameter>, Receiver<ScenarioParameter>) = channel(100);

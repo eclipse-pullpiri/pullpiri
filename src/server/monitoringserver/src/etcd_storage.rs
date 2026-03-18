@@ -20,7 +20,7 @@ async fn store_info<T: Serialize>(
     let json_data = serde_json::to_string(info)
         .map_err(|e| format!("Failed to serialize {}: {}", resource_type, e))?;
 
-    common::etcd::put(&key, &json_data).await?;
+    common::persistency::put(&key, &json_data).await?;
     println!(
         "[ETCD] Stored the metrics for {}: {}",
         resource_type, resource_id
@@ -34,7 +34,7 @@ async fn get_info<T: DeserializeOwned>(
     resource_id: &str,
 ) -> common::Result<T> {
     let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
-    let json_data = common::etcd::get(&key).await?;
+    let json_data = common::persistency::get(&key).await?;
 
     let info: T = serde_json::from_str(&json_data)
         .map_err(|e| format!("Failed to deserialize {}: {}", resource_type, e))?;
@@ -45,7 +45,7 @@ async fn get_info<T: DeserializeOwned>(
 /// Generic function to delete info from etcd
 async fn delete_info(resource_type: &str, resource_id: &str) -> common::Result<()> {
     let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
-    common::etcd::delete(&key).await?;
+    common::persistency::delete(&key).await?;
     println!(
         "[ETCD] Deleted the metrics for {}: {}",
         resource_type, resource_id
@@ -56,7 +56,7 @@ async fn delete_info(resource_type: &str, resource_id: &str) -> common::Result<(
 /// Generic function to get all items of a type from etcd
 async fn get_all_info<T: DeserializeOwned>(resource_type: &str) -> common::Result<Vec<T>> {
     let prefix = format!("/piccolo/metrics/{}/", resource_type);
-    let kv_pairs = common::etcd::get_all_with_prefix(&prefix).await?;
+    let kv_pairs = common::persistency::get_all_with_prefix(&prefix).await?;
 
     let mut items = Vec::new();
     for kv in kv_pairs {
@@ -181,7 +181,7 @@ pub async fn get_all_boards() -> common::Result<Vec<BoardInfo>> {
 /// Get all containers from etcd
 pub async fn get_all_containers() -> common::Result<Vec<ContainerInfo>> {
     let prefix = "/piccolo/metrics/containers/".to_string();
-    let kv_pairs = common::etcd::get_all_with_prefix(&prefix).await?;
+    let kv_pairs = common::persistency::get_all_with_prefix(&prefix).await?;
 
     let mut containers = Vec::new();
     for kv in kv_pairs {
@@ -245,7 +245,7 @@ pub async fn delete_all_containers() -> common::Result<()> {
         let mut result = None;
 
         for attempt in 1..=MAX_RETRIES {
-            match common::etcd::get_all_with_prefix(&prefix).await {
+            match common::persistency::get_all_with_prefix(&prefix).await {
                 Ok(pairs) => {
                     result = Some(pairs);
                     break;
@@ -277,7 +277,7 @@ pub async fn delete_all_containers() -> common::Result<()> {
 
     let mut deleted_count = 0;
     for (key, _) in kv_pairs {
-        if let Err(e) = common::etcd::delete(&key).await {
+        if let Err(e) = common::persistency::delete(&key).await {
             eprintln!(
                 "[ETCD] Warning: Failed to delete container key {}: {}",
                 key, e

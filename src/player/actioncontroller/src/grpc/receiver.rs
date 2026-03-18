@@ -76,16 +76,16 @@ impl ActionControllerConnection for ActionControllerReceiver {
         use std::time::Instant;
         let start = Instant::now();
 
-        logd!(1, "trigger_action in grpc receiver");
+        println!("trigger_action in grpc receiver");
 
         let scenario_name = request.into_inner().scenario_name;
-        logd!(2, "trigger_action scenario: {}", scenario_name);
+        println!("trigger_action scenario: {}", scenario_name);
 
         logd!(
             1,
             "🔄 SCENARIO STATE TRANSITION: ActionController Processing"
         );
-        logd!(1, "   📋 Scenario: {}", scenario_name);
+        println!("   📋 Scenario: {}", scenario_name);
         logd!(
             1,
             "   🔍 Reason: ActionController received trigger_action from FilterGateway"
@@ -99,7 +99,7 @@ impl ActionControllerConnection for ActionControllerReceiver {
             "          FilterGateway handles this transition when conditions are met"
         );
 
-        logd!(1, "   🎯 Processing scenario actions...");
+        println!("   🎯 Processing scenario actions...");
         let result = match self.manager.trigger_manager_action(&scenario_name).await {
             Ok(_) => Ok(Response::new(TriggerActionResponse {
                 status: 0,
@@ -125,7 +125,7 @@ impl ActionControllerConnection for ActionControllerReceiver {
         };
 
         let elapsed = start.elapsed();
-        logd!(1, "trigger_action: elapsed = {:?}", elapsed);
+        println!("trigger_action: elapsed = {:?}", elapsed);
 
         result
     }
@@ -170,7 +170,7 @@ impl ActionControllerConnection for ActionControllerReceiver {
             // If reconcile_do returns an error, convert it into a gRPC Status::internal error
             // and propagate it. This allows gRPC clients to receive a proper error status.
             Err(e) => {
-                logd!(5, "Reconciliation failed: {:?}", e); // Log the error for debugging
+                println!("Reconciliation failed: {:?}", e); // Log the error for debugging
                 Err(Status::internal(format!("Failed to reconcile: {}", e)))
             }
         }
@@ -181,7 +181,7 @@ impl ActionControllerConnection for ActionControllerReceiver {
         request: Request<CompleteNetworkSettingRequest>,
     ) -> Result<Response<CompleteNetworkSettingResponse>, Status> {
         let req = request.into_inner();
-        logd!(2,
+        println!(
             "CompleteNetworkSettingRequest: request_id={}, network_status={:?}, pod_status={:?}, details={}",
             req.request_id, req.network_status, req.pod_status, req.details
         );
@@ -226,7 +226,7 @@ mod tests {
     //         action: update
     //         target: antipinch-enable
     //     "#;
-    //     common::etcd::put("scenario/antipinch-enable", scenario_yaml)
+    //     common::persistency::put("scenario/antipinch-enable", scenario_yaml)
     //         .await
     //         .unwrap();
 
@@ -246,7 +246,7 @@ mod tests {
     //                 volume: antipinch-volume
     //                 network: antipinch-network
     //     "#;
-    //     common::etcd::put("package/antipinch-enable", package_yaml)
+    //     common::persistency::put("package/antipinch-enable", package_yaml)
     //         .await
     //         .unwrap();
 
@@ -274,10 +274,10 @@ mod tests {
     //         "Expected success message, got: '{}'",
     //         response.get_ref().desc
     //     );
-    //     common::etcd::delete("scenario/antipinch-enable")
+    //     common::persistency::delete("scenario/antipinch-enable")
     //         .await
     //         .unwrap();
-    //     common::etcd::delete("package/antipinch-enable")
+    //     common::persistency::delete("package/antipinch-enable")
     //         .await
     //         .unwrap();
     // }
@@ -327,7 +327,7 @@ mod tests {
             target: antipinch-enable
         "#;
 
-        common::etcd::put("scenario/antipinch-enable", scenario_yaml)
+        common::persistency::put("scenario/antipinch-enable", scenario_yaml)
             .await
             .unwrap();
 
@@ -348,15 +348,15 @@ mod tests {
                     network: antipinch-network
         "#;
 
-        common::etcd::put("package/antipinch-enable", package_yaml)
+        common::persistency::put("package/antipinch-enable", package_yaml)
             .await
             .unwrap();
 
         // let response = receiver.trigger_action(request).await.unwrap();
         // assert_eq!(response.get_ref().status, 0);
 
-        let _ = common::etcd::delete("scenario/antipinch-enable").await;
-        let _ = common::etcd::delete("package/antipinch-enable").await;
+        let _ = common::persistency::delete("scenario/antipinch-enable").await;
+        let _ = common::persistency::delete("package/antipinch-enable").await;
     }
 
     #[tokio::test]
@@ -388,7 +388,7 @@ mod tests {
             target: test-state-scenario
         "#;
 
-        common::etcd::put("scenario/test-state-scenario", scenario_yaml)
+        common::persistency::put("scenario/test-state-scenario", scenario_yaml)
             .await
             .unwrap();
 
@@ -409,7 +409,7 @@ mod tests {
                     network: test-network
         "#;
 
-        common::etcd::put("package/test-state-scenario", package_yaml)
+        common::persistency::put("package/test-state-scenario", package_yaml)
             .await
             .unwrap();
 
@@ -422,8 +422,8 @@ mod tests {
         println!("");
 
         // Cleanup
-        let _ = common::etcd::delete("scenario/test-state-scenario").await;
-        let _ = common::etcd::delete("package/test-state-scenario").await;
+        let _ = common::persistency::delete("scenario/test-state-scenario").await;
+        let _ = common::persistency::delete("package/test-state-scenario").await;
 
         println!("🎉 ActionController state management test completed successfully!");
     }

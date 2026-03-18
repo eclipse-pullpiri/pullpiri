@@ -31,7 +31,7 @@ async fn store_info<T: Serialize>(resource_type: &str, resource_id: &str, info: 
     let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
     let json_data = serde_json::to_string(info)?;
 
-    common::etcd::put(&key, &json_data)
+    common::persistency::put(&key, &json_data)
         .await
         .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
 
@@ -43,7 +43,7 @@ async fn store_info<T: Serialize>(resource_type: &str, resource_id: &str, info: 
 async fn get_info<T: DeserializeOwned>(resource_type: &str, resource_id: &str) -> Result<T> {
     let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
 
-    let json_data = common::etcd::get(&key)
+    let json_data = common::persistency::get(&key)
         .await
         .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
 
@@ -56,7 +56,7 @@ async fn get_info<T: DeserializeOwned>(resource_type: &str, resource_id: &str) -
 /// Generic function to get all items of a type from etcd
 async fn get_all_info<T: DeserializeOwned>(resource_type: &str) -> Result<Vec<T>> {
     let prefix = format!("/piccolo/metrics/{}/", resource_type);
-    let kv_pairs = common::etcd::get_all_with_prefix(&prefix)
+    let kv_pairs = common::persistency::get_all_with_prefix(&prefix)
         .await
         .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
 
@@ -80,7 +80,7 @@ async fn get_all_info<T: DeserializeOwned>(resource_type: &str) -> Result<Vec<T>
 async fn delete_info(resource_type: &str, resource_id: &str) -> Result<()> {
     let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
 
-    common::etcd::delete(&key)
+    common::persistency::delete(&key)
         .await
         .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
 
@@ -203,7 +203,7 @@ pub async fn get_container_logs(container_id: &str) -> Result<Vec<String>> {
 /// Generic function to get logs from etcd
 async fn get_logs(resource_type: &str, resource_id: &str) -> Result<Vec<String>> {
     let prefix = format!("/piccolo/logs/{}/{}", resource_type, resource_id);
-    let kv_pairs = common::etcd::get_all_with_prefix(&prefix)
+    let kv_pairs = common::persistency::get_all_with_prefix(&prefix)
         .await
         .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
 
@@ -253,7 +253,7 @@ async fn store_metadata(
     let key = format!("/piccolo/metadata/{}/{}", resource_type, resource_id);
     let value = serde_json::to_string(metadata)?;
 
-    common::etcd::put(&key, &value)
+    common::persistency::put(&key, &value)
         .await
         .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
 
@@ -268,7 +268,7 @@ mod tests {
     use serde_json::json;
     use std::collections::HashMap;
 
-    // Mock the common::etcd module for testing
+    // Mock the common::persistency module for testing
     mod mock_etcd {
         use std::collections::HashMap;
         use std::sync::Mutex;
@@ -365,7 +365,7 @@ mod tests {
         }
     }
 
-    // Replace the common::etcd functions with our mock for testing
+    // Replace the common::persistency functions with our mock for testing
     // In a real test environment, you'd use a testing framework that supports mocking
 
     fn create_test_node_info() -> NodeInfo {
@@ -550,7 +550,7 @@ mod tests {
         assert!(error.is_err());
     }
 
-    // Note: The following tests would require actual mocking of the common::etcd module
+    // Note: The following tests would require actual mocking of the common::persistency module
     // In a real testing environment, you would use a mocking framework or dependency injection
 
     #[test]

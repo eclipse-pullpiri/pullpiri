@@ -1278,8 +1278,7 @@ mod integration_tests {
         action_controller_connection_server::{
             ActionControllerConnection, ActionControllerConnectionServer,
         },
-        CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, ReconcileRequest,
-        ReconcileResponse, TriggerActionRequest, TriggerActionResponse,
+        ReconcileRequest, ReconcileResponse, TriggerActionRequest, TriggerActionResponse,
     };
     use std::sync::Arc;
     use tonic::{transport::Server, Request, Response, Status};
@@ -1330,15 +1329,6 @@ mod integration_tests {
             Ok(Response::new(ReconcileResponse {
                 status: 0,
                 desc: "Mock reconcile success".to_string(),
-            }))
-        }
-
-        async fn complete_network_setting(
-            &self,
-            _request: Request<CompleteNetworkSettingRequest>,
-        ) -> std::result::Result<Response<CompleteNetworkSettingResponse>, Status> {
-            Ok(Response::new(CompleteNetworkSettingResponse {
-                acknowledged: true,
             }))
         }
     }

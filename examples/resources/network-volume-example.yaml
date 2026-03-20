@@ -15,6 +15,6 @@ metadata:
   name: app-data-volume
 spec:
   volumeName: app-data-volume
-  capacity: 10Gi
+  capacity: 1Gi
   mountPath: /var/app/data
   asilLevel: D

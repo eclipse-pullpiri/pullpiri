@@ -11,8 +11,8 @@ use common::actioncontroller::{
     action_controller_connection_server::{
         ActionControllerConnection, ActionControllerConnectionServer,
     },
-    CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, PodStatus as ActionStatus,
-    ReconcileRequest, ReconcileResponse, TriggerActionRequest, TriggerActionResponse,
+    PodStatus as ActionStatus, ReconcileRequest, ReconcileResponse, TriggerActionRequest,
+    TriggerActionResponse,
 };
 use common::logd;
 
@@ -174,20 +174,6 @@ impl ActionControllerConnection for ActionControllerReceiver {
                 Err(Status::internal(format!("Failed to reconcile: {}", e)))
             }
         }
-    }
-
-    async fn complete_network_setting(
-        &self,
-        request: Request<CompleteNetworkSettingRequest>,
-    ) -> Result<Response<CompleteNetworkSettingResponse>, Status> {
-        let req = request.into_inner();
-        logd!(2,
-            "CompleteNetworkSettingRequest: request_id={}, network_status={:?}, pod_status={:?}, details={}",
-            req.request_id, req.network_status, req.pod_status, req.details
-        );
-
-        let response = CompleteNetworkSettingResponse { acknowledged: true };
-        Ok(Response::new(response))
     }
 }
 

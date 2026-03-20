@@ -43,6 +43,7 @@ impl From<Model> for Pod {
 pub struct PodSpec {
     hostNetwork: Option<bool>,
     pub containers: Vec<Container>,
+    pub networks: Option<Vec<PodNetwork>>,
     pub volumes: Option<Vec<Volume>>,
     initContainers: Option<Vec<Container>>,
     restartPolicy: Option<String>,
@@ -134,19 +135,24 @@ pub struct PodSecurityContext {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct Volume {
-    name: String,
-    hostPath: HostPath,
+    pub name: String,
+    pub hostPath: Option<HostPath>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct PodNetwork {
+    pub name: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct HostPath {
-    path: String,
+    pub path: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct VolumeMount {
-    name: String,
-    mountPath: String,
+    pub name: String,
+    pub mountPath: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -204,6 +210,50 @@ impl PodSpec {
 
     pub fn get_volume(&mut self) -> &Option<Vec<Volume>> {
         &self.volumes
+    }
+
+    /// Adds a network to the pod spec
+    pub fn add_network(&mut self, network_name: &str) {
+        let network = PodNetwork {
+            name: network_name.to_string(),
+        };
+        match &mut self.networks {
+            Some(networks) => networks.push(network),
+            None => self.networks = Some(vec![network]),
+        }
+    }
+
+    /// Adds a volume to the pod spec
+    pub fn add_volume(&mut self, volume: Volume) {
+        match &mut self.volumes {
+            Some(volumes) => volumes.push(volume),
+            None => self.volumes = Some(vec![volume]),
+        }
+    }
+
+    /// Adds a volume mount to all containers in the pod
+    pub fn add_volume_mount(&mut self, volume_name: &str, mount_path: &str) {
+        let volume_mount = VolumeMount {
+            name: volume_name.to_string(),
+            mountPath: mount_path.to_string(),
+        };
+
+        for container in &mut self.containers {
+            match &mut container.volumeMounts {
+                Some(mounts) => mounts.push(volume_mount.clone()),
+                None => container.volumeMounts = Some(vec![volume_mount.clone()]),
+            }
+        }
+    }
+
+    /// Adds a volume mount to the first container
+    pub fn add_volume_mount_to_first_container(&mut self, volume_mount: VolumeMount) {
+        if let Some(container) = self.containers.first_mut() {
+            match &mut container.volumeMounts {
+                Some(mounts) => mounts.push(volume_mount),
+                None => container.volumeMounts = Some(vec![volume_mount]),
+            }
+        }
     }
 }
 

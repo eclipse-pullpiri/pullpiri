@@ -9,8 +9,13 @@ use crate::grpc::sender::statemanager::StateManagerSender;
 use common::logd;
 use common::{
     actioncontroller::PodStatus as Status,
-    spec::artifact::{
-        package::ModelInfo, schedule::SchedPolicy, Artifact, Package, Scenario, Schedule,
+    spec::{
+        artifact::{
+            package::ModelInfo, schedule::SchedPolicy, Artifact, Package, Scenario, Schedule,
+            Volume as VolumeResource,
+        },
+        k8s::{Pod, Volume},
+        k8s::pod::HostPath,
     },
     statemanager::{ResourceType, StateChange},
     Result,
@@ -21,6 +26,7 @@ const ETCD_SCENARIO_PREFIX: &str = "Scenario";
 const ETCD_PACKAGE_PREFIX: &str = "Package";
 const ETCD_POD_PREFIX: &str = "Pod";
 const ETCD_NETWORK_PREFIX: &str = "Network";
+const ETCD_VOLUME_PREFIX: &str = "Volume";
 const ETCD_NODE_PREFIX: &str = "Node";
 const ETCD_NODES_PREFIX: &str = "nodes";
 const ETCD_SCHED_PREFIX: &str = "Schedule";
@@ -220,7 +226,10 @@ impl ActionControllerManager {
     ) -> Result<()> {
         let model_name = model_info.get_name();
         let model_node = model_info.get_node();
-        let pod = common::etcd::get(&format!("{}/{}", ETCD_POD_PREFIX, model_name)).await?;
+        let pod_yaml = common::etcd::get(&format!("{}/{}", ETCD_POD_PREFIX, model_name)).await?;
+
+        // Inject resources from Package.models[].resources into Pod
+        let pod = self.inject_resources_into_pod(&pod_yaml, model_info).await?;
 
         match action {
             "launch" => {
@@ -354,6 +363,92 @@ impl ActionControllerManager {
             }
         }
         Ok(())
+    }
+
+    /// Inject resources (networks and volumes) into a pod specification
+    ///
+    /// This method modifies the PodSpec by adding network configurations
+    /// and volume mounts based on the resource definitions from Package.models[].resources.
+    ///
+    /// # Arguments
+    ///
+    /// * `pod_yaml` - The original pod YAML string from ETCD
+    /// * `model_info` - ModelInfo containing resource references (network, volume names)
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` - The modified pod YAML with injected resources
+    /// * `Err(...)` - If parsing or injection fails
+    async fn inject_resources_into_pod(
+        &self,
+        pod_yaml: &str,
+        model_info: &ModelInfo,
+    ) -> Result<String> {
+        let resources = model_info.get_resources();
+        let network_name = resources.get_network();
+        let volume_name = resources.get_volume();
+
+        // If no resources to inject, return original
+        if network_name.is_none() && volume_name.is_none() {
+            return Ok(pod_yaml.to_string());
+        }
+
+        // Parse Pod YAML
+        let mut pod: Pod = serde_yaml::from_str(pod_yaml)
+            .map_err(|e| format!("Failed to parse Pod YAML: {}", e))?;
+
+        // Inject network if specified
+        if let Some(net_name) = network_name {
+            logd!(
+                2,
+                "Injecting network '{}' into pod '{}'",
+                net_name,
+                pod.get_name()
+            );
+            pod.spec.add_network(&net_name);
+        }
+
+        // Inject volume if specified
+        if let Some(vol_name) = &volume_name {
+            logd!(
+                2,
+                "Injecting volume '{}' into pod '{}'",
+                vol_name,
+                pod.get_name()
+            );
+
+            // Fetch Volume resource from ETCD to get mountPath
+            let volume_key = format!("{}/{}", ETCD_VOLUME_PREFIX, vol_name);
+            let volume_yaml = common::etcd::get(&volume_key)
+                .await
+                .map_err(|e| format!("Failed to get Volume '{}' from ETCD: {}", vol_name, e))?;
+
+            let volume_resource: VolumeResource = serde_yaml::from_str(&volume_yaml)
+                .map_err(|e| format!("Failed to parse Volume '{}': {}", vol_name, e))?;
+
+            let mount_path = volume_resource.get_spec().get_mount_path();
+            logd!(2, "Volume '{}' mountPath: {}", vol_name, mount_path);
+
+            // Create a hostPath volume entry using mountPath as the host path
+            let volume = Volume {
+                name: vol_name.clone(),
+                hostPath: Some(HostPath {
+                    path: mount_path.to_string(),
+                }),
+            };
+
+            // Add volume to pod spec
+            pod.spec.add_volume(volume);
+
+            // Add volumeMount to all containers
+            pod.spec.add_volume_mount(vol_name, mount_path);
+        }
+
+        // Serialize back to YAML
+        let modified_yaml = serde_yaml::to_string(&pod)
+            .map_err(|e| format!("Failed to serialize modified Pod: {}", e))?;
+
+        Ok(modified_yaml)
     }
 
     /// Processes a trigger action request for a specific scenario

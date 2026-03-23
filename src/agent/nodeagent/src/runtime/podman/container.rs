@@ -47,9 +47,15 @@ fn build_host_config(
 ) -> serde_json::Value {
     let mut host_config = serde_json::Map::new();
 
-    // Add hostNetwork setting
+    // Add network mode setting
     if host_network {
         host_config.insert("NetworkMode".to_string(), json!("host"));
+    } else if let Some(network_name) = spec["networks"]
+        .as_array()
+        .and_then(|networks| networks.first())
+        .and_then(|network| network["name"].as_str())
+    {
+        host_config.insert("NetworkMode".to_string(), json!(network_name));
     }
 
     // CapAdd
@@ -121,16 +127,6 @@ fn build_host_config(
     json!(host_config)
 }
 
-/// Get network mode for container creation (Docker-compatible API)
-/// Returns the first network name from spec, or None if not specified
-fn get_network_mode(spec: &serde_json::Value) -> Option<String> {
-    spec["networks"]
-        .as_array()
-        .and_then(|networks| networks.first())
-        .and_then(|network| network["name"].as_str())
-        .map(|s| s.to_string())
-}
-
 /// Build environment variables array
 fn build_env_vars(container: &serde_json::Value) -> Vec<String> {
     container["env"]
@@ -192,17 +188,7 @@ async fn create_container(
     });
 
     // Add HostConfig
-    let mut host_config = build_host_config(container, spec, host_network);
-    
-    // Add NetworkMode to HostConfig (Docker-compatible API)
-    if !host_network {
-        if let Some(network_mode) = get_network_mode(spec) {
-            host_config
-                .as_object_mut()
-                .unwrap()
-                .insert("NetworkMode".to_string(), json!(network_mode));
-        }
-    }
+    let host_config = build_host_config(container, spec, host_network);
     
     if !host_config.as_object().unwrap().is_empty() {
         create_body["HostConfig"] = host_config;

@@ -7,7 +7,7 @@
 //! This file sets up the asynchronous runtime, initializes the manager and gRPC server,
 //! and launches both concurrently. It also provides unit tests for initialization.
 
-use common::monitoringserver::{ContainerList, NodeInfo};
+use common::monitoringserver::{ContainerList, NodeInfo, NodeStatusNotification};
 pub mod data_structures;
 pub mod etcd_storage;
 pub mod grpc;
@@ -26,8 +26,11 @@ async fn launch_manager(
     rx_container: Receiver<ContainerList>,
     rx_node: Receiver<NodeInfo>,
     rx_stress: Receiver<String>,
+    rx_node_status: Receiver<NodeStatusNotification>,
 ) {
-    let mut manager = manager::MonitoringServerManager::new(rx_container, rx_node, rx_stress).await;
+    let mut manager =
+        manager::MonitoringServerManager::new(rx_container, rx_node, rx_stress, rx_node_status)
+            .await;
 
     match manager.initialize().await {
         Ok(_) => {
@@ -49,6 +52,7 @@ async fn initialize(
     tx_container: Sender<ContainerList>,
     tx_node: Sender<NodeInfo>,
     tx_stress: Sender<String>,
+    tx_node_status: Sender<NodeStatusNotification>,
 ) {
     use tonic::transport::Server;
 
@@ -56,6 +60,7 @@ async fn initialize(
         tx_container,
         tx_node,
         tx_stress,
+        tx_node_status,
     };
 
     let addr = common::monitoringserver::open_server()
@@ -83,8 +88,11 @@ async fn main() {
     // Add stress channel and a simple consumer
     let (tx_stress, rx_stress) = channel::<String>(16);
 
-    let mgr = launch_manager(rx_container, rx_node, rx_stress);
-    let grpc = initialize(tx_container, tx_node, tx_stress);
+    // Node status notification channel (from APIServer)
+    let (tx_node_status, rx_node_status) = channel::<NodeStatusNotification>(16);
+
+    let mgr = launch_manager(rx_container, rx_node, rx_stress, rx_node_status);
+    let grpc = initialize(tx_container, tx_node, tx_stress, tx_node_status);
 
     tokio::join!(mgr, grpc);
 }
@@ -99,8 +107,13 @@ mod tests {
         let (_tx_c, rx_c) = tokio::sync::mpsc::channel(1);
         let (_tx_n, rx_n) = tokio::sync::mpsc::channel(1);
         let (_tx_s, rx_s) = tokio::sync::mpsc::channel::<String>(1);
+        let (_tx_ns, rx_ns) = tokio::sync::mpsc::channel::<NodeStatusNotification>(1);
         // Use a timeout to ensure the test does not hang
-        let _result = timeout(Duration::from_secs(2), launch_manager(rx_c, rx_n, rx_s)).await;
+        let _result = timeout(
+            Duration::from_secs(2),
+            launch_manager(rx_c, rx_n, rx_s, rx_ns),
+        )
+        .await;
         //assert!(result.is_ok(), "launch_manager did not complete in time");
     }
 
@@ -109,10 +122,15 @@ mod tests {
         let (tx_c, _rx_c) = tokio::sync::mpsc::channel(1);
         let (tx_n, _rx_n) = tokio::sync::mpsc::channel(1);
         let (tx_s, _rx_s) = tokio::sync::mpsc::channel::<String>(1);
+        let (tx_ns, _rx_ns) = tokio::sync::mpsc::channel::<NodeStatusNotification>(1);
         // Spawn initialize in a background task and cancel after a short delay
         let handle = tokio::spawn(async move {
             // Use a short timeout to avoid hanging on .serve()
-            let _ = timeout(Duration::from_millis(500), initialize(tx_c, tx_n, tx_s)).await;
+            let _ = timeout(
+                Duration::from_millis(500),
+                initialize(tx_c, tx_n, tx_s, tx_ns),
+            )
+            .await;
         });
 
         // Wait for the task to finish or timeout

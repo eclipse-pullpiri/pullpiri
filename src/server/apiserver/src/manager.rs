@@ -23,7 +23,8 @@ pub async fn initialize() {
     tokio::join!(
         crate::route::launch_tcp_listener(),
         start_grpc_server(),
-        reload()
+        reload(),
+        check_node_heartbeat_loop()
     );
 }
 
@@ -127,6 +128,96 @@ async fn reload() {
         }
     } else {
         logd!(2, "{:#?}", scenarios_result);
+    }
+}
+
+/// Background task that periodically checks node heartbeat timeouts.
+///
+/// When a node's last heartbeat exceeds the timeout threshold, a NODE_DISCONNECTED
+/// notification is sent to MonitoringServer so it can clear the node's metrics from etcd.
+/// The node's status is also updated to NOT_READY in the cluster registry.
+async fn check_node_heartbeat_loop() {
+    use common::nodeagent::fromapiserver::NodeStatus;
+    use std::collections::HashSet;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use tokio::time::{interval, Duration as TokioDuration};
+
+    // Heartbeat timeout: nodes are considered disconnected after this many seconds
+    const HEARTBEAT_TIMEOUT_SECS: u64 = 90;
+    // Check interval: how often we poll
+    const CHECK_INTERVAL_SECS: u64 = 30;
+
+    let node_manager = crate::node::NodeManager::new().unwrap();
+    let mut disconnected_nodes: HashSet<String> = HashSet::new();
+    let mut ticker = interval(TokioDuration::from_secs(CHECK_INTERVAL_SECS));
+
+    loop {
+        ticker.tick().await;
+
+        let nodes = match node_manager.get_all_nodes().await {
+            Ok(n) => n,
+            Err(e) => {
+                logd!(4, "check_node_heartbeat_loop: failed to get nodes: {}", e);
+                continue;
+            }
+        };
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or(Duration::from_secs(0))
+            .as_secs() as i64;
+
+        for node in &nodes {
+            let time_since_heartbeat = now - node.last_heartbeat;
+            let is_timed_out = time_since_heartbeat > HEARTBEAT_TIMEOUT_SECS as i64;
+            let node_id = node.node_id.clone();
+
+            if is_timed_out && !disconnected_nodes.contains(&node_id) {
+                // Node just became disconnected
+                logd!(
+                    3,
+                    "Node '{}' heartbeat timeout ({}s since last heartbeat) - notifying MonitoringServer",
+                    node_id,
+                    time_since_heartbeat
+                );
+
+                // Update node status to NOT_READY
+                if let Err(e) = node_manager
+                    .update_status(&node_id, NodeStatus::NotReady)
+                    .await
+                {
+                    logd!(
+                        4,
+                        "Failed to update status for disconnected node '{}': {}",
+                        node_id,
+                        e
+                    );
+                }
+
+                // Notify MonitoringServer to clear metrics for this node
+                if let Err(e) =
+                    crate::grpc::sender::monitoringserver::notify_node_disconnected(&node.hostname)
+                        .await
+                {
+                    logd!(
+                        4,
+                        "Failed to notify MonitoringServer about disconnected node '{}': {}",
+                        node_id,
+                        e
+                    );
+                }
+
+                disconnected_nodes.insert(node_id);
+            } else if !is_timed_out && disconnected_nodes.contains(&node_id) {
+                // Node reconnected
+                logd!(3, "Node '{}' reconnected", node_id);
+                disconnected_nodes.remove(&node_id);
+            }
+        }
+
+        // Clean up nodes that no longer exist in the registry
+        let current_ids: HashSet<String> = nodes.iter().map(|n| n.node_id.clone()).collect();
+        disconnected_nodes.retain(|id| current_ids.contains(id));
     }
 }
 

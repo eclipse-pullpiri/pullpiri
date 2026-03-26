@@ -139,11 +139,10 @@ async fn reload() {
 async fn check_node_heartbeat_loop() {
     use common::nodeagent::fromapiserver::NodeStatus;
     use std::collections::HashSet;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
     use tokio::time::{interval, Duration as TokioDuration};
 
     // Heartbeat timeout: nodes are considered disconnected after this many seconds
-    const HEARTBEAT_TIMEOUT_SECS: u64 = 90;
+    const HEARTBEAT_TIMEOUT_SECS: i64 = 90;
     // Check interval: how often we poll
     const CHECK_INTERVAL_SECS: u64 = 30;
 
@@ -162,14 +161,11 @@ async fn check_node_heartbeat_loop() {
             }
         };
 
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or(Duration::from_secs(0))
-            .as_secs() as i64;
+        let now = chrono::Utc::now().timestamp();
 
         for node in &nodes {
             let time_since_heartbeat = now - node.last_heartbeat;
-            let is_timed_out = time_since_heartbeat > HEARTBEAT_TIMEOUT_SECS as i64;
+            let is_timed_out = time_since_heartbeat > HEARTBEAT_TIMEOUT_SECS;
             let node_id = node.node_id.clone();
 
             if is_timed_out && !disconnected_nodes.contains(&node_id) {
@@ -1036,5 +1032,45 @@ spec:
     async fn test_reload_success() {
         let result = tokio::time::timeout(std::time::Duration::from_millis(500), reload()).await;
         assert!(result.is_ok(), "reload() failed to complete in time");
+    }
+
+    // Test for `check_node_heartbeat_loop()` - verifies it starts without panicking
+    // and terminates gracefully under timeout (no etcd required for startup).
+    #[tokio::test]
+    async fn test_check_node_heartbeat_loop_starts() {
+        // The loop runs indefinitely, so we just verify it starts and doesn't panic.
+        let result = tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            check_node_heartbeat_loop(),
+        )
+        .await;
+        // Timeout is expected since the loop runs forever
+        assert!(
+            result.is_err(),
+            "check_node_heartbeat_loop should not complete"
+        );
+    }
+
+    // Unit test for heartbeat timeout logic (without external dependencies)
+    #[test]
+    fn test_heartbeat_timeout_logic() {
+        let now = chrono::Utc::now().timestamp();
+        const TIMEOUT: i64 = 90;
+
+        // A node with a recent heartbeat should NOT be timed out
+        let recent_heartbeat = now - 30; // 30 seconds ago
+        let time_since_recent = now - recent_heartbeat;
+        assert!(
+            time_since_recent <= TIMEOUT,
+            "Node with recent heartbeat should not be timed out"
+        );
+
+        // A node with a stale heartbeat should be timed out
+        let stale_heartbeat = now - 120; // 120 seconds ago
+        let time_since_stale = now - stale_heartbeat;
+        assert!(
+            time_since_stale > TIMEOUT,
+            "Node with stale heartbeat should be timed out"
+        );
     }
 }

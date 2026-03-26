@@ -830,10 +830,18 @@ impl MonitoringServerManager {
                 rx_node_status.recv().await
             };
             if let Some(notification) = notification_opt {
-                let liveliness = NodeLiveliness::try_from(notification.liveliness)
-                    .unwrap_or(NodeLiveliness::NodeAlive);
-                if liveliness == NodeLiveliness::NodeDisconnected {
-                    self.handle_node_disconnected(&notification.node_name).await;
+                match NodeLiveliness::try_from(notification.liveliness) {
+                    Ok(liveliness) => {
+                        if liveliness == NodeLiveliness::NodeDisconnected {
+                            self.handle_node_disconnected(&notification.node_name).await;
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "[MonitoringServer] Warning: received unknown node liveliness value {} for node '{}': {}",
+                            notification.liveliness, notification.node_name, e
+                        );
+                    }
                 }
             } else {
                 break;

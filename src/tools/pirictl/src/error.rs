@@ -52,3 +52,65 @@ impl From<std::io::Error> for CliError {
 
 /// Result type for CLI operations
 pub type Result<T> = std::result::Result<T, CliError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cli_error_display_custom() {
+        let err = CliError::Custom("test error message".to_string());
+        assert_eq!(format!("{}", err), "Error: test error message");
+    }
+
+    #[test]
+    fn test_cli_error_display_io() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+        let err = CliError::Io(io_err);
+        let display = format!("{}", err);
+        assert!(display.starts_with("IO error:"));
+        assert!(display.contains("file not found"));
+    }
+
+    #[test]
+    fn test_cli_error_display_json() {
+        let json_err = serde_json::from_str::<serde_json::Value>("invalid json").unwrap_err();
+        let err = CliError::Json(json_err);
+        let display = format!("{}", err);
+        assert!(display.starts_with("JSON error:"));
+    }
+
+    #[test]
+    fn test_cli_error_from_io() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "access denied");
+        let cli_err: CliError = io_err.into();
+        match cli_err {
+            CliError::Io(_) => (),
+            _ => panic!("Expected CliError::Io"),
+        }
+    }
+
+    #[test]
+    fn test_cli_error_from_json() {
+        let json_err = serde_json::from_str::<serde_json::Value>("{invalid}").unwrap_err();
+        let cli_err: CliError = json_err.into();
+        match cli_err {
+            CliError::Json(_) => (),
+            _ => panic!("Expected CliError::Json"),
+        }
+    }
+
+    #[test]
+    fn test_cli_error_debug() {
+        let err = CliError::Custom("debug test".to_string());
+        let debug_str = format!("{:?}", err);
+        assert!(debug_str.contains("Custom"));
+        assert!(debug_str.contains("debug test"));
+    }
+
+    #[test]
+    fn test_cli_error_is_error_trait() {
+        let err: Box<dyn std::error::Error> = Box::new(CliError::Custom("trait test".to_string()));
+        assert!(err.to_string().contains("trait test"));
+    }
+}

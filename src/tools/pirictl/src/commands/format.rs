@@ -202,10 +202,27 @@ mod tests {
     }
 
     #[test]
+    fn test_format_bytes_edge_cases() {
+        assert_eq!(format_bytes(1023), "1023 B");
+        assert_eq!(format_bytes(1025), "1.00 KB");
+        assert_eq!(format_bytes(1024 * 1024 - 1), "1024.00 KB");
+        // Large value test - just ensure it doesn't panic
+        let large_result = format_bytes(u64::MAX);
+        assert!(!large_result.is_empty());
+    }
+
+    #[test]
     fn test_format_memory() {
         assert_eq!(format_memory(0), "0Mi");
         assert_eq!(format_memory(1024 * 1024), "1Mi");
         assert_eq!(format_memory(1024 * 1024 * 1024), "1024Mi");
+    }
+
+    #[test]
+    fn test_format_memory_edge_cases() {
+        assert_eq!(format_memory(1024 * 1024 - 1), "0Mi");
+        assert_eq!(format_memory(1024 * 1024 + 1), "1Mi");
+        assert_eq!(format_memory(512 * 1024 * 1024), "512Mi");
     }
 
     #[test]
@@ -219,10 +236,37 @@ mod tests {
     }
 
     #[test]
+    fn test_format_duration_complex() {
+        assert_eq!(format_duration(3661), "1 hour, 1 minute, 1 second");
+        assert_eq!(
+            format_duration(86400 + 3600 + 60 + 1),
+            "1 day, 1 hour, 1 minute, 1 second"
+        );
+        assert_eq!(format_duration(2 * 86400), "2 days");
+        assert_eq!(format_duration(2 * 3600), "2 hours");
+        assert_eq!(format_duration(2 * 60), "2 minutes");
+        assert_eq!(format_duration(2), "2 seconds");
+    }
+
+    #[test]
+    fn test_format_duration_ago() {
+        assert_eq!(format_duration_ago(0), "0 seconds ago");
+        assert_eq!(format_duration_ago(60), "1 minute ago");
+        assert_eq!(format_duration_ago(3600), "1 hour ago");
+    }
+
+    #[test]
     fn test_capitalize() {
         assert_eq!(capitalize("hello"), "Hello");
         assert_eq!(capitalize("WORLD"), "WORLD");
         assert_eq!(capitalize(""), "");
+    }
+
+    #[test]
+    fn test_capitalize_unicode() {
+        assert_eq!(capitalize("über"), "Über");
+        assert_eq!(capitalize("123abc"), "123abc");
+        assert_eq!(capitalize(" space"), " space");
     }
 
     #[test]
@@ -231,5 +275,101 @@ mod tests {
         assert_eq!(extract_network_value(network_str, "rx_bytes"), 1234);
         assert_eq!(extract_network_value(network_str, "tx_bytes"), 5678);
         assert_eq!(extract_network_value(network_str, "unknown"), 0);
+    }
+
+    #[test]
+    fn test_extract_network_value_edge_cases() {
+        assert_eq!(extract_network_value("", "rx_bytes"), 0);
+        assert_eq!(extract_network_value("rx_bytes: abc", "rx_bytes"), 0);
+        assert_eq!(extract_network_value("{rx_bytes: 0}", "rx_bytes"), 0);
+        assert_eq!(
+            extract_network_value("{rx_bytes: 999999999}", "rx_bytes"),
+            999999999
+        );
+    }
+
+    #[test]
+    fn test_format_timestamp_valid() {
+        let result = format_timestamp("2026-04-23T10:30:00+09:00");
+        assert!(result.is_ok());
+        let formatted = result.unwrap();
+        assert!(formatted.contains("2026"));
+        assert!(formatted.contains("Apr"));
+    }
+
+    #[test]
+    fn test_format_timestamp_invalid() {
+        let result = format_timestamp("not-a-timestamp");
+        assert!(result.is_err());
+
+        let result = format_timestamp("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_calculate_uptime_valid() {
+        // Use a timestamp from the past
+        let result = calculate_uptime("2026-04-23T00:00:00+00:00");
+        assert!(result.is_ok());
+        let uptime = result.unwrap();
+        // Should contain hours or minutes
+        assert!(uptime.contains('h') || uptime.contains('m'));
+    }
+
+    #[test]
+    fn test_calculate_uptime_invalid() {
+        let result = calculate_uptime("invalid-timestamp");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_calculate_age_valid() {
+        let result = calculate_age("2026-04-22T00:00:00+00:00");
+        assert!(result.is_ok());
+        let age = result.unwrap();
+        // Should contain d, h, m, or s
+        assert!(age.contains('d') || age.contains('h') || age.contains('m') || age.contains('s'));
+    }
+
+    #[test]
+    fn test_calculate_age_invalid_timestamp() {
+        // Invalid timestamp starting with 0001- should return "N/A"
+        let result = calculate_age("0001-01-01T00:00:00Z");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "N/A");
+    }
+
+    #[test]
+    fn test_calculate_age_parse_error() {
+        let result = calculate_age("not-a-date");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_calculate_runtime_valid() {
+        let result = calculate_runtime("2026-04-23T10:00:00+00:00", "2026-04-23T10:00:05+00:00");
+        assert!(result.is_ok());
+        let runtime = result.unwrap();
+        assert!(runtime.contains("5."));
+    }
+
+    #[test]
+    fn test_calculate_runtime_invalid_start() {
+        let result = calculate_runtime("0001-01-01T00:00:00Z", "2026-04-23T10:00:00+00:00");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "N/A");
+    }
+
+    #[test]
+    fn test_calculate_runtime_invalid_finish() {
+        let result = calculate_runtime("2026-04-23T10:00:00+00:00", "0001-01-01T00:00:00Z");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "N/A");
+    }
+
+    #[test]
+    fn test_calculate_runtime_parse_error() {
+        let result = calculate_runtime("invalid", "also-invalid");
+        assert!(result.is_err());
     }
 }

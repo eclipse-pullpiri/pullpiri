@@ -185,3 +185,80 @@ fn validate_yaml_artifact(yaml_content: &str) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_yaml_content_file_not_found() {
+        let result = read_yaml_content("/nonexistent/path/file.yaml");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_yaml_artifact_single_document() {
+        let yaml = "apiVersion: v1\nkind: Scenario\nmetadata:\n  name: test";
+        let result = validate_yaml_artifact(yaml);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_yaml_artifact_multi_document() {
+        let yaml = r#"---
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: test
+---
+apiVersion: v1
+kind: Package
+metadata:
+  name: pkg
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: model
+"#;
+        let result = validate_yaml_artifact(yaml);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_yaml_artifact_missing_kinds() {
+        // This should succeed but print a warning (we can't easily test stdout)
+        let yaml = r#"---
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: test
+"#;
+        let result = validate_yaml_artifact(yaml);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_yaml_artifact_empty() {
+        let result = validate_yaml_artifact("");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_yaml_artifact_only_separators() {
+        let yaml = "---\n---\n---";
+        let result = validate_yaml_artifact(yaml);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_yaml_artifact_no_kind_field() {
+        let yaml = r#"---
+apiVersion: v1
+metadata:
+  name: test
+"#;
+        let result = validate_yaml_artifact(yaml);
+        assert!(result.is_ok());
+    }
+}

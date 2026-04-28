@@ -6,5 +6,6 @@
 //! Running gRPC message sending
 
 pub mod filtergateway;
+pub mod monitoringserver;
 pub mod nodeagent;
 pub mod statemanager;

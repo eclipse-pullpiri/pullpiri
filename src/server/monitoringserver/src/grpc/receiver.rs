@@ -4,8 +4,9 @@
 */
 use common::monitoringserver::monitoring_server_connection_server::MonitoringServerConnection;
 use common::monitoringserver::{
-    ContainerList, NodeInfo, SendContainerListResponse, SendNodeInfoResponse,
-    StressMonitoringMetric, StressMonitoringMetricResponse,
+    ContainerList, NodeInfo, NodeStatusNotification, NodeStatusNotificationResponse,
+    SendContainerListResponse, SendNodeInfoResponse, StressMonitoringMetric,
+    StressMonitoringMetricResponse,
 };
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
@@ -74,6 +75,7 @@ pub struct MonitoringServerReceiver {
     pub tx_container: mpsc::Sender<ContainerList>,
     pub tx_node: mpsc::Sender<NodeInfo>,
     pub tx_stress: mpsc::Sender<String>,
+    pub tx_node_status: mpsc::Sender<NodeStatusNotification>,
 }
 
 #[tonic::async_trait]
@@ -140,12 +142,35 @@ impl MonitoringServerConnection for MonitoringServerReceiver {
             )),
         }
     }
+
+    /// Handle a NodeStatusNotification message from APIServer
+    ///
+    /// Receives a node status notification and forwards it to the MonitoringServer manager.
+    /// When a node is reported as disconnected, the manager will clear its metrics from etcd.
+    async fn notify_node_status<'life>(
+        &'life self,
+        request: Request<NodeStatusNotification>,
+    ) -> Result<Response<NodeStatusNotificationResponse>, Status> {
+        let req: NodeStatusNotification = request.into_inner();
+
+        match self.tx_node_status.send(req).await {
+            Ok(_) => Ok(Response::new(NodeStatusNotificationResponse {
+                resp: "Successfully processed NodeStatusNotification".to_string(),
+            })),
+            Err(e) => Err(Status::new(
+                tonic::Code::Unavailable,
+                format!("cannot send node status notification: {}", e),
+            )),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::monitoringserver::{ContainerList, NodeInfo, StressMonitoringMetric};
+    use common::monitoringserver::{
+        ContainerList, NodeInfo, NodeLiveliness, StressMonitoringMetric,
+    };
     use tokio::sync::mpsc;
     use tokio::time::{timeout, Duration};
     use tonic::{Code, Request};
@@ -198,10 +223,12 @@ mod tests {
         let (tx, mut rx) = mpsc::channel(1);
         let dummy_tx_node = mpsc::channel::<NodeInfo>(1).0;
         let dummy_stress = mpsc::channel::<String>(1).0;
+        let dummy_node_status = mpsc::channel::<NodeStatusNotification>(1).0;
         let receiver = MonitoringServerReceiver {
             tx_container: tx,
             tx_node: dummy_tx_node,
             tx_stress: dummy_stress,
+            tx_node_status: dummy_node_status,
         };
         let req = Request::new(sample_container_list("node1"));
         let resp = receiver.send_container_list(req).await.unwrap();
@@ -218,10 +245,12 @@ mod tests {
         drop(rx);
         let dummy_tx = mpsc::channel(1).0;
         let dummy_stress = mpsc::channel(1).0;
+        let dummy_node_status = mpsc::channel::<NodeStatusNotification>(1).0;
         let receiver = MonitoringServerReceiver {
             tx_container: tx,
             tx_node: dummy_tx,
             tx_stress: dummy_stress,
+            tx_node_status: dummy_node_status,
         };
         let req = Request::new(sample_container_list("node1"));
         let resp = receiver.send_container_list(req).await;
@@ -235,10 +264,12 @@ mod tests {
         let (tx, mut rx) = mpsc::channel(1);
         let dummy_tx_container = mpsc::channel::<ContainerList>(1).0;
         let dummy_stress = mpsc::channel::<String>(1).0;
+        let dummy_node_status = mpsc::channel::<NodeStatusNotification>(1).0;
         let receiver = MonitoringServerReceiver {
             tx_container: dummy_tx_container,
             tx_node: tx,
             tx_stress: dummy_stress,
+            tx_node_status: dummy_node_status,
         };
         let req = Request::new(sample_node("node1", "192.168.10.201"));
         let resp = receiver.send_node_info(req).await.unwrap();
@@ -255,10 +286,12 @@ mod tests {
         drop(rx);
         let dummy_tx = mpsc::channel(1).0;
         let dummy_stress = mpsc::channel(1).0;
+        let dummy_node_status = mpsc::channel::<NodeStatusNotification>(1).0;
         let receiver = MonitoringServerReceiver {
             tx_container: dummy_tx,
             tx_node: tx,
             tx_stress: dummy_stress,
+            tx_node_status: dummy_node_status,
         };
         let req = Request::new(sample_node("node1", "192.168.10.201"));
         let resp = receiver.send_node_info(req).await;
@@ -272,10 +305,12 @@ mod tests {
         let (tx, mut rx) = mpsc::channel(1);
         let dummy_tx_container = mpsc::channel::<ContainerList>(1).0;
         let dummy_tx_node = mpsc::channel::<NodeInfo>(1).0;
+        let dummy_node_status = mpsc::channel::<NodeStatusNotification>(1).0;
         let receiver = MonitoringServerReceiver {
             tx_container: dummy_tx_container,
             tx_node: dummy_tx_node,
             tx_stress: tx,
+            tx_node_status: dummy_node_status,
         };
         let req = Request::new(StressMonitoringMetric {
             json: sample_stress_json(),
@@ -298,9 +333,12 @@ mod tests {
         let (tx_container, rx_container) = mpsc::channel::<ContainerList>(4);
         let (tx_node, rx_node) = mpsc::channel::<NodeInfo>(4);
         let (tx_stress, rx_stress) = mpsc::channel::<String>(8);
+        let (tx_node_status, rx_node_status) = mpsc::channel::<NodeStatusNotification>(4);
 
         // create and spawn the real manager (it will consume rx_stress and call etcd)
-        let mgr = manager::MonitoringServerManager::new(rx_container, rx_node, rx_stress).await;
+        let mgr =
+            manager::MonitoringServerManager::new(rx_container, rx_node, rx_stress, rx_node_status)
+                .await;
         let mgr_handle = tokio::spawn(async move {
             // run will spawn internal tasks and block until channels are closed
             let _ = mgr.run().await;
@@ -311,6 +349,7 @@ mod tests {
             tx_container: tx_container.clone(),
             tx_node: tx_node.clone(),
             tx_stress: tx_stress.clone(),
+            tx_node_status: tx_node_status.clone(),
         };
 
         // send the stress metric via gRPC handler (synchronous call)
@@ -349,8 +388,58 @@ mod tests {
         drop(tx_container);
         drop(tx_node);
         drop(tx_stress);
+        drop(tx_node_status);
 
         // give manager a moment to finish
         let _ = tokio::time::timeout(Duration::from_secs(1), mgr_handle).await;
+    }
+
+    #[tokio::test]
+    async fn test_notify_node_status_success() {
+        let (tx, mut rx) = mpsc::channel(1);
+        let dummy_tx_container = mpsc::channel::<ContainerList>(1).0;
+        let dummy_tx_node = mpsc::channel::<NodeInfo>(1).0;
+        let dummy_stress = mpsc::channel::<String>(1).0;
+        let receiver = MonitoringServerReceiver {
+            tx_container: dummy_tx_container,
+            tx_node: dummy_tx_node,
+            tx_stress: dummy_stress,
+            tx_node_status: tx,
+        };
+        let req = Request::new(NodeStatusNotification {
+            node_name: "node1".to_string(),
+            liveliness: NodeLiveliness::NodeDisconnected.into(),
+        });
+        let resp = receiver.notify_node_status(req).await.unwrap();
+        assert_eq!(
+            resp.get_ref().resp,
+            "Successfully processed NodeStatusNotification"
+        );
+        let received = timeout(Duration::from_millis(100), rx.recv()).await;
+        assert!(received.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_notify_node_status_failure() {
+        // Drop the receiver so send will fail
+        let (tx, rx) = mpsc::channel::<NodeStatusNotification>(1);
+        drop(rx);
+        let dummy_tx_container = mpsc::channel::<ContainerList>(1).0;
+        let dummy_tx_node = mpsc::channel::<NodeInfo>(1).0;
+        let dummy_stress = mpsc::channel::<String>(1).0;
+        let receiver = MonitoringServerReceiver {
+            tx_container: dummy_tx_container,
+            tx_node: dummy_tx_node,
+            tx_stress: dummy_stress,
+            tx_node_status: tx,
+        };
+        let req = Request::new(NodeStatusNotification {
+            node_name: "node1".to_string(),
+            liveliness: NodeLiveliness::NodeDisconnected.into(),
+        });
+        let resp = receiver.notify_node_status(req).await;
+        assert!(resp.is_err());
+        let status = resp.err().unwrap();
+        assert_eq!(status.code(), Code::Unavailable);
     }
 }

@@ -8,7 +8,7 @@
 //! a gRPC sender for communicating with the nodeagent or other services.
 //! It is designed to be thread-safe and run in an async context.
 use crate::data_structures::{BoardInfo, DataStore, SocInfo};
-use common::monitoringserver::{ContainerList, NodeInfo}; // Use protobuf types
+use common::monitoringserver::{ContainerList, NodeInfo, NodeLiveliness, NodeStatusNotification}; // Use protobuf types
 use common::Result;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -24,6 +24,8 @@ pub struct MonitoringServerManager {
     rx_node: Arc<Mutex<mpsc::Receiver<NodeInfo>>>,
     /// Receiver for stress metrics (JSON strings) from gRPC
     rx_stress: Arc<Mutex<mpsc::Receiver<String>>>,
+    /// Receiver for node status notifications (liveliness) from APIServer
+    rx_node_status: Arc<Mutex<mpsc::Receiver<NodeStatusNotification>>>,
     /// Data store for managing NodeInfo, SocInfo, and BoardInfo
     data_store: Arc<Mutex<DataStore>>,
 }
@@ -34,11 +36,13 @@ impl MonitoringServerManager {
         rx_container: mpsc::Receiver<ContainerList>,
         rx_node: mpsc::Receiver<NodeInfo>,
         rx_stress: mpsc::Receiver<String>,
+        rx_node_status: mpsc::Receiver<NodeStatusNotification>,
     ) -> Self {
         Self {
             rx_container: Arc::new(Mutex::new(rx_container)),
             rx_node: Arc::new(Mutex::new(rx_node)),
             rx_stress: Arc::new(Mutex::new(rx_stress)),
+            rx_node_status: Arc::new(Mutex::new(rx_node_status)),
             data_store: Arc::new(Mutex::new(DataStore::new())),
         }
     }
@@ -795,9 +799,60 @@ impl MonitoringServerManager {
         Ok(())
     }
 
+    /// Handles a node disconnection event by clearing all metrics for the node from etcd and memory.
+    ///
+    /// When a node is reported as disconnected (NODE_DISCONNECTED), this function:
+    /// 1. Removes all containers associated with the node
+    /// 2. Removes the node info from etcd and memory
+    /// 3. Updates SoC and board aggregations to remove the node
+    async fn handle_node_disconnected(&self, node_name: &str) {
+        println!(
+            "[MonitoringServer] Node '{}' disconnected - clearing metrics from etcd",
+            node_name
+        );
+
+        let mut data_store = self.data_store.lock().await;
+        data_store.remove_node(node_name).await;
+
+        println!(
+            "[MonitoringServer] Cleared all metrics for node '{}'",
+            node_name
+        );
+    }
+
+    /// Main loop for processing incoming node status notifications from APIServer.
+    ///
+    /// When a NODE_DISCONNECTED notification is received, clears all metrics for that node.
+    pub async fn process_node_status_requests(&self) -> Result<()> {
+        loop {
+            let notification_opt = {
+                let mut rx_node_status = self.rx_node_status.lock().await;
+                rx_node_status.recv().await
+            };
+            if let Some(notification) = notification_opt {
+                match NodeLiveliness::try_from(notification.liveliness) {
+                    Ok(liveliness) => {
+                        if liveliness == NodeLiveliness::NodeDisconnected {
+                            self.handle_node_disconnected(&notification.node_name).await;
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "[MonitoringServer] Warning: received unknown node liveliness value {} for node '{}': {}",
+                            notification.liveliness, notification.node_name, e
+                        );
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+        Ok(())
+    }
+
     /// Runs the MonitoringServerManager event loop.
     ///
-    /// Spawns container, node and stress processing tasks and waits for them to finish.
+    /// Spawns container, node, stress, and node-status processing tasks and waits for them to finish.
     pub async fn run(self) -> Result<()> {
         let arc_self = Arc::new(self);
 
@@ -825,7 +880,20 @@ impl MonitoringServerManager {
             }
         });
 
-        let _ = tokio::try_join!(container_processor, node_processor, stress_processor);
+        // Node status notification processor task
+        let node_status_manager = Arc::clone(&arc_self);
+        let node_status_processor = tokio::spawn(async move {
+            if let Err(e) = node_status_manager.process_node_status_requests().await {
+                eprintln!("Node status processor error: {:?}", e);
+            }
+        });
+
+        let _ = tokio::try_join!(
+            container_processor,
+            node_processor,
+            stress_processor,
+            node_status_processor
+        );
         println!("MonitoringServerManager stopped");
         Ok(())
     }
@@ -844,7 +912,8 @@ mod tests {
         let (_tx_c, rx_c) = mpsc::channel(1);
         let (_tx_n, rx_n) = mpsc::channel(1);
         let (_tx_s, rx_s) = mpsc::channel::<String>(1);
-        MonitoringServerManager::new(rx_c, rx_n, rx_s).await
+        let (_tx_ns, rx_ns) = mpsc::channel::<NodeStatusNotification>(1);
+        MonitoringServerManager::new(rx_c, rx_n, rx_s, rx_ns).await
     }
 
     fn sample_node(name: &str, ip: &str) -> NodeInfo {

@@ -403,6 +403,107 @@ impl DataStore {
             );
         }
     }
+
+    /// Removes all metrics for a disconnected node from memory and etcd.
+    ///
+    /// This function:
+    /// 1. Deletes all containers associated with the node
+    /// 2. Deletes the node info from etcd and memory
+    /// 3. Removes the node from its SoC and Board aggregations, deleting them if empty
+    pub async fn remove_node(&mut self, node_name: &str) {
+        // 1. Remove all containers for this node
+        let container_ids: Vec<String> = self
+            .container_node_mapping
+            .iter()
+            .filter(|(_, mapped_node)| *mapped_node == node_name)
+            .map(|(container_id, _)| container_id.clone())
+            .collect();
+
+        for container_id in container_ids {
+            self.containers.remove(&container_id);
+            self.container_node_mapping.remove(&container_id);
+
+            if let Err(e) = crate::etcd_storage::delete_container_info(&container_id).await {
+                eprintln!(
+                    "[DataStore] Warning: Failed to delete container {} from etcd: {}",
+                    container_id, e
+                );
+            }
+        }
+
+        // 2. Determine which SoC and Board this node belonged to (using its IP)
+        let node_ip = self
+            .nodes
+            .get(node_name)
+            .map(|n| n.ip.clone())
+            .unwrap_or_default();
+
+        // 3. Remove node from memory
+        self.nodes.remove(node_name);
+
+        // 4. Delete node info from etcd
+        if let Err(e) = crate::etcd_storage::delete_node_info(node_name).await {
+            eprintln!(
+                "[DataStore] Warning: Failed to delete node info for '{}' from etcd: {}",
+                node_name, e
+            );
+        }
+
+        // 5. Update SoC and Board aggregations
+        if !node_ip.is_empty() {
+            if let Ok(soc_id) = DataStore::generate_soc_id(&node_ip) {
+                if let Some(soc_info) = self.socs.get_mut(&soc_id) {
+                    soc_info.nodes.retain(|n| n.node_name != node_name);
+                    if soc_info.nodes.is_empty() {
+                        self.socs.remove(&soc_id);
+                        if let Err(e) = crate::etcd_storage::delete_soc_info(&soc_id).await {
+                            eprintln!(
+                                "[DataStore] Warning: Failed to delete SoC '{}' from etcd: {}",
+                                soc_id, e
+                            );
+                        }
+                    } else {
+                        soc_info.recalculate_totals();
+                        if let Some(soc) = self.socs.get(&soc_id) {
+                            if let Err(e) = crate::etcd_storage::store_soc_info(soc).await {
+                                eprintln!(
+                                    "[DataStore] Warning: Failed to update SoC '{}' in etcd: {}",
+                                    soc_id, e
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Ok(board_id) = DataStore::generate_board_id(&node_ip) {
+                if let Some(board_info) = self.boards.get_mut(&board_id) {
+                    board_info.nodes.retain(|n| n.node_name != node_name);
+                    if board_info.nodes.is_empty() {
+                        self.boards.remove(&board_id);
+                        if let Err(e) = crate::etcd_storage::delete_board_info(&board_id).await {
+                            eprintln!(
+                                "[DataStore] Warning: Failed to delete Board '{}' from etcd: {}",
+                                board_id, e
+                            );
+                        }
+                    } else {
+                        board_info.recalculate_totals();
+                        if let Some(board) = self.boards.get(&board_id) {
+                            if let Err(e) = crate::etcd_storage::store_board_info(board).await {
+                                eprintln!(
+                                    "[DataStore] Warning: Failed to update Board '{}' in etcd: {}",
+                                    board_id, e
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        println!("[DataStore] Removed all metrics for node '{}'", node_name);
+    }
 }
 
 impl SocInfo {

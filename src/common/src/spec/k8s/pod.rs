@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use std::collections::HashMap;
+
 use super::Pod;
 use crate::spec::artifact::Model;
 use crate::spec::MetaData;
@@ -118,12 +120,15 @@ pub struct Container {
     name: String,
     image: String,
     volumeMounts: Option<Vec<VolumeMount>>,
-    env: Option<Vec<Env>>,
-    ports: Option<Vec<Port>>,
+    env: Option<Vec<EnvVar>>,
+    ports: Option<Vec<ContainerPort>>,
+    pub args: Option<Vec<String>>,
     pub command: Option<Vec<String>>,
     workingDir: Option<String>,
-    resources: Option<Resources>,
+    resources: Option<ResourceRequirements>,
     securityContext: Option<SecurityContext>,
+    stdin: Option<bool>,
+    tty: Option<bool>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -150,34 +155,24 @@ pub struct VolumeMount {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
-pub struct Env {
+pub struct EnvVar {
     name: String,
     value: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
-pub struct Port {
+pub struct ContainerPort {
     containerPort: Option<i32>,
     hostPort: Option<i32>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
-pub struct Resources {
-    requests: Option<Requests>,
-    limits: Option<Limits>,
+pub struct ResourceRequirements {
+    limits: Option<ResourceList>,
+    requests: Option<ResourceList>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
-pub struct Requests {
-    cpu: Option<String>,
-    memory: Option<String>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
-pub struct Limits {
-    cpu: Option<String>,
-    memory: Option<String>,
-}
+type ResourceList = HashMap<String, String>;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct SecurityContext {
@@ -223,9 +218,12 @@ mod tests {
             env: None,
             ports: None,
             command: None,
+            args: None,
             workingDir: None,
             resources: None,
             securityContext: None,
+            stdin: None,
+            tty: None,
         };
         let container2 = Container {
             name: String::from("container-2"),
@@ -234,9 +232,12 @@ mod tests {
             env: None,
             ports: None,
             command: None,
+            args: None,
             workingDir: None,
             resources: None,
             securityContext: None,
+            stdin: None,
+            tty: None,
         };
         let podspec = PodSpec {
             hostNetwork: None,
@@ -281,10 +282,13 @@ mod tests {
             volumeMounts: None,
             env: None,
             ports: None,
+            args: None,
             command: None,
             workingDir: None,
             resources: None,
             securityContext: None,
+            stdin: None,
+            tty: None,
         };
         let podspec = PodSpec {
             hostNetwork: None,
@@ -426,10 +430,13 @@ mod tests {
             volumeMounts: None,
             env: None,
             ports: None,
+            args: None,
             command: None,
             workingDir: None,
             resources: None,
             securityContext: None,
+            stdin: None,
+            tty: None,
         };
         let podspec = PodSpec {
             hostNetwork: None,

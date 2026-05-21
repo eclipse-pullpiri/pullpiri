@@ -30,6 +30,9 @@ pub struct MonitoringServerManager {
 
 impl MonitoringServerManager {
     /// Creates a new MonitoringServerManager instance.
+    ///
+    /// Loads Board and SoC name configuration from the default path
+    /// (`/etc/piccolo/monitoring_names.yaml`).
     pub async fn new(
         rx_container: mpsc::Receiver<ContainerList>,
         rx_node: mpsc::Receiver<NodeInfo>,
@@ -39,7 +42,9 @@ impl MonitoringServerManager {
             rx_container: Arc::new(Mutex::new(rx_container)),
             rx_node: Arc::new(Mutex::new(rx_node)),
             rx_stress: Arc::new(Mutex::new(rx_stress)),
-            data_store: Arc::new(Mutex::new(DataStore::new())),
+            data_store: Arc::new(Mutex::new(DataStore::with_name_config(
+                crate::name_config::DEFAULT_CONFIG_PATH,
+            ))),
         }
     }
 
@@ -369,6 +374,7 @@ impl MonitoringServerManager {
         println!("\nBOARD INFORMATION");
         println!("┌─────────────────────────────────────────────────────────────────────────────┐");
         println!("│ Board ID: {:<65} │", board_info.board_id);
+        println!("│ Board Name: {:<63} │", board_info.name);
         println!(
             "│ Nodes Count: {:<6} │ SoCs Count: {:<6} │ Updated: {:<19}     │",
             board_info.nodes.len(),
@@ -491,6 +497,7 @@ impl MonitoringServerManager {
         println!("\n SOC INFORMATION");
         println!("┌─────────────────────────────────────────────────────────────────────────────┐");
         println!("│ SoC ID: {:<67} │", soc_info.soc_id);
+        println!("│ SoC Name: {:<65} │", soc_info.name);
         println!("│ Nodes Count: {:<62} │", soc_info.nodes.len());
         println!("├─────────────────────────────────────────────────────────────────────────────┤");
         println!("│ Aggregated Metrics:                                                         │");
@@ -948,8 +955,8 @@ mod tests {
         {
             let mut ds = mgr.data_store.lock().await;
             let node = sample_node("node1", "192.168.10.201");
-            let soc = SocInfo::new("socid".to_string(), node.clone());
-            let mut board = BoardInfo::new("boardid".to_string(), node.clone());
+            let soc = SocInfo::new("socid".to_string(), String::new(), node.clone());
+            let mut board = BoardInfo::new("boardid".to_string(), String::new(), node.clone());
             board.socs.push(soc.clone());
             ds.socs.insert("socid".to_string(), soc);
             ds.boards.insert("boardid".to_string(), board);
@@ -965,10 +972,10 @@ mod tests {
         let node = sample_node("node1", "192.168.10.201");
         mgr.print_node_info(&node);
 
-        let soc = SocInfo::new("socid".to_string(), node.clone());
+        let soc = SocInfo::new("socid".to_string(), String::new(), node.clone());
         mgr.print_soc_info(&soc);
 
-        let mut board = BoardInfo::new("boardid".to_string(), node.clone());
+        let mut board = BoardInfo::new("boardid".to_string(), String::new(), node.clone());
         board.socs.push(soc);
         mgr.print_board_info(&board);
     }
@@ -1027,9 +1034,9 @@ mod tests {
             let mut ds = mgr.data_store.lock().await;
             let node = sample_node("node1", "192.168.10.201");
             ds.nodes.insert("node1".to_string(), node.clone());
-            let soc = SocInfo::new("socid".to_string(), node.clone());
+            let soc = SocInfo::new("socid".to_string(), String::new(), node.clone());
             ds.socs.insert("socid".to_string(), soc);
-            let board = BoardInfo::new("boardid".to_string(), node.clone());
+            let board = BoardInfo::new("boardid".to_string(), String::new(), node.clone());
             ds.boards.insert("boardid".to_string(), board);
             let container = sample_container("c1", "cont1", "running");
             ds.containers.insert("c1".to_string(), container);
@@ -1057,9 +1064,9 @@ mod tests {
 
         let mut ds = DataStore::new();
         let node = sample_node("node1", "192.168.10.201");
-        let soc = SocInfo::new("socid".to_string(), node.clone());
+        let soc = SocInfo::new("socid".to_string(), String::new(), node.clone());
         ds.socs.insert("socid".to_string(), soc);
-        let board = BoardInfo::new("boardid".to_string(), node.clone());
+        let board = BoardInfo::new("boardid".to_string(), String::new(), node.clone());
         ds.boards.insert("boardid".to_string(), board);
 
         mgr.print_detailed_soc_mapping(&ds).await;

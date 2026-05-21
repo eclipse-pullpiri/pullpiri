@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Example monitoring_names.yaml
+#
+# This file assigns human-readable names to Boards and SoCs identified by
+# their IP-based IDs (generated from the node IP addresses).
+#
+# Board ID: first three octets of node IP + (last octet rounded to nearest 100)
+#   e.g., nodes 192.168.10.201 to 192.168.10.299 -> board_id = 192.168.10.200
+#
+# SoC ID: first three octets of node IP + (last octet rounded to nearest 10)
+#   e.g., nodes 192.168.10.201 to 192.168.10.209 -> soc_id = 192.168.10.200
+#
+# Deploy this file to /etc/piccolo/monitoring_names.yaml on the monitoring server.
+
+boards:
+  "192.168.10.0":
+    name: "Main Vehicle Board"
+  "192.168.10.100":
+    name: "Sensor Board"
+  "192.168.10.200":
+    name: "Compute Board"
+
+socs:
+  "192.168.10.200":
+    name: "Alpha SoC"
+  "192.168.10.210":
+    name: "Beta SoC"
+  "192.168.10.220":
+    name: "Gamma SoC"

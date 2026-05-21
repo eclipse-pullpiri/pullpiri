@@ -46,6 +46,8 @@ pub struct StressMetrics {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SocInfo {
     pub soc_id: String,
+    /// Human-readable name for this SoC, configured via monitoring_names.yaml
+    pub name: String,
     pub nodes: Vec<NodeInfo>,
     pub total_cpu_usage: f64,
     pub total_cpu_count: u64,
@@ -63,6 +65,8 @@ pub struct SocInfo {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BoardInfo {
     pub board_id: String,
+    /// Human-readable name for this Board, configured via monitoring_names.yaml
+    pub name: String,
     pub nodes: Vec<NodeInfo>,
     pub socs: Vec<SocInfo>,
     pub total_cpu_usage: f64,
@@ -154,6 +158,7 @@ mod tests {
 
         SocInfo {
             soc_id: "soc-alpha-1".to_string(),
+            name: "Alpha SoC".to_string(),
             nodes: vec![node1, node2],
             total_cpu_usage: 65.8,
             total_cpu_count: 16,
@@ -175,6 +180,7 @@ mod tests {
 
         BoardInfo {
             board_id: "board-main-1".to_string(),
+            name: "Main Board".to_string(),
             nodes,
             socs,
             total_cpu_usage: 68.2,
@@ -216,6 +222,7 @@ mod tests {
         let soc = create_test_soc_info();
 
         assert_eq!(soc.soc_id, "soc-alpha-1");
+        assert_eq!(soc.name, "Alpha SoC");
         assert_eq!(soc.nodes.len(), 2);
         assert_eq!(soc.total_cpu_usage, 65.8);
         assert_eq!(soc.total_cpu_count, 16);
@@ -238,6 +245,7 @@ mod tests {
         let board = create_test_board_info();
 
         assert_eq!(board.board_id, "board-main-1");
+        assert_eq!(board.name, "Main Board");
         assert_eq!(board.nodes.len(), 1);
         assert_eq!(board.socs.len(), 1);
         assert_eq!(board.total_cpu_usage, 68.2);
@@ -286,6 +294,7 @@ mod tests {
         // Test serialization
         let serialized = serde_json::to_string(&soc).expect("Failed to serialize SocInfo");
         assert!(serialized.contains("soc-alpha-1"));
+        assert!(serialized.contains("Alpha SoC"));
         assert!(serialized.contains("65.8"));
         assert!(serialized.contains("test-node-1"));
         assert!(serialized.contains("test-node-2"));
@@ -294,6 +303,7 @@ mod tests {
         let deserialized: SocInfo =
             serde_json::from_str(&serialized).expect("Failed to deserialize SocInfo");
         assert_eq!(deserialized.soc_id, soc.soc_id);
+        assert_eq!(deserialized.name, soc.name);
         assert_eq!(deserialized.total_cpu_usage, soc.total_cpu_usage);
         assert_eq!(deserialized.nodes.len(), soc.nodes.len());
         assert_eq!(deserialized.nodes[0].node_name, soc.nodes[0].node_name);
@@ -306,6 +316,7 @@ mod tests {
         // Test serialization
         let serialized = serde_json::to_string(&board).expect("Failed to serialize BoardInfo");
         assert!(serialized.contains("board-main-1"));
+        assert!(serialized.contains("Main Board"));
         assert!(serialized.contains("68.2"));
         assert!(serialized.contains("soc-alpha-1"));
 
@@ -313,6 +324,7 @@ mod tests {
         let deserialized: BoardInfo =
             serde_json::from_str(&serialized).expect("Failed to deserialize BoardInfo");
         assert_eq!(deserialized.board_id, board.board_id);
+        assert_eq!(deserialized.name, board.name);
         assert_eq!(deserialized.total_cpu_usage, board.total_cpu_usage);
         assert_eq!(deserialized.nodes.len(), board.nodes.len());
         assert_eq!(deserialized.socs.len(), board.socs.len());
@@ -486,6 +498,7 @@ mod tests {
     fn test_empty_collections() {
         let empty_soc = SocInfo {
             soc_id: "empty-soc".to_string(),
+            name: String::new(),
             nodes: Vec::new(), // Empty nodes
             total_cpu_usage: 0.0,
             total_cpu_count: 0,
@@ -505,6 +518,7 @@ mod tests {
 
         let empty_board = BoardInfo {
             board_id: "empty-board".to_string(),
+            name: String::new(),
             nodes: Vec::new(), // Empty nodes
             socs: Vec::new(),  // Empty socs
             total_cpu_usage: 0.0,
@@ -564,6 +578,7 @@ mod tests {
         let now = SystemTime::now();
         let soc = SocInfo {
             soc_id: "time-test".to_string(),
+            name: String::new(),
             nodes: Vec::new(),
             total_cpu_usage: 0.0,
             total_cpu_count: 0,

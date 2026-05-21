@@ -407,6 +407,7 @@ mod tests {
 
         SocInfo {
             soc_id: "soc-1".to_string(),
+            name: String::new(),
             nodes: vec![test_node],
             total_cpu_usage: 50.0,
             total_cpu_count: 8,
@@ -442,6 +443,7 @@ mod tests {
 
         let test_soc = SocInfo {
             soc_id: "soc-1".to_string(),
+            name: String::new(),
             nodes: vec![test_node.clone()],
             total_cpu_usage: 50.0,
             total_cpu_count: 8,
@@ -458,6 +460,7 @@ mod tests {
 
         BoardInfo {
             board_id: "board-1".to_string(),
+            name: String::new(),
             nodes: vec![test_node],
             socs: vec![test_soc],
             total_cpu_usage: 50.0,

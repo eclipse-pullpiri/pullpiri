@@ -12,6 +12,7 @@ pub mod data_structures;
 pub mod etcd_storage;
 pub mod grpc;
 pub mod manager;
+pub mod name_config;
 
 use common::logd;
 use common::logd::logger;

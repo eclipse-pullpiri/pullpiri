@@ -382,6 +382,7 @@ mod tests {
     fn sample_soc(soc_id: &str, node: NodeInfo) -> SocInfo {
         SocInfo {
             soc_id: soc_id.to_string(),
+            name: String::new(),
             nodes: vec![node],
             total_cpu_usage: 42.0,
             total_cpu_count: 2,
@@ -400,6 +401,7 @@ mod tests {
     fn sample_board(board_id: &str, node: NodeInfo) -> BoardInfo {
         BoardInfo {
             board_id: board_id.to_string(),
+            name: String::new(),
             nodes: vec![node],
             socs: vec![],
             total_cpu_usage: 42.0,

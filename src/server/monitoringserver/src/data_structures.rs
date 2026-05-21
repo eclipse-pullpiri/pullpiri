@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use crate::name_config::MonitoringNamesConfig;
 use common::monitoringserver::ContainerInfo;
 use common::monitoringserver::NodeInfo;
 use serde::{Deserialize, Serialize};
@@ -15,6 +16,8 @@ use std::str::FromStr;
 pub struct SocInfo {
     /// Temporary IP-based ID until proper SoC identification policy is defined
     pub soc_id: String,
+    /// Human-readable name for this SoC, configured via monitoring_names.yaml
+    pub name: String,
     pub nodes: Vec<NodeInfo>,
     pub total_cpu_usage: f64,
     pub total_cpu_count: u64,
@@ -34,6 +37,8 @@ pub struct SocInfo {
 pub struct BoardInfo {
     /// Temporary IP-based ID until proper Board identification policy is defined
     pub board_id: String,
+    /// Human-readable name for this Board, configured via monitoring_names.yaml
+    pub name: String,
     pub nodes: Vec<NodeInfo>,
     pub socs: Vec<SocInfo>,
     pub total_cpu_usage: f64,
@@ -57,6 +62,8 @@ pub struct DataStore {
     pub boards: HashMap<String, BoardInfo>,
     pub containers: HashMap<String, ContainerInfo>,
     pub container_node_mapping: HashMap<String, String>, // ADD THIS LINE
+    /// Name configuration for Board and SoC human-readable names
+    pub names: MonitoringNamesConfig,
 }
 
 impl Default for DataStore {
@@ -73,6 +80,19 @@ impl DataStore {
             boards: HashMap::new(),
             containers: HashMap::new(),
             container_node_mapping: HashMap::new(), // ADD THIS LINE
+            names: MonitoringNamesConfig::default(),
+        }
+    }
+
+    /// Creates a new DataStore and loads name configuration from the given path.
+    pub fn with_name_config(config_path: &str) -> Self {
+        Self {
+            nodes: HashMap::new(),
+            socs: HashMap::new(),
+            boards: HashMap::new(),
+            containers: HashMap::new(),
+            container_node_mapping: HashMap::new(),
+            names: MonitoringNamesConfig::load_from_file(config_path),
         }
     }
 
@@ -170,7 +190,8 @@ impl DataStore {
             soc_info.update_with_node(node_info);
             soc_info.last_updated = current_time;
         } else {
-            let soc_info = SocInfo::new(soc_id.clone(), node_info);
+            let name = self.names.soc_name(&soc_id);
+            let soc_info = SocInfo::new(soc_id.clone(), name, node_info);
             self.socs.insert(soc_id, soc_info);
         }
 
@@ -185,7 +206,8 @@ impl DataStore {
             board_info.update_with_node(node_info);
             board_info.last_updated = current_time;
         } else {
-            let board_info = BoardInfo::new(board_id.clone(), node_info);
+            let name = self.names.board_name(&board_id);
+            let board_info = BoardInfo::new(board_id.clone(), name, node_info);
             self.boards.insert(board_id.clone(), board_info);
         }
 
@@ -407,9 +429,10 @@ impl DataStore {
 
 impl SocInfo {
     /// Creates new SocInfo with the first node
-    pub fn new(soc_id: String, node_info: NodeInfo) -> Self {
+    pub fn new(soc_id: String, name: String, node_info: NodeInfo) -> Self {
         let mut soc_info = Self {
             soc_id,
+            name,
             nodes: vec![node_info.clone()],
             total_cpu_usage: node_info.cpu_usage,
             total_cpu_count: node_info.cpu_count,
@@ -446,9 +469,10 @@ impl SocInfo {
 
 impl BoardInfo {
     /// Creates new BoardInfo with the first node
-    pub fn new(board_id: String, node_info: NodeInfo) -> Self {
+    pub fn new(board_id: String, name: String, node_info: NodeInfo) -> Self {
         let mut board_info = Self {
             board_id,
+            name,
             nodes: vec![node_info.clone()],
             socs: Vec::new(), // Populated by update_board_socs
             total_cpu_usage: node_info.cpu_usage,
@@ -658,7 +682,7 @@ mod tests {
     #[test]
     fn test_socinfo_update_with_node() {
         let node1 = sample_node("node1", "192.168.10.201");
-        let mut soc = SocInfo::new("192.168.10.200".to_string(), node1.clone());
+        let mut soc = SocInfo::new("192.168.10.200".to_string(), String::new(), node1.clone());
         assert_eq!(soc.nodes.len(), 1);
 
         let node2 = sample_node("node2", "192.168.10.202");
@@ -676,7 +700,7 @@ mod tests {
     #[test]
     fn test_boardinfo_update_with_node() {
         let node1 = sample_node("node1", "192.168.10.201");
-        let mut board = BoardInfo::new("192.168.10.200".to_string(), node1.clone());
+        let mut board = BoardInfo::new("192.168.10.200".to_string(), String::new(), node1.clone());
         assert_eq!(board.nodes.len(), 1);
 
         let node2 = sample_node("node2", "192.168.10.202");
@@ -695,7 +719,7 @@ mod tests {
     fn test_aggregated_metrics_trait() {
         let node1 = sample_node("node1", "192.168.10.201");
         let node2 = sample_node("node2", "192.168.10.202");
-        let mut soc = SocInfo::new("192.168.10.200".to_string(), node1.clone());
+        let mut soc = SocInfo::new("192.168.10.200".to_string(), String::new(), node1.clone());
         soc.update_with_node(node2.clone());
         soc.recalculate_totals();
         assert_eq!(soc.total_cpu_count, 8);
@@ -704,7 +728,7 @@ mod tests {
         assert_eq!(soc.total_memory, 8192);
         assert_eq!(soc.total_mem_usage, 50.0);
 
-        let mut board = BoardInfo::new("192.168.10.200".to_string(), node1.clone());
+        let mut board = BoardInfo::new("192.168.10.200".to_string(), String::new(), node1.clone());
         board.update_with_node(node2.clone());
         board.recalculate_totals();
         assert_eq!(board.total_cpu_count, 8);
@@ -722,6 +746,55 @@ mod tests {
         assert!(ds.boards.is_empty());
         assert!(ds.containers.is_empty());
         assert!(ds.container_node_mapping.is_empty());
+        assert!(ds.names.boards.is_empty());
+        assert!(ds.names.socs.is_empty());
+    }
+
+    #[test]
+    fn test_datastore_with_name_config_nonexistent_path() {
+        let ds = DataStore::with_name_config("/nonexistent/path/monitoring_names.yaml");
+        assert!(ds.names.boards.is_empty());
+        assert!(ds.names.socs.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_store_node_info_uses_name_config() {
+        use crate::name_config::{MonitoringNamesConfig, NameEntry};
+        let mut ds = DataStore::new();
+        ds.names = MonitoringNamesConfig {
+            boards: {
+                let mut m = std::collections::HashMap::new();
+                m.insert(
+                    "192.168.10.200".to_string(),
+                    NameEntry {
+                        name: "Test Board".to_string(),
+                    },
+                );
+                m
+            },
+            socs: {
+                let mut m = std::collections::HashMap::new();
+                m.insert(
+                    "192.168.10.200".to_string(),
+                    NameEntry {
+                        name: "Test SoC".to_string(),
+                    },
+                );
+                m
+            },
+        };
+
+        let node = sample_node("node1", "192.168.10.201");
+        let _ = ds.store_node_info(node).await;
+
+        let soc_id = DataStore::generate_soc_id("192.168.10.201").unwrap();
+        let board_id = DataStore::generate_board_id("192.168.10.201").unwrap();
+
+        let soc = ds.socs.get(&soc_id).unwrap();
+        assert_eq!(soc.name, "Test SoC");
+
+        let board = ds.boards.get(&board_id).unwrap();
+        assert_eq!(board.name, "Test Board");
     }
 
     #[test]
@@ -792,9 +865,9 @@ mod tests {
         let mut ds = DataStore::new();
         let node = sample_node("node1", "192.168.10.201");
         ds.nodes.insert("node1".to_string(), node.clone());
-        let soc = SocInfo::new("192.168.10.200".to_string(), node.clone());
+        let soc = SocInfo::new("192.168.10.200".to_string(), String::new(), node.clone());
         ds.socs.insert("192.168.10.200".to_string(), soc.clone());
-        let board = BoardInfo::new("192.168.10.200".to_string(), node.clone());
+        let board = BoardInfo::new("192.168.10.200".to_string(), String::new(), node.clone());
         ds.boards
             .insert("192.168.10.200".to_string(), board.clone());
 
@@ -810,9 +883,9 @@ mod tests {
     fn test_update_board_socs() {
         let mut ds = DataStore::new();
         let node = sample_node("node1", "192.168.10.201");
-        let soc = SocInfo::new("192.168.10.200".to_string(), node.clone());
+        let soc = SocInfo::new("192.168.10.200".to_string(), String::new(), node.clone());
         ds.socs.insert("192.168.10.200".to_string(), soc.clone());
-        let board = BoardInfo::new("192.168.10.200".to_string(), node.clone());
+        let board = BoardInfo::new("192.168.10.200".to_string(), String::new(), node.clone());
         ds.boards
             .insert("192.168.10.200".to_string(), board.clone());
 
@@ -827,6 +900,7 @@ mod tests {
     fn test_socinfo_and_boardinfo_recalculate_totals_empty() {
         let mut soc = SocInfo {
             soc_id: "test".to_string(),
+            name: String::new(),
             nodes: vec![],
             total_cpu_usage: 0.0,
             total_cpu_count: 0,
@@ -845,6 +919,7 @@ mod tests {
 
         let mut board = BoardInfo {
             board_id: "test".to_string(),
+            name: String::new(),
             nodes: vec![],
             socs: vec![],
             total_cpu_usage: 0.0,
@@ -887,8 +962,8 @@ mod tests {
     fn test_get_all_containers_and_nodes_socs_boards() {
         let mut ds = DataStore::new();
         let node = sample_node("node1", "192.168.10.201");
-        let soc = SocInfo::new("192.168.10.200".to_string(), node.clone());
-        let board = BoardInfo::new("192.168.10.200".to_string(), node.clone());
+        let soc = SocInfo::new("192.168.10.200".to_string(), String::new(), node.clone());
+        let board = BoardInfo::new("192.168.10.200".to_string(), String::new(), node.clone());
         let container = sample_container("c1", "container1");
 
         ds.nodes.insert("node1".to_string(), node.clone());
@@ -930,8 +1005,8 @@ mod tests {
         let node = sample_node("node1", "192.168.10.201");
         let soc_id = "192.168.10.200".to_string();
         let board_id = "192.168.10.200".to_string();
-        let soc = SocInfo::new(soc_id.clone(), node.clone());
-        let board = BoardInfo::new(board_id.clone(), node.clone());
+        let soc = SocInfo::new(soc_id.clone(), String::new(), node.clone());
+        let board = BoardInfo::new(board_id.clone(), String::new(), node.clone());
         ds.socs.insert(soc_id.clone(), soc);
         ds.boards.insert(board_id.clone(), board);
 
@@ -1033,11 +1108,11 @@ mod tests {
     #[test]
     fn test_socinfo_and_boardinfo_new_and_update_with_node() {
         let node = sample_node("node1", "192.168.10.201");
-        let mut soc = SocInfo::new("socid".to_string(), node.clone());
+        let mut soc = SocInfo::new("socid".to_string(), String::new(), node.clone());
         assert_eq!(soc.soc_id, "socid");
         assert_eq!(soc.nodes.len(), 1);
 
-        let mut board = BoardInfo::new("boardid".to_string(), node.clone());
+        let mut board = BoardInfo::new("boardid".to_string(), String::new(), node.clone());
         assert_eq!(board.board_id, "boardid");
         assert_eq!(board.nodes.len(), 1);
 
@@ -1097,8 +1172,8 @@ mod tests {
         let node = sample_node("node1", "192.168.10.201");
         let soc_id = "192.168.10.200".to_string();
         let board_id = "192.168.10.200".to_string();
-        let soc = SocInfo::new(soc_id.clone(), node.clone());
-        let board = BoardInfo::new(board_id.clone(), node.clone());
+        let soc = SocInfo::new(soc_id.clone(), String::new(), node.clone());
+        let board = BoardInfo::new(board_id.clone(), String::new(), node.clone());
         ds.socs.insert(soc_id.clone(), soc);
         ds.boards.insert(board_id.clone(), board);
 
@@ -1111,8 +1186,8 @@ mod tests {
     fn test_get_all_methods() {
         let mut ds = DataStore::new();
         let node = sample_node("node1", "192.168.10.201");
-        let soc = SocInfo::new("192.168.10.200".to_string(), node.clone());
-        let board = BoardInfo::new("192.168.10.200".to_string(), node.clone());
+        let soc = SocInfo::new("192.168.10.200".to_string(), String::new(), node.clone());
+        let board = BoardInfo::new("192.168.10.200".to_string(), String::new(), node.clone());
         let container = sample_container("c1", "container1");
 
         ds.nodes.insert("node1".to_string(), node.clone());
@@ -1130,7 +1205,7 @@ mod tests {
     #[test]
     fn test_boardinfo_update_with_node_existing_and_new() {
         let node1 = sample_node("node1", "192.168.10.201");
-        let mut board = BoardInfo::new("boardid".to_string(), node1.clone());
+        let mut board = BoardInfo::new("boardid".to_string(), String::new(), node1.clone());
         assert_eq!(board.nodes.len(), 1);
 
         // Add new node
@@ -1150,6 +1225,7 @@ mod tests {
     fn test_aggregated_metrics_trait_empty_and_nonempty() {
         let mut soc = SocInfo {
             soc_id: "test".to_string(),
+            name: String::new(),
             nodes: vec![],
             total_cpu_usage: 0.0,
             total_cpu_count: 0,
@@ -1173,6 +1249,7 @@ mod tests {
 
         let mut board = BoardInfo {
             board_id: "test".to_string(),
+            name: String::new(),
             nodes: vec![],
             socs: vec![],
             total_cpu_usage: 0.0,

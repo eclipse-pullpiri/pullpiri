@@ -60,7 +60,7 @@ v<MAJOR>.<MINOR>.<PATCH>[-<identifier>]
 
 ### 3.1 Major Baseline
 
-- **Definition**: A baseline for release to external organizations (customers, partners, etc.)
+- **Definition**: A baseline for achieving internal LGE goals or marking development milestones
 - **Target Branch**: `main`
 - **Created By**: CM manager
 - **Approval Requirement**: Approval from all stakeholders is required
@@ -69,7 +69,7 @@ v<MAJOR>.<MINOR>.<PATCH>[-<identifier>]
 
 ### 3.2 Minor Baseline
 
-- **Definition**: A baseline for achieving internal LGE goals or marking development milestones
+- **Definition**: A baseline for internal review, pre-release validation, or incorporating minor, non-functional code updates
 - **Target Branch**: `main` or a specific feature branch
 - **Created By**: CM manager or development lead
 - **Approval Requirement**: Approval from relevant team members
@@ -89,85 +89,24 @@ v<MAJOR>.<MINOR>.<PATCH>[-<identifier>]
 
 An official baseline is established only when all of the following conditions are met.
 
-| Condition              | Details                                                                 |
-| ---------------------- | ----------------------------------------------------------------------- |
-| Feature implementation completed | All required features (FEATURE issues) for the release are implemented and merged via PR |
-| Tests passed           | Both unit and integration tests are passed (`test:passed` label verified) |
-| Code review completed  | At least one reviewer approval completed for all changes                |
-| Build successful       | CI pipeline build success verified                                      |
-| Documentation updated  | Related documents updated (`CHANGELOG`, `README`, API docs, etc.)      |
-| Stakeholder approval   | Written (or issue-based) approval from all stakeholders before external release |
+- Internal milestone reached (end of sprint, transition of development phase, etc.)
+- Development and integration of a major feature branch completed
 
 ### 4.2 Criteria for Minor Baseline
 
 An unofficial baseline is established when one or more of the following conditions are met.
 
-- Internal milestone reached (end of sprint, transition of development phase, etc.)
-- Development and integration of a major feature branch completed
+- Non-functional code changes and minor routine updates
 - Snapshot needed for internal review or demo
 - Pre-validation (RC, alpha, beta) required before external release
 
 ## 5. Baseline Procedure
 
-### 5.1 Major Baseline Procedure
-
-1. **Pre-check**: CM manager verifies all items in [4.1 Criteria for Major Baseline](#41-criteria-for-major-baseline)
-
-2. **Issue creation**: Create a baseline issue on GitHub
-
-   - Title: `[TASK] Set official baseline for v<version>`
-   - Labels: `type:task`, `priority:critical`
-
-3. **Stakeholder approval**: Obtain stakeholder approval through the issue or a separate channel
-
-4. **Create and push tag**:
-
-   ```bash
-   git tag v<MAJOR>.<MINOR>.<PATCH>
-   git push origin v<MAJOR>.<MINOR>.<PATCH>
-   ```
-
-5. **Write GitHub Release**: Create release notes for the tag on the GitHub Release page
-
-6. **Notification**: Notify all stakeholders and the development team that baseline setup is complete
-
-7. **Issue close**: Close the baseline setup issue
-
-### 5.2 Unofficial Baseline Procedure
-
-1. **Pre-check**: Confirm approval from relevant team members
-
-2. **Create and push tag**:
-
-   ```bash
-   git tag v<MAJOR>.<MINOR>.<PATCH>-<identifier>
-   git push origin v<MAJOR>.<MINOR>.<PATCH>-<identifier>
-   ```
-
-3. **Notification**: Notify relevant team members of baseline setup (issue comment or messenger)
+<img width="1146" height="641" alt="image" src="https://github.com/user-attachments/assets/5e4e3bf9-98d2-4aa4-9054-1ebc053f70ea" />
 
 ## 6. Change Management After Baseline
 
-After a baseline is established, even if changes occur in deliverables based on that baseline, the following procedure **must be followed**.
-
-### 6.1 Change Request Procedure
-
-1. **Create change issue**: Register required changes as a GitHub issue
-   - Title: Register with `[BUG]` or `[FEATURE]` type
-   - Body: Specify reason for change, impact scope, and risk level
-2. **Impact analysis**: CM manager and relevant developers analyze the impact scope of the change
-3. **Stakeholder approval**:
-   - Changes to major baseline targets: Approval from all stakeholders required
-   - Changes to minor baseline targets: Approval from relevant team members
-4. **Implement change**: Develop in a feature branch and create PR based on approved issue
-5. **Review and merge**: Merge after code review and CI pass
-6. **Set new baseline** (if needed): Increase patch version and set a new baseline
-
-### 6.2 Prohibited Changes
-
-- Deleting or rewriting (force push) official baseline tags without approval is prohibited
-- Changing history of the commit pointed to by a baseline tag is prohibited
-- Distributing official baseline deliverables without stakeholder approval is prohibited
+<img width="1534" height="920" alt="image" src="https://github.com/user-attachments/assets/b5585fc9-6235-4c99-9688-91c0d1a8cac2" />
 
 ## 7. Roles and Stakeholders
 

@@ -18,9 +18,7 @@ clean:
 
 .PHONY: image
 image:
-	#podman build -t localhost/pullpiri:latest -f containers/Dockerfile .
-	podman build -t ghcr.io/youngtaekiim/pullpiri:v11.1.3 -f containers/Dockerfile .
-	podman push ghcr.io/youngtaekiim/pullpiri:v11.1.3
+	podman build -t localhost/pullpiri:latest -f containers/Dockerfile .
 
 .PHONY: rocksdb-image
 rocksdb-image:

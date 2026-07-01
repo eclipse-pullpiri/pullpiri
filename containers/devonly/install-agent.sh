@@ -61,7 +61,7 @@ if [ -f "${BUILD_BINARY_PATH}" ]; then
 	echo "Used locally built binary from ${BUILD_BINARY_PATH}"
 else
 	if [ ! -f "${AGENT_BINARY_PATH}" ]; then
-		BINARY_URL="https://github.com/MCO-PICCOLO/Pullpiri/releases/download/v0.0.0-test/nodeagent"
+		BINARY_URL="https://github.com/eclipse-pullpiri/pullpiri/releases/latest/download/nodeagent-linux-${SUFFIX}"
 		echo "Downloading binary from ${BINARY_URL}..."
 		curl -L -o nodeagent "${BINARY_URL}"
 		if [ $? -ne 0 ]; then

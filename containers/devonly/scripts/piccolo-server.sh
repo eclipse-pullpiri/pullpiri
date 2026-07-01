@@ -46,6 +46,7 @@ podman run -d \
   --pod piccolo-server \
   --name piccolo-policymanager \
   -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
+  -v /etc/piccolo/settings.yaml:/etc/piccolo/settings.yaml:Z \
   -v /run/piccololog/:/run/piccololog/ \
   ${CONTAINER_IMAGE} \
   /piccolo/policymanager

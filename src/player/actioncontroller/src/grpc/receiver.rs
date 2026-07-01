@@ -11,8 +11,9 @@ use common::actioncontroller::{
     action_controller_connection_server::{
         ActionControllerConnection, ActionControllerConnectionServer,
     },
-    CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, PodStatus as ActionStatus,
-    ReconcileRequest, ReconcileResponse, TriggerActionRequest, TriggerActionResponse,
+    CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, OffloadModelRequest,
+    OffloadModelResponse, PodStatus as ActionStatus, ReconcileRequest, ReconcileResponse,
+    TriggerActionRequest, TriggerActionResponse,
 };
 use common::logd;
 
@@ -188,6 +189,86 @@ impl ActionControllerConnection for ActionControllerReceiver {
 
         let response = CompleteNetworkSettingResponse { acknowledged: true };
         Ok(Response::new(response))
+    }
+
+    /// Handle offload model requests from StateManager
+    ///
+    /// This method handles container migration when resource thresholds are exceeded.
+    /// It terminates the container on the source node and launches it on the target node.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - gRPC request containing offload details
+    ///
+    /// # Returns
+    ///
+    /// * `Response<OffloadModelResponse>` - gRPC response with success status
+    /// * `Status` - gRPC status error if the request fails
+    async fn offload_model(
+        &self,
+        request: Request<OffloadModelRequest>,
+    ) -> Result<Response<OffloadModelResponse>, Status> {
+        let req = request.into_inner();
+
+        println!(
+            "[ActionController] Offloading model '{}' from '{}' to '{}'",
+            req.model_name, req.source_node, req.target_node
+        );
+        println!(
+            "[ActionController]   Scenario: {}, Package: {}, Policy: {}",
+            req.scenario_name, req.package_name, req.policy_name
+        );
+        println!("[ActionController]   Reason: {}", req.reason);
+
+        // Generate transition ID
+        let transition_id = format!(
+            "offload-{}-{}",
+            req.model_name,
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
+        );
+
+        // Execute offloading: terminate on source, launch on target
+        match self
+            .manager
+            .offload_model(
+                &req.scenario_name,
+                &req.package_name,
+                &req.model_name,
+                &req.source_node,
+                &req.target_node,
+                &req.policy_name,
+            )
+            .await
+        {
+            Ok(_) => {
+                println!(
+                    "[ActionController] Successfully offloaded '{}' from '{}' to '{}'",
+                    req.model_name, req.source_node, req.target_node
+                );
+                Ok(Response::new(OffloadModelResponse {
+                    success: true,
+                    message: format!(
+                        "Model '{}' successfully migrated from '{}' to '{}'",
+                        req.model_name, req.source_node, req.target_node
+                    ),
+                    transition_id,
+                }))
+            }
+            Err(e) => {
+                eprintln!(
+                    "[ActionController] Failed to offload '{}': {}",
+                    req.model_name, e
+                );
+                Ok(Response::new(OffloadModelResponse {
+                    success: false,
+                    message: format!("Failed to offload: {}", e),
+                    transition_id,
+                }))
+            }
+        }
     }
 }
 

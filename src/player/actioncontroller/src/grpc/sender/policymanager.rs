@@ -4,104 +4,88 @@
 */
 use common::logd;
 use common::policymanager::{
-    policy_manager_connection_client::PolicyManagerConnectionClient, CheckPolicyRequest,
+    policy_manager_connection_client::PolicyManagerConnectionClient, CheckNodePolicyRequest,
+    CheckNodePolicyResponse,
 };
 use common::Result;
 
-/// Check if a scenario is allowed by policy
+/// Response from policy check containing deployment decision
+#[derive(Debug, Clone)]
+pub struct PolicyCheckResult {
+    pub allowed: bool,
+    pub suggested_node: Option<String>,
+    pub message: String,
+}
+
+/// Check if deployment to a specific node is allowed by policy
 ///
-/// Makes a gRPC request to PolicyManager to check if the scenario
-/// meets the current policy requirements.
+/// Makes a gRPC request to PolicyManager to check if deployment
+/// to the target node is allowed based on the specified policy.
 ///
 /// # Arguments
 ///
-/// * `scenario_name` - The name of the scenario to check
+/// * `policy_name` - The name of the policy to check (e.g., "policy_helloworld")
+/// * `target_node` - The node where deployment is requested (e.g., "HPC")
 ///
 /// # Returns
 ///
-/// * `Ok(())` if the policy check passes
-/// * `Err(...)` if the policy check fails or the request fails
+/// * `Ok(PolicyCheckResult)` containing the policy decision
+/// * `Err(...)` if the request fails
 ///
 /// # Errors
 ///
 /// Returns an error if:
-/// - The connection to PolicyManager is not established
-/// - The gRPC request fails (e.g., PolicyManager returns a gRPC Status error)
-/// - The policy check fails (application-level failure indicated by gRPC Status)
-#[allow(dead_code)]
-pub async fn check_policy(scenario_name: String) -> Result<()> {
-    // Change return type
-    if scenario_name.trim().is_empty() {
-        return Err("Invalid scenario name: cannot be empty".into());
-    }
-
+/// - The connection to PolicyManager cannot be established
+/// - The gRPC request fails
+pub async fn check_node_policy(policy_name: &str, target_node: &str) -> Result<PolicyCheckResult> {
     let addr = common::policymanager::connect_server();
+
+    logd!(
+        2,
+        "Checking policy '{}' for node '{}' at {}",
+        policy_name,
+        target_node,
+        addr
+    );
+
     let mut client = PolicyManagerConnectionClient::connect(addr)
         .await
         .map_err(|e| format!("Failed to connect to PolicyManager: {}", e))?;
 
-    let request = tonic::Request::new(CheckPolicyRequest {
-        scenario_name: scenario_name.clone(),
-    }); // Clone scenario_name if needed later for error messages
-    let response = client.check_policy(request).await?;
-    let response_inner = response.into_inner();
+    let request = tonic::Request::new(CheckNodePolicyRequest {
+        policy_name: policy_name.to_string(),
+        target_node: target_node.to_string(),
+    });
 
-    // Check application-level status from the response payload *only if* the gRPC call was successful
-    if response_inner.status == 0 {
-        logd!(
-            2,
-            "Policy check successful for '{}': {}",
-            scenario_name,
-            response_inner.desc
-        );
-        Ok(()) // Policy passed
+    let response: CheckNodePolicyResponse = client
+        .check_node_policy(request)
+        .await
+        .map_err(|e| format!("PolicyManager gRPC error: {}", e))?
+        .into_inner();
+
+    let result = PolicyCheckResult {
+        allowed: response.allowed,
+        suggested_node: if response.suggested_node.is_empty() {
+            None
+        } else {
+            Some(response.suggested_node)
+        },
+        message: response.message,
+    };
+
+    if result.allowed {
+        logd!(2, "Policy allows deployment to node '{}'", target_node);
     } else {
-        // This block would only be reached if the server sent a successful gRPC status (OK)
-        // but included an application-level error code (non-0 status) in the payload.
-        // Given our recommended `receiver.rs`, this path should ideally not be taken for errors.
-        // It's more robust to rely on the gRPC `Status` for errors.
         logd!(
-            5,
-            "Policy check failed for '{}' (Application Status: {}): {}",
-            scenario_name,
-            response_inner.status,
-            response_inner.desc
+            3,
+            "Policy denies deployment to node '{}': {}",
+            target_node,
+            result.message
         );
-        Err(format!(
-            "Policy check failed for scenario '{}' with status {}: {}",
-            scenario_name, response_inner.status, response_inner.desc
-        )
-        .into())
+        if let Some(ref suggested) = result.suggested_node {
+            logd!(3, "Suggested node: '{}'", suggested);
+        }
     }
-}
 
-// ===========================
-// UNIT TESTS
-// ===========================
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // #[tokio::test]
-    // async fn test_check_policy_success() {
-    //     let scenario_name = "antipinch-enable".to_string();
-
-    //     let result = check_policy(scenario_name).await;
-    //     if let Err(ref e) = result {
-    //         logd!(5, "Error in test_check_policy_success: {:?}", e);
-    //     } else {
-    //         logd!(2, "test_check_policy_success successful");
-    //     }
-    //     assert!(result.is_ok());
-    // }
-
-    #[tokio::test]
-    async fn test_check_policy_failure_invalid_scenario() {
-        // Sending invalid scenario_name to simulate policy check failure
-        let scenario_name = "".to_string(); // Empty string is invalid
-
-        let result = check_policy(scenario_name).await;
-        assert!(result.is_err());
-    }
+    Ok(result)
 }

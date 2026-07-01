@@ -5,7 +5,7 @@
 
 use common::actioncontroller::{
     action_controller_connection_client::ActionControllerConnectionClient, connect_server,
-    ReconcileRequest, ReconcileResponse,
+    OffloadModelRequest, OffloadModelResponse, ReconcileRequest, ReconcileResponse,
 };
 use std::env;
 use tonic::{Request, Response, Status};
@@ -23,6 +23,39 @@ pub async fn _send(condition: ReconcileRequest) -> Result<Response<ReconcileResp
         .await
         .unwrap();
     client.reconcile(Request::new(condition)).await
+}
+
+/// Send offload model request to ActionController
+///
+/// This triggers the model migration: terminate on source_node, launch on target_node
+pub async fn offload_model(
+    request: OffloadModelRequest,
+) -> Result<Response<OffloadModelResponse>, Status> {
+    // Test mode bypass
+    if env::var("PULLPIRI_TEST_MODE").is_ok() {
+        let resp = OffloadModelResponse {
+            success: true,
+            message: "mock offload".to_string(),
+            transition_id: "test-transition-id".to_string(),
+        };
+        return Ok(Response::new(resp));
+    }
+
+    let client = ActionControllerConnectionClient::connect(connect_server()).await;
+
+    match client {
+        Ok(mut client) => client.offload_model(Request::new(request)).await,
+        Err(e) => {
+            eprintln!(
+                "[StateManager] Failed to connect to ActionController: {}",
+                e
+            );
+            Err(Status::unavailable(format!(
+                "Failed to connect to ActionController: {}",
+                e
+            )))
+        }
+    }
 }
 
 #[cfg(test)]

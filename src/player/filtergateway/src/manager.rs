@@ -346,7 +346,14 @@ impl FilterGatewayManager {
         if scenario.get_conditions().is_none() {
             logd!(3, "No conditions for scenario: {}", scenario.get_name());
             let mut sender = self.sender.lock().await;
-            sender.trigger_action(scenario.get_name().clone()).await?;
+            if let Err(e) = sender.trigger_action(scenario.get_name().clone()).await {
+                logd!(
+                    5,
+                    "Failed to trigger action for scenario {}: {:?}. Continuing with other scenarios.",
+                    scenario.get_name(),
+                    e
+                );
+            }
             let elapsed = start.elapsed();
             logd!(1, "launch_scenario_filter: elapsed = {:?}", elapsed);
             return Ok(());

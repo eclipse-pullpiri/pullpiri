@@ -63,9 +63,10 @@ impl FilterGatewaySender {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::Error;
     use common::actioncontroller::CompleteNetworkSettingRequest;
     use common::actioncontroller::CompleteNetworkSettingResponse;
+    use common::actioncontroller::OffloadModelRequest;
+    use common::actioncontroller::OffloadModelResponse;
     use common::actioncontroller::{
         action_controller_connection_server::{
             ActionControllerConnection, ActionControllerConnectionServer,
@@ -73,7 +74,6 @@ mod tests {
         ReconcileRequest, ReconcileResponse, TriggerActionRequest, TriggerActionResponse,
     };
     use std::net::SocketAddr;
-    use std::panic::{catch_unwind, AssertUnwindSafe};
     use tokio::sync::oneshot;
     use tokio::time::{sleep, Duration};
     use tonic::{transport::Server, Request, Response, Status};
@@ -115,6 +115,22 @@ mod tests {
         ) -> std::result::Result<Response<CompleteNetworkSettingResponse>, Status> {
             Ok(Response::new(CompleteNetworkSettingResponse {
                 acknowledged: true, // or false, depending on test needs
+            }))
+        }
+
+        async fn offload_model(
+            &self,
+            request: Request<OffloadModelRequest>,
+        ) -> std::result::Result<Response<OffloadModelResponse>, Status> {
+            let req = request.into_inner();
+            println!(
+                "Mock server received offload_model: {} -> {}",
+                req.source_node, req.target_node
+            );
+            Ok(Response::new(OffloadModelResponse {
+                success: true,
+                message: "Mock offload successful".to_string(),
+                transition_id: "mock-transition-id".to_string(),
             }))
         }
     }
@@ -187,9 +203,6 @@ mod tests {
     /// Test case to validate failure when `connect_server` returns an empty server address
     #[tokio::test]
     async fn test_trigger_action_failure_empty_server_address() {
-        let mut sender = FilterGatewaySender::new();
-        let scenario_name = "test_scenario".to_string();
-
         // Simulate empty server address
         let result = ActionControllerConnectionClient::connect("").await;
 

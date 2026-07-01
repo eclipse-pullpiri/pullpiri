@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+# Test 3: Python CUDA functionality test
+# Uses PyTorch CUDA image to test actual GPU computation
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: helloworld
+spec:
+  condition: null
+  action: launch
+  target: helloworld
+---
+apiVersion: v1
+kind: Package
+metadata:
+  label: null
+  name: helloworld
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: gpu-test-pytorch
+      node: HPC
+      resources:
+        volume:
+        network:
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: gpu-test-pytorch
+  labels:
+    app: gpu-test
+    test-level: cuda-computation
+spec:
+  containers:
+  - name: gpu-test
+    image: pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+    command: ["python3"]
+    args: ["/test-gpu-cuda.py"]
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+        memory: "2Gi"
+      requests:
+        memory: "1Gi"
+    volumeMounts:
+    - name: test-script
+      mountPath: /test-gpu-cuda.py
+      subPath: test-gpu-cuda.py
+  volumes:
+  - name: test-script
+    hostPath:
+      path: /root/work/pullpiri/examples/resources/gpu/test-gpu-cuda.py
+      type: File
+  restartPolicy: Never

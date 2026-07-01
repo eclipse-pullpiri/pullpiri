@@ -215,6 +215,8 @@ impl ActionControllerManager {
         model_info: &ModelInfo,
         node_type: &str,
         scenario_name: &str,
+        package_name: &str,
+        policy_name: &str,
         network_str: &Option<String>,
         node_str: &Option<String>,
     ) -> Result<()> {
@@ -222,9 +224,19 @@ impl ActionControllerManager {
         let model_node = model_info.get_node();
         let pod = common::etcd::get(&format!("{}/{}", ETCD_POD_PREFIX, model_name)).await?;
 
+        // Inject annotations into pod YAML for tracking
+        let pod_with_annotations = self.inject_pod_annotations(
+            &pod,
+            scenario_name,
+            package_name,
+            policy_name,
+            &model_name,
+        )?;
+
         match action {
             "launch" => {
-                self.start_workload(&pod, &model_node, node_type).await?;
+                self.start_workload(&pod_with_annotations, &model_node, node_type)
+                    .await?;
 
                 if network_str.is_some() && node_str.is_some() {
                     request_network_pod(
@@ -239,10 +251,12 @@ impl ActionControllerManager {
                 }
             }
             "terminate" => {
-                self.stop_workload(&pod, &model_node, node_type).await?;
+                self.stop_workload(&pod_with_annotations, &model_node, node_type)
+                    .await?;
             }
             "update" | "rollback" => {
-                self.restart_workload(&pod, &model_node, node_type).await?;
+                self.restart_workload(&pod_with_annotations, &model_node, node_type)
+                    .await?;
             }
             _ => {
                 // Ignore unknown actions
@@ -250,6 +264,80 @@ impl ActionControllerManager {
         }
 
         Ok(())
+    }
+
+    /// Inject tracking annotations into pod YAML
+    fn inject_pod_annotations(
+        &self,
+        pod_yaml: &str,
+        scenario_name: &str,
+        package_name: &str,
+        policy_name: &str,
+        model_name: &str,
+    ) -> Result<String> {
+        // Parse pod YAML as generic Value to preserve structure
+        let mut pod: serde_yaml::Value = serde_yaml::from_str(pod_yaml)
+            .map_err(|e| format!("Failed to parse pod YAML: {}", e))?;
+
+        // Build annotations mapping
+        let mut annotations = serde_yaml::Mapping::new();
+        annotations.insert(
+            serde_yaml::Value::String("io.piccolo.annotations.scenario".to_string()),
+            serde_yaml::Value::String(scenario_name.to_string()),
+        );
+        annotations.insert(
+            serde_yaml::Value::String("io.piccolo.annotations.package".to_string()),
+            serde_yaml::Value::String(package_name.to_string()),
+        );
+        annotations.insert(
+            serde_yaml::Value::String("io.piccolo.annotations.policy".to_string()),
+            serde_yaml::Value::String(policy_name.to_string()),
+        );
+        annotations.insert(
+            serde_yaml::Value::String("io.piccolo.annotations.model".to_string()),
+            serde_yaml::Value::String(model_name.to_string()),
+        );
+
+        // Get or create metadata mapping
+        let metadata = match pod.get_mut("metadata") {
+            Some(m) if m.is_mapping() => m.as_mapping_mut().unwrap(),
+            _ => {
+                pod.as_mapping_mut().ok_or("Pod is not a mapping")?.insert(
+                    serde_yaml::Value::String("metadata".to_string()),
+                    serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
+                );
+                pod.get_mut("metadata")
+                    .and_then(|m| m.as_mapping_mut())
+                    .ok_or("Failed to create metadata")?
+            }
+        };
+
+        // Merge with existing annotations if present
+        if let Some(existing) =
+            metadata.get_mut(&serde_yaml::Value::String("annotations".to_string()))
+        {
+            if let Some(existing_map) = existing.as_mapping_mut() {
+                for (k, v) in annotations {
+                    existing_map.insert(k, v);
+                }
+            } else {
+                // Replace non-mapping with our annotations
+                metadata.insert(
+                    serde_yaml::Value::String("annotations".to_string()),
+                    serde_yaml::Value::Mapping(annotations),
+                );
+            }
+        } else {
+            // No existing annotations, insert new ones
+            metadata.insert(
+                serde_yaml::Value::String("annotations".to_string()),
+                serde_yaml::Value::Mapping(annotations),
+            );
+        }
+
+        // Serialize back to YAML
+        serde_yaml::to_string(&pod)
+            .map_err(|e| format!("Failed to serialize pod YAML: {}", e).into())
     }
 
     /// Handle realtime scheduling for a model
@@ -388,17 +476,71 @@ impl ActionControllerManager {
         let action = scenario.get_actions();
         let node_roles = self.load_node_roles(&package).await;
 
+        // Get policy name and package name for annotation injection
+        let policy_name = package.get_policy().clone().unwrap_or_default();
+        let package_name = package.get_name();
+
         for mi in package.get_models() {
             let model_name = mi.get_name();
-            let model_node = mi.get_node();
+            let mut target_node = mi.get_node();
 
-            let node_type = match node_roles.get(&model_node) {
+            // Check policy only for launch action
+            if action == "launch" && !policy_name.is_empty() {
+                logd!(
+                    2,
+                    "Checking policy '{}' for model '{}' on node '{}'",
+                    policy_name,
+                    model_name,
+                    target_node
+                );
+
+                match crate::grpc::sender::policymanager::check_node_policy(
+                    &policy_name,
+                    &target_node,
+                )
+                .await
+                {
+                    Ok(result) => {
+                        if !result.allowed {
+                            // Node not allowed, try suggested node
+                            if let Some(suggested) = result.suggested_node {
+                                logd!(
+                                    3,
+                                    "Node '{}' not allowed, using suggested node '{}'",
+                                    target_node,
+                                    suggested
+                                );
+                                target_node = suggested;
+                            } else {
+                                logd!(
+                                    4,
+                                    "Node '{}' not allowed and no suggested node available. Skipping model '{}'.",
+                                    target_node,
+                                    model_name
+                                );
+                                continue;
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        logd!(
+                            4,
+                            "Policy check failed: {}. Proceeding with original node '{}'.",
+                            e,
+                            target_node
+                        );
+                        // Fail-open: proceed with original node if policy check fails
+                    }
+                }
+            }
+
+            let node_type = match node_roles.get(&target_node) {
                 Some(role) => {
-                    logd!(2, "Using node {} as {}", model_node, role);
+                    logd!(2, "Using node {} as {}", target_node, role);
                     role.as_str()
                 }
                 None => {
-                    logd!(4, "Warning: Node '{}' is not configured or cannot determine its role. Skipping deployment.", model_node);
+                    logd!(4, "Warning: Node '{}' is not configured or cannot determine its role. Skipping deployment.", target_node);
                     continue;
                 }
             };
@@ -407,7 +549,7 @@ impl ActionControllerManager {
                 2,
                 "Processing model '{}' on node '{}' with action '{}'",
                 model_name,
-                model_node,
+                target_node,
                 action
             );
 
@@ -416,6 +558,8 @@ impl ActionControllerManager {
                 &mi,
                 node_type,
                 scenario_name,
+                &package_name,
+                &policy_name,
                 &network_str,
                 &node_str,
             )
@@ -426,6 +570,29 @@ impl ActionControllerManager {
                     action, model_name, e
                 )
             })?;
+        }
+
+        // Delete policy from etcd when terminate action completes
+        if action == "terminate" && !policy_name.is_empty() {
+            let policy_key = format!("Policy/{}", policy_name);
+            match common::etcd::delete(&policy_key).await {
+                Ok(_) => {
+                    logd!(
+                        2,
+                        "Deleted policy '{}' from etcd after terminate action",
+                        policy_name
+                    );
+                }
+                Err(e) => {
+                    logd!(
+                        4,
+                        "Warning: Failed to delete policy '{}' from etcd: {}",
+                        policy_name,
+                        e
+                    );
+                    // Don't fail the whole operation if policy deletion fails
+                }
+            }
         }
 
         if let Some(sched) = package.get_schedule() {
@@ -657,6 +824,118 @@ impl ActionControllerManager {
 
     pub async fn reload_all_node(&self, _model_name: &str, _model_node: &str) -> Result<()> {
         thread::sleep(Duration::from_millis(100));
+        Ok(())
+    }
+
+    /// Offloads (migrates) a model from source node to target node
+    ///
+    /// This method handles container migration when resource thresholds are exceeded.
+    /// It first stops the container on the source node, then starts it on the target node.
+    ///
+    /// # Arguments
+    ///
+    /// * `scenario_name` - Name of the scenario
+    /// * `package_name` - Name of the package containing the model
+    /// * `model_name` - Name of the model (container) to offload
+    /// * `source_node` - Current node where the container is running
+    /// * `target_node` - Target node to migrate to
+    /// * `policy_name` - Name of the policy that triggered offloading
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` if offloading was successful
+    /// * `Err(...)` if offloading failed
+    pub async fn offload_model(
+        &self,
+        scenario_name: &str,
+        package_name: &str,
+        model_name: &str,
+        source_node: &str,
+        target_node: &str,
+        policy_name: &str,
+    ) -> Result<()> {
+        println!(
+            "[ActionController] Starting offload: model '{}' from '{}' to '{}'",
+            model_name, source_node, target_node
+        );
+
+        // Step 1: Get model info from package
+        let package_key = format!("{}/{}", ETCD_PACKAGE_PREFIX, package_name);
+        let package_str = common::etcd::get(&package_key)
+            .await
+            .map_err(|e| format!("Failed to get package '{}': {}", package_name, e))?;
+
+        let package: Package = serde_yaml::from_str(&package_str)
+            .map_err(|e| format!("Failed to parse package '{}': {}", package_name, e))?;
+
+        // Find the model in the package
+        let models = package.get_models();
+        let model = models
+            .iter()
+            .find(|m: &&ModelInfo| m.get_name() == model_name)
+            .ok_or_else(|| {
+                format!(
+                    "Model '{}' not found in package '{}'",
+                    model_name, package_name
+                )
+            })?;
+
+        // Step 2: Get pod YAML for the model
+        let model_yaml_key = format!("{}/{}", ETCD_POD_PREFIX, model.get_name());
+        let pod_yaml = common::etcd::get(&model_yaml_key)
+            .await
+            .map_err(|e| format!("Failed to get pod YAML for model '{}': {}", model_name, e))?;
+
+        // Step 2.5: Inject annotations for tracking (so container can be identified after migration)
+        let pod_yaml = self.inject_pod_annotations(
+            &pod_yaml,
+            scenario_name,
+            package_name,
+            policy_name,
+            model_name,
+        )?;
+
+        // Step 3: Determine node type (assume nodeagent for now)
+        let node_type = NODE_TYPE_NODEAGENT;
+
+        // Step 4: Stop the container on source node
+        println!(
+            "[ActionController] Stopping model '{}' on source node '{}'",
+            model_name, source_node
+        );
+        if let Err(e) = self.stop_workload(&pod_yaml, source_node, node_type).await {
+            eprintln!(
+                "[ActionController] Warning: Failed to stop workload on source node: {}",
+                e
+            );
+            // Continue anyway - the container might already be stopped or crashed
+        }
+
+        // Brief delay to ensure cleanup
+        thread::sleep(Duration::from_millis(200));
+
+        // Step 5: Start the container on target node
+        println!(
+            "[ActionController] Starting model '{}' on target node '{}'",
+            model_name, target_node
+        );
+        self.start_workload(&pod_yaml, target_node, node_type)
+            .await
+            .map_err(|e| {
+                format!(
+                    "Failed to start workload on target node '{}': {}",
+                    target_node, e
+                )
+            })?;
+
+        println!(
+            "[ActionController] Successfully offloaded model '{}' from '{}' to '{}'",
+            model_name, source_node, target_node
+        );
+
+        // Note: State change notification is handled by the caller (StateManager)
+        // as it manages the overall state transitions
+
         Ok(())
     }
 }

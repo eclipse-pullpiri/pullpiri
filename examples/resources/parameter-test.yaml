@@ -7,7 +7,7 @@ metadata:
   name: helloworld
 spec:
   condition: null
-  action: launch
+  action: terminate
   target: helloworld
 ---
 apiVersion: v1

@@ -23,56 +23,104 @@
 
 use super::{get, post};
 use hyper::Body;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::fs;
 use std::path::Path;
 
-//const PODMAN_API_VERSION: &str = "/v4.0.0/libpod";
 const PODMAN_API_VERSION: &str = "/v4.0.0"; // docker-compatible API
+const CDI_NVIDIA_PATH: &str = "/etc/cdi/nvidia.yaml";
 
 // Maximum number of GPUs to detect (0-15, total 16 GPUs)
 const MAX_GPU_INDEX: u32 = 15;
-
-// Required NVIDIA control devices (always needed if using GPU)
-const NVIDIA_CONTROL_DEVICES: &[(&str, &str)] = &[
-    ("/dev/nvidiactl", "/dev/nvidiactl"),
-    ("/dev/nvidia-uvm", "/dev/nvidia-uvm"),
-    ("/dev/nvidia-uvm-tools", "/dev/nvidia-uvm-tools"),
-    ("/dev/nvidia-modeset", "/dev/nvidia-modeset"),
-];
-
-// NVIDIA capability devices for advanced features (MIG, etc.)
-const NVIDIA_CAP_DEVICES: &[(&str, &str)] = &[
-    (
-        "/dev/nvidia-caps/nvidia-cap1",
-        "/dev/nvidia-caps/nvidia-cap1",
-    ),
-    (
-        "/dev/nvidia-caps/nvidia-cap2",
-        "/dev/nvidia-caps/nvidia-cap2",
-    ),
-];
 
 // NVIDIA environment variable keys
 const NVIDIA_VISIBLE_DEVICES: &str = "NVIDIA_VISIBLE_DEVICES";
 const NVIDIA_DRIVER_CAPABILITIES: &str = "NVIDIA_DRIVER_CAPABILITIES";
 
-// NVIDIA driver library paths (host)
-const NVIDIA_LIB_HOST_PATHS: &[&str] = &[
-    "/usr/lib/x86_64-linux-gnu", // Ubuntu/Debian
-    "/usr/lib64",                // RHEL/CentOS
-    "/usr/local/nvidia/lib64",   // Alternative path
-];
-
-// Container path for NVIDIA libraries (avoid conflicts with existing paths)
+// Container path for NVIDIA libraries (legacy, kept for compatibility)
 const NVIDIA_LIB_CONTAINER_PATH: &str = "/opt/nvidia/lib64";
 
-/// Parse Pod YAML and extract pod name and spec
-fn parse_pod(pod_yaml: &str) -> Result<(String, serde_json::Value), Box<dyn std::error::Error>> {
+// CDI specification structures
+#[derive(Debug, Deserialize, Serialize)]
+struct CdiSpec {
+    #[serde(rename = "cdiVersion")]
+    cdi_version: String,
+    kind: String,
+    devices: Vec<CdiDevice>,
+    #[serde(rename = "containerEdits", skip_serializing_if = "Option::is_none")]
+    container_edits: Option<CdiContainerEdits>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct CdiDevice {
+    name: String,
+    #[serde(rename = "containerEdits")]
+    container_edits: CdiContainerEdits,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct CdiContainerEdits {
+    #[serde(rename = "deviceNodes", skip_serializing_if = "Option::is_none")]
+    device_nodes: Option<Vec<CdiDeviceNode>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mounts: Option<Vec<CdiMount>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    env: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    hooks: Option<Vec<serde_json::Value>>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct CdiDeviceNode {
+    path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    major: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    minor: Option<u32>,
+    #[serde(rename = "fileMode", skip_serializing_if = "Option::is_none")]
+    file_mode: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    permissions: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct CdiMount {
+    #[serde(rename = "hostPath")]
+    host_path: String,
+    #[serde(rename = "containerPath")]
+    container_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    options: Option<Vec<String>>,
+}
+
+/// Parse Pod YAML and extract pod name, spec, and annotations
+fn parse_pod(
+    pod_yaml: &str,
+) -> Result<
+    (
+        String,
+        serde_json::Value,
+        std::collections::HashMap<String, String>,
+    ),
+    Box<dyn std::error::Error>,
+> {
     let pod = serde_yaml::from_str::<common::spec::k8s::Pod>(pod_yaml)?;
     let pod_name = pod.get_name();
     let pod_json = serde_json::to_value(&pod)?;
     let spec = pod_json["spec"].clone();
-    Ok((pod_name, spec))
+
+    // Extract annotations from metadata
+    let annotations = pod_json["metadata"]["annotations"]
+        .as_object()
+        .map(|obj| {
+            obj.iter()
+                .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Ok((pod_name, spec, annotations))
 }
 
 /// Get container names from pod spec
@@ -211,6 +259,17 @@ fn apply_resource_limits(
     }
 }
 
+/// Read and parse CDI NVIDIA specification
+fn read_cdi_spec() -> Result<CdiSpec, Box<dyn std::error::Error>> {
+    let cdi_content = fs::read_to_string(CDI_NVIDIA_PATH)
+        .map_err(|e| format!("Failed to read CDI file {}: {}", CDI_NVIDIA_PATH, e))?;
+
+    let cdi_spec: CdiSpec = serde_yaml::from_str(&cdi_content)
+        .map_err(|e| format!("Failed to parse CDI YAML: {}", e))?;
+
+    Ok(cdi_spec)
+}
+
 /// Detect available NVIDIA GPU devices on the host
 fn detect_available_nvidia_gpus() -> Vec<u32> {
     (0..=MAX_GPU_INDEX)
@@ -237,139 +296,213 @@ fn parse_gpu_count(gpu_value: &serde_json::Value) -> Option<usize> {
     }
 }
 
-/// Add NVIDIA GPU device mappings to HostConfig
+/// Add NVIDIA GPU device mappings to HostConfig using CDI
 fn apply_gpu_devices(
     host_config: &mut serde_json::Map<String, serde_json::Value>,
     gpu_value: &serde_json::Value,
 ) {
+    // Read CDI specification
+    let cdi_spec = match read_cdi_spec() {
+        Ok(spec) => spec,
+        Err(e) => {
+            println!("Warning: Failed to read CDI spec: {}", e);
+            println!("         Falling back to manual GPU detection");
+            apply_gpu_devices_fallback(host_config, gpu_value);
+            return;
+        }
+    };
+
     // Detect available GPUs on the host
     let available_gpus = detect_available_nvidia_gpus();
-
     if available_gpus.is_empty() {
-        println!(
-            "Warning: No NVIDIA GPU devices found on host (/dev/nvidia0-{}).",
-            MAX_GPU_INDEX
-        );
-        println!("         Container will be created but may not have GPU access.");
-        println!("         Make sure NVIDIA drivers are installed and GPU is available.");
+        println!("Warning: No NVIDIA GPU devices found on host.");
         return;
     }
 
     println!(
-        "Detected {} NVIDIA GPU(s) on host: {:?}",
+        "Detected {} NVIDIA GPU(s): {:?}",
         available_gpus.len(),
         available_gpus
     );
 
-    // Parse requested GPU count from resource limits
+    // Parse requested GPU count
     let requested_count = parse_gpu_count(gpu_value);
-
-    // Determine which GPUs to allocate
     let gpus_to_use: Vec<u32> = match requested_count {
         Some(count) => {
             if count > available_gpus.len() {
                 println!(
-                    "Warning: Requested {} GPU(s) but only {} available. Using all available.",
+                    "Warning: Requested {} GPU(s) but only {} available",
                     count,
                     available_gpus.len()
                 );
                 available_gpus
             } else {
-                println!("Allocating {} GPU(s) as requested", count);
+                println!("Allocating {} GPU(s) from CDI", count);
                 available_gpus.into_iter().take(count).collect()
             }
         }
         None => {
-            println!("Allocating all {} available GPU(s)", available_gpus.len());
+            println!("Allocating all {} GPU(s) from CDI", available_gpus.len());
             available_gpus
         }
     };
 
-    // Build device list: GPU devices + control devices
+    // Build devices array from CDI
     let mut devices = Vec::new();
 
-    // Add specific GPU devices
+    // Add GPU-specific devices from CDI devices list
     for gpu_index in &gpus_to_use {
-        let device_path = format!("/dev/nvidia{}", gpu_index);
+        let gpu_name = gpu_index.to_string();
+        if let Some(cdi_device) = cdi_spec.devices.iter().find(|d| d.name == gpu_name) {
+            if let Some(ref device_nodes) = cdi_device.container_edits.device_nodes {
+                for node in device_nodes {
+                    devices.push(json!({
+                        "PathOnHost": node.path,
+                        "PathInContainer": node.path,
+                        "CgroupPermissions": node.permissions.as_ref().unwrap_or(&"rwm".to_string())
+                    }));
+                }
+            }
+        }
+    }
+
+    // Add common control devices from top-level containerEdits
+    if let Some(ref common_edits) = cdi_spec.container_edits {
+        if let Some(ref device_nodes) = common_edits.device_nodes {
+            for node in device_nodes {
+                if Path::new(&node.path).exists() {
+                    devices.push(json!({
+                        "PathOnHost": node.path,
+                        "PathInContainer": node.path,
+                        "CgroupPermissions": node.permissions.as_ref().unwrap_or(&"rwm".to_string())
+                    }));
+                }
+            }
+        }
+    }
+
+    // Add nvidia-caps devices (dynamic scan as they're not in CDI)
+    for cap_idx in 1..=2 {
+        let cap_path = format!("/dev/nvidia-caps/nvidia-cap{}", cap_idx);
+        if Path::new(&cap_path).exists() {
+            devices.push(json!({
+                "PathOnHost": cap_path,
+                "PathInContainer": cap_path,
+                "CgroupPermissions": "rwm"
+            }));
+        }
+    }
+
+    if !devices.is_empty() {
+        println!("Adding {} device(s) from CDI", devices.len());
+        host_config.insert("Devices".to_string(), json!(devices));
+    }
+
+    // Apply mounts and environment from CDI
+    apply_cdi_mounts_and_env(host_config, &cdi_spec, &gpus_to_use);
+}
+
+/// Fallback to manual GPU detection if CDI fails
+fn apply_gpu_devices_fallback(
+    host_config: &mut serde_json::Map<String, serde_json::Value>,
+    gpu_value: &serde_json::Value,
+) {
+    let available_gpus = detect_available_nvidia_gpus();
+    if available_gpus.is_empty() {
+        return;
+    }
+
+    let requested_count = parse_gpu_count(gpu_value);
+    let gpus_to_use: Vec<u32> = match requested_count {
+        Some(count) => available_gpus.into_iter().take(count).collect(),
+        None => available_gpus,
+    };
+
+    let mut devices = Vec::new();
+    for gpu_index in &gpus_to_use {
         devices.push(json!({
-            "PathOnHost": device_path,
-            "PathInContainer": device_path,
+            "PathOnHost": format!("/dev/nvidia{}", gpu_index),
+            "PathInContainer": format!("/dev/nvidia{}", gpu_index),
             "CgroupPermissions": "rwm"
         }));
     }
 
-    // Add control devices (only if they exist)
-    for (host_path, container_path) in NVIDIA_CONTROL_DEVICES {
-        if Path::new(host_path).exists() {
+    // Minimal control devices
+    for path in [
+        "/dev/nvidiactl",
+        "/dev/nvidia-uvm",
+        "/dev/nvidia-uvm-tools",
+        "/dev/nvidia-modeset",
+    ] {
+        if Path::new(path).exists() {
             devices.push(json!({
-                "PathOnHost": host_path,
-                "PathInContainer": container_path,
-                "CgroupPermissions": "rwm"
-            }));
-        } else {
-            println!(
-                "Warning: NVIDIA control device {} not found, skipping",
-                host_path
-            );
-        }
-    }
-
-    // Add capability devices (for MIG and advanced features, optional)
-    for (host_path, container_path) in NVIDIA_CAP_DEVICES {
-        if Path::new(host_path).exists() {
-            devices.push(json!({
-                "PathOnHost": host_path,
-                "PathInContainer": container_path,
+                "PathOnHost": path,
+                "PathInContainer": path,
                 "CgroupPermissions": "rwm"
             }));
         }
-        // No warning for cap devices - they're optional
     }
 
     if !devices.is_empty() {
-        println!("Adding {} device(s) to container", devices.len());
         host_config.insert("Devices".to_string(), json!(devices));
     }
 }
 
-/// Add NVIDIA driver libraries as volume mounts
-fn apply_nvidia_libraries(host_config: &mut serde_json::Map<String, serde_json::Value>) {
-    // Find the first existing NVIDIA library path on the host
-    let nvidia_lib_path = NVIDIA_LIB_HOST_PATHS.iter().find(|&path| {
-        let test_file = format!("{}/libcuda.so", path);
-        Path::new(&test_file).exists() || Path::new(path).exists()
-    });
+/// Apply CDI mounts and environment variables
+fn apply_cdi_mounts_and_env(
+    host_config: &mut serde_json::Map<String, serde_json::Value>,
+    cdi_spec: &CdiSpec,
+    _gpus_to_use: &[u32],
+) {
+    let mut mounts = host_config
+        .get("Mounts")
+        .and_then(|m| m.as_array())
+        .cloned()
+        .unwrap_or_default();
 
-    if let Some(host_path) = nvidia_lib_path {
-        println!(
-            "Mounting NVIDIA libraries from {} to {}",
-            host_path, NVIDIA_LIB_CONTAINER_PATH
-        );
+    // Collect existing mount targets to avoid duplicates
+    let mut existing_targets: std::collections::HashSet<String> = mounts
+        .iter()
+        .filter_map(|m| m["Target"].as_str().map(|s| s.to_string()))
+        .collect();
 
-        // Get existing Mounts or create new array
-        let mut mounts = host_config
-            .get("Mounts")
-            .and_then(|m| m.as_array())
-            .cloned()
-            .unwrap_or_default();
+    // Add mounts from top-level containerEdits
+    if let Some(ref common_edits) = cdi_spec.container_edits {
+        if let Some(ref cdi_mounts) = common_edits.mounts {
+            for mount in cdi_mounts {
+                // Skip if target already exists (avoid duplicate mount destination)
+                if existing_targets.contains(&mount.container_path) {
+                    continue;
+                }
+                if Path::new(&mount.host_path).exists() {
+                    let options = mount
+                        .options
+                        .as_ref()
+                        .map(|opts| opts.join(","))
+                        .unwrap_or_else(|| "ro,nosuid,nodev,bind".to_string());
 
-        // Add NVIDIA library mount
-        mounts.push(json!({
-            "Type": "bind",
-            "Source": host_path,
-            "Target": NVIDIA_LIB_CONTAINER_PATH,
-            "ReadOnly": true
-        }));
-
-        host_config.insert("Mounts".to_string(), json!(mounts));
-    } else {
-        println!(
-            "Warning: NVIDIA libraries not found in standard paths: {:?}",
-            NVIDIA_LIB_HOST_PATHS
-        );
-        println!("         Container may not have GPU functionality.");
-        println!("         Make sure NVIDIA drivers are properly installed.");
+                    mounts.push(json!({
+                        "Type": "bind",
+                        "Source": mount.host_path,
+                        "Target": mount.container_path,
+                        "Options": options.split(',').collect::<Vec<_>>()
+                    }));
+                    existing_targets.insert(mount.container_path.clone());
+                }
+            }
+        }
     }
+
+    if !mounts.is_empty() {
+        println!("Adding {} mount(s) from CDI", mounts.len());
+        host_config.insert("Mounts".to_string(), json!(mounts));
+    }
+}
+
+/// Add NVIDIA driver libraries - now handled by CDI mounts
+fn apply_nvidia_libraries(_host_config: &mut serde_json::Map<String, serde_json::Value>) {
+    // Libraries are now added via apply_cdi_mounts_and_env() from CDI spec
+    // This function is kept for compatibility but does nothing
 }
 
 /// Apply port bindings to HostConfig
@@ -414,9 +547,21 @@ fn apply_volume_mounts(
                 .cloned()
                 .unwrap_or_default();
 
+            // Collect existing mount targets to avoid duplicates
+            let mut existing_targets: std::collections::HashSet<String> = mounts
+                .iter()
+                .filter_map(|m| m["Target"].as_str().map(|s| s.to_string()))
+                .collect();
+
             for mount in volume_mounts {
                 let mount_name = mount["name"].as_str().unwrap_or("");
                 let mount_path = mount["mountPath"].as_str().unwrap_or("");
+
+                // Skip if target already exists (avoid duplicate mount destination)
+                if existing_targets.contains(mount_path) {
+                    continue;
+                }
+
                 for volume in volumes {
                     if volume["name"].as_str() == Some(mount_name) {
                         if let Some(host_path) = volume["hostPath"]["path"].as_str() {
@@ -425,6 +570,7 @@ fn apply_volume_mounts(
                                 "Source": host_path,
                                 "Target": mount_path
                             }));
+                            existing_targets.insert(mount_path.to_string());
                         }
                         break;
                     }
@@ -592,6 +738,7 @@ async fn create_container(
     container: &serde_json::Value,
     spec: &serde_json::Value,
     host_network: bool,
+    annotations: &std::collections::HashMap<String, String>,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let image = container["image"]
         .as_str()
@@ -606,7 +753,8 @@ async fn create_container(
     let name = format!("{}_{}", pod_name, container_name);
 
     // Build the complete container creation request
-    let create_body = build_container_spec(&name, image, container, spec, host_network);
+    let create_body =
+        build_container_spec(&name, image, container, spec, host_network, annotations);
 
     println!("{}", create_body);
 
@@ -631,11 +779,17 @@ fn build_container_spec(
     container: &serde_json::Value,
     spec: &serde_json::Value,
     host_network: bool,
+    annotations: &std::collections::HashMap<String, String>,
 ) -> serde_json::Value {
     let mut create_body = json!({
         "Image": image,
         "Name": name,
     });
+
+    // Add annotations as Labels (Docker-compatible API uses Labels, not Annotations)
+    if !annotations.is_empty() {
+        create_body["Labels"] = json!(annotations);
+    }
 
     // Terminal settings (stdin/tty)
     apply_terminal_settings(&mut create_body, container);
@@ -716,14 +870,15 @@ async fn create_container_via_api(
 }
 
 pub async fn start(pod_yaml: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    let (pod_name, spec) = parse_pod(pod_yaml)?;
+    let (pod_name, spec, annotations) = parse_pod(pod_yaml)?;
     let host_network = spec["hostNetwork"].as_bool().unwrap_or(false);
 
     let mut container_ids = Vec::new();
 
     if let Some(containers) = spec["containers"].as_array() {
         for container in containers.iter() {
-            let container_id = create_container(&pod_name, container, &spec, host_network).await?;
+            let container_id =
+                create_container(&pod_name, container, &spec, host_network, &annotations).await?;
 
             // Start the container
             println!("Starting container: {}", container_id);
@@ -739,7 +894,7 @@ pub async fn start(pod_yaml: &str) -> Result<Vec<String>, Box<dyn std::error::Er
 }
 
 pub async fn stop(pod_yaml: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let (pod_name, spec) = parse_pod(pod_yaml)?;
+    let (pod_name, spec, _annotations) = parse_pod(pod_yaml)?;
     let container_names = get_container_names(&pod_name, &spec)?;
 
     for full_container_name in container_names {
@@ -776,7 +931,7 @@ pub async fn stop(pod_yaml: &str) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 pub async fn restart(pod_yaml: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let (pod_name, spec) = parse_pod(pod_yaml)?;
+    let (pod_name, spec, _annotations) = parse_pod(pod_yaml)?;
     let container_names = get_container_names(&pod_name, &spec)?;
 
     for full_container_name in container_names {

@@ -108,11 +108,24 @@ pub async fn inspect(hostname: String) -> std::result::Result<Vec<ContainerInfo>
             config_map.insert("Image".to_string(), inspect.Config.Image.clone());
             config_map.insert("WorkingDir".to_string(), inspect.Config.WorkingDir);
 
-            let annotation_map = if let Some(ann_map) = inspect.Config.Annotations {
-                ann_map.clone()
-            } else {
-                HashMap::new()
-            };
+            // Merge Labels and Annotations into annotation_map
+            // Labels are used by Docker-compatible API, Annotations by libpod API
+            let mut annotation_map = HashMap::new();
+
+            // First add Labels (from Docker-compatible API)
+            if let Some(labels) = &inspect.Config.Labels {
+                for (k, v) in labels {
+                    annotation_map.insert(k.clone(), v.clone());
+                }
+            }
+
+            // Then add Annotations (from libpod API), may override Labels
+            if let Some(annotations) = &inspect.Config.Annotations {
+                for (k, v) in annotations {
+                    annotation_map.insert(k.clone(), v.clone());
+                }
+            }
+
             Ok::<ContainerInfo, ContainerError>(ContainerInfo {
                 id: inspect.Id,
                 names: vec![inspect.Name],

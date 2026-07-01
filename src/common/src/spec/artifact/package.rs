@@ -19,11 +19,16 @@ impl Package {
     pub fn get_schedule(&self) -> &Option<String> {
         &self.spec.schedule
     }
+
+    pub fn get_policy(&self) -> &Option<String> {
+        &self.spec.policy
+    }
 }
 
 #[derive(Debug, serde::Deserialize, PartialEq)]
 pub struct PackageSpec {
     schedule: Option<String>,
+    policy: Option<String>,
     pattern: Vec<Pattern>,
     models: Vec<ModelInfo>,
 }
@@ -104,6 +109,7 @@ mod tests {
             },
             spec: PackageSpec {
                 schedule: Some("schedule1".to_string()),
+                policy: Some("test-policy".to_string()),
                 pattern: vec![
                     Pattern {
                         r#type: "type1".to_string(),
@@ -222,6 +228,7 @@ mod tests {
             },
             spec: PackageSpec {
                 schedule: None,
+                policy: None,
                 pattern: vec![],
                 models: vec![],
             },
@@ -244,6 +251,7 @@ mod tests {
             },
             spec: PackageSpec {
                 schedule: None,
+                policy: None,
                 pattern: vec![],
                 models: vec![],
             },

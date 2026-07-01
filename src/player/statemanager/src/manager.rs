@@ -1278,8 +1278,9 @@ mod integration_tests {
         action_controller_connection_server::{
             ActionControllerConnection, ActionControllerConnectionServer,
         },
-        CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, ReconcileRequest,
-        ReconcileResponse, TriggerActionRequest, TriggerActionResponse,
+        CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, OffloadModelRequest,
+        OffloadModelResponse, ReconcileRequest, ReconcileResponse, TriggerActionRequest,
+        TriggerActionResponse,
     };
     use std::sync::Arc;
     use tonic::{transport::Server, Request, Response, Status};
@@ -1339,6 +1340,17 @@ mod integration_tests {
         ) -> std::result::Result<Response<CompleteNetworkSettingResponse>, Status> {
             Ok(Response::new(CompleteNetworkSettingResponse {
                 acknowledged: true,
+            }))
+        }
+
+        async fn offload_model(
+            &self,
+            _request: Request<OffloadModelRequest>,
+        ) -> std::result::Result<Response<OffloadModelResponse>, Status> {
+            Ok(Response::new(OffloadModelResponse {
+                success: true,
+                message: "Mock offload success".to_string(),
+                transition_id: "mock-transition-id".to_string(),
             }))
         }
     }

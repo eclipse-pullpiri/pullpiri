@@ -8,7 +8,9 @@
 pub mod data;
 
 use common::logd;
-use common::spec::artifact::{Artifact, Model, Network, Node, Package, Scenario, Schedule, Volume};
+use common::spec::artifact::{
+    Artifact, Model, Network, Node, Package, Policy, Scenario, Schedule, Volume,
+};
 use common::spec::k8s::Pod;
 
 // Artifact kind constants
@@ -19,6 +21,7 @@ const KIND_NETWORK: &str = "Network";
 const KIND_NODE: &str = "Node";
 const KIND_MODEL: &str = "Model";
 const KIND_SCHEDULE: &str = "Schedule";
+const KIND_POLICY: &str = "Policy";
 
 // YAML document separator
 const YAML_SEPARATOR: &str = "---";
@@ -47,6 +50,9 @@ fn parse_artifact_info(value: &serde_yaml::Value) -> Option<(String, String)> {
             .ok()?
             .get_name(),
         KIND_SCHEDULE => serde_yaml::from_value::<Schedule>(value.clone())
+            .ok()?
+            .get_name(),
+        KIND_POLICY => serde_yaml::from_value::<Policy>(value.clone())
             .ok()?
             .get_name(),
         _ => return None,

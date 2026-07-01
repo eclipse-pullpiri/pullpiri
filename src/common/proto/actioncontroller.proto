@@ -11,6 +11,9 @@ service ActionControllerConnection {
   rpc TriggerAction(TriggerActionRequest) returns (TriggerActionResponse);
   rpc Reconcile(ReconcileRequest) returns (ReconcileResponse);
   rpc CompleteNetworkSetting(CompleteNetworkSettingRequest) returns (CompleteNetworkSettingResponse);
+  
+  // Offload a model from one node to another (terminate + launch)
+  rpc OffloadModel(OffloadModelRequest) returns (OffloadModelResponse);
 }
 
 message TriggerActionRequest {
@@ -41,6 +44,23 @@ message CompleteNetworkSettingRequest {
 }
 message CompleteNetworkSettingResponse {
   bool acknowledged = 1;
+}
+
+// Request to offload (migrate) a model from source node to target node
+message OffloadModelRequest {
+  string scenario_name = 1;        // Scenario containing the package
+  string package_name = 2;         // Package containing the model
+  string model_name = 3;           // Model (container) to offload
+  string source_node = 4;          // Current node where container is running
+  string target_node = 5;          // Target node to migrate to
+  string policy_name = 6;          // Policy that triggered offloading
+  string reason = 7;               // Reason for offloading
+}
+
+message OffloadModelResponse {
+  bool success = 1;                // Whether offloading was successful
+  string message = 2;              // Additional information or error message
+  string transition_id = 3;        // ID for tracking the offloading operation
 }
  
 enum NetworkStatus {

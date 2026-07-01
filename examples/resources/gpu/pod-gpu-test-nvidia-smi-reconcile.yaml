@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+# Test 2: NVIDIA SMI test
+# Uses NVIDIA CUDA runtime image with nvidia-smi
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: gpu-test
+spec:
+  condition: null
+  action: launch
+  target: nvidia-smi-test
+---
+apiVersion: v1
+kind: Package
+metadata:
+  label: null
+  name: nvidia-smi-test
+spec:
+  pattern:
+    - type: plain
+  policy: policy-nvidia-smi
+  models:
+    - name: gpu-test
+      node: HPC
+      resources:
+        volume:
+        network:
+---
+apiVersion: v1
+kind: Policy
+metadata:
+  name: policy-nvidia-smi
+spec:
+  placement:
+    availableNodes:
+      - HPC
+      - cloud
+  procedure:
+    type: offloading
+    strategy: redeployment
+    trigger:
+      resourceThreshold:
+        cpu: 50
+        memory: 50
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: gpu-test
+  labels:
+    app: gpu-test
+    test-level: nvidia-smi
+spec:
+  containers:
+  - name: nvidia-smi
+    image: nvcr.io/nvidia/cuda:13.3.0-runtime-ubuntu24.04
+    command: ["/bin/bash"]
+    args: ["/test-nvidia-smi.sh"]
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+    volumeMounts:
+    - name: test-script
+      mountPath: /test-nvidia-smi.sh
+      subPath: test-nvidia-smi.sh
+    - name: nvidia-smi
+      mountPath: /usr/bin/nvidia-smi
+      readOnly: true
+    - name: nvidia-libs
+      mountPath: /usr/lib/x86_64-linux-gnu/nvidia
+      readOnly: true
+    env:
+    - name: LD_LIBRARY_PATH
+      value: "/usr/lib/x86_64-linux-gnu/nvidia:/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
+  volumes:
+  - name: test-script
+    hostPath:
+      path: /root/work/pullpiri/examples/resources/gpu/test-nvidia-smi.sh
+      type: File
+  - name: nvidia-smi
+    hostPath:
+      path: /usr/bin/nvidia-smi
+      type: File
+  - name: nvidia-libs
+    hostPath:
+      path: /usr/lib/x86_64-linux-gnu
+      type: Directory
+  restartPolicy: Never

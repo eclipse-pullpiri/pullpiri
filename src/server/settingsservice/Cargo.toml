@@ -34,7 +34,7 @@ jsonschema = "0.18"
 
 # CLI
 clap = { version = "4.5.47", features = ["derive", "env"] }
-rustyline = "17.0.2"
+#rustyline = "17.0.2"
 
 # Logging and errors
 tracing = "0.1"
@@ -45,7 +45,7 @@ thiserror = "2.0"
 # Utilities
 uuid = { version = "1.0", features = ["v4", "serde"] }
 chrono = { version = "0.4.43", features = ["serde"] }
-toml = "0.8"
+#toml = "0.8"
 url = "2.0"
 
 # HTTP client
@@ -64,7 +64,7 @@ common = { workspace = true }
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile = "3.0"
-wiremock = "0.6"
+#wiremock = "0.6"
 axum-test = "15.0"
 serde_urlencoded = "0.7"
 urlencoding = "2.1"

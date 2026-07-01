@@ -10,6 +10,7 @@ if [ -n "${1:-}" ]; then
 else
 	MASTER_IP="$(hostname -I | awk '{print $1}')"
 fi
+HOST_NAME="$(hostname)"
 # If you want to hardcode the IPs for testing, you can
 # uncomment the lines below and comment out the argument parsing above
 # MASTER_IP="127.0.0.1"  # First argument - Piccolo master IP address
@@ -28,7 +29,7 @@ mkdir -p /run/piccololog
 echo "Creating settings.yaml file..."
 cat > /etc/piccolo/settings.yaml << EOF
 host:
-  name: HPC
+  name: ${HOST_NAME}
   ip: ${MASTER_IP}
   type: vehicle
   role: master

@@ -25,7 +25,10 @@ fn open_server(port: u16) -> String {
 // }
 
 fn connect_server(port: u16) -> String {
-    format!("http://{}:{}", crate::setting::get_config().host.ip, port)
+    let ip = crate::setting::get_config().host.ip.as_str();
+    // 0.0.0.0 is for server binding only, use 127.0.0.1 for client connections
+    let connect_ip = if ip == "0.0.0.0" { "127.0.0.1" } else { ip };
+    format!("http://{}:{}", connect_ip, port)
 }
 
 // guest 서버 연결 함수 수정: 이제 항상 호스트 서버 주소 반환

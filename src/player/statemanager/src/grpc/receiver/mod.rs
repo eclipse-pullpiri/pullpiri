@@ -35,6 +35,8 @@ use common::statemanager::{
     // StateChangeSubscriptionRequest, StateChangeEvent,
     // AcknowledgeAlertRequest, AlertResponse,
     // GetPendingAlertsRequest, GetPendingAlertsResponse,
+    OffloadingRequest,
+    OffloadingResponse,
     ResourceType,
     StateChange,
     StateChangeResponse,
@@ -238,6 +240,91 @@ impl StateManagerConnection for StateManagerReceiver {
                         .as_nanos() as i64,
                     error_code: ErrorCode::ResourceUnavailable as i32,
                     error_details: format!("Cannot forward StateChange to StateManager: {e}"),
+                }))
+            }
+        }
+    }
+
+    /// Handles TriggerOffloading requests from PolicyManager.
+    ///
+    /// This method receives offloading requests when resource thresholds are exceeded
+    /// and forwards them to ActionController for execution.
+    ///
+    /// # Arguments
+    /// * `request` - gRPC request containing OffloadingRequest message
+    ///
+    /// # Returns
+    /// * `Result<tonic::Response<OffloadingResponse>, Status>` - Offloading result
+    ///
+    /// # Processing Flow
+    /// 1. Extract OffloadingRequest from gRPC request
+    /// 2. Log offloading request details
+    /// 3. Forward to ActionController via sender
+    /// 4. Return response with tracking ID
+    async fn trigger_offloading(
+        &self,
+        request: Request<OffloadingRequest>,
+    ) -> Result<tonic::Response<OffloadingResponse>, Status> {
+        let req = request.into_inner();
+
+        println!(
+            "[StateManager] Received offloading request: model '{}' from '{}' to '{}'",
+            req.model_name, req.source_node, req.target_node
+        );
+        println!(
+            "[StateManager]   Scenario: {}, Package: {}, Policy: {}",
+            req.scenario_name, req.package_name, req.policy_name
+        );
+        println!("[StateManager]   Reason: {}", req.reason);
+
+        // Generate transition ID for tracking
+        let transition_id = format!(
+            "offload-{}-{}-{}",
+            req.model_name,
+            req.source_node,
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
+        );
+
+        // Convert to ActionController request
+        let offload_request = common::actioncontroller::OffloadModelRequest {
+            scenario_name: req.scenario_name,
+            package_name: req.package_name,
+            model_name: req.model_name.clone(),
+            source_node: req.source_node.clone(),
+            target_node: req.target_node.clone(),
+            policy_name: req.policy_name,
+            reason: req.reason,
+        };
+
+        // Forward to ActionController
+        match crate::grpc::sender::offload_model(offload_request).await {
+            Ok(response) => {
+                let resp = response.into_inner();
+                println!(
+                    "[StateManager] Offloading {} from '{}' to '{}': success={}, message={}",
+                    req.model_name, req.source_node, req.target_node, resp.success, resp.message
+                );
+
+                Ok(tonic::Response::new(OffloadingResponse {
+                    accepted: resp.success,
+                    message: resp.message,
+                    transition_id,
+                }))
+            }
+            Err(e) => {
+                eprintln!(
+                    "[StateManager] Failed to offload model '{}': {}",
+                    req.model_name,
+                    e.message()
+                );
+
+                Ok(tonic::Response::new(OffloadingResponse {
+                    accepted: false,
+                    message: format!("Failed to offload: {}", e.message()),
+                    transition_id,
                 }))
             }
         }

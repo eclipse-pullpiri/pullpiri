@@ -36,6 +36,9 @@ service StateManagerConnection {
   //rpc AcknowledgeAlert (AcknowledgeAlertRequest) returns (AlertResponse);
   //rpc GetPendingAlerts (GetPendingAlertsRequest) returns (GetPendingAlertsResponse);
   
+  // Offloading operation for policy-based container migration
+  rpc TriggerOffloading (OffloadingRequest) returns (OffloadingResponse);
+  
   // Legacy operations
   rpc SendAction (Action) returns (Response);
   rpc SendChangedContainerList (monitoringserver.ContainerList) returns (monitoringserver.SendContainerListResponse);
@@ -477,4 +480,26 @@ message Action {
 
 message Response {
   string resp = 1;
+}
+
+// =============================================================================
+// Offloading Messages (Policy-based container migration)
+// =============================================================================
+
+// Request to trigger container offloading due to resource threshold violation
+message OffloadingRequest {
+  string scenario_name = 1;        // Scenario containing the package
+  string package_name = 2;         // Package containing the model to offload
+  string model_name = 3;           // Model (container) to offload
+  string source_node = 4;          // Current node where container is running
+  string target_node = 5;          // Target node to migrate to
+  string policy_name = 6;          // Policy that triggered offloading
+  string reason = 7;               // Reason for offloading (e.g., "CPU threshold exceeded: 75% > 50%")
+}
+
+// Response for offloading request
+message OffloadingResponse {
+  bool accepted = 1;               // Whether the offloading request was accepted
+  string message = 2;              // Additional information or error message
+  string transition_id = 3;        // ID for tracking the offloading operation
 }

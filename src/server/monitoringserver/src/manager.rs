@@ -292,9 +292,102 @@ impl MonitoringServerManager {
                     eprintln!("[MonitoringServer] ERROR: Error storing NodeInfo: {}", e);
                 }
             }
+
+            // Get running containers on this node and report to PolicyManager
+            let running_containers =
+                self.build_running_containers_list(&data_store, &node_info.node_name);
+            drop(data_store); // Release lock before async call
+
+            // Report to PolicyManager for threshold-based policy evaluation
+            self.report_to_policy_manager(node_info.clone(), running_containers)
+                .await;
         }
 
         println!("{}", "=".repeat(80));
+    }
+
+    /// Build a list of running containers for a specific node
+    fn build_running_containers_list(
+        &self,
+        data_store: &DataStore,
+        node_name: &str,
+    ) -> Vec<common::policymanager::RunningContainer> {
+        use common::policymanager::RunningContainer;
+
+        let containers = data_store.get_containers_by_node(node_name);
+        containers
+            .iter()
+            .map(|c| {
+                // Extract metadata from container annotation if available
+                let container_name = c.names.first().cloned().unwrap_or_default();
+                let scenario_name = c
+                    .annotation
+                    .get("io.piccolo.annotations.scenario")
+                    .cloned()
+                    .unwrap_or_default();
+                let package_name = c
+                    .annotation
+                    .get("io.piccolo.annotations.package")
+                    .cloned()
+                    .unwrap_or_default();
+                let policy_name = c
+                    .annotation
+                    .get("io.piccolo.annotations.policy")
+                    .cloned()
+                    .unwrap_or_default();
+                let model_name = c
+                    .annotation
+                    .get("io.piccolo.annotations.model")
+                    .cloned()
+                    .unwrap_or_default();
+
+                RunningContainer {
+                    container_id: c.id.clone(),
+                    container_name,
+                    package_name,
+                    scenario_name,
+                    policy_name,
+                    model_name,
+                }
+            })
+            .collect()
+    }
+
+    /// Report node metrics to PolicyManager for threshold-based policy evaluation
+    async fn report_to_policy_manager(
+        &self,
+        node_info: NodeInfo,
+        running_containers: Vec<common::policymanager::RunningContainer>,
+    ) {
+        // Only report if there are containers with policy defined
+        let has_policy_containers = running_containers.iter().any(|c| !c.policy_name.is_empty());
+
+        if !has_policy_containers && running_containers.is_empty() {
+            // Skip if no containers or no policy-enabled containers
+            return;
+        }
+
+        match crate::grpc::sender::report_node_metrics(node_info.clone(), running_containers).await
+        {
+            Ok(response) => {
+                let resp = response.into_inner();
+                if resp.processed {
+                    println!(
+                        "[MonitoringServer] Reported NodeInfo to PolicyManager for node '{}'",
+                        node_info.node_name
+                    );
+                }
+            }
+            Err(e) => {
+                // Don't log as error - PolicyManager might not be running
+                if !e.message().contains("Failed to connect") {
+                    eprintln!(
+                        "[MonitoringServer] Failed to report to PolicyManager: {}",
+                        e.message()
+                    );
+                }
+            }
+        }
     }
 
     /// Print ID generation details for debugging

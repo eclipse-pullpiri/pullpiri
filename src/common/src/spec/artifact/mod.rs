@@ -6,6 +6,7 @@ pub mod model;
 pub mod network;
 pub mod node;
 pub mod package;
+pub mod policy;
 pub mod scenario;
 pub mod schedule;
 pub mod volume;
@@ -73,6 +74,14 @@ pub struct Schedule {
     kind: String,
     metadata: MetaData,
     spec: Option<Vec<schedule::ScheduleSpec>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Policy {
+    apiVersion: String,
+    kind: String,
+    metadata: MetaData,
+    spec: policy::PolicySpec,
 }
 
 //Unit Test Cases

@@ -8,17 +8,16 @@ SPDX-License-Identifier: Apache-2.0
 
 ## System requirements
 
-Pullpiri has been tested with CentOS Stream 9.
+Pullpiri has been tested with Ubuntu 24.04.
 
-[Bluechi](https://github.com/eclipse-bluechi/bluechi/tree/main) is required for Pullpiri.  
-[Podman](https://podman.io/) needs to be installed as this is used as container runtime (Maybe podman is already installed in CentOS Stream 9).  
+[Podman](https://podman.io/) needs to be installed as this is used as container runtime (Pullpiri needs podman with version > 4.0.0).  
 Also, [Rust](https://www.rust-lang.org) is required to test without using a container.
 
 ## Preliminary Info
 
 ### Pullpiri Configuration
 
-There is a [settings.yaml](/src/settings.yaml) for configuration. Modify this to suit your system.
+There is a `settings.yaml` for configuration. This is automatically generated in `/etc/piccolo/settings.yaml` during installation.
 
 ```yaml
 yaml_storage: /etc/piccolo/yaml

@@ -4,9 +4,23 @@
 */
 pub mod grpc;
 
-fn main() {
-    println!("Hello, world!");
-    loop {
-        std::thread::sleep(std::time::Duration::from_secs(10));
-    }
+use common::policymanager::policy_manager_connection_server::PolicyManagerConnectionServer;
+use grpc::receiver::PolicyManagerGrpcServer;
+use tonic::transport::Server;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("🚀 PolicyManager starting...");
+
+    let addr = common::policymanager::open_server().parse()?;
+    let server = PolicyManagerGrpcServer::new();
+
+    println!("📡 PolicyManager gRPC server listening on {}", addr);
+
+    Server::builder()
+        .add_service(PolicyManagerConnectionServer::new(server))
+        .serve(addr)
+        .await?;
+
+    Ok(())
 }

@@ -1,0 +1,55 @@
+# SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+# Test 1: Basic GPU device mount test
+# Uses minimal alpine image to check if devices are mounted
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: helloworld
+spec:
+  condition: null
+  action: launch
+  target: helloworld
+---
+apiVersion: v1
+kind: Package
+metadata:
+  label: null
+  name: helloworld
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: gpu-test-basic
+      node: HPC
+      resources:
+        volume:
+        network:
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: gpu-test-basic
+  labels:
+    app: gpu-test
+    test-level: basic
+spec:
+  containers:
+  - name: gpu-test
+    image: alpine:latest
+    command: ["/bin/sh"]
+    args: ["/test-gpu-basic.sh"]
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+    volumeMounts:
+    - name: test-script
+      mountPath: /test-gpu-basic.sh
+      subPath: test-gpu-basic.sh
+  volumes:
+  - name: test-script
+    hostPath:
+      path: /root/work/pullpiri/examples/resources/gpu/test-gpu-basic.sh
+      type: File
+  restartPolicy: Never

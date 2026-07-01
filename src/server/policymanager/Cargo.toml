@@ -10,4 +10,6 @@ license = "Apache-2.0"
 [dependencies]
 common = { workspace = true }
 tonic = "0.12.3"
-tokio = "1.43.1"
+tokio = { version = "1.43.1", features = ["macros", "rt-multi-thread"] }
+serde_yaml = "0.9"
+lazy_static = "1.4"

@@ -203,10 +203,16 @@ impl Filter {
             }
 
             logd!(1, "   📤 Triggering ActionController via gRPC...");
-            self.sender
-                .trigger_action(self.scenario_name.clone())
-                .await?;
-            logd!(2, "   ✅ ActionController triggered successfully");
+            if let Err(e) = self.sender.trigger_action(self.scenario_name.clone()).await {
+                logd!(
+                    5,
+                    "   ❌ Failed to trigger ActionController for scenario {}: {:?}. Continuing.",
+                    self.scenario_name,
+                    e
+                );
+            } else {
+                logd!(2, "   ✅ ActionController triggered successfully");
+            }
             Ok(())
         } else {
             Err("cannot meet condition".into())

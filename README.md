@@ -47,13 +47,6 @@ or retrieval of workloads from a cloud registry, management of
 non-containerized services, and functional areas supported by general container
 runtime and systemd.
 
-## Based Projects
-
-PULLPIRI project has a plan to support several projects as core orchestrator.
-Current version of PULLPIRI could be running based on this project.
-
-- **[Eclipse Bluechi](https://github.com/eclipse-bluechi/bluechi/tree/main)**
-
 ## Getting started
 
 Refer to [Getting Started](/doc/docs/getting-started.md).

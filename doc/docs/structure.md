@@ -21,14 +21,14 @@ Pullpiri is a Rust-based vehicle service orchestrator with a microservices archi
 ├── LICENSES/            # License files
 ├── scripts/             # Build and CI/CD scripts
 └── src/
-    ├── agent/           # Vehicle node agent
+    ├── agent/           # Remote node agent (runs on guest nodes)
     │   └── nodeagent/
     ├── common/          # Shared utilities and gRPC definitions
-    ├── player/          # Workload execution layer
+    ├── player/          # Execution plane (condition, state, action)
     │   ├── actioncontroller/
     │   ├── filtergateway/
     │   └── statemanager/
-    ├── server/          # Cloud/master node services
+    ├── server/          # Management plane (artifact, storage, policy, config, log)
     │   ├── apiserver/
     │   ├── logservice/
     │   ├── monitoringserver/
@@ -67,7 +67,7 @@ Pullpiri is a Rust-based vehicle service orchestrator with a microservices archi
 
 ### Server Layer
 
-The server layer runs on cloud or master nodes and provides the central orchestration and management services.
+The server layer provides central orchestration, storage, and management services. It runs on the same host node (e.g., HPC) as the player layer.
 
 #### API Server (`src/server/apiserver/`)
 
@@ -154,7 +154,7 @@ The server layer runs on cloud or master nodes and provides the central orchestr
 
 ### Player Layer
 
-The player layer manages workload execution on vehicle or edge nodes. It consists of three coordinated components.
+The player layer manages workload execution. It runs on the same host node as the server layer and consists of three coordinated components.
 
 #### Action Controller (`src/player/actioncontroller/`)
 

@@ -165,8 +165,6 @@ install_required_packages() {
 # MASTER_IP and NODE_IP are set from command line arguments
 NODEAGENT_PORT="47004"
 APISERVER_PORT="47098"
-#DOWNLOAD_URL="https://github.com/piccolo-framework/piccolo/releases/download/latest"
-#DOWNLOAD_URL="https://raw.githubusercontent.com/eclipse-pullpiri/pullpiri/main/examples/binarys"
 VERSION_TXT="./version.txt"
 VERSION=$(cat "$VERSION_TXT")
 DOWNLOAD_URL="https://github.com/eclipse-pullpiri/pullpiri/releases/download/${VERSION}"

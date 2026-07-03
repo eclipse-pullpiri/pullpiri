@@ -4,13 +4,13 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-rm -rf /etc/piccolo/*
-rm -rf /run/piccololog
+rm -rf /etc/pullpiri/*
+rm -rf /run/pullpirilog
 
-podman pod stop -t 0 piccolo-player
-podman pod rm -f --ignore piccolo-player
-podman pod stop -t 0 piccolo-server
-podman pod rm -f --ignore piccolo-server
+podman pod stop -t 0 pullpiri-player
+podman pod rm -f --ignore pullpiri-player
+podman pod stop -t 0 pullpiri-server
+podman pod rm -f --ignore pullpiri-server
 
 sleep 1
 

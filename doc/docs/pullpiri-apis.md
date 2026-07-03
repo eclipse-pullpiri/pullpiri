@@ -4,185 +4,254 @@ SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Pullpiri API (in progress)
+# Pullpiri REST API
 
-TBD
+Pullpiri REST API provides an HTTP-based interface for deploying and managing artifacts from the cloud or other systems to vehicle nodes.
 
-## about scenarios
+**API Server Address**: `http://<host>:47099`
 
-### Deploy new scenario
+## Overview
 
-```plaintext
-POST /scenario
+Pullpiri API provides the following main features:
+
+- **Deploy Artifacts** (POST /api/artifact): Deploy artifacts such as Scenario, Package, Model, etc.
+- **Withdraw Artifacts** (DELETE /api/artifact): Remove deployed artifacts
+- **Deployment Notification** (GET /api/notify): Receive notifications of new artifact releases from the cloud
+
+## Endpoints
+
+### 1. Deploy Artifacts
+
+Deploy new artifacts (Scenario, Package, Model, Volume, Network, Node, Schedule, Policy).
+
+```
+POST /api/artifact
 ```
 
-#### Parameters
+#### Request Headers
 
-None
+| Header | Value |
+|--------|-------|
+| Content-Type | text/plain (or application/x-yaml) |
 
-#### Request body
+#### Request Body
 
-{scenario_name}/{scenario_file_name}
+Artifact definitions in YAML format. Multiple artifacts are separated by `---` delimiter.
 
-Example
+##### Example: Deploy a Scenario
 
-```text
-bms/bms-high-performance
+```yaml
+apiVersion: v1
+kind: Scenario
+metadata:
+  name: helloworld
+spec:
+  condition: ""
+  action: update
+  target: helloworld
+```
+
+##### Example: Deploy Package and Model together
+
+```yaml
+apiVersion: v1
+kind: Package
+metadata:
+  name: helloworld
+spec:
+  pattern:
+    - type: plain
+  models:
+    - name: helloworld-core
+      node: HPC
+      resources: {}
+      volume: {}
+      network: {}
+---
+apiVersion: v1
+kind: Model
+metadata:
+  name: helloworld-core
+  annotations:
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
+  labels:
+    app: helloworld-core
+spec:
+  hostNetwork: true
+  containers:
+    - name: helloworld
+      image: helloworld:latest
+  terminationGracePeriodSeconds: 0
+
+##### Success (200 OK)
+
+```json
+"Ok"
+```
+
+##### Failure (405 or other error)
+
+```json
+"Error message describing the failure"
+```
+
+#### Response Status Codes
+
+| Code | Description |
+|------|-------------|
+| 200 | Artifact deployment successful |
+| 405 | Invalid request or processing error |
+
+---
+
+### 2. Withdraw Artifacts
+
+Remove deployed artifacts.
+
+```
+DELETE /api/artifact
+```
+
+#### Request Headers
+
+| Header | Value |
+|--------|-------|
+| Content-Type | text/plain |
+
+#### Request Body
+
+Name of the artifact to be removed (string)
+
+##### Example
+
+```
+helloworld
 ```
 
 #### Response
 
-| Code  | Description |
-| ------| -----       |
-| 200   | Success     |
-| 404   | Fail        |
+##### Success (200 OK)
 
 ```json
-# Success
-{
-    "resp" : "Ok"
-}
-
-# Fail
-{
-    "resp" : "Error message"
-}
+"Ok"
 ```
 
-### Delete scenario
+##### Failure (405 or other error)
 
-```plaintext
-DELETE /scenario/{scenario_name}
+```json
+"Error message describing the failure"
 ```
 
-#### Parameters
+#### Response Status Codes
 
-scenario name you want to delete
+| Code | Description |
+|------|-------------|
+| 200 | Artifact withdrawal successful |
+| 405 | Invalid request or processing error |
 
-#### Request body
+---
 
-None
+### 3. Deployment Notification
+
+Notify the API server that a new artifact has been released from the cloud.
+
+```
+GET /api/notify
+```
+
+#### Request Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| artifact_name | String | Yes | Name of the newly released artifact |
+
+#### Example
+
+```
+GET /api/notify?artifact_name=helloworld
+```
 
 #### Response
 
-| Code  | Description |
-| ------| -----       |
-| 200   | Success     |
-| 404   | Fail        |
+##### Success (200 OK)
 
 ```json
-# Success
-{
-    "resp" : "Ok"
-}
-
-# Fail
-{
-    "resp" : "Error message"
-}
+"Ok"
 ```
 
-## Metric
-
-### Get container information
-
-```plaintext
-GET /metric/container
-```
-
-#### Parameters
-
-None
-
-#### Request body
-
-None
-
-#### Response
-
-| Code  | Description |
-| ------| -----       |
-| 200   | Success     |
-| 404   | Fail        |
-
-JSON
+##### Failure (405 or other error)
 
 ```json
-{
-    "containers" : [
-        {
-            "id": "5bf8af556e997e007f068eb468e20b6ef8c2449dcbcaffdc1189d5",
-            "names": [
-                "bms-frism-frism"
-            ],
-            "image": "localhost/frism:1.0",
-            "state": {
-                "StartedAt": "2024-10-10T20:55:12.124155853+09:00",
-                "ExitCode": "0",
-                "...": "...",
-                "Restart ing": "false",
-                "OOMKilled": "false"
-            },
-            "config": {
-                "AttachStdout": "false",
-                "Image": "localhost/frism:1.0",
-                "...": "...",
-                "Hostname": "ZONE"
-            },
-            "annotation": {
-                "io.kubernetes.cri-o.SandboxID": "d375a39c129874b8a3630a6",
-****            "io.pullpiri.annotations.package-network": "default",
-****            "io.pullpiri.annotations.package-type": "default",
-                "org.opencontainers.image.stopSignal": "15",
-****            "io.pullpiri.annotations.package-name": "bms",
-                "io.container.manager": "libpod"
-            }
-        },
-        {
-            "....": "....."
-        }
-    ]
-}
+"Error message describing the failure"
 ```
 
-### Get scenario information
+#### Response Status Codes
 
-```text
-GET /metric/scenario
+| Code | Description |
+|------|-------------|
+| 200 | Notification received successfully |
+| 405 | Invalid HTTP method |
+
+---
+
+## Artifact Types
+
+The following artifact types are supported by the Pullpiri API:
+
+| Kind | Description |
+|------|-------------|
+| Scenario | Action definition to be executed under specific conditions |
+| Package | Definition of an application package to be deployed |
+| Model | Container model defined with Kubernetes Pod specification |
+| Volume | Storage volume definition |
+| Network | Network configuration definition |
+| Node | Node information definition |
+| Schedule | Scheduled task definition |
+| Policy | Policy rule definition |
+
+---
+
+## Usage Examples
+
+### Deploy a Scenario using cURL
+
+```bash
+curl -X POST http://localhost:47099/api/artifact \
+  -H "Content-Type: text/plain" \
+  -d @helloworld_scenario.yaml
 ```
 
-#### Parameters
+### Withdraw an Artifact using cURL
 
-None
-
-#### Request body
-
-None
-
-#### Response
-
-| Code  | Description |
-| ------| -----       |
-| 200   | Success     |
-| 404   | Fail        |
-
-JSON
-
-```json
-[
-    {
-        "name": "scneario name",
-        "status": "active",
-        "condition": "speed lt 30",
-        "action": "close window"
-    },
-    {
-        "name": "scneario name 2",
-        "status": "inactive",
-        "condition": "night",
-        "action": "turn on light"
-    }
-]
+```bash
+curl -X DELETE http://localhost:47099/api/artifact \
+  -H "Content-Type: text/plain" \
+  -d "helloworld"
 ```
 
-<!-- markdownlint-disable-file MD024 no-duplicate-heading -->
+### Send a Deployment Notification using cURL
+
+```bash
+curl -X GET "http://localhost:47099/api/notify?artifact_name=helloworld"
+```
+
+---
+
+## Error Handling
+
+All API responses indicate success or failure using HTTP status codes:
+
+- **200 OK**: Request processed successfully
+- **405 Method Not Allowed**: The HTTP method is not allowed or an error occurred during processing
+
+The error response body contains a detailed error message.
+
+---
+
+## Notes
+
+- All requests must be in valid YAML or string format.
+- When deploying multiple artifacts, separate each artifact with the YAML delimiter (`---`).
+- The API server stores received artifacts in RocksDB and forwards them to other components such as the filter gateway.

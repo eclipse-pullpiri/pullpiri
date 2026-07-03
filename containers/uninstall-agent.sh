@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 SYSTEMD_FILE="/etc/systemd/system/nodeagent.service"
-YAML_FILE="/etc/piccolo/nodeagent.yaml"
+YAML_FILE="/etc/pullpiri/nodeagent.yaml"
 
 sudo systemctl stop nodeagent.service
 sudo systemctl daemon-reload

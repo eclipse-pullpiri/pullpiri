@@ -11,7 +11,7 @@ package statemanager;
 import "monitoringserver.proto";
 
 // =============================================================================
-// PICCOLO State Manager Service Definition
+// Pullpiri State Manager Service Definition
 // =============================================================================
 
 service StateManagerConnection {

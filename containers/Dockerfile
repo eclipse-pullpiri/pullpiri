@@ -9,14 +9,14 @@ FROM rust:1.88.0-slim AS builder
 ARG TARGETARCH
 
 ENV TARGETARCH=${TARGETARCH}
-WORKDIR /piccolo
+WORKDIR /pullpiri
 
 # Copy shared source and both components
 COPY ./src/Cargo.toml .
-COPY ./src/common/ /piccolo/common/
-COPY ./src/server/ /piccolo/server/
-COPY ./src/player/ /piccolo/player/
-# COPY ./src/agent/ /piccolo/agent/
+COPY ./src/common/ /pullpiri/common/
+COPY ./src/server/ /pullpiri/server/
+COPY ./src/player/ /pullpiri/player/
+# COPY ./src/agent/ /pullpiri/agent/
 
 # Install build dependencies
 RUN apt update -y && \
@@ -55,7 +55,7 @@ FROM alpine:3.21.3
 ARG TARGETARCH
 ENV TARGETARCH=${TARGETARCH}
 
-WORKDIR /piccolo
+WORKDIR /pullpiri
 
 # Copy shared libraries
 COPY --from=builder /dummy /lib
@@ -71,15 +71,15 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
     fi
 
 # Copy built binaries
-COPY --from=builder /piccolo/target/release/apiserver /piccolo/
-COPY --from=builder /piccolo/target/release/monitoringserver /piccolo/
-COPY --from=builder /piccolo/target/release/policymanager /piccolo/
-COPY --from=builder /piccolo/target/release/settingsservice /piccolo/
-COPY --from=builder /piccolo/target/release/logservice /piccolo/
-#COPY --from=builder /piccolo/target/release/nodeagent /piccolo/
-COPY --from=builder /piccolo/target/release/actioncontroller /piccolo/
-COPY --from=builder /piccolo/target/release/filtergateway /piccolo/
-COPY --from=builder /piccolo/target/release/statemanager /piccolo/
+COPY --from=builder /pullpiri/target/release/apiserver /pullpiri/
+COPY --from=builder /pullpiri/target/release/monitoringserver /pullpiri/
+COPY --from=builder /pullpiri/target/release/policymanager /pullpiri/
+COPY --from=builder /pullpiri/target/release/settingsservice /pullpiri/
+COPY --from=builder /pullpiri/target/release/logservice /pullpiri/
+#COPY --from=builder /pullpiri/target/release/nodeagent /pullpiri/
+COPY --from=builder /pullpiri/target/release/actioncontroller /pullpiri/
+COPY --from=builder /pullpiri/target/release/filtergateway /pullpiri/
+COPY --from=builder /pullpiri/target/release/statemanager /pullpiri/
 
 # Copy runtime settings
 # COPY ./src/settings.yaml .

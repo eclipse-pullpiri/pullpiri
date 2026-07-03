@@ -20,7 +20,7 @@ use url::Url;
 #[command(long_about = None)]
 struct Cli {
     /// Base URL (host only, without port)
-    #[arg(short, long, env = "PICCOLO_URL", default_value = "http://localhost")]
+    #[arg(short, long, env = "PULLPIRI_URL", default_value = "http://localhost")]
     url: String,
 
     /// SettingsService port

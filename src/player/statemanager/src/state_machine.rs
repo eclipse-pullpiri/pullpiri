@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! State Machine Implementation for PICCOLO Resource State Management
+//! State Machine Implementation for Pullpiri Resource State Management
 //!
 //! This module implements the core state transition logic for Scenario, Package, and Model resources
-//! according to the PICCOLO specification. It provides efficient data structures and algorithms
+//! according to the Pullpiri specification. It provides efficient data structures and algorithms
 //! for managing state changes and enforcing the defined state transition tables.
 //!
 //! # Architecture Overview
@@ -71,7 +71,7 @@ impl TransitionResult {
     }
 }
 
-/// Core state machine implementation for PICCOLO resource management
+/// Core state machine implementation for Pullpiri resource management
 ///
 /// This is the central component that manages all resource state transitions,
 /// enforces business rules, and maintains the current state of all resources
@@ -143,7 +143,7 @@ impl StateMachine {
     /// Initialize the state transition table for Scenario resources
     ///
     /// Populates the transition table with all valid state changes for Scenario resources
-    /// according to the PICCOLO specification. This includes transitions for:
+    /// according to the Pullpiri specification. This includes transitions for:
     /// - Creation and initialization
     /// - Activation and deactivation
     /// - Error handling and recovery

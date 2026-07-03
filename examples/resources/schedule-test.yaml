@@ -228,9 +228,9 @@ kind: Model
 metadata:
   name: test_model1
   annotations:
-    io.piccolo.annotations.package-type: timpani_test
-    io.piccolo.annotations.package-name: timpani_test
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: timpani_test
+    io.pullpiri.annotations.package-name: timpani_test
+    io.pullpiri.annotations.package-network: default
   labels:
     app: test_model1
 spec:
@@ -254,9 +254,9 @@ kind: Model
 metadata:
   name: test_model2
   annotations:
-    io.piccolo.annotations.package-type: timpani_test
-    io.piccolo.annotations.package-name: timpani_test
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: timpani_test
+    io.pullpiri.annotations.package-name: timpani_test
+    io.pullpiri.annotations.package-network: default
   labels:
     app: test_model2
 spec:
@@ -280,9 +280,9 @@ kind: Model
 metadata:
   name: test_model3
   annotations:
-    io.piccolo.annotations.package-type: timpani_test
-    io.piccolo.annotations.package-name: timpani_test
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: timpani_test
+    io.pullpiri.annotations.package-name: timpani_test
+    io.pullpiri.annotations.package-network: default
   labels:
     app: test_model3
 spec:

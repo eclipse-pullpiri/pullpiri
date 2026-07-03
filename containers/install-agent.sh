@@ -5,18 +5,18 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Get arguments - Read carefully below paragraph
-MASTER_IP="${1:-}"  # First argument - Piccolo master IP address
+MASTER_IP="${1:-}"  # First argument - Pullpiri master IP address
 NODE_IP="${2:-}"    # Second argument - Node IP address
 # If you want to hardcode the IPs for testing, you can
 # uncomment the lines below and comment out the argument parsing above
-# MASTER_IP="127.0.0.1"  # First argument - Piccolo master IP address
+# MASTER_IP="127.0.0.1"  # First argument - Pullpiri master IP address
 # NODE_IP="127.0.0.1"    # Second argument - Node IP address
 
 # Check if both IPs are provided
 if [[ -z "${MASTER_IP}" ]] || [[ -z "${NODE_IP}" ]]; then
 	echo "ERROR: Both MASTER_IP and NODE_IP arguments are required." >&2
 	echo "Usage: $0 MASTER_IP NODE_IP" >&2
-	echo "  MASTER_IP: Piccolo master IP address" >&2
+	echo "  MASTER_IP: Pullpiri master IP address" >&2
 	echo "  NODE_IP: Node IP address" >&2
 	exit 1
 fi
@@ -53,9 +53,9 @@ else
 fi
 
 # Make directory and binary
-AGENT_BINARY_PATH="/opt/piccolo/nodeagent"
+AGENT_BINARY_PATH="/opt/pullpiri/nodeagent"
 rm -f "$AGENT_BINARY_PATH"
-sudo mkdir -p /opt/piccolo
+sudo mkdir -p /opt/pullpiri
 if [ ! -f "$AGENT_BINARY_PATH" ]; then
 	BINARY_URL="https://github.com/eclipse-pullpiri/pullpiri/releases/latest/download/nodeagent-linux-${SUFFIX}"
 	echo "Downloading binary from ${BINARY_URL}..."
@@ -64,15 +64,15 @@ if [ ! -f "$AGENT_BINARY_PATH" ]; then
 		echo "Error: Failed to download binary from ${BINARY_URL}"
 		exit 1
 	fi
-	sudo mv -f nodeagent /opt/piccolo/nodeagent
+	sudo mv -f nodeagent /opt/pullpiri/nodeagent
 fi
-sudo chmod +x /opt/piccolo/nodeagent
-echo "Binary installed to /opt/piccolo/nodeagent"
+sudo chmod +x /opt/pullpiri/nodeagent
+echo "Binary installed to /opt/pullpiri/nodeagent"
 
 # Create configuration file
 echo "Creating configuration file..."
-sudo mkdir -p /etc/piccolo
-cat > /etc/piccolo/nodeagent.yaml << EOF
+sudo mkdir -p /etc/pullpiri
+cat > /etc/pullpiri/nodeagent.yaml << EOF
 nodeagent:
   node_name: "${NODE_NAME}"
   node_type: "${NODE_TYPE}"
@@ -94,13 +94,13 @@ EOF
 echo "Creating systemd service file..."
 cat > /etc/systemd/system/nodeagent.service << EOF
 [Unit]
-Description=PICCOLO NodeAgent Service
+Description=Pullpiri NodeAgent Service
 After=network-online.target
 Wants=podman.socket
 
 [Service]
 Type=simple
-ExecStart=/opt/piccolo/nodeagent --config /etc/piccolo/nodeagent.yaml
+ExecStart=/opt/pullpiri/nodeagent --config /etc/pullpiri/nodeagent.yaml
 Restart=on-failure
 RestartSec=10
 Environment=RUST_LOG=info
@@ -113,7 +113,7 @@ ProtectSystem=full
 ProtectHome=true
 NoNewPrivileges=true
 
-ReadWritePaths=/etc/piccolo
+ReadWritePaths=/etc/pullpiri
 ReadWritePaths=/etc/containers/systemd
 
 [Install]

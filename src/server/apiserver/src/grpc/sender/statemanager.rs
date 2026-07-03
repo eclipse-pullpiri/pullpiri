@@ -11,7 +11,7 @@
 //!
 //! The client implements lazy connection establishment, automatic retry logic,
 //! and comprehensive error handling to ensure reliable communication with the
-//! StateManager in the PICCOLO framework.
+//! StateManager in the Pullpiri framework.
 
 use common::statemanager::{
     connect_server, state_manager_connection_client::StateManagerConnectionClient, StateChange,

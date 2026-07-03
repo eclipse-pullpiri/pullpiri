@@ -171,12 +171,12 @@ VERSION_TXT="./version.txt"
 VERSION=$(cat "$VERSION_TXT")
 DOWNLOAD_URL="https://github.com/eclipse-pullpiri/pullpiri/releases/download/${VERSION}"
 CHECKSUM_URL="${DOWNLOAD_URL}"  # Define CHECKSUM_URL
-INSTALL_DIR="/opt/piccolo"
-CONFIG_DIR="/etc/piccolo"
+INSTALL_DIR="/opt/pullpiri"
+CONFIG_DIR="/etc/pullpiri"
 BINARY_NAME="nodeagent"
-LOG_DIR="/var/log/piccolo"
-DATA_DIR="/var/lib/piccolo"
-RUN_DIR="/var/run/piccolo"
+LOG_DIR="/var/log/pullpiri"
+DATA_DIR="/var/lib/pullpiri"
+RUN_DIR="/var/run/pullpiri"
 YAML_STORAGE_DIR="${CONFIG_DIR}/yaml"
 
 # Install required packages
@@ -225,10 +225,10 @@ fi
 # Integrity check (optional)
 if command -v sha256sum &> /dev/null; then
     echo "Verifying binary integrity..."
-    if curl -L ${CHECKSUM_URL}/checksums.txt -o /tmp/piccolo_checksums.txt --fail; then
+    if curl -L ${CHECKSUM_URL}/checksums.txt -o /tmp/pullpiri_checksums.txt --fail; then
         CHECKSUM_PATTERN="${BINARY_NAME}-${BINARY_SUFFIX}"
-        if grep -q "$CHECKSUM_PATTERN" /tmp/piccolo_checksums.txt; then
-            if ! (cd ${INSTALL_DIR} && sha256sum -c <(grep "$CHECKSUM_PATTERN" /tmp/piccolo_checksums.txt)); then
+        if grep -q "$CHECKSUM_PATTERN" /tmp/pullpiri_checksums.txt; then
+            if ! (cd ${INSTALL_DIR} && sha256sum -c <(grep "$CHECKSUM_PATTERN" /tmp/pullpiri_checksums.txt)); then
                 echo "Warning: Binary checksum does not match. This may indicate a corrupted download."
                 WARNING_COUNT=$((WARNING_COUNT+1))
             else
@@ -238,7 +238,7 @@ if command -v sha256sum &> /dev/null; then
             echo "Warning: Could not find checksum for ${CHECKSUM_PATTERN} in checksums.txt"
             WARNING_COUNT=$((WARNING_COUNT+1))
         fi
-        rm /tmp/piccolo_checksums.txt
+        rm /tmp/pullpiri_checksums.txt
     else
         echo "Warning: Could not download checksum file. Skipping integrity check."
         WARNING_COUNT=$((WARNING_COUNT+1))
@@ -277,14 +277,14 @@ ERROR_COUNT=0
 WARNING_COUNT=0
 
 # Create necessary directory
-mkdir -p /var/run/piccolo
+mkdir -p /var/run/pullpiri
 
 # Basic system checks
 CPU_LOAD=$(cat /proc/loadavg | awk '{print $1}')
 echo "CPU Load: $CPU_LOAD"
 
 # Set status ready
-echo "status=ready" > /var/run/piccolo/node_status
+echo "status=ready" > /var/run/pullpiri/node_status
 echo "Default system check completed with $ERROR_COUNT errors and $WARNING_COUNT warnings."
 exit 0
 EOF
@@ -341,7 +341,7 @@ fi
 echo "Creating systemd service file..."
 cat > /etc/systemd/system/nodeagent.service << EOF
 [Unit]
-Description=PICCOLO NodeAgent Service
+Description=Pullpiri NodeAgent Service
 After=network-online.target
 Wants=podman.socket
 
@@ -361,7 +361,7 @@ ProtectSystem=full
 ProtectHome=true
 NoNewPrivileges=true
 
-ReadWritePaths=/etc/piccolo
+ReadWritePaths=/etc/pullpiri
 ReadWritePaths=/etc/containers/systemd
 
 [Install]

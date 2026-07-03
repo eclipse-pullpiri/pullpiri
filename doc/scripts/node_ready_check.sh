@@ -14,8 +14,8 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 NODE_TYPE=${1:-"sub"}  # Default is "sub" node
-LOG_FILE="/var/log/piccolo/system_check.log"
-RESULT_FILE="/var/run/piccolo/node_status"
+LOG_FILE="/var/log/pullpiri/system_check.log"
+RESULT_FILE="/var/run/pullpiri/node_status"
 
 # Create log directories
 mkdir -p $(dirname $LOG_FILE) $(dirname $RESULT_FILE)

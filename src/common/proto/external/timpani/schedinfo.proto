@@ -5,14 +5,14 @@ package schedinfo.v1;
 // SchedInfoService in Timpani-O
 service SchedInfoService {
   // Add a new SchedInfo
-  // From Piccolo to Timpani-O
+  // From Pullpiri to Timpani-O
   rpc AddSchedInfo (SchedInfo) returns (Response) {}
 }
 
-// FaultService in Piccolo
+// FaultService in Pullpiri
 service FaultService {
   // Notify a fault
-  // From Timpani-O to Piccolo
+  // From Timpani-O to Pullpiri
   rpc NotifyFault (FaultInfo) returns (Response) {}
 }
 

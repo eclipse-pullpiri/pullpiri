@@ -33,7 +33,7 @@ impl NodeRegistry {
                 // Return default topology if not found
                 Ok(ClusterTopology {
                     cluster_id: "default-cluster".to_string(),
-                    cluster_name: "PICCOLO Cluster".to_string(),
+                    cluster_name: "Pullpiri Cluster".to_string(),
                     r#type: TopologyType::Embedded.into(),
                     master_nodes: vec![],
                     sub_nodes: vec![],
@@ -66,7 +66,7 @@ impl NodeRegistry {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let default_topology = ClusterTopology {
             cluster_id: "default-cluster".to_string(),
-            cluster_name: "PICCOLO Cluster".to_string(),
+            cluster_name: "Pullpiri Cluster".to_string(),
             r#type: TopologyType::Embedded.into(),
             master_nodes: vec![],
             sub_nodes: vec![],
@@ -687,7 +687,7 @@ mod tests {
         // Test the exact default values used in get_topology when etcd is not available
         let default_topology = ClusterTopology {
             cluster_id: "default-cluster".to_string(),
-            cluster_name: "PICCOLO Cluster".to_string(),
+            cluster_name: "Pullpiri Cluster".to_string(),
             r#type: TopologyType::Embedded.into(),
             master_nodes: vec![],
             sub_nodes: vec![],
@@ -696,7 +696,7 @@ mod tests {
         };
 
         assert_eq!(default_topology.cluster_id, "default-cluster");
-        assert_eq!(default_topology.cluster_name, "PICCOLO Cluster");
+        assert_eq!(default_topology.cluster_name, "Pullpiri Cluster");
         assert_eq!(default_topology.r#type, TopologyType::Embedded as i32);
         assert!(default_topology.master_nodes.is_empty());
         assert!(default_topology.sub_nodes.is_empty());
@@ -713,7 +713,7 @@ mod tests {
 
         let default_topology = ClusterTopology {
             cluster_id: "default-cluster".to_string(),
-            cluster_name: "PICCOLO Cluster".to_string(),
+            cluster_name: "Pullpiri Cluster".to_string(),
             r#type: TopologyType::Embedded.into(),
             master_nodes: vec![],
             sub_nodes: vec![],

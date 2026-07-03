@@ -37,7 +37,7 @@ impl NodeRegistry {
             }
             Err(_) => Ok(ClusterTopology {
                 cluster_id: "default-cluster".to_string(),
-                cluster_name: "PICCOLO Cluster".to_string(),
+                cluster_name: "Pullpiri Cluster".to_string(),
                 r#type: TopologyType::Embedded.into(),
                 master_nodes: vec![],
                 sub_nodes: vec![],

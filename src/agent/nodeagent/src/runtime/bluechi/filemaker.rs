@@ -28,7 +28,7 @@ pub async fn make_files_from_pod(pods: Vec<Pod>, node: String) -> common::Result
 /// Make .yaml files for Pod
 ///
 /// ### Parametets
-/// * `dir: &str, pod: Pod` - Piccolo yaml directory path and Pod structure
+/// * `dir: &str, pod: Pod` - Pullpiri yaml directory path and Pod structure
 /// ### Description
 /// Make .yaml files for Pod
 fn make_yaml_file(dir: &str, pod: Pod) -> common::Result<()> {
@@ -41,7 +41,7 @@ fn make_yaml_file(dir: &str, pod: Pod) -> common::Result<()> {
     Ok(())
 }
 
-// (under construction) Copy Bluechi files to other nodes
+// (under construction) Copy files to other nodes
 //
 // ### Parametets
 // TBD
@@ -75,7 +75,7 @@ containers:
         let podspec = dummy_podspec();
         let pod = Pod::new("antipinch-disable-core", podspec);
 
-        let storage_dir = "/etc/piccolo/yaml";
+        let storage_dir = "/etc/pullpiri/yaml";
         let path = Path::new(storage_dir);
         if !path.exists() {
             fs::create_dir_all(path).expect("Failed to create directory");
@@ -105,7 +105,7 @@ containers:
     /// Test that directory is created successfully
     #[tokio::test]
     async fn test_directory_creation() {
-        let storage_dir = "/etc/piccolo/yaml_test";
+        let storage_dir = "/etc/pullpiri/yaml_test";
         let path = Path::new(storage_dir);
         std::fs::create_dir_all(path).expect("Failed to create directory");
         assert!(path.exists(), "Storage directory does not exist");
@@ -117,7 +117,7 @@ containers:
         let podspec = dummy_podspec();
         let pod = Pod::new("antipinch-disable-core1", podspec);
 
-        let storage_dir = "/etc/piccolo/yaml_test";
+        let storage_dir = "/etc/pullpiri/yaml_test";
         let path = Path::new(storage_dir);
         if !path.exists() {
             fs::create_dir_all(path).expect("Failed to create directory for testing");

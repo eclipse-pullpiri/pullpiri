@@ -130,11 +130,11 @@ impl Storage for EtcdClient {
 pub struct KeyPrefixes;
 #[allow(dead_code)]
 impl KeyPrefixes {
-    pub const CONFIG: &'static str = "/piccolo/settings/configs/";
-    pub const HISTORY: &'static str = "/piccolo/settings/history/";
-    pub const METRICS: &'static str = "/piccolo/metrics/";
-    pub const FILTERS: &'static str = "/piccolo/settings/filters/";
-    pub const SCHEMAS: &'static str = "/piccolo/settings/schemas/";
+    pub const CONFIG: &'static str = "/pullpiri/settings/configs/";
+    pub const HISTORY: &'static str = "/pullpiri/settings/history/";
+    pub const METRICS: &'static str = "/pullpiri/metrics/";
+    pub const FILTERS: &'static str = "/pullpiri/settings/filters/";
+    pub const SCHEMAS: &'static str = "/pullpiri/settings/schemas/";
 }
 
 /// Helper functions for key management
@@ -290,80 +290,80 @@ mod tests {
 
     #[test]
     fn test_key_prefixes_constants() {
-        assert_eq!(KeyPrefixes::CONFIG, "/piccolo/settings/configs/");
-        assert_eq!(KeyPrefixes::HISTORY, "/piccolo/settings/history/");
-        assert_eq!(KeyPrefixes::METRICS, "/piccolo/metrics/");
-        assert_eq!(KeyPrefixes::FILTERS, "/piccolo/settings/filters/");
-        assert_eq!(KeyPrefixes::SCHEMAS, "/piccolo/settings/schemas/");
+        assert_eq!(KeyPrefixes::CONFIG, "/pullpiri/settings/configs/");
+        assert_eq!(KeyPrefixes::HISTORY, "/pullpiri/settings/history/");
+        assert_eq!(KeyPrefixes::METRICS, "/pullpiri/metrics/");
+        assert_eq!(KeyPrefixes::FILTERS, "/pullpiri/settings/filters/");
+        assert_eq!(KeyPrefixes::SCHEMAS, "/pullpiri/settings/schemas/");
     }
 
     #[test]
     fn test_config_key() {
         assert_eq!(
             config_key("test/config"),
-            "/piccolo/settings/configs/test/config"
+            "/pullpiri/settings/configs/test/config"
         );
         assert_eq!(
             config_key("/absolute/path"),
-            "/piccolo/settings/configs//absolute/path"
+            "/pullpiri/settings/configs//absolute/path"
         );
-        assert_eq!(config_key(""), "/piccolo/settings/configs/");
-        assert_eq!(config_key("simple"), "/piccolo/settings/configs/simple");
+        assert_eq!(config_key(""), "/pullpiri/settings/configs/");
+        assert_eq!(config_key("simple"), "/pullpiri/settings/configs/simple");
     }
 
     #[test]
     fn test_history_key() {
         assert_eq!(
             history_key("test/config", 1),
-            "/piccolo/settings/history/test/config/v1"
+            "/pullpiri/settings/history/test/config/v1"
         );
         assert_eq!(
             history_key("/absolute/path", 42),
-            "/piccolo/settings/history//absolute/path/v42"
+            "/pullpiri/settings/history//absolute/path/v42"
         );
-        assert_eq!(history_key("", 0), "/piccolo/settings/history//v0");
+        assert_eq!(history_key("", 0), "/pullpiri/settings/history//v0");
         assert_eq!(
             history_key("simple", 999),
-            "/piccolo/settings/history/simple/v999"
+            "/pullpiri/settings/history/simple/v999"
         );
     }
 
     #[test]
     fn test_metrics_key() {
-        assert_eq!(metrics_key("cpu", "node1"), "/piccolo/metrics/cpu/node1");
+        assert_eq!(metrics_key("cpu", "node1"), "/pullpiri/metrics/cpu/node1");
         assert_eq!(
             metrics_key("memory", "container123"),
-            "/piccolo/metrics/memory/container123"
+            "/pullpiri/metrics/memory/container123"
         );
         assert_eq!(
             metrics_key("", "empty_type"),
-            "/piccolo/metrics//empty_type"
+            "/pullpiri/metrics//empty_type"
         );
-        assert_eq!(metrics_key("network", ""), "/piccolo/metrics/network/");
+        assert_eq!(metrics_key("network", ""), "/pullpiri/metrics/network/");
     }
 
     #[test]
     fn test_filter_key() {
-        assert_eq!(filter_key("filter1"), "/piccolo/settings/filters/filter1");
+        assert_eq!(filter_key("filter1"), "/pullpiri/settings/filters/filter1");
         assert_eq!(
             filter_key("complex-filter-name"),
-            "/piccolo/settings/filters/complex-filter-name"
+            "/pullpiri/settings/filters/complex-filter-name"
         );
-        assert_eq!(filter_key(""), "/piccolo/settings/filters/");
-        assert_eq!(filter_key("123"), "/piccolo/settings/filters/123");
+        assert_eq!(filter_key(""), "/pullpiri/settings/filters/");
+        assert_eq!(filter_key("123"), "/pullpiri/settings/filters/123");
     }
 
     #[test]
     fn test_schema_key() {
-        assert_eq!(schema_key("user"), "/piccolo/settings/schemas/user");
+        assert_eq!(schema_key("user"), "/pullpiri/settings/schemas/user");
         assert_eq!(
             schema_key("logging-config"),
-            "/piccolo/settings/schemas/logging-config"
+            "/pullpiri/settings/schemas/logging-config"
         );
-        assert_eq!(schema_key(""), "/piccolo/settings/schemas/");
+        assert_eq!(schema_key(""), "/pullpiri/settings/schemas/");
         assert_eq!(
             schema_key("complex.schema.name"),
-            "/piccolo/settings/schemas/complex.schema.name"
+            "/pullpiri/settings/schemas/complex.schema.name"
         );
     }
 
@@ -606,27 +606,27 @@ mod tests {
         // Test keys with special characters
         assert_eq!(
             config_key("test/config with spaces"),
-            "/piccolo/settings/configs/test/config with spaces"
+            "/pullpiri/settings/configs/test/config with spaces"
         );
 
         assert_eq!(
             history_key("test-config_v2", 1),
-            "/piccolo/settings/history/test-config_v2/v1"
+            "/pullpiri/settings/history/test-config_v2/v1"
         );
 
         assert_eq!(
             metrics_key("cpu-usage", "node@1"),
-            "/piccolo/metrics/cpu-usage/node@1"
+            "/pullpiri/metrics/cpu-usage/node@1"
         );
 
         assert_eq!(
             filter_key("filter.with.dots"),
-            "/piccolo/settings/filters/filter.with.dots"
+            "/pullpiri/settings/filters/filter.with.dots"
         );
 
         assert_eq!(
             schema_key("schema:with:colons"),
-            "/piccolo/settings/schemas/schema:with:colons"
+            "/pullpiri/settings/schemas/schema:with:colons"
         );
     }
 
@@ -635,29 +635,29 @@ mod tests {
         // Test with very long strings
         let long_string = "a".repeat(1000);
         let result = config_key(&long_string);
-        assert!(result.starts_with("/piccolo/settings/configs/"));
+        assert!(result.starts_with("/pullpiri/settings/configs/"));
         assert!(result.ends_with(&long_string));
 
         // Test with unicode characters
         assert_eq!(
             config_key("测试/配置"),
-            "/piccolo/settings/configs/测试/配置"
+            "/pullpiri/settings/configs/测试/配置"
         );
 
         assert_eq!(
             schema_key("émojis-🚀-schema"),
-            "/piccolo/settings/schemas/émojis-🚀-schema"
+            "/pullpiri/settings/schemas/émojis-🚀-schema"
         );
 
         // Test with numbers
         assert_eq!(
             history_key("config123", 456),
-            "/piccolo/settings/history/config123/v456"
+            "/pullpiri/settings/history/config123/v456"
         );
 
         assert_eq!(
             metrics_key("metric789", "resource000"),
-            "/piccolo/metrics/metric789/resource000"
+            "/pullpiri/metrics/metric789/resource000"
         );
     }
 

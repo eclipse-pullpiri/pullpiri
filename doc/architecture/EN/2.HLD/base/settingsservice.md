@@ -4,21 +4,21 @@
 -->
 # Settings Service Detailed Design Document
 
-**Document Number**: PICCOLO-SETTINGS-2025-001  
+**Document Number**: Pullpiri-SETTINGS-2025-001  
 **Version**: 1.0  
 **Date**: 2025-08-05  
-**Author**: PICCOLO Team  
+**Author**: Pullpiri Team  
 **Category**: HLD (High-Level Design)
 
 ## 1. Overview
 
-The Settings Service is a core component for system configuration management in the PICCOLO framework. It provides various interfaces for administrators and developers to easily manage system configuration, including web-based UI and CLI for YAML-based configuration file creation, editing, verification, and deployment. It also supports configuration change history management and rollback features.
+The Settings Service is a core component for system configuration management in the Pullpiri framework. It provides various interfaces for administrators and developers to easily manage system configuration, including web-based UI and CLI for YAML-based configuration file creation, editing, verification, and deployment. It also supports configuration change history management and rollback features.
 
 ### 1.1 Purpose
 
 The main purposes of the Settings Service are as follows:
 
-1. Provide centralized configuration management for various components in the PICCOLO framework
+1. Provide centralized configuration management for various components in the Pullpiri framework
 2. Enable easy and safe application of configuration changes through multiple interfaces
 3. Ensure system stability through change history management and rollback
 4. Restrict configuration access based on user permissions
@@ -44,7 +44,7 @@ The Settings Service provides the following main features:
    - Change verification and collision prevention
 
 4. **Monitoring Information**
-   - View PICCOLO resource status information stored in ETCD
+   - View Pullpiri resource status information stored in ETCD
    - Visualize resource-specific monitoring data
    - Export monitoring data
 
@@ -117,7 +117,7 @@ The main data flows in the Settings Service are as follows:
 
 ### 2.3 System Integration
 
-The Settings Service integrates with other PICCOLO framework components as follows:
+The Settings Service integrates with other Pullpiri framework components as follows:
 
 1. **API Server**
    - Forward changed configuration
@@ -167,7 +167,7 @@ The web-based user interface provides the following features:
    - Rollback functionality
 
 4. **Monitoring Viewer**
-   - View PICCOLO resource status information collected from ETCD
+   - View Pullpiri resource status information collected from ETCD
    - Visualize resource-specific monitoring data
    - Filter and export monitoring data
 
@@ -306,7 +306,7 @@ The main data models used in the Settings Service are as follows.
 
 ```yaml
 # Configuration data example
-apiVersion: piccolo.io/v1
+apiVersion: pullpiri.io/v1
 kind: Config
 metadata:
   name: example-config
@@ -649,9 +649,9 @@ Deployment and operational considerations for the Settings Service are as follow
 
 ## 10. Conclusion
 
-The Settings Service is a core component of the PICCOLO framework, providing various interfaces and functions for efficient and safe management of system configurations. It enhances system stability and user productivity by offering intuitive user experiences through Web UI and CLI, along with powerful validation, history management, and monitoring management capabilities.
+The Settings Service is a core component of the Pullpiri framework, providing various interfaces and functions for efficient and safe management of system configurations. It enhances system stability and user productivity by offering intuitive user experiences through Web UI and CLI, along with powerful validation, history management, and monitoring management capabilities.
 
-This design document provides an overview of the basic architecture and main features of the Settings Service, with details that may be added or adjusted during the actual implementation process. Ultimately, the Settings Service supports PICCOLO framework components to be configured, managed, and monitored in a consistent and reliable manner.
+This design document provides an overview of the basic architecture and main features of the Settings Service, with details that may be added or adjusted during the actual implementation process. Ultimately, the Settings Service supports Pullpiri framework components to be configured, managed, and monitored in a consistent and reliable manner.
 
 ### 4.2 History Entry
 

@@ -39,11 +39,11 @@ all-images: image rocksdb-image
 
 .PHONY: install
 install:
-	-./containers/install-piccolo.sh
+	-./containers/install-pullpiri.sh
 
 .PHONY: uninstall
 uninstall:
-	-./containers/uninstall-piccolo.sh
+	-./containers/uninstall-pullpiri.sh
 
 # DO NOT USE THIS COMMAND IN PRODUCTION
 #.PHONY: rocksdb-image
@@ -54,11 +54,11 @@ uninstall:
 
 .PHONY: dev-install
 dev-install:
-	-./containers/devonly/install-piccolo.sh
+	-./containers/devonly/install-pullpiri.sh
 
 .PHONY: dev-uninstall
 dev-uninstall:
-	-./containers/devonly/uninstall-piccolo.sh
+	-./containers/devonly/uninstall-pullpiri.sh
 
 .PHONY: tools
 tools:

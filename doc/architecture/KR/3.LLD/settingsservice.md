@@ -4,15 +4,15 @@
 -->
 # Settings Service 상세 설계 문서 (LLD)
 
-**문서 번호**: PICCOLO-SETTINGS-LLD-2025-001  
+**문서 번호**: Pullpiri-SETTINGS-LLD-2025-001  
 **버전**: 1.0  
 **날짜**: 2025-08-11  
-**작성자**: PICCOLO 팀  
+**작성자**: Pullpiri 팀  
 **분류**: LLD (Low-Level Design)
 
 ## 1. 개요
 
-Settings Service는 PICCOLO 프레임워크에서 시스템 설정 관리와 메트릭 정보 제공을 담당하는 핵심 컴포넌트입니다. 본 문서는 HLD에서 정의된 기능을 구현하기 위한 상세 설계 명세를 제공합니다.
+Settings Service는 Pullpiri 프레임워크에서 시스템 설정 관리와 메트릭 정보 제공을 담당하는 핵심 컴포넌트입니다. 본 문서는 HLD에서 정의된 기능을 구현하기 위한 상세 설계 명세를 제공합니다.
 
 ### 1.1 목적 및 범위
 
@@ -790,7 +790,7 @@ Settings Service는 다음과 같은 REST API 엔드포인트를 제공합니다
   "content": {
     "level": "info",
     "output": ["file", "console"],
-    "file_path": "/var/log/piccolo/system.log",
+    "file_path": "/var/log/pullpiri/system.log",
     "max_size_mb": 100,
     "max_files": 10,
     "rotation": "daily"
@@ -813,7 +813,7 @@ Settings Service는 다음과 같은 REST API 엔드포인트를 제공합니다
   "content": {
     "level": "debug",
     "output": ["file", "console"],
-    "file_path": "/var/log/piccolo/system.log",
+    "file_path": "/var/log/pullpiri/system.log",
     "max_size_mb": 200,
     "max_files": 20,
     "rotation": "daily"
@@ -835,7 +835,7 @@ Settings Service는 다음과 같은 REST API 엔드포인트를 제공합니다
   "content": {
     "level": "invalid-level",
     "output": ["file", "console"],
-    "file_path": "/var/log/piccolo/system.log",
+    "file_path": "/var/log/pullpiri/system.log",
     "max_size_mb": -10,
     "max_files": 20,
     "rotation": "daily"
@@ -1624,4 +1624,4 @@ Settings Service는 다음과 같은 외부 시스템과 통신합니다:
 
 ## 8. 결론
 
-Settings Service는 PICCOLO 프레임워크의 핵심 컴포넌트로서, 시스템 설정 관리와 메트릭 정보 제공을 담당합니다. 본 문서에서는 이를 구현하기 위한 상세 설계를 제시했습니다. 모듈식 아키텍처, 확장 가능한 설계, 강력한 오류 처리 메커니즘을 통해 견고하고 유지보수가 용이한 서비스를 구현할 수 있을 것입니다.
+Settings Service는 Pullpiri 프레임워크의 핵심 컴포넌트로서, 시스템 설정 관리와 메트릭 정보 제공을 담당합니다. 본 문서에서는 이를 구현하기 위한 상세 설계를 제시했습니다. 모듈식 아키텍처, 확장 가능한 설계, 강력한 오류 처리 메커니즘을 통해 견고하고 유지보수가 용이한 서비스를 구현할 수 있을 것입니다.

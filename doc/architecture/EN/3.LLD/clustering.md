@@ -2,22 +2,22 @@
 * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 * SPDX-License-Identifier: Apache-2.0
 -->
-# PICCOLO Clustering System
+# Pullpiri Clustering System
 
-**Document No.**: PICCOLO-CLUSTERING-LLD-2025-001  
+**Document No.**: Pullpiri-CLUSTERING-LLD-2025-001  
 **Version**: 1.0  
 **Date**: 2025-09-04  
-**Author**: PICCOLO Team  
+**Author**: Pullpiri Team  
 **Classification**: LLD (Low-Level Design)
 
 ## 1. Overview
 
-The PICCOLO framework implements an efficient clustering mechanism between master nodes and sub (worker) nodes, enabling monitoring and management in distributed environments. This clustering system is designed with the specific characteristics of embedded environments in mind, optimized for limited resources, cloud connectivity, and small-scale clusters.
+The Pullpiri framework implements an efficient clustering mechanism between master nodes and sub (worker) nodes, enabling monitoring and management in distributed environments. This clustering system is designed with the specific characteristics of embedded environments in mind, optimized for limited resources, cloud connectivity, and small-scale clusters.
 
 ### 1.1 Purpose and Scope
 
 This document includes:
-- Detailed description of the PICCOLO clustering architecture
+- Detailed description of the Pullpiri clustering architecture
 - Clustering-related functions and interfaces of the API Server and NodeAgent
 - Cluster setup, deployment, and management processes
 - Special implementations optimized for embedded environments
@@ -47,7 +47,7 @@ This document includes:
 
 ## 2. API Server Clustering Functions
 
-The API Server is the core component of the master node in a PICCOLO cluster, responsible for cluster configuration, node management, and artifact distribution.
+The API Server is the core component of the master node in a Pullpiri cluster, responsible for cluster configuration, node management, and artifact distribution.
 
 ### 2.1 Key Functions
 
@@ -294,7 +294,7 @@ pub async fn maintain_master_connection(config: &NodeConfig) {
 
 ### 3.3 Clustering Architecture
 
-PICCOLO’s clustering architecture is designed for small clusters optimized for embedded environments:
+Pullpiri’s clustering architecture is designed for small clusters optimized for embedded environments:
 
 1. **Simplified Master–Sub Structure**
    - All core services on single master node
@@ -374,7 +374,7 @@ PICCOLO’s clustering architecture is designed for small clusters optimized for
 
 ### 7.1 Related Documents
 
-- HLD/base/piccolo_network(pharos).md  
+- HLD/base/pullpiri_network(pharos).md  
 - 3.LLD/apiserver.md  
 - 3.LLD/nodeagent.md  
 

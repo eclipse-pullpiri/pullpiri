@@ -46,9 +46,9 @@ kind: Model
 metadata:
   name: helloworld_dds-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld_dds-core
-    io.piccolo.annotations.package-name: helloworld_dds
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld_dds-core
+    io.pullpiri.annotations.package-name: helloworld_dds
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld_dds-core
 spec:
@@ -149,9 +149,9 @@ kind: Model
 metadata:
   name: helloworld_dds-core1
   annotations:
-    io.piccolo.annotations.package-type: helloworld_dds-core1
-    io.piccolo.annotations.package-name: helloworld_dds1
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld_dds-core1
+    io.pullpiri.annotations.package-name: helloworld_dds1
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld_dds-core1
 spec:
@@ -260,9 +260,9 @@ kind: Model
 metadata:
   name: helloworld_dds-core2
   annotations:
-    io.piccolo.annotations.package-type: helloworld_dds-core2
-    io.piccolo.annotations.package-name: helloworld_dds2
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld_dds-core2
+    io.pullpiri.annotations.package-name: helloworld_dds2
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld_dds-core2
 spec:

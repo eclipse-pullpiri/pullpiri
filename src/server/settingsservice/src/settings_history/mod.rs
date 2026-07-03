@@ -868,7 +868,7 @@ mod tests {
     async fn test_list_history_empty() {
         let mut storage = MockStorage::new();
         storage.set_list_result(
-            "/piccolo/settings/history//test/config/".to_string(),
+            "/pullpiri/settings/history//test/config/".to_string(),
             HashMap::new(),
         );
 
@@ -926,7 +926,7 @@ mod tests {
         );
 
         storage.set_list_result(
-            "/piccolo/settings/history//test/config/".to_string(),
+            "/pullpiri/settings/history//test/config/".to_string(),
             list_result,
         );
 
@@ -972,7 +972,7 @@ mod tests {
         }
 
         storage.set_list_result(
-            "/piccolo/settings/history//test/config/".to_string(),
+            "/pullpiri/settings/history//test/config/".to_string(),
             list_result,
         );
 

@@ -165,7 +165,7 @@ async fn initialize(
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Path to the configuration file
-    #[arg(short, long, default_value = "/etc/piccolo/nodeagent.yaml")]
+    #[arg(short, long, default_value = "/etc/pullpiri/nodeagent.yaml")]
     config: PathBuf,
 }
 

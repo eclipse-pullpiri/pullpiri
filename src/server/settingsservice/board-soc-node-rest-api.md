@@ -124,11 +124,11 @@ http://localhost:8080/api/v1
 
 - **etcd** at `localhost:2379`
 - **Data Paths:**
-  - Nodes: `/piccolo/metrics/nodes/{node_name}`
-  - SoCs: `/piccolo/metrics/socs/{soc_id}`
-  - Boards: `/piccolo/metrics/boards/{board_id}`
-  - Logs: `/piccolo/logs/{type}/{id}`
-  - Metadata: `/piccolo/metadata/{type}/{id}`
+  - Nodes: `/pullpiri/metrics/nodes/{node_name}`
+  - SoCs: `/pullpiri/metrics/socs/{soc_id}`
+  - Boards: `/pullpiri/metrics/boards/{board_id}`
+  - Logs: `/pullpiri/logs/{type}/{id}`
+  - Metadata: `/pullpiri/metadata/{type}/{id}`
 
 ---
 

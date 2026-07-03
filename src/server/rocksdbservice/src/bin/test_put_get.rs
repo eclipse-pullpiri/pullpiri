@@ -94,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
 
         let model_yaml = format!(
-            "apiVersion: v1\nkind: Model\nmetadata:\n  name: helloworld_m_{}_{}\n  annotations:\n    io.piccolo.annotations.package-type: helloworld\n    io.piccolo.annotations.package-name: helloworld_{}_{}\n    io.piccolo.annotations.package-network: default\n  labels:\n    app: helloworld_m_{}_{}app\nspec:\n  hostNetwork: true\n  containers:\n    - name: helloworld_c_{}_{}\n      image: quay.io/podman/hello:latest\n  terminationGracePeriodSeconds: 0\n  restartPolicy: Always",
+            "apiVersion: v1\nkind: Model\nmetadata:\n  name: helloworld_m_{}_{}\n  annotations:\n    io.pullpiri.annotations.package-type: helloworld\n    io.pullpiri.annotations.package-name: helloworld_{}_{}\n    io.pullpiri.annotations.package-network: default\n  labels:\n    app: helloworld_m_{}_{}app\nspec:\n  hostNetwork: true\n  containers:\n    - name: helloworld_c_{}_{}\n      image: quay.io/podman/hello:latest\n  terminationGracePeriodSeconds: 0\n  restartPolicy: Always",
             user_word, i, user_word, i, user_word, i, user_word, i
         );
 

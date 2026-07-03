@@ -132,7 +132,7 @@ doc/                  # Documentation
 ```
 
 ### Important Configuration Files
-- `/etc/piccolo/settings.yaml` -- Main configuration
+- `/etc/pullpiri/settings.yaml` -- Main configuration
 - `src/**/Cargo.toml` files -- Rust project definitions in each component
 - `src/common/proto/` -- gRPC protocol definition files
 

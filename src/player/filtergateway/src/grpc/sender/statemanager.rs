@@ -39,7 +39,7 @@ use tonic::{Request, Status};
 /// - Handles resource access authorization results
 /// - Reports compliance and audit information
 ///
-/// # PICCOLO Compliance
+/// # Pullpiri Compliance
 /// - Supports ASIL safety levels from QM to ASIL-D
 /// - Maintains nanosecond precision timestamps for timing verification
 /// - Provides comprehensive tracking through transition IDs
@@ -145,7 +145,7 @@ impl StateManagerSender {
     /// * `Status::invalid_argument` - Malformed StateChange message
     /// * `Status::deadline_exceeded` - Request timeout (ASIL timing violation)
     ///
-    /// # PICCOLO Compliance Notes
+    /// # Pullpiri Compliance Notes
     /// - Preserves nanosecond precision timestamps for timing verification
     /// - Maintains transition_id for complete audit trail
     /// - Supports ResourceType enum for type-safe resource identification

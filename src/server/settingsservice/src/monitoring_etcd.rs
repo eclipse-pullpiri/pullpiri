@@ -28,7 +28,7 @@ type Result<T> = std::result::Result<T, MonitoringEtcdError>;
 
 /// Generic function to store info in etcd
 async fn store_info<T: Serialize>(resource_type: &str, resource_id: &str, info: &T) -> Result<()> {
-    let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
+    let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
     let json_data = serde_json::to_string(info)?;
 
     common::etcd::put(&key, &json_data)
@@ -41,7 +41,7 @@ async fn store_info<T: Serialize>(resource_type: &str, resource_id: &str, info: 
 
 /// Generic function to retrieve info from etcd
 async fn get_info<T: DeserializeOwned>(resource_type: &str, resource_id: &str) -> Result<T> {
-    let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
+    let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
 
     let json_data = common::etcd::get(&key)
         .await
@@ -55,7 +55,7 @@ async fn get_info<T: DeserializeOwned>(resource_type: &str, resource_id: &str) -
 
 /// Generic function to get all items of a type from etcd
 async fn get_all_info<T: DeserializeOwned>(resource_type: &str) -> Result<Vec<T>> {
-    let prefix = format!("/piccolo/metrics/{}/", resource_type);
+    let prefix = format!("/pullpiri/metrics/{}/", resource_type);
     let kv_pairs = common::etcd::get_all_with_prefix(&prefix)
         .await
         .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
@@ -78,7 +78,7 @@ async fn get_all_info<T: DeserializeOwned>(resource_type: &str) -> Result<Vec<T>
 
 /// Generic function to delete info from etcd
 async fn delete_info(resource_type: &str, resource_id: &str) -> Result<()> {
-    let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
+    let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
 
     common::etcd::delete(&key)
         .await
@@ -202,7 +202,7 @@ pub async fn get_container_logs(container_id: &str) -> Result<Vec<String>> {
 
 /// Generic function to get logs from etcd
 async fn get_logs(resource_type: &str, resource_id: &str) -> Result<Vec<String>> {
-    let prefix = format!("/piccolo/logs/{}/{}", resource_type, resource_id);
+    let prefix = format!("/pullpiri/logs/{}/{}", resource_type, resource_id);
     let kv_pairs = common::etcd::get_all_with_prefix(&prefix)
         .await
         .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
@@ -250,7 +250,7 @@ async fn store_metadata(
     resource_id: &str,
     metadata: &serde_json::Value,
 ) -> Result<()> {
-    let key = format!("/piccolo/metadata/{}/{}", resource_type, resource_id);
+    let key = format!("/pullpiri/metadata/{}/{}", resource_type, resource_id);
     let value = serde_json::to_string(metadata)?;
 
     common::etcd::put(&key, &value)
@@ -558,24 +558,24 @@ mod tests {
         // Test the key format patterns used in the functions
         let resource_type = "nodes";
         let resource_id = "test-node";
-        let expected_key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
-        assert_eq!(expected_key, "/piccolo/metrics/nodes/test-node");
+        let expected_key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
+        assert_eq!(expected_key, "/pullpiri/metrics/nodes/test-node");
 
-        let logs_key = format!("/piccolo/logs/{}/{}", resource_type, resource_id);
-        assert_eq!(logs_key, "/piccolo/logs/nodes/test-node");
+        let logs_key = format!("/pullpiri/logs/{}/{}", resource_type, resource_id);
+        assert_eq!(logs_key, "/pullpiri/logs/nodes/test-node");
 
-        let metadata_key = format!("/piccolo/metadata/{}/{}", resource_type, resource_id);
-        assert_eq!(metadata_key, "/piccolo/metadata/nodes/test-node");
+        let metadata_key = format!("/pullpiri/metadata/{}/{}", resource_type, resource_id);
+        assert_eq!(metadata_key, "/pullpiri/metadata/nodes/test-node");
     }
 
     #[test]
     fn test_prefix_format_generation() {
         let resource_type = "containers";
-        let prefix = format!("/piccolo/metrics/{}/", resource_type);
-        assert_eq!(prefix, "/piccolo/metrics/containers/");
+        let prefix = format!("/pullpiri/metrics/{}/", resource_type);
+        assert_eq!(prefix, "/pullpiri/metrics/containers/");
 
-        let logs_prefix = format!("/piccolo/logs/{}/{}", resource_type, "container-id");
-        assert_eq!(logs_prefix, "/piccolo/logs/containers/container-id");
+        let logs_prefix = format!("/pullpiri/logs/{}/{}", resource_type, "container-id");
+        assert_eq!(logs_prefix, "/pullpiri/logs/containers/container-id");
     }
 
     #[test]
@@ -706,13 +706,13 @@ mod tests {
         let resource_types = vec!["nodes", "socs", "boards", "containers"];
 
         for resource_type in resource_types {
-            let metrics_key = format!("/piccolo/metrics/{}/resource-id", resource_type);
-            let logs_prefix = format!("/piccolo/logs/{}/resource-id", resource_type);
-            let metadata_key = format!("/piccolo/metadata/{}/resource-id", resource_type);
+            let metrics_key = format!("/pullpiri/metrics/{}/resource-id", resource_type);
+            let logs_prefix = format!("/pullpiri/logs/{}/resource-id", resource_type);
+            let metadata_key = format!("/pullpiri/metadata/{}/resource-id", resource_type);
 
-            assert!(metrics_key.starts_with("/piccolo/metrics/"));
-            assert!(logs_prefix.starts_with("/piccolo/logs/"));
-            assert!(metadata_key.starts_with("/piccolo/metadata/"));
+            assert!(metrics_key.starts_with("/pullpiri/metrics/"));
+            assert!(logs_prefix.starts_with("/pullpiri/logs/"));
+            assert!(metadata_key.starts_with("/pullpiri/metadata/"));
 
             assert!(metrics_key.contains(resource_type));
             assert!(logs_prefix.contains(resource_type));
@@ -723,10 +723,10 @@ mod tests {
     #[test]
     fn test_key_uniqueness() {
         // Test that different resource types and IDs generate unique keys
-        let node_key = format!("/piccolo/metrics/{}/{}", "nodes", "node1");
-        let soc_key = format!("/piccolo/metrics/{}/{}", "socs", "node1");
-        let board_key = format!("/piccolo/metrics/{}/{}", "boards", "node1");
-        let container_key = format!("/piccolo/metrics/{}/{}", "containers", "node1");
+        let node_key = format!("/pullpiri/metrics/{}/{}", "nodes", "node1");
+        let soc_key = format!("/pullpiri/metrics/{}/{}", "socs", "node1");
+        let board_key = format!("/pullpiri/metrics/{}/{}", "boards", "node1");
+        let container_key = format!("/pullpiri/metrics/{}/{}", "containers", "node1");
 
         let keys = vec![node_key, soc_key, board_key, container_key];
         let unique_keys: std::collections::HashSet<_> = keys.iter().collect();
@@ -748,9 +748,9 @@ mod tests {
         ];
 
         for id in test_ids {
-            let key = format!("/piccolo/metrics/nodes/{}", id);
+            let key = format!("/pullpiri/metrics/nodes/{}", id);
             assert!(key.contains(id));
-            assert!(key.starts_with("/piccolo/metrics/nodes/"));
+            assert!(key.starts_with("/pullpiri/metrics/nodes/"));
 
             // Key should be well-formed (no double slashes except at start)
             let parts: Vec<&str> = key.split("//").collect();
@@ -809,8 +809,8 @@ mod tests {
         ];
 
         for id in special_ids {
-            let key = format!("/piccolo/metrics/nodes/{}", id);
-            let prefix = format!("/piccolo/metrics/nodes/");
+            let key = format!("/pullpiri/metrics/nodes/{}", id);
+            let prefix = format!("/pullpiri/metrics/nodes/");
 
             assert!(key.starts_with(&prefix));
             assert_eq!(key.len(), prefix.len() + id.len());

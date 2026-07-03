@@ -9,7 +9,7 @@
 //! It handles incoming requests from various components (ApiServer, FilterGateway, ActionController)
 //! and forwards them to the StateManager's internal processing engine via async channels.
 //!
-//! The implementation supports the complete PICCOLO Resource State Management specification,
+//! The implementation supports the complete Pullpiri Resource State Management specification,
 //! including state changes, resource queries, recovery management, and event notifications.
 pub mod timpani;
 
@@ -132,7 +132,7 @@ impl StateManagerConnection for StateManagerReceiver {
     }
     /// Handles StateChange messages from various components.
     ///
-    /// This is the core method for state management in the PICCOLO framework.
+    /// This is the core method for state management in the Pullpiri framework.
     /// It receives state change requests from ApiServer, FilterGateway, and
     /// ActionController, forwards them to the StateManager's state machine,
     /// and returns a comprehensive response with ASIL-compliant tracking.
@@ -332,7 +332,7 @@ impl StateManagerConnection for StateManagerReceiver {
 }
 
 impl StateManagerReceiver {
-    /// Validates a StateChange message according to PICCOLO specifications.
+    /// Validates a StateChange message according to Pullpiri specifications.
     ///
     /// This method performs comprehensive validation of StateChange messages
     /// to ensure they conform to the proto specification and contain valid data.

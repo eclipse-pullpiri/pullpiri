@@ -9,7 +9,7 @@
 //! and launches both concurrently. It provides proper error handling, graceful shutdown capabilities,
 //! and comprehensive logging for monitoring and debugging.
 //!
-//! The StateManager service is a core component of the PICCOLO framework, responsible for managing
+//! The StateManager service is a core component of the Pullpiri framework, responsible for managing
 //! resource state transitions, monitoring container health, and ensuring ASIL-compliant operation.
 
 use common::logd;

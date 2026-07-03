@@ -322,22 +322,22 @@ impl MonitoringServerManager {
                 let container_name = c.names.first().cloned().unwrap_or_default();
                 let scenario_name = c
                     .annotation
-                    .get("io.piccolo.annotations.scenario")
+                    .get("io.pullpiri.annotations.scenario")
                     .cloned()
                     .unwrap_or_default();
                 let package_name = c
                     .annotation
-                    .get("io.piccolo.annotations.package")
+                    .get("io.pullpiri.annotations.package")
                     .cloned()
                     .unwrap_or_default();
                 let policy_name = c
                     .annotation
-                    .get("io.piccolo.annotations.policy")
+                    .get("io.pullpiri.annotations.policy")
                     .cloned()
                     .unwrap_or_default();
                 let model_name = c
                     .annotation
-                    .get("io.piccolo.annotations.model")
+                    .get("io.pullpiri.annotations.model")
                     .cloned()
                     .unwrap_or_default();
 

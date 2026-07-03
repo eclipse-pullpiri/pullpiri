@@ -17,66 +17,66 @@ echo "Running server with image: ${CONTAINER_IMAGE}"
 
 # Create a pod with host networking
 podman pod create \
-  --name piccolo-server \
+  --name pullpiri-server \
   --network host \
   --pid host
 
 # Run rocksdbservice container
 podman run -d \
-  --pod piccolo-server \
-  --name piccolo-rocksdbservice \
+  --pod pullpiri-server \
+  --name pullpiri-rocksdbservice \
   --user 0:0 \
   -e RUST_LOG="info" \
-  -v /etc/piccolo/pullpiri_shared_rocksdb:/data:Z \
+  -v /etc/pullpiri/pullpiri_shared_rocksdb:/data:Z \
   ${ROCKSDB_IMAGE} \
   rocksdbservice --path /data --addr 0.0.0.0 --port 47007
 
 # Run apiserver container
 podman run -d \
-  --pod piccolo-server \
-  --name piccolo-apiserver \
+  --pod pullpiri-server \
+  --name pullpiri-apiserver \
   -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
-  -v /etc/piccolo/settings.yaml:/etc/piccolo/settings.yaml:Z \
-  -v /run/piccololog/:/run/piccololog/ \
+  -v /etc/pullpiri/settings.yaml:/etc/pullpiri/settings.yaml:Z \
+  -v /run/pullpirilog/:/run/pullpirilog/ \
   ${CONTAINER_IMAGE} \
-  /piccolo/apiserver
+  /pullpiri/apiserver
 
 # Run policymanager container
 podman run -d \
-  --pod piccolo-server \
-  --name piccolo-policymanager \
+  --pod pullpiri-server \
+  --name pullpiri-policymanager \
   -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
-  -v /etc/piccolo/settings.yaml:/etc/piccolo/settings.yaml:Z \
-  -v /run/piccololog/:/run/piccololog/ \
+  -v /etc/pullpiri/settings.yaml:/etc/pullpiri/settings.yaml:Z \
+  -v /run/pullpirilog/:/run/pullpirilog/ \
   ${CONTAINER_IMAGE} \
-  /piccolo/policymanager
+  /pullpiri/policymanager
 
 # Run monitoringserver container
 podman run -d \
-  --pod piccolo-server \
-  --name piccolo-monitoringserver \
+  --pod pullpiri-server \
+  --name pullpiri-monitoringserver \
   -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
-  -v /etc/piccolo/settings.yaml:/etc/piccolo/settings.yaml:Z \
-  -v /run/piccololog/:/run/piccololog/ \
+  -v /etc/pullpiri/settings.yaml:/etc/pullpiri/settings.yaml:Z \
+  -v /run/pullpirilog/:/run/pullpirilog/ \
   ${CONTAINER_IMAGE} \
-  /piccolo/monitoringserver
+  /pullpiri/monitoringserver
 
 # Run logservice container
 podman run -d \
-  --pod piccolo-server \
-  --name piccolo-logservice \
+  --pod pullpiri-server \
+  --name pullpiri-logservice \
   -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
-  -v /etc/piccolo/settings.yaml:/etc/piccolo/settings.yaml:Z \
-  -v /run/piccololog/:/run/piccololog/ \
+  -v /etc/pullpiri/settings.yaml:/etc/pullpiri/settings.yaml:Z \
+  -v /run/pullpirilog/:/run/pullpirilog/ \
   ${CONTAINER_IMAGE} \
-  /piccolo/logservice
+  /pullpiri/logservice
 
 # Run settingsservice container
 podman run -d \
-  --pod piccolo-server \
-  --name piccolo-settingsservice \
+  --pod pullpiri-server \
+  --name pullpiri-settingsservice \
   -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
-  -v /etc/piccolo/settings.yaml:/etc/piccolo/settings.yaml:Z \
-  -v /run/piccololog/:/run/piccololog/ \
+  -v /etc/pullpiri/settings.yaml:/etc/pullpiri/settings.yaml:Z \
+  -v /run/pullpirilog/:/run/pullpirilog/ \
   ${CONTAINER_IMAGE} \
-  /piccolo/settingsservice --bind-address=${MASTER_IP} --bind-port=8080 --log-level=debug
+  /pullpiri/settingsservice --bind-address=${MASTER_IP} --bind-port=8080 --log-level=debug

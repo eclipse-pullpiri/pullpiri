@@ -2,24 +2,24 @@
 * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 * SPDX-License-Identifier: Apache-2.0
 -->
-# PICCOLO Clustering System Design Document
+# Pullpiri Clustering System Design Document
 
-**Document No.**: PICCOLO-CLUSTERING-HLD-2025-001  
+**Document No.**: Pullpiri-CLUSTERING-HLD-2025-001  
 **Version**: 1.0  
 **Date**: 2025-09-04  
-**Author**: PICCOLO Team  
+**Author**: Pullpiri Team  
 **Classification**: HLD (High-Level Design)
 
 ## 1. Project Overview
 
-**Project Name**: PICCOLO Clustering System  
+**Project Name**: Pullpiri Clustering System  
 **Purpose/Background**: Development of a lightweight container orchestration cluster system optimized for embedded environments  
 **Key Features**: Node management, cluster configuration, status monitoring, inter-node communication  
 **Target Users**: Embedded system developers, administrators, operators
 
 ### 1.1 Purpose
 
-The PICCOLO Clustering System is designed to implement a distributed container management system optimized for embedded environments.
+The Pullpiri Clustering System is designed to implement a distributed container management system optimized for embedded environments.
 
 1. Provide a lightweight cluster architecture that operates efficiently in resource-constrained environments  
 2. Implement seamless communication and status management between master and sub nodes  
@@ -67,7 +67,7 @@ The PICCOLO Clustering System is designed to implement a distributed container m
 
 ## 3. Architecture
 
-The PICCOLO Clustering System is based on a master-sub node structure and adopts a lightweight design optimized for embedded environments.
+The Pullpiri Clustering System is based on a master-sub node structure and adopts a lightweight design optimized for embedded environments.
 
 ### 3.1 System Structure
 
@@ -337,7 +337,7 @@ Scaling strategies: gradual node scaling, multi-cluster hierarchy, hybrid cloud 
 
 ## 15. References
 
-- PICCOLO framework design docs  
+- Pullpiri framework design docs  
 - API Server design docs  
 - NodeAgent design docs  
 - etcd docs: https://etcd.io/docs/  
@@ -361,5 +361,5 @@ Scaling strategies: gradual node scaling, multi-cluster hierarchy, hybrid cloud 
 
 | Version | Date | Change | Author |
 |---------|------|--------|--------|
-| 1.0 | 2025-09-04 | Initial draft | PICCOLO Team |
+| 1.0 | 2025-09-04 | Initial draft | Pullpiri Team |
 

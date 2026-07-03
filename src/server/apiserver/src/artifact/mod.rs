@@ -144,7 +144,7 @@ async fn process_artifact_document(doc: &str) -> common::Result<Option<(String, 
 /// Apply downloaded artifact to etcd
 ///
 /// ### Parametets
-/// * `body: &str` - whole yaml string of piccolo artifact
+/// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Returns
 /// * `Result(String, String)` - scenario and package yaml in downloaded artifact
 /// ### Description
@@ -182,7 +182,7 @@ pub async fn apply(body: &str) -> common::Result<String> {
 /// Delete downloaded artifact to etcd
 ///
 /// ### Parametets
-/// * `body: &str` - whole yaml string of piccolo artifact
+/// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Returns
 /// * `Result(String)` - scenario yaml in downloaded artifact
 /// ### Description
@@ -343,9 +343,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:

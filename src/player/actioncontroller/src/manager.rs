@@ -282,19 +282,19 @@ impl ActionControllerManager {
         // Build annotations mapping
         let mut annotations = serde_yaml::Mapping::new();
         annotations.insert(
-            serde_yaml::Value::String("io.piccolo.annotations.scenario".to_string()),
+            serde_yaml::Value::String("io.pullpiri.annotations.scenario".to_string()),
             serde_yaml::Value::String(scenario_name.to_string()),
         );
         annotations.insert(
-            serde_yaml::Value::String("io.piccolo.annotations.package".to_string()),
+            serde_yaml::Value::String("io.pullpiri.annotations.package".to_string()),
             serde_yaml::Value::String(package_name.to_string()),
         );
         annotations.insert(
-            serde_yaml::Value::String("io.piccolo.annotations.policy".to_string()),
+            serde_yaml::Value::String("io.pullpiri.annotations.policy".to_string()),
             serde_yaml::Value::String(policy_name.to_string()),
         );
         annotations.insert(
-            serde_yaml::Value::String("io.piccolo.annotations.model".to_string()),
+            serde_yaml::Value::String("io.pullpiri.annotations.model".to_string()),
             serde_yaml::Value::String(model_name.to_string()),
         );
 

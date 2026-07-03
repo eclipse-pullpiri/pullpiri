@@ -16,7 +16,7 @@ async fn store_info<T: Serialize>(
     resource_id: &str,
     info: &T,
 ) -> common::Result<()> {
-    let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
+    let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
     let json_data = serde_json::to_string(info)
         .map_err(|e| format!("Failed to serialize {}: {}", resource_type, e))?;
 
@@ -33,7 +33,7 @@ async fn get_info<T: DeserializeOwned>(
     resource_type: &str,
     resource_id: &str,
 ) -> common::Result<T> {
-    let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
+    let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
     let json_data = common::etcd::get(&key).await?;
 
     let info: T = serde_json::from_str(&json_data)
@@ -44,7 +44,7 @@ async fn get_info<T: DeserializeOwned>(
 
 /// Generic function to delete info from etcd
 async fn delete_info(resource_type: &str, resource_id: &str) -> common::Result<()> {
-    let key = format!("/piccolo/metrics/{}/{}", resource_type, resource_id);
+    let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
     common::etcd::delete(&key).await?;
     println!(
         "[ETCD] Deleted the metrics for {}: {}",
@@ -55,7 +55,7 @@ async fn delete_info(resource_type: &str, resource_id: &str) -> common::Result<(
 
 /// Generic function to get all items of a type from etcd
 async fn get_all_info<T: DeserializeOwned>(resource_type: &str) -> common::Result<Vec<T>> {
-    let prefix = format!("/piccolo/metrics/{}/", resource_type);
+    let prefix = format!("/pullpiri/metrics/{}/", resource_type);
     let kv_pairs = common::etcd::get_all_with_prefix(&prefix).await?;
 
     let mut items = Vec::new();
@@ -180,7 +180,7 @@ pub async fn get_all_boards() -> common::Result<Vec<BoardInfo>> {
 
 /// Get all containers from etcd
 pub async fn get_all_containers() -> common::Result<Vec<ContainerInfo>> {
-    let prefix = "/piccolo/metrics/containers/".to_string();
+    let prefix = "/pullpiri/metrics/containers/".to_string();
     let kv_pairs = common::etcd::get_all_with_prefix(&prefix).await?;
 
     let mut containers = Vec::new();
@@ -235,7 +235,7 @@ pub async fn get_all_containers() -> common::Result<Vec<ContainerInfo>> {
 pub async fn delete_all_containers() -> common::Result<()> {
     use tokio::time::{sleep, Duration};
 
-    let prefix = "/piccolo/metrics/containers/".to_string();
+    let prefix = "/pullpiri/metrics/containers/".to_string();
     const MAX_RETRIES: u32 = 10;
     const RETRY_INTERVAL_SECS: u64 = 1;
 
@@ -294,7 +294,7 @@ pub async fn delete_all_containers() -> common::Result<()> {
     Ok(())
 }
 
-/// Store a raw stress metric JSON string in etcd under /piccolo/metrics/stress/{process}/{pid}:{ts}
+/// Store a raw stress metric JSON string in etcd under /pullpiri/metrics/stress/{process}/{pid}:{ts}
 pub async fn store_stress_metric_json(json_str: &str) -> common::Result<()> {
     // parse & validate JSON
     let v: Value = serde_json::from_str(json_str)

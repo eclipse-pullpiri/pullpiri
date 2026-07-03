@@ -70,7 +70,7 @@ fn default_node_role() -> String {
 }
 
 fn default_yaml_storage() -> String {
-    "/etc/piccolo/yaml".to_string()
+    "/etc/pullpiri/yaml".to_string()
 }
 
 #[derive(Debug, Deserialize, Clone, Default, PartialEq)]

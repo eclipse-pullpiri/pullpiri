@@ -2,9 +2,9 @@
 * SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 * SPDX-License-Identifier: Apache-2.0
 -->
-# PICCOLO Settings Service
+# Pullpiri Settings Service
 
-The Settings Service is a core component of the PICCOLO framework that provides centralized configuration management and metrics filtering capabilities for vehicle service orchestration.
+The Settings Service is a core component of the Pullpiri framework that provides centralized configuration management and metrics filtering capabilities for vehicle service orchestration.
 
 ## Features
 
@@ -25,7 +25,7 @@ The Settings Service consists of the following modules:
 - `settings_config`: Configuration management with YAML/JSON support
 - `settings_history`: Change history tracking and rollback
 - `settings_monitoring`: High-level metrics data retrieval and filtering with caching (returns both Metric objects with labels and raw resource objects)
-- `monitoring_etcd`: Direct ETCD operations for monitoring data (`/piccolo/metrics/`, `/piccolo/logs/`)
+- `monitoring_etcd`: Direct ETCD operations for monitoring data (`/pullpiri/metrics/`, `/pullpiri/logs/`)
 - `monitoring_types`: Type definitions for vehicle orchestration metrics (NodeInfo, SocInfo, BoardInfo)
 - `settings_storage`: ETCD client for configuration data persistence
 - `settings_api`: REST API server with comprehensive metrics endpoints
@@ -135,7 +135,7 @@ The Settings Service provides a comprehensive REST API:
 
 The service can be configured using command-line arguments or environment variables:
 
-- `--config`: Configuration file path (default: `/etc/piccolo/settings.yaml`)
+- `--config`: Configuration file path (default: `/etc/pullpiri/settings.yaml`)
 - `--etcd-endpoints`: ETCD endpoints (default: `localhost:2379`)
 - `--bind-address`: HTTP server bind address (default: `0.0.0.0`)
 - `--bind-port`: HTTP server bind port (default: `8080`)
@@ -280,9 +280,9 @@ kind: Model
 metadata:
   name: helloworld
   annotations:
-    io.piccolo.annotations.package-type: helloworld
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld
 spec:
@@ -406,10 +406,10 @@ The Settings Service provides two types of responses for resource data:
 
 The Settings Service integrates directly with the Pullpiri vehicle orchestration framework:
 
-- **MonitoringServer**: Stores vehicle node, container, SoC, and board metrics in ETCD at `/piccolo/metrics/`
+- **MonitoringServer**: Stores vehicle node, container, SoC, and board metrics in ETCD at `/pullpiri/metrics/`
 - **NodeAgent**: Reports node resource utilization and container status to MonitoringServer
 - **APIServer**: Consumes configurations for orchestration policies and resource management; receives YAML artifacts forwarded by Settings Service
-- **ETCD**: Central storage for both configurations (`/piccolo/settings/`) and real-time metrics (`/piccolo/metrics/`)
+- **ETCD**: Central storage for both configurations (`/pullpiri/settings/`) and real-time metrics (`/pullpiri/metrics/`)
 
 ## Port Usage
 

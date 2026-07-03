@@ -211,7 +211,7 @@ kind: Model
 metadata:
   name: example-model
   annotations:
-    io.piccolo.annotations.package-type: example
+    io.pullpiri.annotations.package-type: example
   labels:
     app: example
 spec:

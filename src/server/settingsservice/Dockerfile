@@ -36,7 +36,7 @@ COPY --from=builder /app/src/server/target/release/settingsservice /usr/local/bi
 # COPY --from=builder /app/src/server/target/release/settings-cli /usr/local/bin/
 
 # Create configuration directory
-RUN mkdir -p /etc/piccolo && chown settingsservice:settingsservice /etc/piccolo
+RUN mkdir -p /etc/pullpiri && chown settingsservice:settingsservice /etc/pullpiri
 
 # Switch to non-root user
 USER settingsservice

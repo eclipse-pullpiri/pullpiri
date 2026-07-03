@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-//! PICCOLO Settings Service
+//! Pullpiri Settings Service
 //!
 //! This service provides centralized configuration management and metrics filtering
-//! for the PICCOLO framework. It supports:
+//! for the Pullpiri framework. It supports:
 //!
 //! - YAML/JSON configuration management
 //! - Change history tracking and rollback
@@ -32,10 +32,10 @@ use settings_utils::logging::init_logging;
 /// Settings Service command line arguments
 #[derive(Parser, Debug)]
 #[command(name = "settingsservice")]
-#[command(about = "PICCOLO Settings Service - Central configuration and metrics management")]
+#[command(about = "Pullpiri Settings Service - Central configuration and metrics management")]
 struct Args {
     /// Configuration file path
-    #[arg(short, long, default_value = "/etc/piccolo/settings.yaml")]
+    #[arg(short, long, default_value = "/etc/pullpiri/settings.yaml")]
     config: PathBuf,
 
     /// ETCD endpoints (comma separated)
@@ -62,7 +62,7 @@ async fn main() -> Result<()> {
     // Initialize logging
     init_logging(&args.log_level)?;
 
-    info!("Starting PICCOLO Settings Service");
+    info!("Starting Pullpiri Settings Service");
     info!("Config file: {:?}", args.config);
     info!("ETCD endpoints: {}", args.etcd_endpoints);
 
@@ -126,7 +126,7 @@ mod tests {
     fn test_args_default_values() {
         let args = Args::parse_from(["settingsservice"]);
 
-        assert_eq!(args.config, PathBuf::from("/etc/piccolo/settings.yaml"));
+        assert_eq!(args.config, PathBuf::from("/etc/pullpiri/settings.yaml"));
         assert_eq!(args.etcd_endpoints, "localhost:2379");
         assert_eq!(args.bind_address, "0.0.0.0");
         assert_eq!(args.bind_port, 8080);
@@ -160,7 +160,7 @@ mod tests {
         ]);
 
         assert_eq!(args.etcd_endpoints, "etcd1:2379,etcd2:2379,etcd3:2379");
-        assert_eq!(args.config, PathBuf::from("/etc/piccolo/settings.yaml")); // Should remain default
+        assert_eq!(args.config, PathBuf::from("/etc/pullpiri/settings.yaml")); // Should remain default
     }
 
     #[test]
@@ -280,7 +280,7 @@ mod tests {
     #[test]
     fn test_pathbuf_creation() {
         let config_paths = [
-            "/etc/piccolo/settings.yaml",
+            "/etc/pullpiri/settings.yaml",
             "/home/user/config.yaml",
             "relative/path/config.yaml",
             "../parent/config.yaml",
@@ -387,7 +387,7 @@ mod tests {
         assert_eq!(cmd.get_name(), "settingsservice");
         assert!(cmd.get_about().is_some());
         let about_str = cmd.get_about().unwrap().to_string();
-        assert!(about_str.contains("PICCOLO Settings Service"));
+        assert!(about_str.contains("Pullpiri Settings Service"));
     }
 
     #[test]
@@ -397,7 +397,7 @@ mod tests {
             "/path/to/config.yml",
             "/path/to/config.json",
             "/path/to/settings.yaml",
-            "/path/to/piccolo.yaml",
+            "/path/to/pullpiri.yaml",
         ];
 
         for config_file in &config_files {
@@ -420,7 +420,7 @@ mod tests {
         env::set_var("PWD", "/test/directory");
 
         let args = Args::parse_from(["settingsservice"]);
-        assert_eq!(args.config, PathBuf::from("/etc/piccolo/settings.yaml"));
+        assert_eq!(args.config, PathBuf::from("/etc/pullpiri/settings.yaml"));
 
         // Restore original environment
         if !original_pwd.is_empty() {
@@ -435,10 +435,10 @@ mod tests {
         // Test service identification constants
         const SERVICE_NAME: &str = "settingsservice";
         const SERVICE_DESCRIPTION: &str =
-            "PICCOLO Settings Service - Central configuration and metrics management";
+            "Pullpiri Settings Service - Central configuration and metrics management";
 
         assert_eq!(SERVICE_NAME, "settingsservice");
-        assert!(SERVICE_DESCRIPTION.contains("PICCOLO"));
+        assert!(SERVICE_DESCRIPTION.contains("Pullpiri"));
         assert!(SERVICE_DESCRIPTION.contains("Settings Service"));
         assert!(SERVICE_DESCRIPTION.contains("configuration"));
         assert!(SERVICE_DESCRIPTION.contains("metrics"));

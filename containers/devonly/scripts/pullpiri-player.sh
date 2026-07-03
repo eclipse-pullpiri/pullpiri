@@ -9,44 +9,44 @@ else
 fi
 
 # Set environment variables
-VERSION="latest"
-CONTAINER_IMAGE="ghcr.io/eclipse-pullpiri/pullpiri:${VERSION}"
+# VERSION="latest"
+# CONTAINER_IMAGE="ghcr.io/eclipse-pullpiri/pullpiri:${VERSION}"
 # If you want to use a locally built image, uncomment the line below and comment out the line above
-# CONTAINER_IMAGE="localhost/pullpiri:latest"
+CONTAINER_IMAGE="localhost/pullpiri:latest"
 echo "Running player with image: ${CONTAINER_IMAGE}"
 
 # Create a pod with host networking
 podman pod create \
-  --name piccolo-player \
+  --name pullpiri-player \
   --network host \
   --pid host
 
 # Run filtergateway container
 podman run -d \
-  --pod piccolo-player \
-  --name piccolo-filtergateway \
+  --pod pullpiri-player \
+  --name pullpiri-filtergateway \
   -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
-  -v /etc/piccolo/settings.yaml:/etc/piccolo/settings.yaml:Z \
-  -v /run/piccololog/:/run/piccololog/ \
+  -v /etc/pullpiri/settings.yaml:/etc/pullpiri/settings.yaml:Z \
+  -v /run/pullpirilog/:/run/pullpirilog/ \
   ${CONTAINER_IMAGE} \
-  /piccolo/filtergateway
+  /pullpiri/filtergateway
 
 # Run actioncontroller container
 podman run -d \
-  --pod piccolo-player \
-  --name piccolo-actioncontroller \
+  --pod pullpiri-player \
+  --name pullpiri-actioncontroller \
   -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
-  -v /etc/piccolo/settings.yaml:/etc/piccolo/settings.yaml:Z \
-  -v /run/piccololog/:/run/piccololog/ \
+  -v /etc/pullpiri/settings.yaml:/etc/pullpiri/settings.yaml:Z \
+  -v /run/pullpirilog/:/run/pullpirilog/ \
   ${CONTAINER_IMAGE} \
-  /piccolo/actioncontroller
+  /pullpiri/actioncontroller
 
 # Run statemanager container
 podman run -d \
-  --pod piccolo-player \
-  --name piccolo-statemanager \
+  --pod pullpiri-player \
+  --name pullpiri-statemanager \
   -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
-  -v /etc/piccolo/settings.yaml:/etc/piccolo/settings.yaml:Z \
-  -v /run/piccololog/:/run/piccololog/ \
+  -v /etc/pullpiri/settings.yaml:/etc/pullpiri/settings.yaml:Z \
+  -v /run/pullpirilog/:/run/pullpirilog/ \
   ${CONTAINER_IMAGE} \
-  /piccolo/statemanager
+  /pullpiri/statemanager

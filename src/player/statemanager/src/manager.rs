@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! StateManagerManager: Asynchronous state management engine for PICCOLO framework
+//! StateManagerManager: Asynchronous state management engine for Pullpiri framework
 //!
 //! This module provides the core state management functionality for the StateManager service.
 //! It receives and processes state change requests from various components (ApiServer, FilterGateway,
 //! ActionController) and container status updates from nodeagent via async channels.
 //!
-//! The manager implements the PICCOLO Resource State Management specification, handling
+//! The manager implements the Pullpiri Resource State Management specification, handling
 //! state transitions, monitoring, reconciliation, and recovery for all resource types
 //! (Scenario, Package, Model, Volume, Network, Node).
 
@@ -33,7 +33,7 @@ use tokio::task;
 ///
 /// This struct orchestrates all state management operations by receiving messages
 /// from gRPC handlers via async channels and processing them according to the
-/// PICCOLO Resource State Management specification.
+/// Pullpiri Resource State Management specification.
 ///
 /// # Architecture
 /// - Receives StateChange messages from ApiServer, FilterGateway, ActionController
@@ -138,7 +138,7 @@ impl StateManagerManager {
         Ok(())
     }
 
-    /// Processes a StateChange message according to PICCOLO specifications.
+    /// Processes a StateChange message according to Pullpiri specifications.
     ///
     /// This is the core method that handles all state transition requests in the system.
     /// It validates requests, processes transitions through the state machine, and handles
@@ -235,7 +235,7 @@ impl StateManagerManager {
         // ========================================
         // COMPREHENSIVE IMPLEMENTATION ROADMAP
         // ========================================
-        // TODO: The following implementation phases are planned for full PICCOLO compliance:
+        // TODO: The following implementation phases are planned for full Pullpiri compliance:
         //
         // PHASE 1: VALIDATION AND PRECONDITIONS
         //    ✓ Resource type validation (implemented above)
@@ -914,7 +914,7 @@ impl StateManagerManager {
                     };
                     match state_change_opt {
                         Some(state_change) => {
-                            // Process state change with comprehensive PICCOLO compliance
+                            // Process state change with comprehensive Pullpiri compliance
                             state_manager.process_state_change(state_change).await;
                         }
                         None => {
@@ -1221,7 +1221,7 @@ async fn execute_action(command: ActionCommand) {
 // ========================================
 // FUTURE IMPLEMENTATION AREAS
 // ========================================
-// The following areas require implementation for full PICCOLO compliance:
+// The following areas require implementation for full Pullpiri compliance:
 //
 // 1. STATE MACHINE ENGINE - ✓ IMPLEMENTED
 //    - Implement state validators for each ResourceType (Scenario, Package, Model, Volume, Network, Node)

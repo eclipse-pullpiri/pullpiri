@@ -159,9 +159,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:
@@ -256,9 +256,9 @@ kind: Model
 metadata:
   name: helloworld-core
   annotations:
-    io.piccolo.annotations.package-type: helloworld-core
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld-core
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld-core
 spec:
@@ -343,9 +343,9 @@ spec:
         metadata:
           name: antipinch-enable-core
           annotations:
-            io.piccolo.annotations.package-type: test
-            io.piccolo.annotations.package-name: test
-            io.piccolo.annotations.package-network: test
+            io.pullpiri.annotations.package-type: test
+            io.pullpiri.annotations.package-name: test
+            io.pullpiri.annotations.package-network: test
           labels:
             app: antipinch-enable-core
         spec:
@@ -396,9 +396,9 @@ spec:
         metadata:
           name: antipinch-enable-core
           annotations:
-            io.piccolo.annotations.package-type: test
-            io.piccolo.annotations.package-name: test
-            io.piccolo.annotations.package-network: test
+            io.pullpiri.annotations.package-type: test
+            io.pullpiri.annotations.package-name: test
+            io.pullpiri.annotations.package-network: test
           labels:
             app: antipinch-enable-core
         spec:

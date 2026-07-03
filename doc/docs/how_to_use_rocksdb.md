@@ -59,9 +59,9 @@ kind: Model
 metadata:
   name: helloworld
   annotations:
-    io.piccolo.annotations.package-type: helloworld
-    io.piccolo.annotations.package-name: helloworld
-    io.piccolo.annotations.package-network: default
+    io.pullpiri.annotations.package-type: helloworld
+    io.pullpiri.annotations.package-name: helloworld
+    io.pullpiri.annotations.package-network: default
   labels:
     app: helloworld
 spec:
@@ -76,7 +76,7 @@ spec:
 ### **2️⃣ API 서버 데이터 처리 과정**
 
 #### **A. 요청 수신 및 라우팅**
-- **컴포넌트**: `piccolo-server-apiserver` 컨테이너
+- **컴포넌트**: `pullpiri-server-apiserver` 컨테이너
 - **파일**: `src/server/apiserver/src/route/api.rs`
 - **엔드포인트**: `POST /api/artifact`
 - **함수 호출 체인**: 
@@ -131,7 +131,7 @@ spec:
 ### **4️⃣ RocksDB 서비스 데이터 처리**
 
 #### **A. gRPC 서버 수신**
-- **컴포넌트**: `piccolo-server-rocksdbservice` 컨테이너
+- **컴포넌트**: `pullpiri-server-rocksdbservice` 컨테이너
 - **파일**: `src/server/rocksdbservice/src/main.rs` (100라인~)
 - **구현**: `RocksDbServiceImpl::put()` 메서드
 - **포트**: `0.0.0.0:47007`
@@ -172,7 +172,7 @@ spec:
 값: "apiVersion: v1\nkind: Package\nmetadata:\n  label: null\n  name: helloworld\nspec:\n  pattern:\n    - type: plain\n  models:\n    - name: helloworld\n      node: yh\n      resources:\n        volume:\n        network:"
 
 키: "Model/helloworld"
-값: "apiVersion: v1\nkind: Model\nmetadata:\n  name: helloworld\n  annotations:\n    io.piccolo.annotations.package-type: helloworld\n    io.piccolo.annotations.package-name: helloworld\n    io.piccolo.annotations.package-network: default\n  labels:\n    app: helloworld\nspec:\n  hostNetwork: true\n  containers:\n    - name: helloworld\n      image: quay.io/podman/hello:latest\n  terminationGracePeriodSeconds: 0\n  restartPolicy: Always"
+값: "apiVersion: v1\nkind: Model\nmetadata:\n  name: helloworld\n  annotations:\n    io.pullpiri.annotations.package-type: helloworld\n    io.pullpiri.annotations.package-name: helloworld\n    io.pullpiri.annotations.package-network: default\n  labels:\n    app: helloworld\nspec:\n  hostNetwork: true\n  containers:\n    - name: helloworld\n      image: quay.io/podman/hello:latest\n  terminationGracePeriodSeconds: 0\n  restartPolicy: Always"
 ```
 
 ### **6️⃣ 후속 처리**
@@ -236,13 +236,13 @@ graph TD
 ### **로그 확인 방법**:
 ```bash
 # RocksDB 서비스 로그
-sudo podman logs piccolo-server-rocksdbservice
+sudo podman logs pullpiri-server-rocksdbservice
 
 # API 서버 로그  
-sudo podman logs piccolo-server-apiserver
+sudo podman logs pullpiri-server-apiserver
 
 # 특정 키워드 검색
-sudo podman logs piccolo-server-rocksdbservice | grep "helloworld"
+sudo podman logs pullpiri-server-rocksdbservice | grep "helloworld"
 ```
 
 ### **성능 메트릭**:
@@ -277,7 +277,7 @@ sudo podman logs piccolo-server-rocksdbservice | grep "helloworld"
 
 #### **1️⃣ Kubernetes YAML 설정**:
 ```yaml
-# containers/piccolo-server.yaml
+# containers/pullpiri-server.yaml
 volumes:
   - name: rocksdb-data
     emptyDir: {}  # 빈 임시 디렉토리 생성 요청
@@ -316,7 +316,7 @@ drwxr-xr-x. 2 systemd-oom systemd-oom 123 10월 27일 01:23 .
 
 #### **왜 systemd-oom 사용자인가?**
 
-1. **Systemd 서비스 실행**: piccolo-server.service가 systemd로 관리됨
+1. **Systemd 서비스 실행**: pullpiri-server.service가 systemd로 관리됨
 2. **기본 사용자**: Podman이 systemd 환경에서 실행될 때의 기본 사용자
 3. **보안 격리**: root가 아닌 제한된 사용자로 실행하여 보안 강화
 
@@ -340,7 +340,7 @@ securityContext:
 graph TD
     A[Kubernetes YAML<br/>emptyDir: {}] --> B[podman kube play]
     B --> C[Podman Volume 생성<br/>rocksdb-data]
-    C --> D[컨테이너 시작<br/>piccolo-server-rocksdbservice]  
+    C --> D[컨테이너 시작<br/>pullpiri-server-rocksdbservice]  
     D --> E[볼륨 마운트<br/>host:/var/lib/.../rocksdb-data/_data<br/>→ container:/data]
     E --> F[RocksDB 서비스 접근<br/>--path /data]
 ```
@@ -405,15 +405,15 @@ sudo tar -czf rocksdb-backup.tar.gz /var/lib/containers/storage/volumes/rocksdb-
 #### **데이터 복구**:
 ```bash
 # 컨테이너 중지 → 데이터 복원 → 컨테이너 재시작
-sudo podman stop piccolo-server-rocksdbservice
+sudo podman stop pullpiri-server-rocksdbservice
 sudo tar -xzf rocksdb-backup.tar.gz -C /
-sudo podman start piccolo-server-rocksdbservice
+sudo podman start pullpiri-server-rocksdbservice
 ```
 
 #### **디버깅**:
 ```bash
 # 컨테이너 내부 진입하여 경로 확인
-sudo podman exec -it piccolo-server-rocksdbservice ls -la /data
+sudo podman exec -it pullpiri-server-rocksdbservice ls -la /data
 
 # 호스트에서 직접 파일 확인  
 sudo ls -la /var/lib/containers/storage/volumes/rocksdb-data/_data

@@ -6,7 +6,7 @@ name = "settingsservice"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
-description = "PICCOLO Settings Service - Central configuration and metrics management service"
+description = "Pullpiri Settings Service - Central configuration and metrics management service"
 
 [[bin]]
 name = "settingsservice"

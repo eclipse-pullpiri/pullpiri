@@ -49,11 +49,11 @@ runtime and systemd.
 
 ## Getting started
 
-Refer to [Getting Started](/doc/docs/getting-started.md).
+Refer to [Getting Started](/doc/guides/getting-started.md).
 
 ## Development
 
-Refer to [Development](/doc/docs/developments.md).
+Refer to [Development](/doc/guides/developments.md).
 
 ## License
 

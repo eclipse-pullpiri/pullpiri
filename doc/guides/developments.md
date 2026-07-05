@@ -12,7 +12,7 @@ This documents contains developments, testings, static analysis informations.
 
 ### Environment Setup
 
-For detail, refer to [installation](/doc/docs/getting-started.md#installation).
+For detail, refer to [installation](/doc/guides/getting-started.md#installation).
 
 ### Build
 
@@ -50,7 +50,7 @@ make image
 make install
 ```
 
-For more details, refer to the [Getting started](/doc/docs/getting-started.md)
+For more details, refer to the [Getting started](/doc/guides/getting-started.md)
 
 ## Static analysis
 
@@ -249,7 +249,7 @@ for etcd (default)
 
 Files for documentation of this project are located in the [doc](/doc/) directory comprising:
 
-- [Getting Started](/doc/docs/getting-started.md): how to run
+- [Getting Started](/doc/guides/getting-started.md): how to run
 - [Examples](/examples/README.md): directory containing all files and guides for performing example
 - (Deprecated) ~~[pullpiri.drawio](/doc/images/pullpiri.drawio):
 file containing all diagrams used for Pullpiri~~

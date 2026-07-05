@@ -45,7 +45,7 @@ dds:
 ### Pullpiri 모듈
 
 Pullpiri는 여러 모듈로 구성되어 있습니다.
-각 모듈에 대한 자세한 내용은 [Structure](/doc/docs/developments.md#structure)를 참고하세요.  
+각 모듈에 대한 자세한 내용은 [Structure](/doc/guides/developments.md#structure)를 참고하세요.  
 또한 [예제](/examples/README.md)가 도움이 될 것입니다.
 
 ## 제한 사항

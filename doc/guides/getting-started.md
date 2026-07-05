@@ -6,6 +6,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Getting started
 
+## Purpose
+
+This document explains the prerequisites, installation process, and basic runtime checks for starting Pullpiri.
+
 ## System requirements
 
 Pullpiri has been tested with Ubuntu 24.04.
@@ -45,7 +49,7 @@ dds:
 ### Pullpiri modules
 
 Pullpiri consists of many modules.
-For each modules, refer to [Structure](/doc/docs/developments.md#structure).  
+For each modules, refer to [Structure](/doc/guides/developments.md#structure).  
 And the [example](/examples/README.md) would be helpful.
 
 ## Limitations

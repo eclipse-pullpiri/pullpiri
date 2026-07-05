@@ -9,7 +9,7 @@ under the `doc` folder for external (official) use.
 
 ## Preparation
 
-Basically, there is Pullpiri-related documents in `doc/docs` folder, but there
+Basically, there is Pullpiri-related documents in `doc/guides` folder, but there
 are many parts that are different from the present as past data, so it is
 only used for reference.
 
@@ -29,7 +29,7 @@ CentOS stream (or RHEL) + Eclipse Bluechi (Maybe you will need it later)
 
 ## Make container image & Run Pullpiri
 
-Refer [Getting started](/doc/docs/getting-started.md) for launching Pullpiri.
+Refer [Getting started](/doc/guides/getting-started.md) for launching Pullpiri.
 All you have to do is run `make install` and you're ready to go.
 
 ### Check logs of containers

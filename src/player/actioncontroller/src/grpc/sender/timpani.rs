@@ -9,11 +9,20 @@ use common::external::timpani::{
 };
 use common::logd;
 
-pub async fn add_sched_info(sched_info: SchedInfo) {
+/// Send schedule info to Timpani server
+///
+/// # Arguments
+/// * `sched_info` - Schedule information to send
+///
+/// # Returns
+/// * `Ok(())` if successful
+/// * `Err(String)` if connection or sending fails
+pub async fn add_sched_info(sched_info: SchedInfo) -> Result<(), String> {
     logd!(1, "Connecting to Timpani server ....");
+    
     let mut client = SchedInfoServiceClient::connect(connect_timpani_server())
         .await
-        .unwrap();
+        .map_err(|e| format!("Failed to connect to Timpani server: {}", e))?;
 
     let response: Result<Response, tonic::Status> = client
         .add_sched_info(sched_info)
@@ -23,9 +32,11 @@ pub async fn add_sched_info(sched_info: SchedInfo) {
     match response {
         Ok(res) => {
             logd!(3, "[add_sched_info] RESPONSE={:?}", res);
+            Ok(())
         }
         Err(e) => {
             logd!(5, "[add_sched_info] ERROR={:?}", e);
+            Err(format!("Timpani add_sched_info failed: {}", e))
         }
     }
 }

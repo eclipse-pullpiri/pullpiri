@@ -374,7 +374,9 @@ impl ActionControllerManager {
             workload_id: schedule.get_name(),
             tasks,
         };
-        crate::grpc::sender::timpani::add_sched_info(sched_info).await;
+        crate::grpc::sender::timpani::add_sched_info(sched_info)
+            .await
+            .map_err(|e| format!("Failed to send schedule to Timpani: {}", e))?;
 
         Ok(())
     }

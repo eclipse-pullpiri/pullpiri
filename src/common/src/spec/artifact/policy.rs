@@ -78,6 +78,7 @@ impl Procedure {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct Trigger {
     pub resourceThreshold: Option<ResourceThreshold>,
+    pub deadlineMissThreshold: Option<DeadlineMissThreshold>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -93,6 +94,18 @@ impl ResourceThreshold {
 
     pub fn get_memory(&self) -> Option<u32> {
         self.memory
+    }
+}
+
+/// Threshold for deadline miss count triggering policy action
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct DeadlineMissThreshold {
+    pub count: u32,
+}
+
+impl DeadlineMissThreshold {
+    pub fn get_count(&self) -> u32 {
+        self.count
     }
 }
 
@@ -123,6 +136,7 @@ mod tests {
                             cpu: Some(50),
                             memory: Some(50),
                         }),
+                        deadlineMissThreshold: None,
                     },
                 },
             },

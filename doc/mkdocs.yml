@@ -1,0 +1,121 @@
+# ==============================================================================
+# MkDocs configuration for Eclipse Pullpiri documentation site
+# Site URL: https://eclipse-pullpiri.github.io/pullpiri/
+# ==============================================================================
+
+site_name: Eclipse Pullpiri
+site_description: >
+  Container orchestration platform optimized for automotive environments.
+site_url: https://eclipse-pullpiri.github.io/pullpiri/
+site_author: Eclipse Pullpiri Contributors
+
+# GitHub repo integration
+repo_name: eclipse-pullpiri/pullpiri
+repo_url: https://github.com/eclipse-pullpiri/pullpiri
+edit_uri: edit/main/doc/
+
+# ------------------------------------------------------------------------------
+# Source & output directories (relative to this mkdocs.yml, i.e. doc/)
+# ------------------------------------------------------------------------------
+# docs_dir '.' means the doc/ directory itself is the documentation source.
+docs_dir: .
+# Build output goes to pullpiri/site/ (must be gitignored)
+site_dir: ../site
+
+copyright: Copyright &copy; 2024–2026 Eclipse Pullpiri Contributors
+
+# ------------------------------------------------------------------------------
+# Exclude non-page files from the build
+# ------------------------------------------------------------------------------
+exclude_docs: |
+  # Build-config files (not documentation)
+  mkdocs.yml
+  requirements.txt
+  # GitHub-facing README (site landing is index.md)
+  README.md
+
+# ------------------------------------------------------------------------------
+# Theme
+# ------------------------------------------------------------------------------
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  # Uncomment when the file exists at doc/assets/logo/pullpiri.svg
+  # logo: assets/logo/pullpiri.svg
+  # favicon: assets/logo/pullpiri.svg
+
+# ------------------------------------------------------------------------------
+# Plugins
+# ------------------------------------------------------------------------------
+plugins:
+  - search
+  - mermaid2
+
+# ------------------------------------------------------------------------------
+# Markdown extensions
+# ------------------------------------------------------------------------------
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+# ------------------------------------------------------------------------------
+# Navigation
+# ------------------------------------------------------------------------------
+nav:
+  - Main: index.md
+  - Why Pullpiri: why-pullpiri.md
+  - Architecture: architecture/index.md
+
+#  - Guides:
+#      - Getting Started: guides/getting-started.md
+#      - Development: guides/development.md
+
+# ------------------------------------------------------------------------------
+# Extras
+# ------------------------------------------------------------------------------
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/eclipse-pullpiri/pullpiri

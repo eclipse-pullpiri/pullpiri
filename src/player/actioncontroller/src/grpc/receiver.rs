@@ -13,7 +13,7 @@ use common::actioncontroller::{
     },
     CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, OffloadModelRequest,
     OffloadModelResponse, PodStatus as ActionStatus, ReconcileRequest, ReconcileResponse,
-    TriggerActionRequest, TriggerActionResponse,
+    StopWorkloadRequest, StopWorkloadResponse, TriggerActionRequest, TriggerActionResponse,
 };
 use common::logd;
 
@@ -266,6 +266,92 @@ impl ActionControllerConnection for ActionControllerReceiver {
                     success: false,
                     message: format!("Failed to offload: {}", e),
                     transition_id,
+                }))
+            }
+        }
+    }
+
+    /// Handle stop workload requests from PolicyManager
+    ///
+    /// Stops a specific workload (model/container) on a given node.
+    /// Used by policy-based fault handling (e.g., deadline miss threshold exceeded).
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - gRPC request containing package, model, and node info
+    ///
+    /// # Returns
+    ///
+    /// * `Response<StopWorkloadResponse>` - gRPC response with success status
+    /// * `Status` - gRPC status error if the request fails
+    async fn stop_workload(
+        &self,
+        request: Request<StopWorkloadRequest>,
+    ) -> Result<Response<StopWorkloadResponse>, Status> {
+        let req = request.into_inner();
+
+        println!(
+            "[ActionController] Stopping workload: package='{}', model='{}', node='{}'",
+            req.package_name, req.model_name, req.node_name
+        );
+        println!("[ActionController]   Reason: {}", req.reason);
+
+        // Get Pod YAML from etcd for the package/model
+        let pod_key = format!("Pod/{}", req.package_name);
+        let pod_yaml = match common::etcd::get(&pod_key).await {
+            Ok(yaml) if !yaml.is_empty() => yaml,
+            Ok(_) => {
+                let msg = format!(
+                    "Pod not found for package '{}' in etcd key '{}'",
+                    req.package_name, pod_key
+                );
+                eprintln!("[ActionController] {}", msg);
+                return Ok(Response::new(StopWorkloadResponse {
+                    success: false,
+                    message: msg,
+                }));
+            }
+            Err(e) => {
+                let msg = format!("Failed to get Pod from etcd: {}", e);
+                eprintln!("[ActionController] {}", msg);
+                return Ok(Response::new(StopWorkloadResponse {
+                    success: false,
+                    message: msg,
+                }));
+            }
+        };
+
+        // Determine node type (default to "nodeagent" for now)
+        let node_type = "nodeagent";
+
+        // Execute stop operation
+        match self
+            .manager
+            .stop_workload(&pod_yaml, &req.node_name, node_type)
+            .await
+        {
+            Ok(_) => {
+                println!(
+                    "[ActionController] Successfully stopped workload '{}' on node '{}'",
+                    req.model_name, req.node_name
+                );
+                Ok(Response::new(StopWorkloadResponse {
+                    success: true,
+                    message: format!(
+                        "Workload '{}' successfully stopped on node '{}'",
+                        req.model_name, req.node_name
+                    ),
+                }))
+            }
+            Err(e) => {
+                let msg = format!(
+                    "Failed to stop workload '{}' on node '{}': {}",
+                    req.model_name, req.node_name, e
+                );
+                eprintln!("[ActionController] {}", msg);
+                Ok(Response::new(StopWorkloadResponse {
+                    success: false,
+                    message: msg,
                 }))
             }
         }

@@ -1,0 +1,1323 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Container orchestration platform optimized for automotive environments.
+">
+      
+      
+        <meta name="author" content="Eclipse Pullpiri Contributors">
+      
+      
+        <link rel="canonical" href="https://eclipse-pullpiri.github.io/pullpiri/guides/structure/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Structure - Eclipse Pullpiri</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pullpiri-project-structure" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Eclipse Pullpiri" class="md-header__button md-logo" aria-label="Eclipse Pullpiri" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Eclipse Pullpiri
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Structure
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/eclipse-pullpiri/pullpiri" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    eclipse-pullpiri/pullpiri
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Main
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../why-pullpiri/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Why Pullpiri
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Eclipse Pullpiri" class="md-nav__button md-logo" aria-label="Eclipse Pullpiri" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Eclipse Pullpiri
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/eclipse-pullpiri/pullpiri" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    eclipse-pullpiri/pullpiri
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Main
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../why-pullpiri/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why Pullpiri
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Component Details
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Component Details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agent-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agent Layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nodeagent-srcagentnodeagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NodeAgent (src/agent/nodeagent/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server Layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server Layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#api-server-srcserverapiserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Server (src/server/apiserver/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rocksdb-service-srcserverrocksdbservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RocksDB Service (src/server/rocksdbservice/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-service-srcserversettingsservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings Service (src/server/settingsservice/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#policy-manager-srcserverpolicymanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Policy Manager (src/server/policymanager/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#monitoring-server-srcservermonitoringserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring Server (src/server/monitoringserver/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#log-service-srcserverlogservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Log Service (src/server/logservice/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#player-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Player Layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Player Layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#action-controller-srcplayeractioncontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Action Controller (src/player/actioncontroller/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filter-gateway-srcplayerfiltergateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter Gateway (src/player/filtergateway/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#state-manager-srcplayerstatemanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Manager (src/player/statemanager/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-srccommon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common (src/common/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tools-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tools Layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tools Layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pirictl-srctoolspirictl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pirictl (src/tools/pirictl/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rocksdb-inspector-srctoolsrocksdb-inspector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rocksdb-inspector (src/tools/rocksdb-inspector/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#idl2rs-srctoolsidl2rs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        idl2rs (src/tools/idl2rs/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#artifact-deployment-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Artifact Deployment Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scenario-execution-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario Execution Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#communication-protocols" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Communication Protocols
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Communication Protocols">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#grpc-services-default-ports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gRPC Services (default ports)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rest-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        REST APIs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Artifacts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Build Artifacts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#container-images" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container Images
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiled-binaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compiled Binaries
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#apiserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        apiserver
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#importer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        importer
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/eclipse-pullpiri/pullpiri/edit/main/doc/guides/structure.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<!--
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<h1 id="pullpiri-project-structure">Pullpiri Project Structure<a class="headerlink" href="#pullpiri-project-structure" title="Permanent link">&para;</a></h1>
+<p><img alt="Pullpiri overview" src="../images/overview.png"
+width="75%"
+height="75%"
+/></p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>Pullpiri is a Rust-based vehicle service orchestrator with a microservices architecture. The project is organized into four main layers:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>.
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├──<span class="w"> </span>containers/<span class="w">          </span><span class="c1"># Docker/Podman container definitions</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├──<span class="w"> </span>doc/<span class="w">                 </span><span class="c1"># Documentation and images</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>├──<span class="w"> </span>examples/<span class="w">            </span><span class="c1"># Example scenarios and configurations</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>├──<span class="w"> </span>LICENSES/<span class="w">            </span><span class="c1"># License files</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>├──<span class="w"> </span>scripts/<span class="w">             </span><span class="c1"># Build and CI/CD scripts</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>└──<span class="w"> </span>src/
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span>├──<span class="w"> </span>agent/<span class="w">           </span><span class="c1"># Remote node agent (runs on guest nodes)</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span>│<span class="w">   </span>└──<span class="w"> </span>nodeagent/
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span>├──<span class="w"> </span>common/<span class="w">          </span><span class="c1"># Shared utilities and gRPC definitions</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span>├──<span class="w"> </span>player/<span class="w">          </span><span class="c1"># Execution plane (condition, state, action)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>actioncontroller/
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>filtergateway/
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span>│<span class="w">   </span>└──<span class="w"> </span>statemanager/
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span>├──<span class="w"> </span>server/<span class="w">          </span><span class="c1"># Management plane (artifact, storage, policy, config, log)</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>apiserver/
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>logservice/
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>monitoringserver/
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>policymanager/
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>rocksdbservice/
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">    </span>│<span class="w">   </span>└──<span class="w"> </span>settingsservice/
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">    </span>└──<span class="w"> </span>tools/<span class="w">           </span><span class="c1"># CLI tools and utilities</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">        </span>├──<span class="w"> </span>idl2rs/
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">        </span>├──<span class="w"> </span>pirictl/
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">        </span>└──<span class="w"> </span>rocksdb-inspector/
+</code></pre></div>
+<hr />
+<h2 id="component-details">Component Details<a class="headerlink" href="#component-details" title="Permanent link">&para;</a></h2>
+<h3 id="agent-layer">Agent Layer<a class="headerlink" href="#agent-layer" title="Permanent link">&para;</a></h3>
+<h4 id="nodeagent-srcagentnodeagent">NodeAgent (<code>src/agent/nodeagent/</code>)<a class="headerlink" href="#nodeagent-srcagentnodeagent" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Runs on vehicle nodes to manage and orchestrate containerized workloads.</p>
+<p><strong>Key Features</strong>:
+- Receives workload deployment instructions from the cloud/server
+- Manages container lifecycle (creation, execution, removal)
+- Reports node status and health to the server
+- Executes scheduled tasks and policies
+- Communicates via gRPC with server components</p>
+<p><strong>Architecture</strong>: 
+- Standalone binary compiled for vehicle node deployment
+- Cross-compiled to multiple architectures (x86_64, aarch64)
+- Uses Podman as the container runtime</p>
+<hr />
+<h3 id="server-layer">Server Layer<a class="headerlink" href="#server-layer" title="Permanent link">&para;</a></h3>
+<p>The server layer provides central orchestration, storage, and management services. It runs on the same host node (e.g., HPC) as the player layer.</p>
+<h4 id="api-server-srcserverapiserver">API Server (<code>src/server/apiserver/</code>)<a class="headerlink" href="#api-server-srcserverapiserver" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Main entry point for artifact deployment and orchestration.</p>
+<p><strong>Key Features</strong>:
+- Exposes REST API on port 47099 for artifact deployment
+- Parses YAML-formatted artifacts (Scenario, Package, Model, Volume, Network, Node, Policy, Schedule)
+- Stores artifacts in RocksDB via gRPC service (port 47007)
+- Forwards scenario updates to FilterGateway via gRPC
+- Manages node registration and metadata
+- Coordinates with PolicyManager for policy enforcement</p>
+<p><strong>Key Interfaces</strong>:
+- REST API: <code>POST /api/artifact</code>, <code>DELETE /api/artifact</code>, <code>GET /api/notify</code>
+- gRPC: Communicates with FilterGateway, PolicyManager, RocksDB service</p>
+<h4 id="rocksdb-service-srcserverrocksdbservice">RocksDB Service (<code>src/server/rocksdbservice/</code>)<a class="headerlink" href="#rocksdb-service-srcserverrocksdbservice" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Persistent key-value storage for all Pullpiri artifacts and metadata.</p>
+<p><strong>Key Features</strong>:
+- Provides gRPC interface on port 47007
+- Stores all artifacts, scenarios, policies, and node information
+- Replaces etcd for centralized storage
+- Supports batch operations for efficiency
+- Ensures data persistence across restarts</p>
+<p><strong>Storage Keys</strong>:
+- <code>Scenario/{name}</code>: Scenario definitions
+- <code>Package/{name}</code>: Package definitions
+- <code>Policy/{name}</code>: Policy rules
+- <code>nodes/{hostname}</code>: Node information
+- <code>node/{node_id}</code>: Detailed node metadata</p>
+<h4 id="settings-service-srcserversettingsservice">Settings Service (<code>src/server/settingsservice/</code>)<a class="headerlink" href="#settings-service-srcserversettingsservice" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Configuration management and versioning for Pullpiri settings.</p>
+<p><strong>Key Features</strong>:
+- Exposes REST API on port 8080
+- Manages <code>/etc/pullpiri/settings.yaml</code> configuration
+- Provides configuration history and rollback capabilities
+- Version control for configuration changes
+- Query configuration by path</p>
+<p><strong>Endpoints</strong>:
+- <code>GET /api/v1/settings/{path}</code>: Retrieve setting value
+- <code>PUT /api/v1/settings/{path}</code>: Update setting value
+- <code>GET /api/v1/history/{path}/version/{version}</code>: Get specific version
+- <code>POST /api/v1/history/{path}/rollback/{version}</code>: Rollback to version</p>
+<h4 id="policy-manager-srcserverpolicymanager">Policy Manager (<code>src/server/policymanager/</code>)<a class="headerlink" href="#policy-manager-srcserverpolicymanager" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Centralized policy management and enforcement.</p>
+<p><strong>Key Features</strong>:
+- Manages security and resource policies
+- Enforces policy rules on workload deployment
+- Communicates with other components for policy validation
+- Stores policies in RocksDB</p>
+<h4 id="monitoring-server-srcservermonitoringserver">Monitoring Server (<code>src/server/monitoringserver/</code>)<a class="headerlink" href="#monitoring-server-srcservermonitoringserver" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Collects and aggregates metrics from deployed workloads.</p>
+<p><strong>Key Features</strong>:
+- Receives metric reports from player components
+- Aggregates performance and health data
+- Exposes metrics endpoints for dashboards
+- Tracks workload status and resource usage</p>
+<h4 id="log-service-srcserverlogservice">Log Service (<code>src/server/logservice/</code>)<a class="headerlink" href="#log-service-srcserverlogservice" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Centralized logging for all Pullpiri components.</p>
+<p><strong>Key Features</strong>:
+- Aggregates logs from all components
+- Provides structured logging interface
+- Enables log search and analysis
+- Supports different log levels and filtering</p>
+<hr />
+<h3 id="player-layer">Player Layer<a class="headerlink" href="#player-layer" title="Permanent link">&para;</a></h3>
+<p>The player layer manages workload execution. It runs on the same host node as the server layer and consists of three coordinated components.</p>
+<h4 id="action-controller-srcplayeractioncontroller">Action Controller (<code>src/player/actioncontroller/</code>)<a class="headerlink" href="#action-controller-srcplayeractioncontroller" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Executes deployment actions and manages workload lifecycle.</p>
+<p><strong>Key Features</strong>:
+- Listens on port 47001 for gRPC commands from API Server
+- Creates and manages containers via Podman
+- Executes workload deployment, update, and removal actions
+- Reports action execution status
+- Handles reconciliation of desired vs actual state</p>
+<h4 id="filter-gateway-srcplayerfiltergateway">Filter Gateway (<code>src/player/filtergateway/</code>)<a class="headerlink" href="#filter-gateway-srcplayerfiltergateway" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Monitors vehicle conditions and triggers scenario actions.</p>
+<p><strong>Key Features</strong>:
+- Receives scenario conditions from API Server via gRPC
+- Monitors vehicle bus messages and state changes
+- Evaluates scenario conditions in real-time
+- Forwards matching scenarios to State Manager
+- Listens on port 47002 for gRPC communication
+- Handles condition filtering and aggregation</p>
+<h4 id="state-manager-srcplayerstatemanager">State Manager (<code>src/player/statemanager/</code>)<a class="headerlink" href="#state-manager-srcplayerstatemanager" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Orchestrates overall workload state and coordinates execution.</p>
+<p><strong>Key Features</strong>:
+- Maintains current state of all deployed workloads
+- Receives scenario triggers from Filter Gateway
+- Coordinates with Action Controller for workload deployment
+- Manages workload dependencies and ordering
+- Reports state changes to Monitoring Server
+- Ensures system consistency and reconciliation</p>
+<p><strong>Data Flow</strong>:
+1. Filter Gateway detects condition match → sends to State Manager
+2. State Manager determines required actions
+3. State Manager requests Action Controller to execute
+4. Action Controller deploys workloads via Podman
+5. State Manager updates state and reports status</p>
+<hr />
+<h3 id="common-layer">Common Layer<a class="headerlink" href="#common-layer" title="Permanent link">&para;</a></h3>
+<h4 id="common-srccommon">Common (<code>src/common/</code>)<a class="headerlink" href="#common-srccommon" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Shared utilities, data types, and gRPC service definitions.</p>
+<p><strong>Key Components</strong>:
+- <strong>proto/</strong>: gRPC protocol definitions
+  - <code>apiserver.proto</code>: API Server communication
+  - <code>filtergateway.proto</code>: Filter Gateway communication
+  - <code>statemanager.proto</code>: State Manager communication
+  - <code>nodeagent.proto</code>: Node Agent communication
+  - <code>rocksdbservice.proto</code>: RocksDB service interface</p>
+<ul>
+<li><strong>spec/artifact/</strong>: Kubernetes-like resource definitions</li>
+<li>
+<p>Scenario, Package, Model, Volume, Network, Node, Policy, Schedule</p>
+</li>
+<li>
+<p><strong>spec/k8s/</strong>: Kubernetes Pod compatibility layer</p>
+</li>
+<li>
+<p><strong>Storage abstraction</strong>:</p>
+</li>
+<li>RocksDB client for data persistence</li>
+<li>KV operation support (put, get, delete, batch operations)</li>
+</ul>
+<hr />
+<h3 id="tools-layer">Tools Layer<a class="headerlink" href="#tools-layer" title="Permanent link">&para;</a></h3>
+<h4 id="pirictl-srctoolspirictl">pirictl (<code>src/tools/pirictl/</code>)<a class="headerlink" href="#pirictl-srctoolspirictl" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Command-line interface for Settings Service management.</p>
+<p><strong>Features</strong>:
+- Query and update settings directly from CLI
+- View configuration history
+- Perform configuration rollback
+- Useful for debugging and operations</p>
+<h4 id="rocksdb-inspector-srctoolsrocksdb-inspector">rocksdb-inspector (<code>src/tools/rocksdb-inspector/</code>)<a class="headerlink" href="#rocksdb-inspector-srctoolsrocksdb-inspector" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Inspect and debug RocksDB storage.</p>
+<p><strong>Features</strong>:
+- Browse RocksDB keys and values
+- Export data for analysis
+- Verify data integrity
+- Useful for troubleshooting data issues</p>
+<h4 id="idl2rs-srctoolsidl2rs">idl2rs (<code>src/tools/idl2rs/</code>)<a class="headerlink" href="#idl2rs-srctoolsidl2rs" title="Permanent link">&para;</a></h4>
+<p><strong>Purpose</strong>: Convert DDS IDL files to Rust data structures.</p>
+<p><strong>Features</strong>:
+- Parses DDS Interface Definition Language (IDL)
+- Generates Rust struct definitions
+- Enables vehicle bus message handling
+- Supports common data types and nested structures</p>
+<hr />
+<h2 id="data-flow">Data Flow<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h2>
+<h3 id="artifact-deployment-flow">Artifact Deployment Flow<a class="headerlink" href="#artifact-deployment-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>1. External System / Cloud
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>   ↓ (REST API - POST /api/artifact)
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>2. API Server (Port 47099)
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>   ↓ (parses YAML, stores in RocksDB)
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>3. RocksDB Service (Port 47007)
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>   ↓ (stores artifacts)
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>4. gRPC to Filter Gateway / Policy Manager
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>   ↓ (scenario and policy updates)
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>5. Player Components (Filter Gateway, State Manager, Action Controller)
+</code></pre></div>
+<h3 id="scenario-execution-flow">Scenario Execution Flow<a class="headerlink" href="#scenario-execution-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>1. Filter Gateway receives scenario
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>   ↓
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>2. Monitors vehicle conditions
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>   ↓
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>3. Condition satisfied → sends to State Manager
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>   ↓
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>4. State Manager evaluates and prepares actions
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>   ↓
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>5. Requests Action Controller to deploy
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>   ↓
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>6. Action Controller creates containers via Podman
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>   ↓
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>7. Reports completion to State Manager
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>   ↓
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>8. State Manager updates state and reports metrics
+</code></pre></div>
+<hr />
+<h2 id="communication-protocols">Communication Protocols<a class="headerlink" href="#communication-protocols" title="Permanent link">&para;</a></h2>
+<h3 id="grpc-services-default-ports">gRPC Services (default ports)<a class="headerlink" href="#grpc-services-default-ports" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Port</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RocksDB</td>
+<td>47007</td>
+<td>Storage and metadata</td>
+</tr>
+<tr>
+<td>API Server</td>
+<td>Internal gRPC</td>
+<td>Artifact coordination</td>
+</tr>
+<tr>
+<td>Filter Gateway</td>
+<td>47002</td>
+<td>Condition monitoring</td>
+</tr>
+<tr>
+<td>Action Controller</td>
+<td>47001</td>
+<td>Workload execution</td>
+</tr>
+<tr>
+<td>State Manager</td>
+<td>Internal gRPC</td>
+<td>Orchestration</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rest-apis">REST APIs<a class="headerlink" href="#rest-apis" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Port</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API Server</td>
+<td>47099</td>
+<td>Artifact deployment</td>
+</tr>
+<tr>
+<td>Settings Service</td>
+<td>8080</td>
+<td>Configuration management</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="storage-architecture">Storage Architecture<a class="headerlink" href="#storage-architecture" title="Permanent link">&para;</a></h2>
+<p>Pullpiri uses <strong>RocksDB</strong> as the primary persistent storage system. RocksDB provides:</p>
+<ul>
+<li><strong>Persistent storage</strong> for all artifacts and metadata</li>
+<li><strong>Fast key-value operations</strong> for efficient data access</li>
+<li><strong>Batch operations</strong> for atomic multi-item updates</li>
+<li><strong>Scalability</strong> for large-scale deployments</li>
+<li><strong>gRPC interface</strong> for distributed access</li>
+</ul>
+<p>Key-value examples:
+- <code>Scenario/helloworld</code> → Scenario YAML definition
+- <code>Package/helloworld</code> → Package YAML definition
+- <code>Policy/resource-limit</code> → Policy definition
+- <code>nodes/HPC</code> → Node IP address
+- <code>node/HPC-192.168.1.100</code> → Detailed node metadata</p>
+<hr />
+<h2 id="build-artifacts">Build Artifacts<a class="headerlink" href="#build-artifacts" title="Permanent link">&para;</a></h2>
+<h3 id="container-images">Container Images<a class="headerlink" href="#container-images" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>localhost/pullpiri:latest</code> - Main container with all server and player components</li>
+<li><code>localhost/pullpiri-rocksdb:latest</code> - RocksDB service container</li>
+</ul>
+<h3 id="compiled-binaries">Compiled Binaries<a class="headerlink" href="#compiled-binaries" title="Permanent link">&para;</a></h3>
+<ul>
+<li>NodeAgent binaries for multiple architectures (x86_64, aarch64)</li>
+<li>CLI tools (pirictl, rocksdb-inspector, idl2rs)</li>
+</ul>
+<hr />
+<h2 id="development-notes">Development Notes<a class="headerlink" href="#development-notes" title="Permanent link">&para;</a></h2>
+<ul>
+<li>All components are implemented in <strong>Rust</strong> with async/await patterns</li>
+<li>Communication uses <strong>gRPC</strong> for efficiency and type safety</li>
+<li>Container management relies on <strong>Podman</strong> for lightweight containerization</li>
+<li>Configuration is stored in <strong>YAML</strong> for human readability</li>
+</ul>
+<!-- markdownlint-disable-file MD033 no-inline-html -->
+<p>width="75%"
+height="75%"
+/&gt;</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>.
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>├──<span class="w"> </span>containers<span class="w">      </span><span class="c1"># files for binary container</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>├──<span class="w"> </span>doc
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>│<span class="w">   </span>├──<span class="w"> </span>docs
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>│<span class="w">   </span>└──<span class="w"> </span>images
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>├──<span class="w"> </span>examples
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>│<span class="w">   </span>├──<span class="w"> </span>nginx<span class="w">       </span><span class="c1"># (optional) file server</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>│<span class="w">   </span>└──<span class="w"> </span>resources<span class="w">   </span><span class="c1"># package and scenario files</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>├──<span class="w"> </span>LICENSES
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>└──<span class="w"> </span>src
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span>├──<span class="w"> </span>api<span class="w">         </span><span class="c1"># gRPC proto files</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span>├──<span class="w"> </span>apiserver
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span>├──<span class="w"> </span>common<span class="w">      </span><span class="c1"># common library</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">    </span>├──<span class="w"> </span>gateway
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span>├──<span class="w"> </span>importer
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">    </span>├──<span class="w"> </span>statemanager
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">    </span>└──<span class="w"> </span>vendor
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">        </span>└──<span class="w"> </span>lge_dds<span class="w"> </span><span class="c1"># DDS receiver for gateway</span>
+</code></pre></div>
+<h2 id="apiserver">apiserver<a class="headerlink" href="#apiserver" title="Permanent link">&para;</a></h2>
+<p>Apiserver works similarly to apiserver in k8s.
+It parses resources received via REST API through <code>importer</code> and writes actions and conditions to <code>etcd</code> so that the <code>gateway</code> can recognize the conditions.
+In addition, it can access <code>statemanager</code> directly.</p>
+<p>We are also developing to collect metrics for monitoring.</p>
+<h2 id="importer">importer<a class="headerlink" href="#importer" title="Permanent link">&para;</a></h2>
+<p>Importer is responsible for parsing resource files into the necessary items for Pullpiri.</p>
+<!-- markdownlint-disable-file MD033 no-inline-html -->
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024–2026 Eclipse Pullpiri Contributors
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/eclipse-pullpiri/pullpiri" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1837 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Container orchestration platform optimized for automotive environments.
+">
+      
+      
+        <meta name="author" content="Eclipse Pullpiri Contributors">
+      
+      
+        <link rel="canonical" href="https://eclipse-pullpiri.github.io/pullpiri/architecture/KR/LLD/clustering/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Clustering - Eclipse Pullpiri</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pullpiri" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../.." title="Eclipse Pullpiri" class="md-header__button md-logo" aria-label="Eclipse Pullpiri" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Eclipse Pullpiri
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Clustering
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/eclipse-pullpiri/pullpiri" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    eclipse-pullpiri/pullpiri
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Main
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../why-pullpiri/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Why Pullpiri
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="Eclipse Pullpiri" class="md-nav__button md-logo" aria-label="Eclipse Pullpiri" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Eclipse Pullpiri
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/eclipse-pullpiri/pullpiri" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    eclipse-pullpiri/pullpiri
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Main
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../why-pullpiri/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why Pullpiri
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 개요
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 개요">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 목적 및 범위
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 클러스터링 목적 및 원칙
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-api-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. API Server 클러스터링 기능
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. API Server 클러스터링 기능">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 주요 기능
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 시스템 아키텍처
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 핵심 인터페이스
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.3 핵심 인터페이스">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#231-nodeagent-grpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3.1 NodeAgent와의 gRPC 통신
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#232" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3.2 노드 등록 및 관리
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-nodeagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. NodeAgent 클러스터링 기능
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. NodeAgent 클러스터링 기능">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 주요 기능
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 클러스터링 프로세스
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2 클러스터링 프로세스">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#321" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.1 노드 발견 단계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#322-nodeagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.2 NodeAgent 배포 단계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#323" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.3 시스템 준비 상태 체크 단계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#324" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.4 노드 연결 및 인증 단계
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 클러스터링 아키텍처
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 클러스터 토폴로지 유형
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 클러스터 상태 관리
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 클러스터 상태 관리">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 노드 상태 모니터링
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 클러스터 구성 동기화
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 배포 및 운영
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 배포 및 운영">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 클러스터 초기 설정
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 클러스터 확장
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 장애 복구
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 보안
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. 보안">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 노드 인증
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 통신 보안
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 참조 및 부록
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. 참조 및 부록">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 관련 문서
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 용어 정의
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/eclipse-pullpiri/pullpiri/edit/main/doc/architecture/KR/LLD/clustering.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<!--
+* SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
+* SPDX-License-Identifier: Apache-2.0
+-->
+<h1 id="pullpiri">Pullpiri 클러스터링 시스템<a class="headerlink" href="#pullpiri" title="Permanent link">&para;</a></h1>
+<p><strong>문서 번호</strong>: Pullpiri-CLUSTERING-LLD-2025-001<br />
+<strong>버전</strong>: 1.0<br />
+<strong>날짜</strong>: 2025-09-04<br />
+<strong>작성자</strong>: Pullpiri 팀<br />
+<strong>분류</strong>: LLD (Low-Level Design)</p>
+<h2 id="1">1. 개요<a class="headerlink" href="#1" title="Permanent link">&para;</a></h2>
+<p>Pullpiri 프레임워크는 마스터 노드와 서브 노드(워커 노드) 간의 효율적인 클러스터링 메커니즘을 구현하여 분산 환경에서의 모니터링 및 관리를 가능하게 합니다. 본 클러스터링 시스템은 임베디드 환경의 특수성을 고려하여 설계되었으며, 제한된 리소스, 클라우드 연결성, 소규모 클러스터에 최적화되어 있습니다.</p>
+<h3 id="11">1.1 목적 및 범위<a class="headerlink" href="#11" title="Permanent link">&para;</a></h3>
+<p>본 문서는 다음 내용을 포함합니다:
+- Pullpiri 클러스터링 아키텍처 상세 설명
+- API Server와 NodeAgent의 클러스터링 관련 기능 및 인터페이스
+- 클러스터 설정, 배포, 관리 프로세스
+- 임베디드 환경에 최적화된 특수 구현 사항</p>
+<h3 id="12">1.2 클러스터링 목적 및 원칙<a class="headerlink" href="#12" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>최소화된 아키텍처</strong></li>
+<li>임베디드 환경에 최적화된 경량 설계</li>
+<li>2-10개 노드 규모의 소규모 클러스터 지원</li>
+<li>리더 선출(Leader Election) 없이 단순화된 마스터-서브 노드 구조</li>
+<li>
+<p>서브 노드에는 NodeAgent만 실행하여 리소스 부담 최소화</p>
+</li>
+<li>
+<p><strong>하이브리드 연결성</strong></p>
+</li>
+<li>임베디드 노드와 클라우드 노드 간 연결 지원</li>
+<li>다양한 네트워크 조건(불안정한 연결, 제한된 대역폭)에서 동작</li>
+<li>
+<p>오프라인 상태에서의 로컬 운영 및 재연결 시 동기화</p>
+</li>
+<li>
+<p><strong>중앙화된 상태 관리</strong></p>
+</li>
+<li>etcd에 컨테이너 모니터링 데이터 저장</li>
+<li>상태 변경 사항을 StateManager에 효율적으로 전달</li>
+<li>
+<p>마스터 노드에 API Server, FilterGateway, ActionController, StateManager, MonitoringServer 집중 배치</p>
+</li>
+<li>
+<p><strong>리소스 효율성</strong></p>
+</li>
+<li>Podman 기반 컨테이너 관리로 데몬리스 아키텍처 활용</li>
+<li>제한된 하드웨어 사양에서 최소한의 오버헤드</li>
+<li>메모리 사용량 최적화된 에이전트 설계</li>
+</ol>
+<h2 id="2-api-server">2. API Server 클러스터링 기능<a class="headerlink" href="#2-api-server" title="Permanent link">&para;</a></h2>
+<p>API Server는 Pullpiri 클러스터에서 마스터 노드의 핵심 컴포넌트로, 클러스터 구성, 노드 관리, 아티팩트 배포 등을 담당합니다.</p>
+<h3 id="21">2.1 주요 기능<a class="headerlink" href="#21" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>노드 관리</strong></li>
+<li>노드 등록 및 인증 처리</li>
+<li>클러스터 구성 정보 유지 및 갱신</li>
+<li>
+<p>노드 상태 모니터링 및 활성 확인</p>
+</li>
+<li>
+<p><strong>아티팩트 배포</strong></p>
+</li>
+<li>서브 노드에 배포할 아티팩트 관리</li>
+<li>NodeAgent에 아티팩트 정보 전송</li>
+<li>
+<p>배포 상태 추적 및 보고</p>
+</li>
+<li>
+<p><strong>클러스터 구성 관리</strong></p>
+</li>
+<li>클러스터 토폴로지 정보 관리</li>
+<li>마스터-서브 노드 관계 설정</li>
+<li>노드 역할 및 권한 관리</li>
+</ol>
+<h3 id="22">2.2 시스템 아키텍처<a class="headerlink" href="#22" title="Permanent link">&para;</a></h3>
+<p>API Server의 클러스터링 관련 모듈은 다음과 같습니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>apiserver
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>└── src
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    ├── grpc
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    │   └── sender
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    │       ├── nodeagent.rs
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    │       └── notification.rs
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    └── node
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        ├── manager.rs
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        ├── registry.rs
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        └── status.rs
+</code></pre></div>
+<h3 id="23">2.3 핵심 인터페이스<a class="headerlink" href="#23" title="Permanent link">&para;</a></h3>
+<h4 id="231-nodeagent-grpc">2.3.1 NodeAgent와의 gRPC 통신<a class="headerlink" href="#231-nodeagent-grpc" title="Permanent link">&para;</a></h4>
+<p>API Server는 gRPC를 통해 NodeAgent와 통신하여 아티팩트 정보 전달, 노드 상태 확인 등을 수행합니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="sd">/// Send artifact information to NodeAgent via gRPC</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="sd">///</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="sd">/// ### Parameters</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="sd">/// * `artifact: ArtifactInfo` - Artifact information</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="sd">/// * `metadata: Option&lt;Metadata&gt;` - Optional request metadata</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="sd">/// ### Returns</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="sd">/// * `Result&lt;Response&lt;ArtifactResponse&gt;, Status&gt;` - Response from NodeAgent</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="sd">/// ### Description</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="sd">/// Sends artifact information to NodeAgent using the gRPC client</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="sd">/// Handles connection management and retries automatically</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="sd">/// Includes security context and tracing information when available</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">send_artifact</span><span class="p">(</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="n">artifact</span><span class="p">:</span><span class="w"> </span><span class="nc">ArtifactInfo</span><span class="p">,</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">Metadata</span><span class="o">&gt;</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">Response</span><span class="o">&lt;</span><span class="n">ArtifactResponse</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Status</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NodeAgentClient</span><span class="p">::</span><span class="n">connect</span><span class="p">(</span><span class="n">connect_nodeagent</span><span class="p">())</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">        </span><span class="p">.</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">request</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">md</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">        </span><span class="n">Request</span><span class="p">::</span><span class="n">from_parts</span><span class="p">(</span><span class="n">md</span><span class="p">,</span><span class="w"> </span><span class="n">artifact</span><span class="p">)</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">        </span><span class="n">Request</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">artifact</span><span class="p">)</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">    </span><span class="p">};</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">    </span><span class="n">client</span><span class="p">.</span><span class="n">handle_artifact</span><span class="p">(</span><span class="n">request</span><span class="p">).</span><span class="k">await</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="p">}</span>
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="sd">/// Notify NodeAgent of artifact removal</span>
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="sd">///</span>
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="sd">/// ### Parameters</span>
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="sd">/// * `artifact_id: String` - ID of the artifact to remove</span>
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="sd">/// ### Returns</span>
+<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="sd">/// * `Result&lt;Response&lt;RemoveResponse&gt;, Status&gt;` - Response from NodeAgent</span>
+<a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="sd">/// ### Description</span>
+<a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="sd">/// Notifies NodeAgent that an artifact has been removed</span>
+<a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">notify_artifact_removal</span><span class="p">(</span>
+<a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="w">    </span><span class="n">artifact_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span>
+<a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">Response</span><span class="o">&lt;</span><span class="n">RemoveResponse</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Status</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NodeAgentClient</span><span class="p">::</span><span class="n">connect</span><span class="p">(</span><span class="n">connect_nodeagent</span><span class="p">())</span>
+<a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="w">        </span><span class="p">.</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">    </span><span class="n">client</span><span class="p">.</span><span class="n">remove_artifact</span><span class="p">(</span><span class="n">Request</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">RemoveRequest</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">artifact_id</span><span class="w"> </span><span class="p">})).</span><span class="k">await</span>
+<a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="p">}</span>
+<a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>
+<a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a><span class="sd">/// Check NodeAgent connection health</span>
+<a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a><span class="sd">///</span>
+<a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="sd">/// ### Returns</span>
+<a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a><span class="sd">/// * `bool` - Whether connection is healthy</span>
+<a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="sd">/// ### Description</span>
+<a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a><span class="sd">/// Verifies connection to NodeAgent is working properly</span>
+<a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a><span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">check_nodeagent_connection</span><span class="p">()</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Ok</span><span class="p">(</span><span class="k">mut</span><span class="w"> </span><span class="n">client</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NodeAgentClient</span><span class="p">::</span><span class="n">connect</span><span class="p">(</span><span class="n">connect_nodeagent</span><span class="p">()).</span><span class="k">await</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a><span class="w">        </span><span class="n">client</span><span class="p">.</span><span class="n">health_check</span><span class="p">(</span><span class="n">Request</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">HealthCheckRequest</span><span class="w"> </span><span class="p">{})).</span><span class="k">await</span><span class="p">.</span><span class="n">is_ok</span><span class="p">()</span>
+<a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a><span class="w">        </span><span class="kc">false</span>
+<a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a><span class="p">}</span>
+</code></pre></div>
+<h4 id="232">2.3.2 노드 등록 및 관리<a class="headerlink" href="#232" title="Permanent link">&para;</a></h4>
+<p>API Server는 클러스터의 노드 구성을 관리하고, 새로운 노드의 등록 요청을 처리합니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="sd">/// Register a new node in the cluster</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="sd">///</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="sd">/// ### Parameters</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="sd">/// * `node_info: NodeRegistrationRequest` - Node information and credentials</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="sd">/// ### Returns</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="sd">/// * `Result&lt;NodeRegistrationResponse, NodeRegistrationError&gt;` - Registration result</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">register_node</span><span class="p">(</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="n">node_info</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeRegistrationRequest</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">NodeRegistrationResponse</span><span class="p">,</span><span class="w"> </span><span class="n">NodeRegistrationError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="c1">// 노드 정보 검증</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="n">validate_node_info</span><span class="p">(</span><span class="o">&amp;</span><span class="n">node_info</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="c1">// 인증 정보 확인</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="n">authenticate_node</span><span class="p">(</span><span class="o">&amp;</span><span class="n">node_info</span><span class="p">.</span><span class="n">credentials</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">    </span><span class="c1">// 노드 정보 저장</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">node_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">store_node_info</span><span class="p">(</span><span class="o">&amp;</span><span class="n">node_info</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">    </span><span class="c1">// 클러스터 구성 업데이트</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">    </span><span class="n">update_cluster_topology</span><span class="p">(</span><span class="n">node_id</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">node_info</span><span class="p">.</span><span class="n">role</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">    </span><span class="c1">// 응답 생성</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">NodeRegistrationResponse</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">        </span><span class="n">node_id</span><span class="p">,</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">        </span><span class="n">cluster_info</span><span class="p">:</span><span class="w"> </span><span class="nc">get_cluster_info</span><span class="p">().</span><span class="k">await</span><span class="o">?</span><span class="p">,</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">        </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeStatus</span><span class="p">::</span><span class="n">Registered</span><span class="p">,</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">    </span><span class="p">})</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="p">}</span>
+</code></pre></div>
+<h2 id="3-nodeagent">3. NodeAgent 클러스터링 기능<a class="headerlink" href="#3-nodeagent" title="Permanent link">&para;</a></h2>
+<p>NodeAgent는 각 서브 노드에서 실행되는 에이전트로, 마스터 노드와의 통신 및 로컬 노드 관리를 담당합니다.</p>
+<h3 id="31">3.1 주요 기능<a class="headerlink" href="#31" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>노드 식별 및 등록</strong></li>
+<li>노드 고유 번호 할당 및 관리</li>
+<li>시스템 정보 수집 및 보고</li>
+<li>
+<p>API Server에 노드 등록 요청</p>
+</li>
+<li>
+<p><strong>클러스터 연결 관리</strong></p>
+</li>
+<li>마스터 노드와의 연결 유지</li>
+<li>네트워크 장애 시 재연결 시도</li>
+<li>
+<p>하트비트 메커니즘을 통한 활성 상태 보고</p>
+</li>
+<li>
+<p><strong>시스템 상태 체크</strong></p>
+</li>
+<li>클러스터 연결 전 시스템 준비 상태 확인</li>
+<li>하드웨어 리소스, 필수 서비스, 네트워크 가용성 점검</li>
+<li>임베디드 환경에 최적화된 경량 체크 수행</li>
+</ol>
+<h3 id="32">3.2 클러스터링 프로세스<a class="headerlink" href="#32" title="Permanent link">&para;</a></h3>
+<h4 id="321">3.2.1 노드 발견 단계<a class="headerlink" href="#321" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>마스터 노드 구성</strong></li>
+<li>마스터 노드의 API Server는 <code>node.yaml</code> 구성 파일을 읽어 관리할 서브 노드 목록 확인</li>
+<li>구성 파일에는 각 노드의 호스트명, IP 주소, 역할(임베디드/클라우드), 접근 자격 증명 정보 포함</li>
+<li>정적 구성을 기본으로 하되, 클라우드 노드는 동적 발견 지원</li>
+<li>임베디드 시스템 시동 시 자동 서브 노드 등록 프로세스</li>
+</ol>
+<h4 id="322-nodeagent">3.2.2 NodeAgent 배포 단계<a class="headerlink" href="#322-nodeagent" title="Permanent link">&para;</a></h4>
+<p>NodeAgent는 서브 노드에 다음과 같은 설치 스크립트를 통해 배포됩니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="ch">#!/bin/bash</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># install_nodeagent.sh - NodeAgent 설치 스크립트</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># 사용법: ./install_nodeagent.sh &lt;마스터노드IP&gt; [노드타입]</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># 매개변수 확인</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="nv">$#</span><span class="w"> </span>-lt<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;사용법: </span><span class="nv">$0</span><span class="s2"> &lt;마스터노드IP&gt; [노드타입(sub|master)]&quot;</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="k">fi</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># 필수 패키지 설치 함수</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>install_required_packages<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;필수 패키지 설치 확인 중...&quot;</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="c1"># 패키지 관리자 감지</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>apt-get<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">        </span><span class="nv">PKG_MANAGER</span><span class="o">=</span><span class="s2">&quot;apt-get&quot;</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">        </span><span class="nv">PKG_UPDATE</span><span class="o">=</span><span class="s2">&quot;apt-get update&quot;</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">        </span><span class="nv">PKG_INSTALL</span><span class="o">=</span><span class="s2">&quot;apt-get install -y&quot;</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">    </span><span class="k">elif</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>dnf<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">        </span><span class="nv">PKG_MANAGER</span><span class="o">=</span><span class="s2">&quot;dnf&quot;</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">        </span><span class="nv">PKG_UPDATE</span><span class="o">=</span><span class="s2">&quot;dnf check-update&quot;</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">        </span><span class="nv">PKG_INSTALL</span><span class="o">=</span><span class="s2">&quot;dnf install -y&quot;</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">    </span><span class="k">elif</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>yum<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">        </span><span class="nv">PKG_MANAGER</span><span class="o">=</span><span class="s2">&quot;yum&quot;</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">        </span><span class="nv">PKG_UPDATE</span><span class="o">=</span><span class="s2">&quot;yum check-update&quot;</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">        </span><span class="nv">PKG_INSTALL</span><span class="o">=</span><span class="s2">&quot;yum install -y&quot;</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">    </span><span class="k">elif</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>zypper<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">        </span><span class="nv">PKG_MANAGER</span><span class="o">=</span><span class="s2">&quot;zypper&quot;</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">        </span><span class="nv">PKG_UPDATE</span><span class="o">=</span><span class="s2">&quot;zypper refresh&quot;</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">        </span><span class="nv">PKG_INSTALL</span><span class="o">=</span><span class="s2">&quot;zypper install -y&quot;</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="w">    </span><span class="k">elif</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>pacman<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="w">        </span><span class="nv">PKG_MANAGER</span><span class="o">=</span><span class="s2">&quot;pacman&quot;</span>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="w">        </span><span class="nv">PKG_UPDATE</span><span class="o">=</span><span class="s2">&quot;pacman -Sy&quot;</span>
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="w">        </span><span class="nv">PKG_INSTALL</span><span class="o">=</span><span class="s2">&quot;pacman -S --noconfirm&quot;</span>
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a><span class="w">    </span><span class="k">else</span>
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;경고: 지원되는 패키지 관리자를 찾을 수 없습니다. 수동으로 필요한 패키지를 설치해야 할 수 있습니다.&quot;</span>
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a>
+<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a><span class="w">    </span><span class="c1"># 패키지 저장소 업데이트</span>
+<a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;패키지 저장소 업데이트 중...&quot;</span>
+<a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a><span class="w">    </span><span class="nv">$PKG_UPDATE</span>
+<a id="__codelineno-3-44" name="__codelineno-3-44" href="#__codelineno-3-44"></a>
+<a id="__codelineno-3-45" name="__codelineno-3-45" href="#__codelineno-3-45"></a><span class="w">    </span><span class="c1"># 필요한 패키지 목록</span>
+<a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a><span class="w">    </span><span class="nv">REQUIRED_PACKAGES</span><span class="o">=()</span>
+<a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a>
+<a id="__codelineno-3-48" name="__codelineno-3-48" href="#__codelineno-3-48"></a><span class="w">    </span><span class="c1"># curl 확인 및 추가</span>
+<a id="__codelineno-3-49" name="__codelineno-3-49" href="#__codelineno-3-49"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>curl<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-50" name="__codelineno-3-50" href="#__codelineno-3-50"></a><span class="w">        </span><span class="nv">REQUIRED_PACKAGES</span><span class="o">+=(</span><span class="s2">&quot;curl&quot;</span><span class="o">)</span>
+<a id="__codelineno-3-51" name="__codelineno-3-51" href="#__codelineno-3-51"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-52" name="__codelineno-3-52" href="#__codelineno-3-52"></a>
+<a id="__codelineno-3-53" name="__codelineno-3-53" href="#__codelineno-3-53"></a><span class="w">    </span><span class="c1"># wget 확인 및 추가</span>
+<a id="__codelineno-3-54" name="__codelineno-3-54" href="#__codelineno-3-54"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>wget<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>!<span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>curl<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-55" name="__codelineno-3-55" href="#__codelineno-3-55"></a><span class="w">        </span><span class="nv">REQUIRED_PACKAGES</span><span class="o">+=(</span><span class="s2">&quot;wget&quot;</span><span class="o">)</span>
+<a id="__codelineno-3-56" name="__codelineno-3-56" href="#__codelineno-3-56"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-57" name="__codelineno-3-57" href="#__codelineno-3-57"></a>
+<a id="__codelineno-3-58" name="__codelineno-3-58" href="#__codelineno-3-58"></a><span class="w">    </span><span class="c1"># netcat 확인 및 추가</span>
+<a id="__codelineno-3-59" name="__codelineno-3-59" href="#__codelineno-3-59"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>nc<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-60" name="__codelineno-3-60" href="#__codelineno-3-60"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PKG_MANAGER</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;apt-get&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-61" name="__codelineno-3-61" href="#__codelineno-3-61"></a><span class="w">            </span><span class="nv">REQUIRED_PACKAGES</span><span class="o">+=(</span><span class="s2">&quot;netcat&quot;</span><span class="o">)</span>
+<a id="__codelineno-3-62" name="__codelineno-3-62" href="#__codelineno-3-62"></a><span class="w">        </span><span class="k">else</span>
+<a id="__codelineno-3-63" name="__codelineno-3-63" href="#__codelineno-3-63"></a><span class="w">            </span><span class="nv">REQUIRED_PACKAGES</span><span class="o">+=(</span><span class="s2">&quot;nc&quot;</span><span class="o">)</span>
+<a id="__codelineno-3-64" name="__codelineno-3-64" href="#__codelineno-3-64"></a><span class="w">        </span><span class="k">fi</span>
+<a id="__codelineno-3-65" name="__codelineno-3-65" href="#__codelineno-3-65"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-66" name="__codelineno-3-66" href="#__codelineno-3-66"></a>
+<a id="__codelineno-3-67" name="__codelineno-3-67" href="#__codelineno-3-67"></a><span class="w">    </span><span class="c1"># bc 확인 및 추가</span>
+<a id="__codelineno-3-68" name="__codelineno-3-68" href="#__codelineno-3-68"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>bc<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-69" name="__codelineno-3-69" href="#__codelineno-3-69"></a><span class="w">        </span><span class="nv">REQUIRED_PACKAGES</span><span class="o">+=(</span><span class="s2">&quot;bc&quot;</span><span class="o">)</span>
+<a id="__codelineno-3-70" name="__codelineno-3-70" href="#__codelineno-3-70"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-71" name="__codelineno-3-71" href="#__codelineno-3-71"></a>
+<a id="__codelineno-3-72" name="__codelineno-3-72" href="#__codelineno-3-72"></a><span class="w">    </span><span class="c1"># podman 확인 및 추가</span>
+<a id="__codelineno-3-73" name="__codelineno-3-73" href="#__codelineno-3-73"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>podman<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-74" name="__codelineno-3-74" href="#__codelineno-3-74"></a><span class="w">        </span><span class="nv">REQUIRED_PACKAGES</span><span class="o">+=(</span><span class="s2">&quot;podman&quot;</span><span class="o">)</span>
+<a id="__codelineno-3-75" name="__codelineno-3-75" href="#__codelineno-3-75"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-76" name="__codelineno-3-76" href="#__codelineno-3-76"></a>
+<a id="__codelineno-3-77" name="__codelineno-3-77" href="#__codelineno-3-77"></a><span class="w">    </span><span class="c1"># 필요한 패키지 설치</span>
+<a id="__codelineno-3-78" name="__codelineno-3-78" href="#__codelineno-3-78"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="si">${#</span><span class="nv">REQUIRED_PACKAGES</span><span class="p">[@]</span><span class="si">}</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-79" name="__codelineno-3-79" href="#__codelineno-3-79"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;다음 필수 패키지를 설치합니다: </span><span class="si">${</span><span class="nv">REQUIRED_PACKAGES</span><span class="p">[*]</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-80" name="__codelineno-3-80" href="#__codelineno-3-80"></a><span class="w">        </span><span class="nv">$PKG_INSTALL</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">REQUIRED_PACKAGES</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-81" name="__codelineno-3-81" href="#__codelineno-3-81"></a><span class="w">    </span><span class="k">else</span>
+<a id="__codelineno-3-82" name="__codelineno-3-82" href="#__codelineno-3-82"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;모든 필수 패키지가 이미 설치되어 있습니다.&quot;</span>
+<a id="__codelineno-3-83" name="__codelineno-3-83" href="#__codelineno-3-83"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-84" name="__codelineno-3-84" href="#__codelineno-3-84"></a><span class="o">}</span>
+<a id="__codelineno-3-85" name="__codelineno-3-85" href="#__codelineno-3-85"></a>
+<a id="__codelineno-3-86" name="__codelineno-3-86" href="#__codelineno-3-86"></a><span class="c1"># 매개변수 설정</span>
+<a id="__codelineno-3-87" name="__codelineno-3-87" href="#__codelineno-3-87"></a><span class="nv">MASTER_IP</span><span class="o">=</span><span class="nv">$1</span>
+<a id="__codelineno-3-88" name="__codelineno-3-88" href="#__codelineno-3-88"></a><span class="nv">NODE_TYPE</span><span class="o">=</span><span class="si">${</span><span class="nv">2</span><span class="k">:-</span><span class="s2">&quot;sub&quot;</span><span class="si">}</span>
+<a id="__codelineno-3-89" name="__codelineno-3-89" href="#__codelineno-3-89"></a><span class="nv">GRPC_PORT</span><span class="o">=</span><span class="si">${</span><span class="nv">3</span><span class="k">:-</span><span class="s2">&quot;47004&quot;</span><span class="si">}</span>
+<a id="__codelineno-3-90" name="__codelineno-3-90" href="#__codelineno-3-90"></a><span class="nv">DOWNLOAD_URL</span><span class="o">=</span><span class="s2">&quot;https://github.com/eclipse-pullpiri/pullpiri/releases/tag/v0.2.1&quot;</span>
+<a id="__codelineno-3-91" name="__codelineno-3-91" href="#__codelineno-3-91"></a><span class="nv">INSTALL_DIR</span><span class="o">=</span><span class="s2">&quot;/opt/pullpiri&quot;</span>
+<a id="__codelineno-3-92" name="__codelineno-3-92" href="#__codelineno-3-92"></a><span class="nv">CONFIG_DIR</span><span class="o">=</span><span class="s2">&quot;/etc/pullpiri&quot;</span>
+<a id="__codelineno-3-93" name="__codelineno-3-93" href="#__codelineno-3-93"></a><span class="nv">BINARY_NAME</span><span class="o">=</span><span class="s2">&quot;nodeagent&quot;</span>
+<a id="__codelineno-3-94" name="__codelineno-3-94" href="#__codelineno-3-94"></a><span class="nv">LOG_DIR</span><span class="o">=</span><span class="s2">&quot;/var/log/pullpiri&quot;</span>
+<a id="__codelineno-3-95" name="__codelineno-3-95" href="#__codelineno-3-95"></a><span class="nv">DATA_DIR</span><span class="o">=</span><span class="s2">&quot;/var/lib/pullpiri&quot;</span>
+<a id="__codelineno-3-96" name="__codelineno-3-96" href="#__codelineno-3-96"></a><span class="nv">RUN_DIR</span><span class="o">=</span><span class="s2">&quot;/var/run/pullpiri&quot;</span>
+<a id="__codelineno-3-97" name="__codelineno-3-97" href="#__codelineno-3-97"></a>
+<a id="__codelineno-3-98" name="__codelineno-3-98" href="#__codelineno-3-98"></a><span class="c1"># 필수 패키지 설치</span>
+<a id="__codelineno-3-99" name="__codelineno-3-99" href="#__codelineno-3-99"></a>install_required_packages
+<a id="__codelineno-3-100" name="__codelineno-3-100" href="#__codelineno-3-100"></a>
+<a id="__codelineno-3-101" name="__codelineno-3-101" href="#__codelineno-3-101"></a><span class="c1"># 필요한 디렉토리 생성</span>
+<a id="__codelineno-3-102" name="__codelineno-3-102" href="#__codelineno-3-102"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;필요한 디렉토리 생성 중...&quot;</span>
+<a id="__codelineno-3-103" name="__codelineno-3-103" href="#__codelineno-3-103"></a>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="si">${</span><span class="nv">INSTALL_DIR</span><span class="si">}</span><span class="w"> </span><span class="si">${</span><span class="nv">CONFIG_DIR</span><span class="si">}</span><span class="w"> </span><span class="si">${</span><span class="nv">LOG_DIR</span><span class="si">}</span><span class="w"> </span><span class="si">${</span><span class="nv">DATA_DIR</span><span class="si">}</span><span class="w"> </span><span class="si">${</span><span class="nv">RUN_DIR</span><span class="si">}</span>
+<a id="__codelineno-3-104" name="__codelineno-3-104" href="#__codelineno-3-104"></a>
+<a id="__codelineno-3-105" name="__codelineno-3-105" href="#__codelineno-3-105"></a><span class="c1"># NodeAgent 바이너리 다운로드</span>
+<a id="__codelineno-3-106" name="__codelineno-3-106" href="#__codelineno-3-106"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;NodeAgent 바이너리 다운로드 중... (</span><span class="si">${</span><span class="nv">DOWNLOAD_URL</span><span class="si">}</span><span class="s2">)&quot;</span>
+<a id="__codelineno-3-107" name="__codelineno-3-107" href="#__codelineno-3-107"></a><span class="nv">ARCH</span><span class="o">=</span><span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span>
+<a id="__codelineno-3-108" name="__codelineno-3-108" href="#__codelineno-3-108"></a><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$ARCH</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;x86_64&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-109" name="__codelineno-3-109" href="#__codelineno-3-109"></a><span class="w">    </span><span class="nv">BINARY_SUFFIX</span><span class="o">=</span><span class="s2">&quot;amd64&quot;</span>
+<a id="__codelineno-3-110" name="__codelineno-3-110" href="#__codelineno-3-110"></a><span class="k">elif</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$ARCH</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;aarch64&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-111" name="__codelineno-3-111" href="#__codelineno-3-111"></a><span class="w">    </span><span class="nv">BINARY_SUFFIX</span><span class="o">=</span><span class="s2">&quot;arm64&quot;</span>
+<a id="__codelineno-3-112" name="__codelineno-3-112" href="#__codelineno-3-112"></a><span class="k">elif</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$ARCH</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;arm&quot;</span>*<span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-113" name="__codelineno-3-113" href="#__codelineno-3-113"></a><span class="w">    </span><span class="nv">BINARY_SUFFIX</span><span class="o">=</span><span class="s2">&quot;arm&quot;</span>
+<a id="__codelineno-3-114" name="__codelineno-3-114" href="#__codelineno-3-114"></a><span class="k">else</span>
+<a id="__codelineno-3-115" name="__codelineno-3-115" href="#__codelineno-3-115"></a><span class="w">    </span><span class="nv">BINARY_SUFFIX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$ARCH</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-116" name="__codelineno-3-116" href="#__codelineno-3-116"></a><span class="k">fi</span>
+<a id="__codelineno-3-117" name="__codelineno-3-117" href="#__codelineno-3-117"></a>
+<a id="__codelineno-3-118" name="__codelineno-3-118" href="#__codelineno-3-118"></a><span class="k">if</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>curl<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-119" name="__codelineno-3-119" href="#__codelineno-3-119"></a><span class="w">    </span>curl<span class="w"> </span>-L<span class="w"> </span><span class="si">${</span><span class="nv">DOWNLOAD_URL</span><span class="si">}</span>/nodeagent-<span class="si">${</span><span class="nv">BINARY_SUFFIX</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span><span class="si">${</span><span class="nv">INSTALL_DIR</span><span class="si">}</span>/<span class="si">${</span><span class="nv">BINARY_NAME</span><span class="si">}</span>
+<a id="__codelineno-3-120" name="__codelineno-3-120" href="#__codelineno-3-120"></a><span class="k">elif</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>wget<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-121" name="__codelineno-3-121" href="#__codelineno-3-121"></a><span class="w">    </span>wget<span class="w"> </span><span class="si">${</span><span class="nv">DOWNLOAD_URL</span><span class="si">}</span>/nodeagent-<span class="si">${</span><span class="nv">BINARY_SUFFIX</span><span class="si">}</span><span class="w"> </span>-O<span class="w"> </span><span class="si">${</span><span class="nv">INSTALL_DIR</span><span class="si">}</span>/<span class="si">${</span><span class="nv">BINARY_NAME</span><span class="si">}</span>
+<a id="__codelineno-3-122" name="__codelineno-3-122" href="#__codelineno-3-122"></a><span class="k">else</span>
+<a id="__codelineno-3-123" name="__codelineno-3-123" href="#__codelineno-3-123"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;오류: curl 또는 wget이 설치되어 있지 않습니다.&quot;</span>
+<a id="__codelineno-3-124" name="__codelineno-3-124" href="#__codelineno-3-124"></a><span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-3-125" name="__codelineno-3-125" href="#__codelineno-3-125"></a><span class="k">fi</span>
+<a id="__codelineno-3-126" name="__codelineno-3-126" href="#__codelineno-3-126"></a>
+<a id="__codelineno-3-127" name="__codelineno-3-127" href="#__codelineno-3-127"></a><span class="c1"># 다운로드 확인</span>
+<a id="__codelineno-3-128" name="__codelineno-3-128" href="#__codelineno-3-128"></a><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>!<span class="w"> </span>-f<span class="w"> </span><span class="si">${</span><span class="nv">INSTALL_DIR</span><span class="si">}</span>/<span class="si">${</span><span class="nv">BINARY_NAME</span><span class="si">}</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-129" name="__codelineno-3-129" href="#__codelineno-3-129"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;오류: NodeAgent 바이너리 다운로드에 실패했습니다.&quot;</span>
+<a id="__codelineno-3-130" name="__codelineno-3-130" href="#__codelineno-3-130"></a><span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-3-131" name="__codelineno-3-131" href="#__codelineno-3-131"></a><span class="k">fi</span>
+<a id="__codelineno-3-132" name="__codelineno-3-132" href="#__codelineno-3-132"></a>
+<a id="__codelineno-3-133" name="__codelineno-3-133" href="#__codelineno-3-133"></a><span class="c1"># 무결성 확인 (선택 사항)</span>
+<a id="__codelineno-3-134" name="__codelineno-3-134" href="#__codelineno-3-134"></a><span class="k">if</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>sha256sum<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$CHECKSUM_URL</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-135" name="__codelineno-3-135" href="#__codelineno-3-135"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;바이너리 무결성 확인 중...&quot;</span>
+<a id="__codelineno-3-136" name="__codelineno-3-136" href="#__codelineno-3-136"></a><span class="w">    </span>curl<span class="w"> </span>-L<span class="w"> </span><span class="si">${</span><span class="nv">DOWNLOAD_URL</span><span class="si">}</span>/checksums.txt<span class="w"> </span>-o<span class="w"> </span>/tmp/pullpiri_checksums.txt
+<a id="__codelineno-3-137" name="__codelineno-3-137" href="#__codelineno-3-137"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="o">(</span><span class="nb">cd</span><span class="w"> </span><span class="si">${</span><span class="nv">INSTALL_DIR</span><span class="si">}</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sha256sum<span class="w"> </span>-c<span class="w"> </span>&lt;<span class="o">(</span>grep<span class="w"> </span><span class="si">${</span><span class="nv">BINARY_NAME</span><span class="si">}</span>-<span class="si">${</span><span class="nv">BINARY_SUFFIX</span><span class="si">}</span><span class="w"> </span>/tmp/pullpiri_checksums.txt<span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-138" name="__codelineno-3-138" href="#__codelineno-3-138"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;오류: 바이너리 체크섬이 일치하지 않습니다. 설치가 중단됩니다.&quot;</span>
+<a id="__codelineno-3-139" name="__codelineno-3-139" href="#__codelineno-3-139"></a><span class="w">        </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-3-140" name="__codelineno-3-140" href="#__codelineno-3-140"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-141" name="__codelineno-3-141" href="#__codelineno-3-141"></a><span class="w">    </span>rm<span class="w"> </span>/tmp/pullpiri_checksums.txt
+<a id="__codelineno-3-142" name="__codelineno-3-142" href="#__codelineno-3-142"></a><span class="k">fi</span>
+<a id="__codelineno-3-143" name="__codelineno-3-143" href="#__codelineno-3-143"></a>
+<a id="__codelineno-3-144" name="__codelineno-3-144" href="#__codelineno-3-144"></a><span class="c1"># 실행 권한 부여</span>
+<a id="__codelineno-3-145" name="__codelineno-3-145" href="#__codelineno-3-145"></a>chmod<span class="w"> </span>+x<span class="w"> </span><span class="si">${</span><span class="nv">INSTALL_DIR</span><span class="si">}</span>/<span class="si">${</span><span class="nv">BINARY_NAME</span><span class="si">}</span>
+<a id="__codelineno-3-146" name="__codelineno-3-146" href="#__codelineno-3-146"></a>
+<a id="__codelineno-3-147" name="__codelineno-3-147" href="#__codelineno-3-147"></a><span class="c1"># 시스템 체크 스크립트 다운로드</span>
+<a id="__codelineno-3-148" name="__codelineno-3-148" href="#__codelineno-3-148"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;시스템 체크 스크립트 다운로드 중...&quot;</span>
+<a id="__codelineno-3-149" name="__codelineno-3-149" href="#__codelineno-3-149"></a><span class="k">if</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>curl<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-150" name="__codelineno-3-150" href="#__codelineno-3-150"></a><span class="w">    </span>curl<span class="w"> </span>-L<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/scripts/node_ready_check.sh&quot;</span><span class="w"> </span>-o<span class="w"> </span>/usr/local/bin/node_ready_check.sh
+<a id="__codelineno-3-151" name="__codelineno-3-151" href="#__codelineno-3-151"></a><span class="k">elif</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>wget<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-152" name="__codelineno-3-152" href="#__codelineno-3-152"></a><span class="w">    </span>wget<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/scripts/node_ready_check.sh&quot;</span><span class="w"> </span>-O<span class="w"> </span>/usr/local/bin/node_ready_check.sh
+<a id="__codelineno-3-153" name="__codelineno-3-153" href="#__codelineno-3-153"></a><span class="k">fi</span>
+<a id="__codelineno-3-154" name="__codelineno-3-154" href="#__codelineno-3-154"></a>
+<a id="__codelineno-3-155" name="__codelineno-3-155" href="#__codelineno-3-155"></a><span class="c1"># 다운로드 확인</span>
+<a id="__codelineno-3-156" name="__codelineno-3-156" href="#__codelineno-3-156"></a><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>!<span class="w"> </span>-f<span class="w"> </span>/usr/local/bin/node_ready_check.sh<span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-157" name="__codelineno-3-157" href="#__codelineno-3-157"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;경고: 시스템 체크 스크립트 다운로드에 실패했습니다. 기본 체크 스크립트를 생성합니다.&quot;</span>
+<a id="__codelineno-3-158" name="__codelineno-3-158" href="#__codelineno-3-158"></a><span class="w">    </span>cat<span class="w"> </span>&gt;<span class="w"> </span>/usr/local/bin/node_ready_check.sh<span class="w"> </span><span class="s">&lt;&lt; &#39;EOF&#39;</span>
+<a id="__codelineno-3-159" name="__codelineno-3-159" href="#__codelineno-3-159"></a><span class="s">#!/bin/bash</span>
+<a id="__codelineno-3-160" name="__codelineno-3-160" href="#__codelineno-3-160"></a><span class="s"># 기본 시스템 체크 스크립트</span>
+<a id="__codelineno-3-161" name="__codelineno-3-161" href="#__codelineno-3-161"></a><span class="s">echo &quot;기본 시스템 체크 수행 중...&quot;</span>
+<a id="__codelineno-3-162" name="__codelineno-3-162" href="#__codelineno-3-162"></a><span class="s">echo &quot;status=ready&quot; &gt; /var/run/pullpiri/node_status</span>
+<a id="__codelineno-3-163" name="__codelineno-3-163" href="#__codelineno-3-163"></a><span class="s">exit 0</span>
+<a id="__codelineno-3-164" name="__codelineno-3-164" href="#__codelineno-3-164"></a><span class="s">EOF</span>
+<a id="__codelineno-3-165" name="__codelineno-3-165" href="#__codelineno-3-165"></a><span class="k">fi</span>
+<a id="__codelineno-3-166" name="__codelineno-3-166" href="#__codelineno-3-166"></a>chmod<span class="w"> </span>+x<span class="w"> </span>/usr/local/bin/node_ready_check.sh
+<a id="__codelineno-3-167" name="__codelineno-3-167" href="#__codelineno-3-167"></a>
+<a id="__codelineno-3-168" name="__codelineno-3-168" href="#__codelineno-3-168"></a><span class="c1"># 구성 파일 생성</span>
+<a id="__codelineno-3-169" name="__codelineno-3-169" href="#__codelineno-3-169"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;구성 파일 생성 중...&quot;</span>
+<a id="__codelineno-3-170" name="__codelineno-3-170" href="#__codelineno-3-170"></a>cat<span class="w"> </span>&gt;<span class="w"> </span><span class="si">${</span><span class="nv">CONFIG_DIR</span><span class="si">}</span>/nodeagent.yaml<span class="w"> </span><span class="s">&lt;&lt; EOF</span>
+<a id="__codelineno-3-171" name="__codelineno-3-171" href="#__codelineno-3-171"></a><span class="s">nodeagent:</span>
+<a id="__codelineno-3-172" name="__codelineno-3-172" href="#__codelineno-3-172"></a><span class="s">  node_type: &quot;${NODE_TYPE}&quot;</span>
+<a id="__codelineno-3-173" name="__codelineno-3-173" href="#__codelineno-3-173"></a><span class="s">  master_ip: &quot;${MASTER_IP}&quot;</span>
+<a id="__codelineno-3-174" name="__codelineno-3-174" href="#__codelineno-3-174"></a><span class="s">  grpc_port: ${GRPC_PORT}</span>
+<a id="__codelineno-3-175" name="__codelineno-3-175" href="#__codelineno-3-175"></a><span class="s">  log_level: &quot;info&quot;</span>
+<a id="__codelineno-3-176" name="__codelineno-3-176" href="#__codelineno-3-176"></a><span class="s">  metrics:</span>
+<a id="__codelineno-3-177" name="__codelineno-3-177" href="#__codelineno-3-177"></a><span class="s">    collection_interval: 5</span>
+<a id="__codelineno-3-178" name="__codelineno-3-178" href="#__codelineno-3-178"></a><span class="s">    batch_size: 50</span>
+<a id="__codelineno-3-179" name="__codelineno-3-179" href="#__codelineno-3-179"></a><span class="s">  etcd:</span>
+<a id="__codelineno-3-180" name="__codelineno-3-180" href="#__codelineno-3-180"></a><span class="s">    endpoint: &quot;${MASTER_IP}:2379&quot;</span>
+<a id="__codelineno-3-181" name="__codelineno-3-181" href="#__codelineno-3-181"></a><span class="s">  system:</span>
+<a id="__codelineno-3-182" name="__codelineno-3-182" href="#__codelineno-3-182"></a><span class="s">    hostname: &quot;$(hostname)&quot;</span>
+<a id="__codelineno-3-183" name="__codelineno-3-183" href="#__codelineno-3-183"></a><span class="s">    platform: &quot;$(uname -s)&quot;</span>
+<a id="__codelineno-3-184" name="__codelineno-3-184" href="#__codelineno-3-184"></a><span class="s">    architecture: &quot;$(uname -m)&quot;</span>
+<a id="__codelineno-3-185" name="__codelineno-3-185" href="#__codelineno-3-185"></a><span class="s">EOF</span>
+<a id="__codelineno-3-186" name="__codelineno-3-186" href="#__codelineno-3-186"></a>
+<a id="__codelineno-3-187" name="__codelineno-3-187" href="#__codelineno-3-187"></a><span class="c1"># 방화벽 규칙 확인 및 추가</span>
+<a id="__codelineno-3-188" name="__codelineno-3-188" href="#__codelineno-3-188"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;방화벽 구성 확인 중...&quot;</span>
+<a id="__codelineno-3-189" name="__codelineno-3-189" href="#__codelineno-3-189"></a><span class="k">if</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>firewall-cmd<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>firewall-cmd<span class="w"> </span>--state<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-190" name="__codelineno-3-190" href="#__codelineno-3-190"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;firewalld가 실행 중입니다. 필요한 포트를 허용합니다.&quot;</span>
+<a id="__codelineno-3-191" name="__codelineno-3-191" href="#__codelineno-3-191"></a><span class="w">    </span><span class="c1"># gRPC 및 기타 필요한 포트 허용</span>
+<a id="__codelineno-3-192" name="__codelineno-3-192" href="#__codelineno-3-192"></a><span class="w">    </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-port<span class="o">=</span><span class="si">${</span><span class="nv">GRPC_PORT</span><span class="si">}</span>/tcp
+<a id="__codelineno-3-193" name="__codelineno-3-193" href="#__codelineno-3-193"></a><span class="w">    </span>firewall-cmd<span class="w"> </span>--reload
+<a id="__codelineno-3-194" name="__codelineno-3-194" href="#__codelineno-3-194"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;방화벽 구성이 업데이트되었습니다.&quot;</span>
+<a id="__codelineno-3-195" name="__codelineno-3-195" href="#__codelineno-3-195"></a><span class="k">elif</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>ufw<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>ufw<span class="w"> </span>status<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-196" name="__codelineno-3-196" href="#__codelineno-3-196"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;ufw가 실행 중입니다. 필요한 포트를 허용합니다.&quot;</span>
+<a id="__codelineno-3-197" name="__codelineno-3-197" href="#__codelineno-3-197"></a><span class="w">    </span>ufw<span class="w"> </span>allow<span class="w"> </span><span class="si">${</span><span class="nv">GRPC_PORT</span><span class="si">}</span>/tcp
+<a id="__codelineno-3-198" name="__codelineno-3-198" href="#__codelineno-3-198"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;방화벽 구성이 업데이트되었습니다.&quot;</span>
+<a id="__codelineno-3-199" name="__codelineno-3-199" href="#__codelineno-3-199"></a><span class="k">else</span>
+<a id="__codelineno-3-200" name="__codelineno-3-200" href="#__codelineno-3-200"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;지원되는 방화벽 관리자를 찾을 수 없거나 활성화되어 있지 않습니다.&quot;</span>
+<a id="__codelineno-3-201" name="__codelineno-3-201" href="#__codelineno-3-201"></a><span class="k">fi</span>
+<a id="__codelineno-3-202" name="__codelineno-3-202" href="#__codelineno-3-202"></a>
+<a id="__codelineno-3-203" name="__codelineno-3-203" href="#__codelineno-3-203"></a><span class="c1"># systemd 서비스 파일 생성</span>
+<a id="__codelineno-3-204" name="__codelineno-3-204" href="#__codelineno-3-204"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;systemd 서비스 파일 생성 중...&quot;</span>
+<a id="__codelineno-3-205" name="__codelineno-3-205" href="#__codelineno-3-205"></a>cat<span class="w"> </span>&gt;<span class="w"> </span>/etc/systemd/system/nodeagent.service<span class="w"> </span><span class="s">&lt;&lt; EOF</span>
+<a id="__codelineno-3-206" name="__codelineno-3-206" href="#__codelineno-3-206"></a><span class="s">[Unit]</span>
+<a id="__codelineno-3-207" name="__codelineno-3-207" href="#__codelineno-3-207"></a><span class="s">Description=Pullpiri NodeAgent Service</span>
+<a id="__codelineno-3-208" name="__codelineno-3-208" href="#__codelineno-3-208"></a><span class="s">After=network.target</span>
+<a id="__codelineno-3-209" name="__codelineno-3-209" href="#__codelineno-3-209"></a><span class="s">Wants=podman.socket</span>
+<a id="__codelineno-3-210" name="__codelineno-3-210" href="#__codelineno-3-210"></a>
+<a id="__codelineno-3-211" name="__codelineno-3-211" href="#__codelineno-3-211"></a><span class="s">[Service]</span>
+<a id="__codelineno-3-212" name="__codelineno-3-212" href="#__codelineno-3-212"></a><span class="s">Type=simple</span>
+<a id="__codelineno-3-213" name="__codelineno-3-213" href="#__codelineno-3-213"></a><span class="s">ExecStartPre=/usr/local/bin/node_ready_check.sh ${NODE_TYPE}</span>
+<a id="__codelineno-3-214" name="__codelineno-3-214" href="#__codelineno-3-214"></a><span class="s">ExecStart=${INSTALL_DIR}/${BINARY_NAME} --config ${CONFIG_DIR}/nodeagent.yaml</span>
+<a id="__codelineno-3-215" name="__codelineno-3-215" href="#__codelineno-3-215"></a><span class="s">Restart=on-failure</span>
+<a id="__codelineno-3-216" name="__codelineno-3-216" href="#__codelineno-3-216"></a><span class="s">RestartSec=10</span>
+<a id="__codelineno-3-217" name="__codelineno-3-217" href="#__codelineno-3-217"></a><span class="s">Environment=RUST_LOG=info</span>
+<a id="__codelineno-3-218" name="__codelineno-3-218" href="#__codelineno-3-218"></a><span class="s">Environment=MASTER_NODE_IP=${MASTER_IP}</span>
+<a id="__codelineno-3-219" name="__codelineno-3-219" href="#__codelineno-3-219"></a><span class="s">Environment=GRPC_PORT=${GRPC_PORT}</span>
+<a id="__codelineno-3-220" name="__codelineno-3-220" href="#__codelineno-3-220"></a>
+<a id="__codelineno-3-221" name="__codelineno-3-221" href="#__codelineno-3-221"></a><span class="s"># 보안 강화 설정</span>
+<a id="__codelineno-3-222" name="__codelineno-3-222" href="#__codelineno-3-222"></a><span class="s">ProtectSystem=full</span>
+<a id="__codelineno-3-223" name="__codelineno-3-223" href="#__codelineno-3-223"></a><span class="s">ProtectHome=true</span>
+<a id="__codelineno-3-224" name="__codelineno-3-224" href="#__codelineno-3-224"></a><span class="s">NoNewPrivileges=true</span>
+<a id="__codelineno-3-225" name="__codelineno-3-225" href="#__codelineno-3-225"></a>
+<a id="__codelineno-3-226" name="__codelineno-3-226" href="#__codelineno-3-226"></a><span class="s">[Install]</span>
+<a id="__codelineno-3-227" name="__codelineno-3-227" href="#__codelineno-3-227"></a><span class="s">WantedBy=multi-user.target</span>
+<a id="__codelineno-3-228" name="__codelineno-3-228" href="#__codelineno-3-228"></a><span class="s">EOF</span>
+<a id="__codelineno-3-229" name="__codelineno-3-229" href="#__codelineno-3-229"></a>
+<a id="__codelineno-3-230" name="__codelineno-3-230" href="#__codelineno-3-230"></a><span class="c1"># systemd 리로드 및 서비스 활성화</span>
+<a id="__codelineno-3-231" name="__codelineno-3-231" href="#__codelineno-3-231"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;NodeAgent 서비스 활성화 및 시작 중...&quot;</span>
+<a id="__codelineno-3-232" name="__codelineno-3-232" href="#__codelineno-3-232"></a>systemctl<span class="w"> </span>daemon-reload
+<a id="__codelineno-3-233" name="__codelineno-3-233" href="#__codelineno-3-233"></a>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>nodeagent.service
+<a id="__codelineno-3-234" name="__codelineno-3-234" href="#__codelineno-3-234"></a>
+<a id="__codelineno-3-235" name="__codelineno-3-235" href="#__codelineno-3-235"></a><span class="c1"># 서비스 시작 전 마스터 노드 연결 테스트</span>
+<a id="__codelineno-3-236" name="__codelineno-3-236" href="#__codelineno-3-236"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;마스터 노드 연결 테스트 중...&quot;</span>
+<a id="__codelineno-3-237" name="__codelineno-3-237" href="#__codelineno-3-237"></a><span class="k">if</span><span class="w"> </span>ping<span class="w"> </span>-c<span class="w"> </span><span class="m">3</span><span class="w"> </span>-W<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="si">${</span><span class="nv">MASTER_IP</span><span class="si">}</span><span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-238" name="__codelineno-3-238" href="#__codelineno-3-238"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;마스터 노드에 연결 가능: </span><span class="si">${</span><span class="nv">MASTER_IP</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-239" name="__codelineno-3-239" href="#__codelineno-3-239"></a>
+<a id="__codelineno-3-240" name="__codelineno-3-240" href="#__codelineno-3-240"></a><span class="w">    </span><span class="c1"># gRPC 포트 확인</span>
+<a id="__codelineno-3-241" name="__codelineno-3-241" href="#__codelineno-3-241"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>nc<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>nc<span class="w"> </span>-z<span class="w"> </span>-w<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="si">${</span><span class="nv">MASTER_IP</span><span class="si">}</span><span class="w"> </span><span class="si">${</span><span class="nv">GRPC_PORT</span><span class="si">}</span><span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-242" name="__codelineno-3-242" href="#__codelineno-3-242"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;마스터 노드 gRPC 포트 접속 가능: </span><span class="si">${</span><span class="nv">MASTER_IP</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">GRPC_PORT</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-243" name="__codelineno-3-243" href="#__codelineno-3-243"></a><span class="w">    </span><span class="k">else</span>
+<a id="__codelineno-3-244" name="__codelineno-3-244" href="#__codelineno-3-244"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;경고: 마스터 노드 gRPC 포트에 접속할 수 없습니다: </span><span class="si">${</span><span class="nv">MASTER_IP</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">GRPC_PORT</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-245" name="__codelineno-3-245" href="#__codelineno-3-245"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;서비스는 등록되지만 연결이 될 때까지 대기할 수 있습니다.&quot;</span>
+<a id="__codelineno-3-246" name="__codelineno-3-246" href="#__codelineno-3-246"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-247" name="__codelineno-3-247" href="#__codelineno-3-247"></a>
+<a id="__codelineno-3-248" name="__codelineno-3-248" href="#__codelineno-3-248"></a><span class="w">    </span><span class="c1"># etcd 포트 확인</span>
+<a id="__codelineno-3-249" name="__codelineno-3-249" href="#__codelineno-3-249"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>nc<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>nc<span class="w"> </span>-z<span class="w"> </span>-w<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="si">${</span><span class="nv">MASTER_IP</span><span class="si">}</span><span class="w"> </span><span class="m">2379</span><span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-250" name="__codelineno-3-250" href="#__codelineno-3-250"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;마스터 노드 etcd 포트 접속 가능: </span><span class="si">${</span><span class="nv">MASTER_IP</span><span class="si">}</span><span class="s2">:2379&quot;</span>
+<a id="__codelineno-3-251" name="__codelineno-3-251" href="#__codelineno-3-251"></a><span class="w">    </span><span class="k">else</span>
+<a id="__codelineno-3-252" name="__codelineno-3-252" href="#__codelineno-3-252"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;경고: 마스터 노드 etcd 포트에 접속할 수 없습니다: </span><span class="si">${</span><span class="nv">MASTER_IP</span><span class="si">}</span><span class="s2">:2379&quot;</span>
+<a id="__codelineno-3-253" name="__codelineno-3-253" href="#__codelineno-3-253"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;서비스는 등록되지만 연결이 될 때까지 대기할 수 있습니다.&quot;</span>
+<a id="__codelineno-3-254" name="__codelineno-3-254" href="#__codelineno-3-254"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-255" name="__codelineno-3-255" href="#__codelineno-3-255"></a>
+<a id="__codelineno-3-256" name="__codelineno-3-256" href="#__codelineno-3-256"></a><span class="w">    </span><span class="c1"># 서비스 시작</span>
+<a id="__codelineno-3-257" name="__codelineno-3-257" href="#__codelineno-3-257"></a><span class="w">    </span>systemctl<span class="w"> </span>start<span class="w"> </span>nodeagent.service
+<a id="__codelineno-3-258" name="__codelineno-3-258" href="#__codelineno-3-258"></a><span class="k">else</span>
+<a id="__codelineno-3-259" name="__codelineno-3-259" href="#__codelineno-3-259"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;경고: 마스터 노드에 연결할 수 없습니다: </span><span class="si">${</span><span class="nv">MASTER_IP</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-260" name="__codelineno-3-260" href="#__codelineno-3-260"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;서비스는 등록되지만 시작되지 않습니다. 연결이 가능해지면 수동으로 시작하세요.&quot;</span>
+<a id="__codelineno-3-261" name="__codelineno-3-261" href="#__codelineno-3-261"></a><span class="k">fi</span>
+<a id="__codelineno-3-262" name="__codelineno-3-262" href="#__codelineno-3-262"></a>
+<a id="__codelineno-3-263" name="__codelineno-3-263" href="#__codelineno-3-263"></a><span class="c1"># 설치 결과 확인</span>
+<a id="__codelineno-3-264" name="__codelineno-3-264" href="#__codelineno-3-264"></a><span class="k">if</span><span class="w"> </span>systemctl<span class="w"> </span>is-enabled<span class="w"> </span>--quiet<span class="w"> </span>nodeagent.service<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-265" name="__codelineno-3-265" href="#__codelineno-3-265"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;NodeAgent 서비스가 시스템에 등록되었습니다.&quot;</span>
+<a id="__codelineno-3-266" name="__codelineno-3-266" href="#__codelineno-3-266"></a>
+<a id="__codelineno-3-267" name="__codelineno-3-267" href="#__codelineno-3-267"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>systemctl<span class="w"> </span>is-active<span class="w"> </span>--quiet<span class="w"> </span>nodeagent.service<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-268" name="__codelineno-3-268" href="#__codelineno-3-268"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;NodeAgent 서비스가 성공적으로 시작되었습니다!&quot;</span>
+<a id="__codelineno-3-269" name="__codelineno-3-269" href="#__codelineno-3-269"></a><span class="w">    </span><span class="k">else</span>
+<a id="__codelineno-3-270" name="__codelineno-3-270" href="#__codelineno-3-270"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;경고: NodeAgent 서비스가 등록되었지만 시작되지 않았습니다.&quot;</span>
+<a id="__codelineno-3-271" name="__codelineno-3-271" href="#__codelineno-3-271"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;로그를 확인하세요: journalctl -u nodeagent.service&quot;</span>
+<a id="__codelineno-3-272" name="__codelineno-3-272" href="#__codelineno-3-272"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;문제 해결 후 다음 명령으로 수동 시작: systemctl start nodeagent.service&quot;</span>
+<a id="__codelineno-3-273" name="__codelineno-3-273" href="#__codelineno-3-273"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-3-274" name="__codelineno-3-274" href="#__codelineno-3-274"></a><span class="k">else</span>
+<a id="__codelineno-3-275" name="__codelineno-3-275" href="#__codelineno-3-275"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;오류: NodeAgent 서비스 등록에 실패했습니다.&quot;</span>
+<a id="__codelineno-3-276" name="__codelineno-3-276" href="#__codelineno-3-276"></a><span class="k">fi</span>
+<a id="__codelineno-3-277" name="__codelineno-3-277" href="#__codelineno-3-277"></a>
+<a id="__codelineno-3-278" name="__codelineno-3-278" href="#__codelineno-3-278"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;설치 요약:&quot;</span>
+<a id="__codelineno-3-279" name="__codelineno-3-279" href="#__codelineno-3-279"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;- 설치 디렉토리: </span><span class="si">${</span><span class="nv">INSTALL_DIR</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-280" name="__codelineno-3-280" href="#__codelineno-3-280"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;- 구성 파일: </span><span class="si">${</span><span class="nv">CONFIG_DIR</span><span class="si">}</span><span class="s2">/nodeagent.yaml&quot;</span>
+<a id="__codelineno-3-281" name="__codelineno-3-281" href="#__codelineno-3-281"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;- 마스터 노드: </span><span class="si">${</span><span class="nv">MASTER_IP</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">GRPC_PORT</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-282" name="__codelineno-3-282" href="#__codelineno-3-282"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;- 노드 타입: </span><span class="si">${</span><span class="nv">NODE_TYPE</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-283" name="__codelineno-3-283" href="#__codelineno-3-283"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;완료: NodeAgent 설치 프로세스가 종료되었습니다.&quot;</span>
+</code></pre></div>
+<h4 id="323">3.2.3 시스템 준비 상태 체크 단계<a class="headerlink" href="#323" title="Permanent link">&para;</a></h4>
+<p>클러스터에 참여하기 전 노드의 상태를 확인하는 시스템 체크 스크립트:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="ch">#!/bin/bash</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># node_ready_check.sh - 노드 클러스터링 전 상태 체크 스크립트</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># 임베디드 환경에 최적화된 시스템 체크 수행</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nv">NODE_TYPE</span><span class="o">=</span><span class="si">${</span><span class="nv">1</span><span class="k">:-</span><span class="s2">&quot;sub&quot;</span><span class="si">}</span><span class="w">  </span><span class="c1"># 기본값은 &quot;sub&quot; 노드</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nv">LOG_FILE</span><span class="o">=</span><span class="s2">&quot;/var/log/pullpiri/system_check.log&quot;</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="nv">RESULT_FILE</span><span class="o">=</span><span class="s2">&quot;/var/run/pullpiri/node_status&quot;</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="c1"># 로그 디렉토리 생성</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="k">$(</span>dirname<span class="w"> </span><span class="nv">$LOG_FILE</span><span class="k">)</span><span class="w"> </span><span class="k">$(</span>dirname<span class="w"> </span><span class="nv">$RESULT_FILE</span><span class="k">)</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>log<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;[</span><span class="k">$(</span>date<span class="w"> </span><span class="s1">&#39;+%Y-%m-%d %H:%M:%S&#39;</span><span class="k">)</span><span class="s2">] </span><span class="nv">$1</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span><span class="nv">$LOG_FILE</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="o">}</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>log<span class="w"> </span><span class="s2">&quot;시스템 준비 상태 체크 시작 (노드 타입: </span><span class="nv">$NODE_TYPE</span><span class="s2">)&quot;</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="c1"># 결과 초기화</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;status=checking&quot;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="nv">$RESULT_FILE</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="c1"># 1. 기본 시스템 리소스 확인</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>log<span class="w"> </span><span class="s2">&quot;기본 시스템 리소스 확인 중...&quot;</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="c1"># CPU 로드 확인</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="nv">CPU_LOAD</span><span class="o">=</span><span class="k">$(</span>cat<span class="w"> </span>/proc/loadavg<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $1}&#39;</span><span class="k">)</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="nv">CPU_CORES</span><span class="o">=</span><span class="k">$(</span>grep<span class="w"> </span>-c<span class="w"> </span>^processor<span class="w"> </span>/proc/cpuinfo<span class="k">)</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="nv">CPU_LOAD_PER_CORE</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$CPU_LOAD</span><span class="s2"> / </span><span class="nv">$CPU_CORES</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>bc<span class="w"> </span>-l<span class="k">)</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="k">if</span><span class="w"> </span><span class="o">((</span><span class="w"> </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$CPU_LOAD_PER_CORE</span><span class="s2"> &gt; 0.8&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>bc<span class="w"> </span>-l<span class="k">)</span><span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;경고: CPU 부하가 높습니다: </span><span class="nv">$CPU_LOAD</span><span class="s2"> (코어당 </span><span class="k">$(</span><span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;%.2f&quot;</span><span class="w"> </span><span class="nv">$CPU_LOAD_PER_CORE</span><span class="k">)</span><span class="s2">)&quot;</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">    </span><span class="nv">WARNING_COUNT</span><span class="o">=</span><span class="k">$((</span><span class="nv">WARNING_COUNT</span><span class="o">+</span><span class="m">1</span><span class="k">))</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="k">else</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;CPU 부하 정상: </span><span class="nv">$CPU_LOAD</span><span class="s2"> (코어당 </span><span class="k">$(</span><span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;%.2f&quot;</span><span class="w"> </span><span class="nv">$CPU_LOAD_PER_CORE</span><span class="k">)</span><span class="s2">)&quot;</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="k">fi</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="c1"># 메모리 확인</span>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="nv">MEM_TOTAL</span><span class="o">=</span><span class="k">$(</span>grep<span class="w"> </span>MemTotal<span class="w"> </span>/proc/meminfo<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span><span class="k">)</span>
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="nv">MEM_FREE</span><span class="o">=</span><span class="k">$(</span>grep<span class="w"> </span>MemAvailable<span class="w"> </span>/proc/meminfo<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span><span class="k">)</span>
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="nv">MEM_PERCENT_FREE</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;scale=2; </span><span class="nv">$MEM_FREE</span><span class="s2"> * 100 / </span><span class="nv">$MEM_TOTAL</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>bc<span class="k">)</span>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="k">if</span><span class="w"> </span><span class="o">((</span><span class="w"> </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$MEM_PERCENT_FREE</span><span class="s2"> &lt; 20&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>bc<span class="w"> </span>-l<span class="k">)</span><span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;경고: 가용 메모리가 부족합니다: </span><span class="si">${</span><span class="nv">MEM_PERCENT_FREE</span><span class="si">}</span><span class="s2">% 남음&quot;</span>
+<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="w">    </span><span class="nv">WARNING_COUNT</span><span class="o">=</span><span class="k">$((</span><span class="nv">WARNING_COUNT</span><span class="o">+</span><span class="m">1</span><span class="k">))</span>
+<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a><span class="k">else</span>
+<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;메모리 상태 정상: </span><span class="si">${</span><span class="nv">MEM_PERCENT_FREE</span><span class="si">}</span><span class="s2">% 가용&quot;</span>
+<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a><span class="k">fi</span>
+<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a>
+<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="c1"># 2. 필수 서비스 확인</span>
+<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a>log<span class="w"> </span><span class="s2">&quot;필수 서비스 확인 중...&quot;</span>
+<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a>
+<a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a><span class="c1"># Podman 확인</span>
+<a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a><span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>podman<span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;오류: Podman이 설치되어 있지 않습니다.&quot;</span>
+<a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a><span class="w">    </span><span class="nv">ERROR_COUNT</span><span class="o">=</span><span class="k">$((</span><span class="nv">ERROR_COUNT</span><span class="o">+</span><span class="m">1</span><span class="k">))</span>
+<a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a><span class="k">else</span>
+<a id="__codelineno-4-56" name="__codelineno-4-56" href="#__codelineno-4-56"></a><span class="w">    </span><span class="nv">PODMAN_VERSION</span><span class="o">=</span><span class="k">$(</span>podman<span class="w"> </span>--version<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $3}&#39;</span><span class="k">)</span>
+<a id="__codelineno-4-57" name="__codelineno-4-57" href="#__codelineno-4-57"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;Podman 설치됨: 버전 </span><span class="nv">$PODMAN_VERSION</span><span class="s2">&quot;</span>
+<a id="__codelineno-4-58" name="__codelineno-4-58" href="#__codelineno-4-58"></a>
+<a id="__codelineno-4-59" name="__codelineno-4-59" href="#__codelineno-4-59"></a><span class="w">    </span><span class="c1"># Podman 서비스 확인</span>
+<a id="__codelineno-4-60" name="__codelineno-4-60" href="#__codelineno-4-60"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>!<span class="w"> </span>systemctl<span class="w"> </span>is-active<span class="w"> </span>--quiet<span class="w"> </span>podman.socket<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-4-61" name="__codelineno-4-61" href="#__codelineno-4-61"></a><span class="w">        </span>log<span class="w"> </span><span class="s2">&quot;경고: podman.socket 서비스가 실행 중이 아닙니다.&quot;</span>
+<a id="__codelineno-4-62" name="__codelineno-4-62" href="#__codelineno-4-62"></a><span class="w">        </span><span class="nv">WARNING_COUNT</span><span class="o">=</span><span class="k">$((</span><span class="nv">WARNING_COUNT</span><span class="o">+</span><span class="m">1</span><span class="k">))</span>
+<a id="__codelineno-4-63" name="__codelineno-4-63" href="#__codelineno-4-63"></a><span class="w">    </span><span class="k">else</span>
+<a id="__codelineno-4-64" name="__codelineno-4-64" href="#__codelineno-4-64"></a><span class="w">        </span>log<span class="w"> </span><span class="s2">&quot;podman.socket 서비스 실행 중&quot;</span>
+<a id="__codelineno-4-65" name="__codelineno-4-65" href="#__codelineno-4-65"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-4-66" name="__codelineno-4-66" href="#__codelineno-4-66"></a><span class="k">fi</span>
+<a id="__codelineno-4-67" name="__codelineno-4-67" href="#__codelineno-4-67"></a>
+<a id="__codelineno-4-68" name="__codelineno-4-68" href="#__codelineno-4-68"></a><span class="c1"># 3. 네트워크 연결 확인</span>
+<a id="__codelineno-4-69" name="__codelineno-4-69" href="#__codelineno-4-69"></a>log<span class="w"> </span><span class="s2">&quot;네트워크 연결 확인 중...&quot;</span>
+<a id="__codelineno-4-70" name="__codelineno-4-70" href="#__codelineno-4-70"></a>
+<a id="__codelineno-4-71" name="__codelineno-4-71" href="#__codelineno-4-71"></a><span class="c1"># 마스터 노드 연결 확인</span>
+<a id="__codelineno-4-72" name="__codelineno-4-72" href="#__codelineno-4-72"></a><span class="nv">MASTER_IP</span><span class="o">=</span><span class="si">${</span><span class="nv">MASTER_NODE_IP</span><span class="k">:-</span><span class="s2">&quot;127.0.0.1&quot;</span><span class="si">}</span>
+<a id="__codelineno-4-73" name="__codelineno-4-73" href="#__codelineno-4-73"></a><span class="k">if</span><span class="w"> </span>ping<span class="w"> </span>-c<span class="w"> </span><span class="m">1</span><span class="w"> </span>-W<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="nv">$MASTER_IP</span><span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-4-74" name="__codelineno-4-74" href="#__codelineno-4-74"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;마스터 노드 연결 가능: </span><span class="nv">$MASTER_IP</span><span class="s2">&quot;</span>
+<a id="__codelineno-4-75" name="__codelineno-4-75" href="#__codelineno-4-75"></a>
+<a id="__codelineno-4-76" name="__codelineno-4-76" href="#__codelineno-4-76"></a><span class="w">    </span><span class="c1"># API 서버 포트 확인</span>
+<a id="__codelineno-4-77" name="__codelineno-4-77" href="#__codelineno-4-77"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>nc<span class="w"> </span>-z<span class="w"> </span>-w<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="nv">$MASTER_IP</span><span class="w"> </span><span class="si">${</span><span class="nv">GRPC_PORT</span><span class="k">:-</span><span class="nv">47098</span><span class="si">}</span><span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-4-78" name="__codelineno-4-78" href="#__codelineno-4-78"></a><span class="w">        </span>log<span class="w"> </span><span class="s2">&quot;API 서버 gRPC 포트 접속 가능: </span><span class="nv">$MASTER_IP</span><span class="s2">:</span><span class="si">${</span><span class="nv">GRPC_PORT</span><span class="k">:-</span><span class="nv">47098</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-4-79" name="__codelineno-4-79" href="#__codelineno-4-79"></a><span class="w">    </span><span class="k">else</span>
+<a id="__codelineno-4-80" name="__codelineno-4-80" href="#__codelineno-4-80"></a><span class="w">        </span>log<span class="w"> </span><span class="s2">&quot;오류: API 서버 gRPC 포트에 접속할 수 없습니다: </span><span class="nv">$MASTER_IP</span><span class="s2">:</span><span class="si">${</span><span class="nv">GRPC_PORT</span><span class="k">:-</span><span class="nv">47098</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-4-81" name="__codelineno-4-81" href="#__codelineno-4-81"></a><span class="w">        </span><span class="nv">ERROR_COUNT</span><span class="o">=</span><span class="k">$((</span><span class="nv">ERROR_COUNT</span><span class="o">+</span><span class="m">1</span><span class="k">))</span>
+<a id="__codelineno-4-82" name="__codelineno-4-82" href="#__codelineno-4-82"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-4-83" name="__codelineno-4-83" href="#__codelineno-4-83"></a>
+<a id="__codelineno-4-84" name="__codelineno-4-84" href="#__codelineno-4-84"></a><span class="w">    </span><span class="c1"># ETCD 포트 확인</span>
+<a id="__codelineno-4-85" name="__codelineno-4-85" href="#__codelineno-4-85"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>nc<span class="w"> </span>-z<span class="w"> </span>-w<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="nv">$MASTER_IP</span><span class="w"> </span><span class="m">2379</span><span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span>/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-4-86" name="__codelineno-4-86" href="#__codelineno-4-86"></a><span class="w">        </span>log<span class="w"> </span><span class="s2">&quot;ETCD 포트 접속 가능: </span><span class="nv">$MASTER_IP</span><span class="s2">:2379&quot;</span>
+<a id="__codelineno-4-87" name="__codelineno-4-87" href="#__codelineno-4-87"></a><span class="w">    </span><span class="k">else</span>
+<a id="__codelineno-4-88" name="__codelineno-4-88" href="#__codelineno-4-88"></a><span class="w">        </span>log<span class="w"> </span><span class="s2">&quot;오류: ETCD 포트에 접속할 수 없습니다: </span><span class="nv">$MASTER_IP</span><span class="s2">:2379&quot;</span>
+<a id="__codelineno-4-89" name="__codelineno-4-89" href="#__codelineno-4-89"></a><span class="w">        </span><span class="nv">ERROR_COUNT</span><span class="o">=</span><span class="k">$((</span><span class="nv">ERROR_COUNT</span><span class="o">+</span><span class="m">1</span><span class="k">))</span>
+<a id="__codelineno-4-90" name="__codelineno-4-90" href="#__codelineno-4-90"></a><span class="w">    </span><span class="k">fi</span>
+<a id="__codelineno-4-91" name="__codelineno-4-91" href="#__codelineno-4-91"></a><span class="k">else</span>
+<a id="__codelineno-4-92" name="__codelineno-4-92" href="#__codelineno-4-92"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;오류: 마스터 노드에 접속할 수 없습니다: </span><span class="nv">$MASTER_IP</span><span class="s2">&quot;</span>
+<a id="__codelineno-4-93" name="__codelineno-4-93" href="#__codelineno-4-93"></a><span class="w">    </span><span class="nv">ERROR_COUNT</span><span class="o">=</span><span class="k">$((</span><span class="nv">ERROR_COUNT</span><span class="o">+</span><span class="m">1</span><span class="k">))</span>
+<a id="__codelineno-4-94" name="__codelineno-4-94" href="#__codelineno-4-94"></a><span class="k">fi</span>
+<a id="__codelineno-4-95" name="__codelineno-4-95" href="#__codelineno-4-95"></a>
+<a id="__codelineno-4-96" name="__codelineno-4-96" href="#__codelineno-4-96"></a><span class="c1"># 4. 상태 평가 및 결과 출력</span>
+<a id="__codelineno-4-97" name="__codelineno-4-97" href="#__codelineno-4-97"></a>log<span class="w"> </span><span class="s2">&quot;시스템 체크 완료: 오류(</span><span class="nv">$ERROR_COUNT</span><span class="s2">), 경고(</span><span class="nv">$WARNING_COUNT</span><span class="s2">)&quot;</span>
+<a id="__codelineno-4-98" name="__codelineno-4-98" href="#__codelineno-4-98"></a>
+<a id="__codelineno-4-99" name="__codelineno-4-99" href="#__codelineno-4-99"></a><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="nv">$ERROR_COUNT</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-4-100" name="__codelineno-4-100" href="#__codelineno-4-100"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;시스템 준비 상태: 실패 (치명적 오류 발생)&quot;</span>
+<a id="__codelineno-4-101" name="__codelineno-4-101" href="#__codelineno-4-101"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;status=failed&quot;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="nv">$RESULT_FILE</span>
+<a id="__codelineno-4-102" name="__codelineno-4-102" href="#__codelineno-4-102"></a><span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-4-103" name="__codelineno-4-103" href="#__codelineno-4-103"></a><span class="k">elif</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="nv">$WARNING_COUNT</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-4-104" name="__codelineno-4-104" href="#__codelineno-4-104"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;시스템 준비 상태: 경고 (비치명적 문제 발견)&quot;</span>
+<a id="__codelineno-4-105" name="__codelineno-4-105" href="#__codelineno-4-105"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;status=warning&quot;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="nv">$RESULT_FILE</span>
+<a id="__codelineno-4-106" name="__codelineno-4-106" href="#__codelineno-4-106"></a><span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-4-107" name="__codelineno-4-107" href="#__codelineno-4-107"></a><span class="k">else</span>
+<a id="__codelineno-4-108" name="__codelineno-4-108" href="#__codelineno-4-108"></a><span class="w">    </span>log<span class="w"> </span><span class="s2">&quot;시스템 준비 상태: 양호 (모든 체크 통과)&quot;</span>
+<a id="__codelineno-4-109" name="__codelineno-4-109" href="#__codelineno-4-109"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;status=ready&quot;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="nv">$RESULT_FILE</span>
+<a id="__codelineno-4-110" name="__codelineno-4-110" href="#__codelineno-4-110"></a><span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-4-111" name="__codelineno-4-111" href="#__codelineno-4-111"></a><span class="k">fi</span>
+</code></pre></div>
+<h4 id="324">3.2.4 노드 연결 및 인증 단계<a class="headerlink" href="#324" title="Permanent link">&para;</a></h4>
+<p>NodeAgent는 다음과 같은 Rust 코드를 통해 마스터 노드와 연결합니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="sd">/// Connect to master node API server</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">connect_to_master</span><span class="p">(</span><span class="n">config</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">NodeConfig</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">ConnectionError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">master_endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;{}:{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">config</span><span class="p">.</span><span class="n">master_ip</span><span class="p">,</span><span class="w"> </span><span class="n">config</span><span class="p">.</span><span class="n">grpc_port</span><span class="p">);</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">node_info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">collect_node_info</span><span class="p">().</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">credentials</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">generate_credentials</span><span class="p">(</span><span class="o">&amp;</span><span class="n">config</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">request</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NodeRegistrationRequest</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">        </span><span class="n">node_info</span><span class="p">,</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">        </span><span class="n">credentials</span><span class="p">,</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">        </span><span class="n">node_type</span><span class="p">:</span><span class="w"> </span><span class="nc">config</span><span class="p">.</span><span class="n">node_type</span><span class="p">.</span><span class="n">clone</span><span class="p">(),</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">    </span><span class="p">};</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">    </span><span class="c1">// gRPC 클라이언트 생성 및 연결</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ApiServerClient</span><span class="p">::</span><span class="n">connect</span><span class="p">(</span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;http://{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">master_endpoint</span><span class="p">))</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="w">        </span><span class="p">.</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">client</span><span class="p">.</span><span class="n">register_node</span><span class="p">(</span><span class="n">Request</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="w">        </span><span class="p">.</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">reg_response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">response</span><span class="p">.</span><span class="n">into_inner</span><span class="p">();</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="w">    </span><span class="n">save_node_id</span><span class="p">(</span><span class="o">&amp;</span><span class="n">reg_response</span><span class="p">.</span><span class="n">node_id</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="w">    </span><span class="n">save_cluster_info</span><span class="p">(</span><span class="o">&amp;</span><span class="n">reg_response</span><span class="p">.</span><span class="n">cluster_info</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="w">    </span><span class="c1">// 연결 성공 상태 설정</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="w">    </span><span class="n">CONNECTED</span><span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="n">Ordering</span><span class="p">::</span><span class="n">SeqCst</span><span class="p">);</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="w">    </span><span class="nb">Ok</span><span class="p">(())</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a><span class="p">}</span>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="sd">/// Maintain connection with master node</span>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a><span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">maintain_master_connection</span><span class="p">(</span><span class="n">config</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">NodeConfig</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">interval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tokio</span><span class="p">::</span><span class="n">time</span><span class="p">::</span><span class="n">interval</span><span class="p">(</span><span class="n">Duration</span><span class="p">::</span><span class="n">from_secs</span><span class="p">(</span><span class="mi">30</span><span class="p">));</span>
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a><span class="w">    </span><span class="k">loop</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a><span class="w">        </span><span class="n">interval</span><span class="p">.</span><span class="n">tick</span><span class="p">().</span><span class="k">await</span><span class="p">;</span>
+<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>
+<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a><span class="w">        </span><span class="c1">// 마스터 노드 연결 상태 확인</span>
+<a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="n">CONNECTED</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">Ordering</span><span class="p">::</span><span class="n">SeqCst</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a><span class="w">            </span><span class="k">match</span><span class="w"> </span><span class="n">connect_to_master</span><span class="p">(</span><span class="n">config</span><span class="p">).</span><span class="k">await</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a><span class="w">                </span><span class="nb">Ok</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">log</span><span class="p">::</span><span class="n">info</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Successfully reconnected to master node&quot;</span><span class="p">),</span>
+<a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a><span class="w">                </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">log</span><span class="p">::</span><span class="n">error</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Failed to reconnect to master node: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">),</span>
+<a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a><span class="w">            </span><span class="k">continue</span><span class="p">;</span>
+<a id="__codelineno-5-45" name="__codelineno-5-45" href="#__codelineno-5-45"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-5-46" name="__codelineno-5-46" href="#__codelineno-5-46"></a>
+<a id="__codelineno-5-47" name="__codelineno-5-47" href="#__codelineno-5-47"></a><span class="w">        </span><span class="c1">// 하트비트 전송</span>
+<a id="__codelineno-5-48" name="__codelineno-5-48" href="#__codelineno-5-48"></a><span class="w">        </span><span class="k">match</span><span class="w"> </span><span class="n">send_heartbeat</span><span class="p">().</span><span class="k">await</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-49" name="__codelineno-5-49" href="#__codelineno-5-49"></a><span class="w">            </span><span class="nb">Ok</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">log</span><span class="p">::</span><span class="n">debug</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Heartbeat sent successfully&quot;</span><span class="p">),</span>
+<a id="__codelineno-5-50" name="__codelineno-5-50" href="#__codelineno-5-50"></a><span class="w">            </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-51" name="__codelineno-5-51" href="#__codelineno-5-51"></a><span class="w">                </span><span class="n">log</span><span class="p">::</span><span class="n">warn</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Failed to send heartbeat: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">);</span>
+<a id="__codelineno-5-52" name="__codelineno-5-52" href="#__codelineno-5-52"></a><span class="w">                </span><span class="n">CONNECTED</span><span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="n">Ordering</span><span class="p">::</span><span class="n">SeqCst</span><span class="p">);</span>
+<a id="__codelineno-5-53" name="__codelineno-5-53" href="#__codelineno-5-53"></a><span class="w">                </span><span class="k">break</span><span class="p">;</span>
+<a id="__codelineno-5-54" name="__codelineno-5-54" href="#__codelineno-5-54"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-5-55" name="__codelineno-5-55" href="#__codelineno-5-55"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-5-56" name="__codelineno-5-56" href="#__codelineno-5-56"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-5-57" name="__codelineno-5-57" href="#__codelineno-5-57"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="33">3.3 클러스터링 아키텍처<a class="headerlink" href="#33" title="Permanent link">&para;</a></h3>
+<p>Pullpiri의 클러스터링 아키텍처는 임베디드 환경에 최적화된 소규모 클러스터를 위해 설계되었습니다:</p>
+<ol>
+<li><strong>단순화된 마스터-서브 구조</strong></li>
+<li>단일 마스터 노드에 모든 코어 서비스 집중(API Server, FilterGateway, ActionController, StateManager, MonitoringServer)</li>
+<li>서브 노드에는 NodeAgent만 실행하여 리소스 부담 최소화</li>
+<li>리더 선출 없이 사전 정의된 마스터 노드 사용</li>
+<li>
+<p>임베디드 환경에 최적화된 경량 상태 관리</p>
+</li>
+<li>
+<p><strong>Podman 기반 컨테이너 관리</strong></p>
+</li>
+<li>데몬리스 아키텍처로 리소스 사용 최소화</li>
+<li>rootless 모드 지원으로 보안 강화</li>
+<li>임베디드 장치에 적합한 경량 컨테이너 런타임</li>
+<li>
+<p>OCI 표준 호환성 유지</p>
+</li>
+<li>
+<p><strong>etcd 기반 상태 저장</strong></p>
+</li>
+<li>컨테이너 모니터링 데이터를 etcd에 저장</li>
+<li>분산 키-값 저장소로 데이터 일관성 보장</li>
+<li>임베디드 환경에 최적화된 경량 구성 사용</li>
+<li>
+<p>제한된 스토리지를 고려한 데이터 보존 정책</p>
+</li>
+<li>
+<p><strong>하이브리드 연결 모델</strong></p>
+</li>
+<li>임베디드 노드와 클라우드 노드 간 통합 구조</li>
+<li>다양한 네트워크 환경(유선, 무선, 셀룰러)에서 작동</li>
+<li>간헐적 연결에서도 강건한 동기화 메커니즘</li>
+<li>클라우드 연결성을 활용한 확장 기능</li>
+</ol>
+<h3 id="34">3.4 클러스터 토폴로지 유형<a class="headerlink" href="#34" title="Permanent link">&para;</a></h3>
+<p>Pullpiri 임베디드 환경과 클라우드 연계를 위한 최적화된 클러스터 토폴로지를 지원합니다:</p>
+<ol>
+<li><strong>기본 임베디드 토폴로지</strong></li>
+<li>단일 마스터 노드와 소수의 서브 노드로 구성</li>
+<li>마스터 노드에 모든 코어 서비스 집중 배치</li>
+<li>간단한 구조로 임베디드 환경의 제한된 리소스에 최적화</li>
+<li>
+<p>2-5개 노드 규모의 소형 시스템에 적합</p>
+</li>
+<li>
+<p><strong>에지-클라우드 하이브리드 토폴로지</strong></p>
+</li>
+<li>로컬 임베디드 클러스터와 클라우드 노드 연결</li>
+<li>에지에서의 빠른 처리와 클라우드의 확장성 결합</li>
+<li>간헐적 클라우드 연결에서도 로컬 운영 가능</li>
+<li>
+<p>데이터 처리 부하를 클라우드와 분담</p>
+</li>
+<li>
+<p><strong>다중 임베디드 클러스터 토폴로지</strong></p>
+</li>
+<li>여러 임베디드 클러스터가 상위 마스터 노드에 연결</li>
+<li>각 클러스터는 독립적으로 운영 가능</li>
+<li>분산 환경에서의 계층적 관리</li>
+<li>
+<p>클러스터 간 격리 및 자원 관리</p>
+</li>
+<li>
+<p><strong>지역 분산 토폴로지</strong></p>
+</li>
+<li>지리적으로 분산된 임베디드 시스템 통합</li>
+<li>연결 상태에 따른 동적 구성 변경</li>
+<li>로컬 클러스터의 자율성 보장</li>
+<li>중앙 관리와 분산 처리의 균형</li>
+</ol>
+<h2 id="4">4. 클러스터 상태 관리<a class="headerlink" href="#4" title="Permanent link">&para;</a></h2>
+<h3 id="41">4.1 노드 상태 모니터링<a class="headerlink" href="#41" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>하트비트 메커니즘</strong></li>
+<li>정기적인 하트비트 체크를 통한 노드 활성 상태 확인</li>
+<li>응답 없는 노드 감지 및 상태 업데이트</li>
+<li>
+<p>재연결 시 자동 복구 절차 수행</p>
+</li>
+<li>
+<p><strong>리소스 모니터링</strong></p>
+</li>
+<li>Podman 컨테이너 상태 모니터링 및 etcd에 저장</li>
+<li>임베디드 장치의 자원 상태(CPU, 메모리, 디스크, 전원) 모니터링</li>
+<li>
+<p>자원 제약 조건 설정 및 알림 기능</p>
+</li>
+<li>
+<p><strong>상태 변경 통지</strong></p>
+</li>
+<li>중요 상태 변경 감지 시 StateManager에 즉시 전달</li>
+<li>노드 연결 해제/재연결 시 자동 복구 메커니즘</li>
+<li>상태 이벤트 로깅 및 분석</li>
+</ol>
+<h3 id="42">4.2 클러스터 구성 동기화<a class="headerlink" href="#42" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>구성 배포</strong></li>
+<li>마스터 노드에서 서브 노드로 구성 변경 사항 전파</li>
+<li>부분 업데이트 지원으로 네트워크 트래픽 최소화</li>
+<li>
+<p>구성 버전 관리 및 충돌 해결</p>
+</li>
+<li>
+<p><strong>정책 동기화</strong></p>
+</li>
+<li>보안 정책, 모니터링 설정, 리소스 제약 조건 등 동기화</li>
+<li>노드 유형 및 역할에 따른 차등 정책 적용</li>
+<li>정책 적용 상태 확인 및 보고</li>
+</ol>
+<h2 id="5">5. 배포 및 운영<a class="headerlink" href="#5" title="Permanent link">&para;</a></h2>
+<h3 id="51">5.1 클러스터 초기 설정<a class="headerlink" href="#51" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>마스터 노드 구성</strong></li>
+<li>API Server, FilterGateway, ActionController, StateManager, MonitoringServer 설치 및 구성</li>
+<li>etcd 설정 및 초기화</li>
+<li>
+<p>클러스터 구성 파일 생성</p>
+</li>
+<li>
+<p><strong>서브 노드 등록</strong></p>
+</li>
+<li>NodeAgent 설치 스크립트 실행</li>
+<li>마스터 노드 IP 및 노드 유형 지정</li>
+<li>자동 서비스 등록 및 시작</li>
+</ol>
+<h3 id="52">5.2 클러스터 확장<a class="headerlink" href="#52" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>신규 노드 추가</strong></li>
+<li>마스터 노드에 노드 정보 사전 등록 또는 동적 발견 설정</li>
+<li>NodeAgent 설치 및 등록 프로세스 수행</li>
+<li>
+<p>클러스터 토폴로지 자동 업데이트</p>
+</li>
+<li>
+<p><strong>노드 제거</strong></p>
+</li>
+<li>안전한 노드 중지 및 제거 절차</li>
+<li>클러스터 구성 정보 업데이트</li>
+<li>노드 자원 해제 및 정리</li>
+</ol>
+<h3 id="53">5.3 장애 복구<a class="headerlink" href="#53" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>노드 장애 감지</strong></li>
+<li>하트비트 실패 시 노드 상태 업데이트</li>
+<li>장애 로깅 및 알림 생성</li>
+<li>
+<p>자동 복구 절차 시작</p>
+</li>
+<li>
+<p><strong>복구 절차</strong></p>
+</li>
+<li>노드 상태 확인 및 재시작 시도</li>
+<li>영구 장애 시 노드 격리 및 관리자 알림</li>
+<li>클러스터 재구성 및 워크로드 재배치</li>
+</ol>
+<h2 id="6">6. 보안<a class="headerlink" href="#6" title="Permanent link">&para;</a></h2>
+<h3 id="61">6.1 노드 인증<a class="headerlink" href="#61" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>초기 인증</strong></li>
+<li>TLS 기반 노드 인증서 사용</li>
+<li>마스터 노드의 인증 기관 활용</li>
+<li>
+<p>안전한 초기 인증 절차</p>
+</li>
+<li>
+<p><strong>지속적 인증</strong></p>
+</li>
+<li>주기적 인증서 갱신</li>
+<li>토큰 기반 세션 유지</li>
+<li>의심스러운 활동 감지 및 차단</li>
+</ol>
+<h3 id="62">6.2 통신 보안<a class="headerlink" href="#62" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>암호화 통신</strong></li>
+<li>gRPC 통신의 TLS 암호화</li>
+<li>API 엔드포인트 보안</li>
+<li>
+<p>데이터 무결성 검증</p>
+</li>
+<li>
+<p><strong>접근 제어</strong></p>
+</li>
+<li>노드 역할 기반 권한 부여</li>
+<li>최소 권한 원칙 적용</li>
+<li>자원 접근 제한 및 모니터링</li>
+</ol>
+<h2 id="7">7. 참조 및 부록<a class="headerlink" href="#7" title="Permanent link">&para;</a></h2>
+<h3 id="71">7.1 관련 문서<a class="headerlink" href="#71" title="Permanent link">&para;</a></h3>
+<ul>
+<li>HLD/base/pullpiri_network(pharos).md - Pullpiri 네트워크 아키텍처</li>
+<li>3.LLD/apiserver.md - API Server 상세 설계</li>
+<li>3.LLD/nodeagent.md - NodeAgent 상세 설계</li>
+</ul>
+<h3 id="72">7.2 용어 정의<a class="headerlink" href="#72" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>정의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>마스터 노드</td>
+<td>API Server, FilterGateway, ActionController 등 핵심 서비스를 실행하는 중앙 관리 노드</td>
+</tr>
+<tr>
+<td>서브 노드</td>
+<td>NodeAgent만 실행하는 워커 노드로, 마스터 노드의 관리 대상</td>
+</tr>
+<tr>
+<td>NodeAgent</td>
+<td>각 노드에서 실행되는 에이전트로, 노드 상태 모니터링 및 마스터 노드와의 통신 담당</td>
+</tr>
+<tr>
+<td>임베디드 환경</td>
+<td>제한된 자원(CPU, 메모리, 스토리지)을 가진 장치 환경</td>
+</tr>
+<tr>
+<td>Podman</td>
+<td>데몬리스 컨테이너 관리 도구로, Docker 대체제로 사용</td>
+</tr>
+<tr>
+<td>etcd</td>
+<td>분산 키-값 저장소로, 클러스터 상태 정보 저장에 사용</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024–2026 Eclipse Pullpiri Contributors
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/eclipse-pullpiri/pullpiri" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -19,7 +19,7 @@ use common::logd;
 /// * `Err(String)` if connection or sending fails
 pub async fn add_sched_info(sched_info: SchedInfo) -> Result<(), String> {
     logd!(1, "Connecting to Timpani server ....");
-    
+
     let mut client = SchedInfoServiceClient::connect(connect_timpani_server())
         .await
         .map_err(|e| format!("Failed to connect to Timpani server: {}", e))?;

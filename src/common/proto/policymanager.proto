@@ -15,6 +15,9 @@ service PolicyManagerConnection {
   
   // Report node metrics for threshold-based policy evaluation
   rpc ReportNodeMetrics(ReportNodeMetricsRequest) returns (ReportNodeMetricsResponse);
+  
+  // Report fault (deadline miss) from Timpani via StateManager
+  rpc ReportFault(ReportFaultRequest) returns (ReportFaultResponse);
 }
 
 // Request to check if deployment to a specific node is allowed
@@ -49,5 +52,25 @@ message RunningContainer {
 // Response for node metrics report
 message ReportNodeMetricsResponse {
   bool processed = 1;            // Whether the metrics were processed successfully
+  string message = 2;            // Additional information
+}
+
+// Fault type enum (matches Timpani's FaultType)
+enum FaultType {
+  FAULT_UNKNOWN = 0;
+  FAULT_DEADLINE_MISS = 1;
+}
+
+// Request to report fault from StateManager (originally from Timpani)
+message ReportFaultRequest {
+  string workload_id = 1;        // Workload/Schedule ID that experienced the fault
+  string node_id = 2;            // Node where the fault occurred
+  string task_name = 3;          // Task name that experienced the fault
+  FaultType fault_type = 4;      // Type of fault (e.g., deadline miss)
+}
+
+// Response for fault report
+message ReportFaultResponse {
+  bool processed = 1;            // Whether the fault was processed successfully
   string message = 2;            // Additional information
 }

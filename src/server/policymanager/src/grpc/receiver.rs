@@ -5,8 +5,8 @@
 
 use common::policymanager::policy_manager_connection_server::PolicyManagerConnection;
 use common::policymanager::{
-    CheckNodePolicyRequest, CheckNodePolicyResponse, ReportNodeMetricsRequest,
-    ReportNodeMetricsResponse, RunningContainer,
+    CheckNodePolicyRequest, CheckNodePolicyResponse, FaultType, ReportFaultRequest,
+    ReportFaultResponse, ReportNodeMetricsRequest, ReportNodeMetricsResponse, RunningContainer,
 };
 use common::spec::artifact::Policy;
 use common::statemanager::OffloadingRequest;
@@ -390,6 +390,42 @@ impl PolicyManagerConnection for PolicyManagerGrpcServer {
                 "Processed metrics for node '{}' with {} containers",
                 node_info.node_name,
                 running_containers.len()
+            ),
+        }))
+    }
+
+    /// Handle fault reports from StateManager (originated from Timpani)
+    ///
+    /// This method receives fault notifications (e.g., deadline miss) and logs them.
+    /// Future implementation will check deadlineMissThreshold in policy and trigger actions.
+    async fn report_fault(
+        &self,
+        request: Request<ReportFaultRequest>,
+    ) -> Result<Response<ReportFaultResponse>, Status> {
+        let req = request.into_inner();
+
+        let fault_type_str = match FaultType::try_from(req.fault_type) {
+            Ok(FaultType::FaultDeadlineMiss) => "DEADLINE_MISS",
+            Ok(FaultType::FaultUnknown) => "UNKNOWN",
+            Err(_) => "INVALID",
+        };
+
+        println!(
+            "[PolicyManager] Received fault report: workload='{}', node='{}', task='{}', type={}",
+            req.workload_id, req.node_id, req.task_name, fault_type_str
+        );
+
+        // TODO: Implement deadline miss threshold checking and action triggering
+        // 1. Find policy associated with this workload
+        // 2. Check if deadlineMissThreshold is defined
+        // 3. Track deadline miss count per workload
+        // 4. Trigger action (e.g., stop) when threshold is exceeded
+
+        Ok(Response::new(ReportFaultResponse {
+            processed: true,
+            message: format!(
+                "Fault report received: workload={}, type={}",
+                req.workload_id, fault_type_str
             ),
         }))
     }

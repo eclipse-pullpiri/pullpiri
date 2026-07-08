@@ -75,7 +75,7 @@ impl FilterGatewayManager {
     /// Function to initialize the FilterGatewayManager
     ///
     ///
-    /// This function reads all scenarios from etcd and subscribes to the necessary vehicle data topics.
+    /// This function reads all scenarios from kvstore and subscribes to the necessary vehicle data topics.
     /// It also launches the scenario filters.
     ///
     /// # Returns
@@ -84,11 +84,11 @@ impl FilterGatewayManager {
     pub async fn initialize(&self) -> Result<()> {
         logd!(3, "FilterGatewayManager init");
         // Initialize vehicle manager
-        let etcd_scenario = Self::read_all_scenario_from_etcd()
+        let kvstore_scenario = Self::read_all_scenario_from_kvstore()
             .await
             .unwrap_or_default();
 
-        for scenario in etcd_scenario {
+        for scenario in kvstore_scenario {
             let scenario: Scenario = serde_yaml::from_str(&scenario)?;
             logd!(3, "Scenario: {:?}", scenario);
             let topic_name = scenario
@@ -464,14 +464,14 @@ impl FilterGatewayManager {
         Ok(())
     }
 
-    /// Read all scenario yaml string in etcd
+    /// Read all scenario yaml string in kvstore
     ///
     /// ### Parameters
     /// * None
     /// ### Return
     /// * `Result<Vec<String>>` - `Ok(_)` contains scenario yaml string vector
-    async fn read_all_scenario_from_etcd() -> common::Result<Vec<String>> {
-        let kv_scenario = common::etcd::get_all_with_prefix("Scenario").await?;
+    async fn read_all_scenario_from_kvstore() -> common::Result<Vec<String>> {
+        let kv_scenario = common::kvstore::get_all_with_prefix("Scenario").await?;
         let values = kv_scenario.into_iter().map(|kv| kv.1).collect();
 
         Ok(values)
@@ -1603,7 +1603,7 @@ mod tests {
         );
     }
 
-    /// Test scenario initialization from etcd
+    /// Test scenario initialization from kvstore
     #[tokio::test]
     async fn test_initialize_with_scenario_subscription_error() {
         use super::*;
@@ -1617,7 +1617,7 @@ mod tests {
             async fn mock_initialize(&self) -> Result<()> {
                 println!("FilterGatewayManager init");
 
-                // Simulate scenarios from etcd
+                // Simulate scenarios from kvstore
                 let scenarios = vec!["
 apiVersion: v1
 kind: Scenario

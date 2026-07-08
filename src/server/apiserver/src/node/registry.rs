@@ -7,7 +7,7 @@
 
 use base64::Engine;
 use common::apiserver::{ClusterTopology, TopologyType};
-use common::etcd;
+use common::kvstore;
 use common::logd;
 use prost::Message;
 
@@ -23,7 +23,7 @@ impl NodeRegistry {
     ) -> Result<ClusterTopology, Box<dyn std::error::Error + Send + Sync>> {
         let topology_key = "cluster/topology";
 
-        match etcd::get(topology_key).await {
+        match kvstore::get(topology_key).await {
             Ok(encoded) => {
                 let buf = base64::engine::general_purpose::STANDARD.decode(&encoded)?;
                 let topology = ClusterTopology::decode(&buf[..])?;
@@ -54,7 +54,7 @@ impl NodeRegistry {
         // 인코딩을 제거하고 json string으로 변환
         let topology_json = serde_json::to_string(&topology)?;
 
-        etcd::put(topology_key, &topology_json).await?;
+        kvstore::put(topology_key, &topology_json).await?;
 
         logd!(2, "Updated cluster topology: {}", topology.cluster_name);
         Ok(topology)
@@ -148,10 +148,10 @@ mod tests {
     async fn test_get_topology_default() {
         let registry = NodeRegistry;
 
-        // Test getting topology (will use default if etcd not available)
+        // Test getting topology (will use default if kvstore not available)
         match registry.get_topology().await {
             Ok(topology) => {
-                // The topology might be default or previously set depending on etcd state
+                // The topology might be default or previously set depending on kvstore state
                 assert!(!topology.cluster_id.is_empty());
                 assert!(!topology.cluster_name.is_empty());
                 // Verify the topology structure is valid
@@ -165,10 +165,10 @@ mod tests {
                 );
             }
             Err(e) => {
-                // Expected if etcd is not available during testing
+                // Expected if kvstore is not available during testing
                 logd!(
                     4,
-                    "Expected error getting topology (etcd unavailable): {}",
+                    "Expected error getting topology (kvstore unavailable): {}",
                     e
                 );
             }
@@ -176,7 +176,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_topology_from_etcd() {
+    async fn test_get_topology_from_kvstore() {
         let registry = NodeRegistry;
 
         // This test will either get a stored topology or default
@@ -218,7 +218,7 @@ mod tests {
             Err(e) => {
                 logd!(
                     4,
-                    "Expected error updating topology (etcd unavailable): {}",
+                    "Expected error updating topology (kvstore unavailable): {}",
                     e
                 );
             }
@@ -257,7 +257,7 @@ mod tests {
             Err(e) => {
                 logd!(
                     4,
-                    "Expected error updating topology (etcd unavailable): {}",
+                    "Expected error updating topology (kvstore unavailable): {}",
                     e
                 );
             }
@@ -289,7 +289,7 @@ mod tests {
             Err(e) => {
                 logd!(
                     4,
-                    "Expected error updating topology (etcd unavailable): {}",
+                    "Expected error updating topology (kvstore unavailable): {}",
                     e
                 );
             }
@@ -313,7 +313,7 @@ mod tests {
             Err(e) => {
                 logd!(
                     4,
-                    "Expected error updating topology (etcd unavailable): {}",
+                    "Expected error updating topology (kvstore unavailable): {}",
                     e
                 );
             }
@@ -330,7 +330,7 @@ mod tests {
 
                 // Try to get the topology to verify initialization worked
                 if let Ok(topology) = registry.get_topology().await {
-                    // The topology might be default or previously set depending on etcd state
+                    // The topology might be default or previously set depending on kvstore state
                     assert!(!topology.cluster_id.is_empty());
                     assert!(!topology.cluster_name.is_empty());
                     println!(
@@ -341,7 +341,7 @@ mod tests {
             }
             Err(e) => {
                 println!(
-                    "Expected error initializing topology (etcd unavailable): {}",
+                    "Expected error initializing topology (kvstore unavailable): {}",
                     e
                 );
             }
@@ -370,7 +370,7 @@ mod tests {
             }
             Err(e) => {
                 println!(
-                    "Expected error updating empty topology (etcd unavailable): {}",
+                    "Expected error updating empty topology (kvstore unavailable): {}",
                     e
                 );
             }
@@ -409,7 +409,7 @@ mod tests {
             }
             Err(e) => {
                 println!(
-                    "Expected error updating large config topology (etcd unavailable): {}",
+                    "Expected error updating large config topology (kvstore unavailable): {}",
                     e
                 );
             }
@@ -453,7 +453,7 @@ mod tests {
             }
             Err(e) => {
                 println!(
-                    "Expected error updating many nodes topology (etcd unavailable): {}",
+                    "Expected error updating many nodes topology (kvstore unavailable): {}",
                     e
                 );
             }
@@ -554,7 +554,7 @@ mod tests {
         // Test various error scenarios that might occur with malformed data
         // These tests exercise error handling paths in the code
 
-        // Test get_topology error handling (etcd unavailable scenario is already covered)
+        // Test get_topology error handling (kvstore unavailable scenario is already covered)
         let get_result = registry.get_topology().await;
         match get_result {
             Ok(topology) => {
@@ -616,7 +616,7 @@ mod tests {
                 match registry.get_topology().await {
                     Ok(retrieved_topology) => {
                         // Note: The retrieved topology might be the one we just set or a default
-                        // depending on etcd availability
+                        // depending on kvstore availability
                         println!("Retrieved topology: {}", retrieved_topology.cluster_name);
                     }
                     Err(e) => {
@@ -625,7 +625,7 @@ mod tests {
                 }
             }
             Err(e) => {
-                println!("Update failed (expected if etcd unavailable): {}", e);
+                println!("Update failed (expected if kvstore unavailable): {}", e);
             }
         }
     }
@@ -684,7 +684,7 @@ mod tests {
 
     #[test]
     fn test_default_topology_values() {
-        // Test the exact default values used in get_topology when etcd is not available
+        // Test the exact default values used in get_topology when kvstore is not available
         let default_topology = ClusterTopology {
             cluster_id: "default-cluster".to_string(),
             cluster_name: "Pullpiri Cluster".to_string(),

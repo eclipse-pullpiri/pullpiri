@@ -71,7 +71,7 @@ impl PolicyManagerConnection for PolicyManagerGrpcServer {
             }));
         }
 
-        // Fetch policy from cache (or etcd if not cached)
+        // Fetch policy from cache (or kvstore if not cached)
         let policy = match get_policy_cached(&policy_name).await {
             Some(p) => p,
             None => {

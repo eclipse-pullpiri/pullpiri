@@ -6,7 +6,7 @@
 //! This library provides centralized configuration management and metrics filtering
 //! for the Pullpiri framework through REST API interface only.
 
-pub mod monitoring_etcd;
+pub mod monitoring_kvstore;
 pub mod monitoring_types;
 pub mod settings_api;
 pub mod settings_config;
@@ -42,9 +42,9 @@ mod main_tests {
         #[arg(short, long, default_value = "/etc/pullpiri/settings.yaml")]
         config: PathBuf,
 
-        /// ETCD endpoints (comma separated)
+        /// kvstore endpoints (comma separated)
         #[arg(long, default_value = "localhost:2379")]
-        etcd_endpoints: String,
+        kvstore_endpoints: String,
 
         /// HTTP server bind address
         #[arg(long, default_value = "0.0.0.0")]
@@ -64,7 +64,7 @@ mod main_tests {
         let args = Args::parse_from(["settingsservice"]);
 
         assert_eq!(args.config, PathBuf::from("/etc/pullpiri/settings.yaml"));
-        assert_eq!(args.etcd_endpoints, "localhost:2379");
+        assert_eq!(args.kvstore_endpoints, "localhost:2379");
         assert_eq!(args.bind_address, "0.0.0.0");
         assert_eq!(args.bind_port, 8080);
         assert_eq!(args.log_level, "info");
@@ -75,7 +75,7 @@ mod main_tests {
         let args = Args::parse_from(["settingsservice", "--config", "/custom/path/settings.yaml"]);
 
         assert_eq!(args.config, PathBuf::from("/custom/path/settings.yaml"));
-        assert_eq!(args.etcd_endpoints, "localhost:2379"); // Should remain default
+        assert_eq!(args.kvstore_endpoints, "localhost:2379"); // Should remain default
         assert_eq!(args.bind_address, "0.0.0.0"); // Should remain default
         assert_eq!(args.bind_port, 8080); // Should remain default
         assert_eq!(args.log_level, "info"); // Should remain default
@@ -89,14 +89,14 @@ mod main_tests {
     }
 
     #[test]
-    fn test_args_custom_etcd_endpoints() {
+    fn test_args_custom_kvstore_endpoints() {
         let args = Args::parse_from([
             "settingsservice",
-            "--etcd-endpoints",
-            "etcd1:2379,etcd2:2379,etcd3:2379",
+            "--kvstore-endpoints",
+            "kvstore1:2379,kvstore2:2379,kvstore3:2379",
         ]);
 
-        assert_eq!(args.etcd_endpoints, "etcd1:2379,etcd2:2379,etcd3:2379");
+        assert_eq!(args.kvstore_endpoints, "kvstore1:2379,kvstore2:2379,kvstore3:2379");
         assert_eq!(args.config, PathBuf::from("/etc/pullpiri/settings.yaml")); // Should remain default
     }
 
@@ -133,8 +133,8 @@ mod main_tests {
             "settingsservice",
             "--config",
             "/test/custom.yaml",
-            "--etcd-endpoints",
-            "test-etcd:2379",
+            "--kvstore-endpoints",
+            "test-kvstore:2379",
             "--bind-address",
             "192.168.1.100",
             "--bind-port",
@@ -144,7 +144,7 @@ mod main_tests {
         ]);
 
         assert_eq!(args.config, PathBuf::from("/test/custom.yaml"));
-        assert_eq!(args.etcd_endpoints, "test-etcd:2379");
+        assert_eq!(args.kvstore_endpoints, "test-kvstore:2379");
         assert_eq!(args.bind_address, "192.168.1.100");
         assert_eq!(args.bind_port, 7777);
         assert_eq!(args.log_level, "debug");
@@ -156,21 +156,21 @@ mod main_tests {
             "settingsservice",
             "-c",
             "/mixed/config.yaml",
-            "--etcd-endpoints",
-            "mixed-etcd:2379",
+            "--kvstore-endpoints",
+            "mixed-kvstore:2379",
             "--bind-port",
             "3333",
         ]);
 
         assert_eq!(args.config, PathBuf::from("/mixed/config.yaml"));
-        assert_eq!(args.etcd_endpoints, "mixed-etcd:2379");
+        assert_eq!(args.kvstore_endpoints, "mixed-kvstore:2379");
         assert_eq!(args.bind_port, 3333);
         assert_eq!(args.bind_address, "0.0.0.0"); // Default
         assert_eq!(args.log_level, "info"); // Default
     }
 
     #[test]
-    fn test_etcd_endpoints_parsing_single() {
+    fn test_kvstore_endpoints_parsing_single() {
         let endpoints = "localhost:2379";
         let parsed: Vec<String> = endpoints.split(',').map(|s| s.trim().to_string()).collect();
 
@@ -179,30 +179,30 @@ mod main_tests {
     }
 
     #[test]
-    fn test_etcd_endpoints_parsing_multiple() {
-        let endpoints = "etcd1:2379,etcd2:2379,etcd3:2379";
+    fn test_kvstore_endpoints_parsing_multiple() {
+        let endpoints = "kvstore1:2379,kvstore2:2379,kvstore3:2379";
         let parsed: Vec<String> = endpoints.split(',').map(|s| s.trim().to_string()).collect();
 
         assert_eq!(parsed.len(), 3);
-        assert_eq!(parsed[0], "etcd1:2379");
-        assert_eq!(parsed[1], "etcd2:2379");
-        assert_eq!(parsed[2], "etcd3:2379");
+        assert_eq!(parsed[0], "kvstore1:2379");
+        assert_eq!(parsed[1], "kvstore2:2379");
+        assert_eq!(parsed[2], "kvstore3:2379");
     }
 
     #[test]
-    fn test_etcd_endpoints_parsing_with_spaces() {
-        let endpoints = "etcd1:2379, etcd2:2379 , etcd3:2379";
+    fn test_kvstore_endpoints_parsing_with_spaces() {
+        let endpoints = "kvstore1:2379, kvstore2:2379 , kvstore3:2379";
         let parsed: Vec<String> = endpoints.split(',').map(|s| s.trim().to_string()).collect();
 
         assert_eq!(parsed.len(), 3);
-        assert_eq!(parsed[0], "etcd1:2379");
-        assert_eq!(parsed[1], "etcd2:2379");
-        assert_eq!(parsed[2], "etcd3:2379");
+        assert_eq!(parsed[0], "kvstore1:2379");
+        assert_eq!(parsed[1], "kvstore2:2379");
+        assert_eq!(parsed[2], "kvstore3:2379");
     }
 
     #[test]
-    fn test_etcd_endpoints_parsing_empty_parts() {
-        let endpoints = "etcd1:2379,,etcd3:2379";
+    fn test_kvstore_endpoints_parsing_empty_parts() {
+        let endpoints = "kvstore1:2379,,kvstore3:2379";
         let parsed: Vec<String> = endpoints
             .split(',')
             .map(|s| s.trim().to_string())
@@ -210,8 +210,8 @@ mod main_tests {
             .collect();
 
         assert_eq!(parsed.len(), 2);
-        assert_eq!(parsed[0], "etcd1:2379");
-        assert_eq!(parsed[1], "etcd3:2379");
+        assert_eq!(parsed[0], "kvstore1:2379");
+        assert_eq!(parsed[1], "kvstore3:2379");
     }
 
     #[test]
@@ -297,7 +297,7 @@ mod main_tests {
             "settingsservice",
             "--config",
             "/test.yaml",
-            "--etcd-endpoints",
+            "--kvstore-endpoints",
             "test:2379",
             "--bind-address",
             "127.0.0.1",
@@ -417,7 +417,7 @@ mod main_tests {
     fn test_module_declarations() {
         // Verify that all required modules are declared
         // This is a compile-time check that ensures modules exist
-        use crate::monitoring_etcd;
+        use crate::monitoring_kvstore;
         use crate::monitoring_types;
         use crate::settings_api;
         use crate::settings_config;

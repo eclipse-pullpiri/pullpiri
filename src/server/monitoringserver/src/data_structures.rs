@@ -76,7 +76,7 @@ impl DataStore {
         }
     }
 
-    /// Stores NodeInfo and updates corresponding SocInfo and BoardInfo, then saves to etcd
+    /// Stores NodeInfo and updates corresponding SocInfo and BoardInfo, then saves to kvstore
     pub async fn store_node_info(&mut self, node_info: NodeInfo) -> Result<(), String> {
         let node_name = node_info.node_name.clone();
         let ip = node_info.ip.clone();
@@ -94,36 +94,36 @@ impl DataStore {
         self.update_soc_info(soc_id.clone(), node_info.clone())?;
         self.update_board_info(board_id.clone(), node_info.clone())?;
 
-        // Store to etcd with better error handling
-        let mut etcd_errors = Vec::new();
+        // Store to kvstore with better error handling
+        let mut kvstore_errors = Vec::new();
 
-        if let Err(e) = crate::etcd_storage::store_node_info(&node_info).await {
-            let error_msg = format!("Failed to store NodeInfo to etcd: {}", e);
-            eprintln!("[ETCD] {}", error_msg);
-            etcd_errors.push(error_msg);
+        if let Err(e) = crate::kvstore_storage::store_node_info(&node_info).await {
+            let error_msg = format!("Failed to store NodeInfo to kvstore: {}", e);
+            eprintln!("[KVSTORE] {}", error_msg);
+            kvstore_errors.push(error_msg);
         }
 
         if let Some(soc_info) = self.socs.get(&soc_id) {
-            if let Err(e) = crate::etcd_storage::store_soc_info(soc_info).await {
-                let error_msg = format!("Failed to store SocInfo to etcd: {}", e);
-                eprintln!("[ETCD] {}", error_msg);
-                etcd_errors.push(error_msg);
+            if let Err(e) = crate::kvstore_storage::store_soc_info(soc_info).await {
+                let error_msg = format!("Failed to store SocInfo to kvstore: {}", e);
+                eprintln!("[KVSTORE] {}", error_msg);
+                kvstore_errors.push(error_msg);
             }
         }
 
         if let Some(board_info) = self.boards.get(&board_id) {
-            if let Err(e) = crate::etcd_storage::store_board_info(board_info).await {
-                let error_msg = format!("Failed to store BoardInfo to etcd: {}", e);
-                eprintln!("[ETCD] {}", error_msg);
-                etcd_errors.push(error_msg);
+            if let Err(e) = crate::kvstore_storage::store_board_info(board_info).await {
+                let error_msg = format!("Failed to store BoardInfo to kvstore: {}", e);
+                eprintln!("[KVSTORE] {}", error_msg);
+                kvstore_errors.push(error_msg);
             }
         }
 
-        // Log warning if etcd operations failed but don't fail the entire operation
-        if !etcd_errors.is_empty() {
+        // Log warning if kvstore operations failed but don't fail the entire operation
+        if !kvstore_errors.is_empty() {
             eprintln!(
-                "[ETCD] Warning: {} etcd operations failed",
-                etcd_errors.len()
+                "[KVSTORE] Warning: {} kvstore operations failed",
+                kvstore_errors.len()
             );
         }
 
@@ -219,7 +219,7 @@ impl DataStore {
         Ok(())
     }
 
-    /// Stores ContainerInfo to memory and etcd
+    /// Stores ContainerInfo to memory and kvstore
     pub async fn store_container_info(
         &mut self,
         container_info: ContainerInfo,
@@ -230,10 +230,10 @@ impl DataStore {
         self.containers
             .insert(container_id.clone(), container_info.clone());
 
-        // Store to etcd with error handling
-        if let Err(e) = crate::etcd_storage::store_container_info(&container_info).await {
+        // Store to kvstore with error handling
+        if let Err(e) = crate::kvstore_storage::store_container_info(&container_info).await {
             eprintln!(
-                "[ETCD] Warning: Failed to store ContainerInfo to etcd: {}",
+                "[KVSTORE] Warning: Failed to store ContainerInfo to kvstore: {}",
                 e
             );
             // Don't fail the entire operation, just log the warning
@@ -250,7 +250,7 @@ impl DataStore {
         Ok(())
     }
 
-    /// Stores ContainerInfo to memory and etcd, with explicit node association
+    /// Stores ContainerInfo to memory and kvstore, with explicit node association
     pub async fn store_container_info_with_node(
         &mut self,
         container_info: ContainerInfo,
@@ -266,10 +266,10 @@ impl DataStore {
         self.container_node_mapping
             .insert(container_id.clone(), node_name.clone());
 
-        // Store to etcd
-        if let Err(e) = crate::etcd_storage::store_container_info(&container_info).await {
+        // Store to kvstore
+        if let Err(e) = crate::kvstore_storage::store_container_info(&container_info).await {
             eprintln!(
-                "[ETCD] Warning: Failed to store ContainerInfo to etcd: {}",
+                "[KVSTORE] Warning: Failed to store ContainerInfo to kvstore: {}",
                 e
             );
         }
@@ -281,17 +281,17 @@ impl DataStore {
         Ok(())
     }
 
-    /// Retrieves ContainerInfo from memory, fallback to etcd
+    /// Retrieves ContainerInfo from memory, fallback to kvstore
     pub async fn get_container_info(&self, container_id: &str) -> Result<ContainerInfo, String> {
         // Try memory first
         if let Some(container_info) = self.containers.get(container_id) {
             return Ok(container_info.clone());
         }
 
-        // Fallback to etcd
-        match crate::etcd_storage::get_container_info(container_id).await {
+        // Fallback to kvstore
+        match crate::kvstore_storage::get_container_info(container_id).await {
             Ok(container_info) => Ok(container_info),
-            Err(e) => Err(format!("Container not found in memory or etcd: {}", e)),
+            Err(e) => Err(format!("Container not found in memory or kvstore: {}", e)),
         }
     }
 
@@ -309,15 +309,15 @@ impl DataStore {
             .collect()
     }
 
-    /// Removes container from memory and etcd
+    /// Removes container from memory and kvstore
     pub async fn remove_container_info(&mut self, container_id: &str) -> Result<(), String> {
         // Remove from memory
         self.containers.remove(container_id);
 
-        // Remove from etcd
-        if let Err(e) = crate::etcd_storage::delete_container_info(container_id).await {
+        // Remove from kvstore
+        if let Err(e) = crate::kvstore_storage::delete_container_info(container_id).await {
             eprintln!(
-                "[ETCD] Warning: Failed to delete ContainerInfo from etcd: {}",
+                "[KVSTORE] Warning: Failed to delete ContainerInfo from kvstore: {}",
                 e
             );
         }
@@ -326,21 +326,21 @@ impl DataStore {
         Ok(())
     }
 
-    /// Load all containers from etcd into memory (useful for initialization)
-    pub async fn load_containers_from_etcd(&mut self) -> Result<(), String> {
-        match crate::etcd_storage::get_all_containers().await {
+    /// Load all containers from kvstore into memory (useful for initialization)
+    pub async fn load_containers_from_kvstore(&mut self) -> Result<(), String> {
+        match crate::kvstore_storage::get_all_containers().await {
             Ok(containers) => {
                 for container in containers {
                     self.containers.insert(container.id.clone(), container);
                 }
                 println!(
-                    "[DataStore] Loaded {} containers from etcd",
+                    "[DataStore] Loaded {} containers from kvstore",
                     self.containers.len()
                 );
                 Ok(())
             }
             Err(e) => {
-                eprintln!("[ETCD] Warning: Failed to load containers from etcd: {}", e);
+                eprintln!("[KVSTORE] Warning: Failed to load containers from kvstore: {}", e);
                 Ok(()) // Don't fail initialization
             }
         }
@@ -370,7 +370,7 @@ impl DataStore {
         &self.boards
     }
 
-    /// ADD THIS METHOD for cleanup with etcd deletion
+    /// ADD THIS METHOD for cleanup with kvstore deletion
     pub async fn cleanup_node_containers(
         &mut self,
         node_name: &str,
@@ -389,10 +389,10 @@ impl DataStore {
             self.containers.remove(&container_id);
             self.container_node_mapping.remove(&container_id);
 
-            // Remove from etcd
-            if let Err(e) = crate::etcd_storage::delete_container_info(&container_id).await {
+            // Remove from kvstore
+            if let Err(e) = crate::kvstore_storage::delete_container_info(&container_id).await {
                 eprintln!(
-                    "[ETCD] Warning: Failed to delete container {} from etcd: {}",
+                    "[KVSTORE] Warning: Failed to delete container {} from kvstore: {}",
                     container_id, e
                 );
             }
@@ -738,7 +738,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_store_node_info_success_and_etcd_error() {
+    async fn test_store_node_info_success_and_kvstore_error() {
         let mut ds = DataStore::new();
         let node = sample_node("node1", "192.168.10.201");
 
@@ -778,11 +778,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_store_node_info_etcd_error_handling() {
-        // This test ensures that etcd_errors are handled gracefully (no panic, still Ok)
+    async fn test_store_node_info_kvstore_error_handling() {
+        // This test ensures that kvstore_errors are handled gracefully (no panic, still Ok)
         let mut ds = DataStore::new();
         let node = sample_node("node1", "192.168.10.201");
-        // etcd_storage is expected to fail in test, but store_node_info should still return Ok
+        // kvstore_storage is expected to fail in test, but store_node_info should still return Ok
         let result = ds.store_node_info(node).await;
         assert!(result.is_ok());
     }
@@ -945,7 +945,7 @@ mod tests {
         let mut ds = DataStore::new();
         let container = sample_container("c1", "container1");
 
-        // store_container_info (etcd call will fail but shouldn't panic)
+        // store_container_info (kvstore call will fail but shouldn't panic)
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(ds.store_container_info(container.clone()))
             .unwrap();
@@ -958,7 +958,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_container_info_memory_and_etcd_fallback() {
+    fn test_get_container_info_memory_and_kvstore_fallback() {
         let mut ds = DataStore::new();
         let container = sample_container("c1", "container1");
         ds.containers.insert("c1".to_string(), container.clone());
@@ -969,7 +969,7 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap().id, "c1");
 
-        // Should fail for non-existent container (etcd fallback will fail)
+        // Should fail for non-existent container (kvstore fallback will fail)
         let result = rt.block_on(ds.get_container_info("notfound"));
         assert!(result.is_err());
     }
@@ -986,11 +986,11 @@ mod tests {
     }
 
     #[test]
-    fn test_load_containers_from_etcd_handles_error() {
+    fn test_load_containers_from_kvstore_handles_error() {
         let mut ds = DataStore::new();
         let rt = tokio::runtime::Runtime::new().unwrap();
-        // Should not panic even if etcd fails
-        let result = rt.block_on(ds.load_containers_from_etcd());
+        // Should not panic even if kvstore fails
+        let result = rt.block_on(ds.load_containers_from_kvstore());
         assert!(result.is_ok());
     }
 

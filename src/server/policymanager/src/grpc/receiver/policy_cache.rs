@@ -5,7 +5,7 @@
 
 //! Policy caching module for PolicyManager
 //!
-//! This module provides caching functionality to reduce etcd calls when
+//! This module provides caching functionality to reduce kvstore calls when
 //! fetching policies. Policies are cached with a configurable TTL.
 
 use common::spec::artifact::Policy;
@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
-const ETCD_POLICY_PREFIX: &str = "Policy";
+const KVSTORE_POLICY_PREFIX: &str = "Policy";
 
 /// Cache TTL for policies (seconds)
 const POLICY_CACHE_TTL_SECS: u64 = 10;
@@ -25,11 +25,11 @@ struct CachedPolicy {
 }
 
 lazy_static::lazy_static! {
-    /// Policy cache to reduce etcd calls
+    /// Policy cache to reduce kvstore calls
     static ref POLICY_CACHE: RwLock<HashMap<String, CachedPolicy>> = RwLock::new(HashMap::new());
 }
 
-/// Get policy from cache or fetch from etcd
+/// Get policy from cache or fetch from kvstore
 ///
 /// # Arguments
 /// * `policy_name` - Name of the policy to fetch
@@ -48,9 +48,9 @@ pub async fn get_policy_cached(policy_name: &str) -> Option<Policy> {
         }
     }
 
-    // Cache miss or expired - fetch from etcd
-    let etcd_key = format!("{}/{}", ETCD_POLICY_PREFIX, policy_name);
-    let policy_str = common::etcd::get(&etcd_key).await.ok()?;
+    // Cache miss or expired - fetch from kvstore
+    let kvstore_key = format!("{}/{}", KVSTORE_POLICY_PREFIX, policy_name);
+    let policy_str = common::kvstore::get(&kvstore_key).await.ok()?;
     let policy: Policy = serde_yaml::from_str(&policy_str).ok()?;
 
     // Store in cache

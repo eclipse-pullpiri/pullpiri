@@ -219,8 +219,8 @@ spec:
 
 #[tokio::test]
 async fn integration_test_initialize_failure_path() {
-    // Insert mock Scenario YAML into etcd
-    common::etcd::put(
+    // Insert mock Scenario YAML into kvstore
+    common::kvstore::put(
         "Scenario/antipinch-en",
         r#"
 apiVersion: v1
@@ -242,8 +242,8 @@ spec:
     .await
     .unwrap();
 
-    // Insert mock Package YAML into etcd
-    common::etcd::put(
+    // Insert mock Package YAML into kvstore
+    common::kvstore::put(
         "Package/antipinch-en",
         r#"
 apiVersion: v1
@@ -286,14 +286,14 @@ spec:
     // Test passes if no panic occurred and error path was exercised
     assert!(true);
     // Cleanup after test
-    common::etcd::delete("Scenario/antipinch-en").await.unwrap();
-    common::etcd::delete("Package/antipinch-en").await.unwrap();
+    common::kvstore::delete("Scenario/antipinch-en").await.unwrap();
+    common::kvstore::delete("Package/antipinch-en").await.unwrap();
 }
 
 #[tokio::test]
 async fn integration_test_initialize_failure() {
-    // Insert mock Scenario YAML into etcd
-    common::etcd::put(
+    // Insert mock Scenario YAML into kvstore
+    common::kvstore::put(
         "Scenario/antipinch-en1",
         r#"
 apiVersion: v1
@@ -309,8 +309,8 @@ spec:
     .await
     .unwrap();
 
-    // Insert mock Package YAML into etcd
-    common::etcd::put(
+    // Insert mock Package YAML into kvstore
+    common::kvstore::put(
         "Package/antipinch-en1",
         r#"
 apiVersion: v1
@@ -353,16 +353,16 @@ spec:
     // Test passes if no panic occurred and error path was exercised
     assert!(true);
     // Cleanup after test
-    common::etcd::delete("Scenario/antipinch-en1")
+    common::kvstore::delete("Scenario/antipinch-en1")
         .await
         .unwrap();
-    common::etcd::delete("Package/antipinch-en1").await.unwrap();
+    common::kvstore::delete("Package/antipinch-en1").await.unwrap();
 }
 
 #[tokio::test]
 async fn integration_test_initialize_success() {
-    // Insert mock Scenario YAML into etcd
-    common::etcd::put(
+    // Insert mock Scenario YAML into kvstore
+    common::kvstore::put(
         "Scenario/antipinch-enable1",
         r#"
 apiVersion: v1
@@ -384,8 +384,8 @@ spec:
     .await
     .unwrap();
 
-    // Insert mock Package YAML into etcd
-    common::etcd::put(
+    // Insert mock Package YAML into kvstore
+    common::kvstore::put(
         "Package/antipinch-enable1",
         r#"
 apiVersion: v1
@@ -428,18 +428,18 @@ spec:
     // Test passes if no panic occurred and error path was exercised
     assert!(true);
     // Cleanup after test
-    common::etcd::delete("Scenario/antipinch-enable1")
+    common::kvstore::delete("Scenario/antipinch-enable1")
         .await
         .unwrap();
-    common::etcd::delete("Package/antipinch-enable1")
+    common::kvstore::delete("Package/antipinch-enable1")
         .await
         .unwrap();
 }
 
 #[tokio::test]
 async fn integration_test_initialize_success_path() {
-    // Insert mock Scenario YAML into etcd
-    common::etcd::put(
+    // Insert mock Scenario YAML into kvstore
+    common::kvstore::put(
         "Scenario/antipinch-enable",
         r#"
 apiVersion: v1
@@ -461,8 +461,8 @@ spec:
     .await
     .unwrap();
 
-    // Insert mock Package YAML into etcd
-    common::etcd::put(
+    // Insert mock Package YAML into kvstore
+    common::kvstore::put(
         "Package/antipinch-enable",
         r#"
 apiVersion: v1
@@ -502,10 +502,10 @@ spec:
     // Test passes if no panic occurred and error path was exercised
     assert!(true);
     // Cleanup after test
-    common::etcd::delete("Scenario/antipinch-enable")
+    common::kvstore::delete("Scenario/antipinch-enable")
         .await
         .unwrap();
-    common::etcd::delete("Package/antipinch-enable")
+    common::kvstore::delete("Package/antipinch-enable")
         .await
         .unwrap();
 }

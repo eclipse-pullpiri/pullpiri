@@ -13,14 +13,14 @@ API Server는 내,외부 API를 제공하며 Pullpiri Artifact 등록 및 준비
 1. REST API 오픈하여 Pullpiri Cloud 와 통신 또는 direct 로 artifact 를 받는 역할을 한다.
 1. yaml 형식 string 으로 들어온 artifact를 파싱한다.
 1. common 에 정의된 scenario, package 모듈등으로 파싱하여 struct로 생성한다.
-1. 파싱 결과를 etcd 에 저장하고 grpc를 통해 filtergateway 로 전달한다.
+1. 파싱 결과를 kvstore 에 저장하고 grpc를 통해 filtergateway 로 전달한다.
 1. 만약 Bluechi 를 사용할 경우 bluechi 동작에 필요한 파일 생성 후 전파한다.
 
 ### Main Dataflow
 
 1. REST API 오픈하여 외부에서 GET 메소드로 scenario 를 비롯한
 Pullpiri artifact 를 수신한다.
-1. yaml 형식 string 으로 들어온 artifact 를 종류 별로 파싱하여 etcd 에 저장한다.
+1. yaml 형식 string 으로 들어온 artifact 를 종류 별로 파싱하여 kvstore 에 저장한다.
 파싱하는 struct 는 common/src/spec/artifact 아래에 정의되어 있다.
 1. (선택사항) Bluechi 를 사용할 경우 `.kube`, `.yaml` 파일을 생성 후 각 노드에 전파한다.
 1. artifact 중 scenario 는 gRPC 를 통해 filtergateway 로 전달한다.
@@ -56,8 +56,8 @@ apiserver
 - **grpc/mod.rs** - gRPC 메시지 송수신 담당
 - **grpc/sender/mod.rs** - gRPC 메시지 송신 담당
 - **grpc/sender/filtergateway.rs** - filtergateway 로 gRPC 메시지 전달
-- **artifact/mod.rs** - string type artifact 를 struct 로 변환하고 etcd에 저장
-- **artifact/data.rs** - etcd에 파싱된 결과를 저장하거나 불러오르는 함수 구현
+- **artifact/mod.rs** - string type artifact 를 struct 로 변환하고 kvstore에 저장
+- **artifact/data.rs** - kvstore에 파싱된 결과를 저장하거나 불러오르는 함수 구현
 - **route/mod.rs** - Pullpiri REST API 의 access point
 - **route/api.rs** - Pullpiri REST API handler function 모임
 - **bluechi/mod.rs** - Bluechi 통합에 필요한 사전 작업 진행
@@ -80,10 +80,10 @@ async fn main() {}
 ### `manager.rs`
 
 ```rust
-/// Launch REST API listener and reload scenario data in etcd
+/// Launch REST API listener and reload scenario data in kvstore
 pub async fn initialize() {}
 
-/// Reload all scenario data in etcd
+/// Reload all scenario data in kvstore
 ///
 /// ### Parametets
 /// * None
@@ -96,7 +96,7 @@ async fn reload() {}
 /// ### Parametets
 /// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Description
-/// write artifact in etcd  
+/// write artifact in kvstore  
 /// (optional) make yaml, kube files for Bluechi  
 /// send a gRPC message to gateway
 pub async fn apply_artifact(body: &str) -> common::Result<()> {}
@@ -106,7 +106,7 @@ pub async fn apply_artifact(body: &str) -> common::Result<()> {}
 /// ### Parametets
 /// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Description
-/// delete artifact in etcd  
+/// delete artifact in kvstore  
 /// (optional) delete yaml, kube files for Bluechi  
 /// send a gRPC message to gateway
 pub async fn withdraw_artifact(body: &str) -> common::Result<()> {}
@@ -115,17 +115,17 @@ pub async fn withdraw_artifact(body: &str) -> common::Result<()> {}
 ### `artifact/mod.rs`
 
 ```rust
-/// Apply downloaded artifact to etcd
+/// Apply downloaded artifact to kvstore
 ///
 /// ### Parametets
 /// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Returns
 /// * `Result(String, String)` - scenario and package yaml in downloaded artifact
 /// ### Description
-/// Write artifact in etcd
+/// Write artifact in kvstore
 pub async fn apply(body: &str) -> common::Result<(String, String)> {}
 
-/// Delete downloaded artifact to etcd
+/// Delete downloaded artifact to kvstore
 ///
 /// ### Parametets
 /// * `body: &str` - whole yaml string of pullpiri artifact
@@ -139,37 +139,37 @@ pub async fn withdraw(body: &str) -> common::Result<String> {}
 ### `artifact/data.rs`
 
 ```rust
-/// Read yaml string of artifacts from etcd
+/// Read yaml string of artifacts from kvstore
 ///
 /// ### Parameters
 /// * `artifact_name: &str` - name of the newly released artifact
 /// ### Return
 /// * `Result<(String)>` - `Ok()` contains yaml string if success
-pub async fn read_from_etcd(artifact_name: &str) -> common::Result<String> {}
+pub async fn read_from_kvstore(artifact_name: &str) -> common::Result<String> {}
 
-/// Read all scenario yaml string in etcd
+/// Read all scenario yaml string in kvstore
 ///
 /// ### Parameters
 /// * None
 /// ### Return
 /// * `Result<Vec<String>>` - `Ok(_)` contains scenario yaml string vector
-pub async fn read_all_scenario_from_etcd() -> common::Result<Vec<String>> {}
+pub async fn read_all_scenario_from_kvstore() -> common::Result<Vec<String>> {}
 
-/// Write yaml string of artifacts to etcd
+/// Write yaml string of artifacts to kvstore
 ///
 /// ### Parameters
-/// * `key: &str, artifact_name: &str` - etcd key and the name of the newly released artifact
+/// * `key: &str, artifact_name: &str` - kvstore key and the name of the newly released artifact
 /// ### Return
 /// * `Result<()>` - `Ok` if success, `Err` otherwise
-pub async fn write_to_etcd(key: &str, artifact_str: &str) -> common::Result<()> {}
+pub async fn write_to_kvstore(key: &str, artifact_str: &str) -> common::Result<()> {}
 
-/// Write yaml string of artifacts to etcd
+/// Write yaml string of artifacts to kvstore
 ///
 /// ### Parameters
-/// * `key: &str` - data key to delete from etcd
+/// * `key: &str` - data key to delete from kvstore
 /// ### Return
 /// * `Result<()>` - `Ok` if success, `Err` otherwise
-pub async fn delete_at_etcd(key: &str) -> common::Result<()> {}
+pub async fn delete_at_kvstore(key: &str) -> common::Result<()> {}
 ```
 
 ### `route/mod.rs`

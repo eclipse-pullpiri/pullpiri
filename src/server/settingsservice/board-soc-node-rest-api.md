@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Pullpiri Settings Service provides REST APIs for managing Board, SoC (System on Chip), and Node resources. These APIs integrate with the monitoring server's etcd storage to provide real-time data and management capabilities.
+The Pullpiri Settings Service provides REST APIs for managing Board, SoC (System on Chip), and Node resources. These APIs integrate with the monitoring server's kvstore storage to provide real-time data and management capabilities.
 
 ---
 
@@ -116,13 +116,13 @@ http://localhost:8080/api/v1
 - **204**: No Content (successful DELETE)
 - **400**: Bad Request (invalid request body or missing fields)
 - **404**: Not Found (resource not found)
-- **500**: Internal Server Error (server-side errors, etcd issues)
+- **500**: Internal Server Error (server-side errors, kvstore issues)
 
 ---
 
 ## Data Storage
 
-- **etcd** at `localhost:2379`
+- **kvstore** at `localhost:47007`
 - **Data Paths:**
   - Nodes: `/pullpiri/metrics/nodes/{node_name}`
   - SoCs: `/pullpiri/metrics/socs/{soc_id}`
@@ -135,7 +135,7 @@ http://localhost:8080/api/v1
 ## Error Handling
 
 - Input validation with descriptive error messages
-- etcd connection error handling
+- kvstore connection error handling
 - Resource not found scenarios
 - Serialization/deserialization error handling
 

@@ -16,15 +16,15 @@ use common::{
     Result,
 };
 
-// ETCD key prefixes
-const ETCD_SCENARIO_PREFIX: &str = "Scenario";
-const ETCD_PACKAGE_PREFIX: &str = "Package";
-const ETCD_POD_PREFIX: &str = "Pod";
-const ETCD_NETWORK_PREFIX: &str = "Network";
-const ETCD_NODE_PREFIX: &str = "Node";
-const ETCD_NODES_PREFIX: &str = "nodes";
-const ETCD_SCHED_PREFIX: &str = "Schedule";
-const ETCD_CLUSTER_NODES_PREFIX: &str = "cluster/nodes";
+// kvstore key prefixes
+const KVSTORE_SCENARIO_PREFIX: &str = "Scenario";
+const KVSTORE_PACKAGE_PREFIX: &str = "Package";
+const KVSTORE_POD_PREFIX: &str = "Pod";
+const KVSTORE_NETWORK_PREFIX: &str = "Network";
+const KVSTORE_NODE_PREFIX: &str = "Node";
+const KVSTORE_NODES_PREFIX: &str = "nodes";
+const KVSTORE_SCHED_PREFIX: &str = "Schedule";
+const KVSTORE_CLUSTER_NODES_PREFIX: &str = "cluster/nodes";
 
 // Node types
 const NODE_TYPE_NODEAGENT: &str = "nodeagent";
@@ -49,23 +49,23 @@ impl ActionControllerManager {
     /// Creates a new ActionControllerManager instance
     ///
     /// Initializes the manager with empty node lists. Node information
-    /// will be loaded from etcd when needed during trigger_manager_action.
+    /// will be loaded from kvstore when needed during trigger_manager_action.
     ///
     /// # Returns
     ///
     /// A new ActionControllerManager instance
     pub fn new() -> Self {
         // 초기화 단계에서는 빈 노드 목록으로 시작
-        // 실제 노드 정보는 trigger_manager_action에서 etcd로부터 가져옴
+        // 실제 노드 정보는 trigger_manager_action에서 kvstore로부터 가져옴
         Self {
             nodeagent_nodes: Vec::new(),
             state_sender: StateManagerSender::new(),
         }
     }
 
-    /// Fetches node role information from etcd
+    /// Fetches node role information from kvstore
     ///
-    /// Retrieves node information from etcd to determine if it is a nodeagent node.
+    /// Retrieves node information from kvstore to determine if it is a nodeagent node.
     ///
     /// # Arguments
     ///
@@ -75,15 +75,15 @@ impl ActionControllerManager {
     ///
     /// * `Ok(String)` with node role ("nodeagent") if found
     /// * `Err(...)` if the node could not be found or role determined
-    async fn get_node_role_from_etcd(&self, node_name: &str) -> Result<String> {
-        let node_info_key = format!("{}/{}", ETCD_NODES_PREFIX, node_name);
+    async fn get_node_role_from_kvstore(&self, node_name: &str) -> Result<String> {
+        let node_info_key = format!("{}/{}", KVSTORE_NODES_PREFIX, node_name);
         #[allow(unused_variables)]
-        let node_ip = match common::etcd::get(&node_info_key).await {
+        let node_ip = match common::kvstore::get(&node_info_key).await {
             Ok(ip) => ip,
             Err(e) => {
                 logd!(
                     4,
-                    "Warning: Failed to get IP for node '{}' from etcd: {}",
+                    "Warning: Failed to get IP for node '{}' from kvstore: {}",
                     node_name,
                     e
                 );
@@ -91,13 +91,13 @@ impl ActionControllerManager {
             }
         };
 
-        let cluster_node_key = format!("{}/{}", ETCD_CLUSTER_NODES_PREFIX, node_name);
-        let node_json = match common::etcd::get(&cluster_node_key).await {
+        let cluster_node_key = format!("{}/{}", KVSTORE_CLUSTER_NODES_PREFIX, node_name);
+        let node_json = match common::kvstore::get(&cluster_node_key).await {
             Ok(value) => value,
             Err(e) => {
                 logd!(
                     4,
-                    "Warning: Failed to get details for node '{}' from etcd: {}",
+                    "Warning: Failed to get details for node '{}' from kvstore: {}",
                     node_name,
                     e
                 );
@@ -112,7 +112,7 @@ impl ActionControllerManager {
             return Err(format!("Unknown node role: {}", node_info.node_role).into());
         };
 
-        logd!(2, "Node {} role loaded from etcd: {}", node_name, role);
+        logd!(2, "Node {} role loaded from kvstore: {}", node_name, role);
         Ok(role)
     }
 
@@ -148,14 +148,14 @@ impl ActionControllerManager {
                 continue;
             }
 
-            match self.get_node_role_from_etcd(&model_node).await {
+            match self.get_node_role_from_kvstore(&model_node).await {
                 Ok(role) => {
                     node_roles.insert(model_node.clone(), role);
                 }
                 Err(e) => {
                     logd!(
                         4,
-                        "Warning: Failed to get role for node '{}' from etcd: {}",
+                        "Warning: Failed to get role for node '{}' from kvstore: {}",
                         model_node,
                         e
                     );
@@ -174,22 +174,22 @@ impl ActionControllerManager {
         node_roles
     }
 
-    /// Get ETCD keys for scenario resources
+    /// Get KVStore keys for scenario resources
     async fn get_scenario_resources(
         &self,
         scenario_name: &str,
     ) -> Result<(Scenario, Package, Option<String>, Option<String>)> {
-        let etcd_scenario_key = format!("{}/{}", ETCD_SCENARIO_PREFIX, scenario_name);
-        let scenario_str = common::etcd::get(&etcd_scenario_key)
+        let kvstore_scenario_key = format!("{}/{}", KVSTORE_SCENARIO_PREFIX, scenario_name);
+        let scenario_str = common::kvstore::get(&kvstore_scenario_key)
             .await
             .map_err(|e| format!("Scenario '{}' not found: {}", scenario_name, e))?;
         let scenario: Scenario = serde_yaml::from_str(&scenario_str)
             .map_err(|e| format!("Failed to parse scenario '{}': {}", scenario_name, e))?;
 
-        let etcd_package_key = format!("{}/{}", ETCD_PACKAGE_PREFIX, scenario.get_targets());
-        let package_str = common::etcd::get(&etcd_package_key)
+        let kvstore_package_key = format!("{}/{}", KVSTORE_PACKAGE_PREFIX, scenario.get_targets());
+        let package_str = common::kvstore::get(&kvstore_package_key)
             .await
-            .map_err(|e| format!("Package key '{}' not found: {}", etcd_package_key, e))?;
+            .map_err(|e| format!("Package key '{}' not found: {}", kvstore_package_key, e))?;
         let package: Package = serde_yaml::from_str(&package_str).map_err(|e| {
             format!(
                 "Failed to parse package '{}': {}",
@@ -198,10 +198,10 @@ impl ActionControllerManager {
             )
         })?;
 
-        let network_str = common::etcd::get(&format!("{}/{}", ETCD_NETWORK_PREFIX, scenario_name))
+        let network_str = common::kvstore::get(&format!("{}/{}", KVSTORE_NETWORK_PREFIX, scenario_name))
             .await
             .ok();
-        let node_str = common::etcd::get(&format!("{}/{}", ETCD_NODE_PREFIX, scenario_name))
+        let node_str = common::kvstore::get(&format!("{}/{}", KVSTORE_NODE_PREFIX, scenario_name))
             .await
             .ok();
 
@@ -222,7 +222,7 @@ impl ActionControllerManager {
     ) -> Result<()> {
         let model_name = model_info.get_name();
         let model_node = model_info.get_node();
-        let pod = common::etcd::get(&format!("{}/{}", ETCD_POD_PREFIX, model_name)).await?;
+        let pod = common::kvstore::get(&format!("{}/{}", KVSTORE_POD_PREFIX, model_name)).await?;
 
         // Inject annotations into pod YAML for tracking
         let pod_with_annotations = self.inject_pod_annotations(
@@ -343,7 +343,7 @@ impl ActionControllerManager {
     /// Handle realtime scheduling for a model
     async fn handle_realtime_sched(&self, sched: &str) -> Result<()> {
         use common::external::timpani::{SchedInfo, TaskInfo};
-        let sched_str = common::etcd::get(&format!("{}/{}", ETCD_SCHED_PREFIX, sched)).await?;
+        let sched_str = common::kvstore::get(&format!("{}/{}", KVSTORE_SCHED_PREFIX, sched)).await?;
         let schedule: Schedule = serde_yaml::from_str(&sched_str)?;
         let spec_vec = schedule
             .get_spec()
@@ -448,7 +448,7 @@ impl ActionControllerManager {
 
     /// Processes a trigger action request for a specific scenario
     ///
-    /// Retrieves scenario information from ETCD and performs the
+    /// Retrieves scenario information from KV Store and performs the
     /// appropriate actions based on the scenario definition.
     ///
     /// # Arguments
@@ -574,21 +574,21 @@ impl ActionControllerManager {
             })?;
         }
 
-        // Delete policy from etcd when terminate action completes
+        // Delete policy from kvstore when terminate action completes
         if action == "terminate" && !policy_name.is_empty() {
             let policy_key = format!("Policy/{}", policy_name);
-            match common::etcd::delete(&policy_key).await {
+            match common::kvstore::delete(&policy_key).await {
                 Ok(_) => {
                     logd!(
                         2,
-                        "Deleted policy '{}' from etcd after terminate action",
+                        "Deleted policy '{}' from kvstore after terminate action",
                         policy_name
                     );
                 }
                 Err(e) => {
                     logd!(
                         4,
-                        "Warning: Failed to delete policy '{}' from etcd: {}",
+                        "Warning: Failed to delete policy '{}' from kvstore: {}",
                         policy_name,
                         e
                     );
@@ -654,12 +654,12 @@ impl ActionControllerManager {
             .into());
         }
 
-        let etcd_scenario_key: String = format!("scenario/{}", scenario_name);
-        let scenario_str = common::etcd::get(&etcd_scenario_key).await?;
+        let kvstore_scenario_key: String = format!("scenario/{}", scenario_name);
+        let scenario_str = common::kvstore::get(&kvstore_scenario_key).await?;
         let scenario: Scenario = serde_yaml::from_str(&scenario_str)?;
 
-        let etcd_package_key = format!("package/{}", scenario.get_targets());
-        let package_str = common::etcd::get(&etcd_package_key).await?;
+        let kvstore_package_key = format!("package/{}", scenario.get_targets());
+        let package_str = common::kvstore::get(&kvstore_package_key).await?;
         let package: Package = serde_yaml::from_str(&package_str)?;
 
         for mi in package.get_models() {
@@ -862,8 +862,8 @@ impl ActionControllerManager {
         );
 
         // Step 1: Get model info from package
-        let package_key = format!("{}/{}", ETCD_PACKAGE_PREFIX, package_name);
-        let package_str = common::etcd::get(&package_key)
+        let package_key = format!("{}/{}", KVSTORE_PACKAGE_PREFIX, package_name);
+        let package_str = common::kvstore::get(&package_key)
             .await
             .map_err(|e| format!("Failed to get package '{}': {}", package_name, e))?;
 
@@ -883,8 +883,8 @@ impl ActionControllerManager {
             })?;
 
         // Step 2: Get pod YAML for the model
-        let model_yaml_key = format!("{}/{}", ETCD_POD_PREFIX, model.get_name());
-        let pod_yaml = common::etcd::get(&model_yaml_key)
+        let model_yaml_key = format!("{}/{}", KVSTORE_POD_PREFIX, model.get_name());
+        let pod_yaml = common::kvstore::get(&model_yaml_key)
             .await
             .map_err(|e| format!("Failed to get pod YAML for model '{}': {}", model_name, e))?;
 
@@ -951,43 +951,43 @@ mod tests {
     use std::error::Error;
 
     #[tokio::test]
-    async fn test_get_node_role_from_etcd_invalid_json() {
+    async fn test_get_node_role_from_kvstore_invalid_json() {
         // Setup: Insert nodes/{name} and invalid JSON in cluster/nodes/{name}
-        common::etcd::put("nodes/TestInvalid", "192.168.1.103")
+        common::kvstore::put("nodes/TestInvalid", "192.168.1.103")
             .await
             .ok();
-        common::etcd::put("cluster/nodes/TestInvalid", "not valid json")
+        common::kvstore::put("cluster/nodes/TestInvalid", "not valid json")
             .await
             .ok();
 
         let manager = ActionControllerManager::new();
-        let result = manager.get_node_role_from_etcd("TestInvalid").await;
+        let result = manager.get_node_role_from_kvstore("TestInvalid").await;
 
         // Must error because JSON is invalid
         assert!(result.is_err());
 
         // Cleanup
-        common::etcd::delete("nodes/TestInvalid").await.ok();
-        common::etcd::delete("cluster/nodes/TestInvalid").await.ok();
+        common::kvstore::delete("nodes/TestInvalid").await.ok();
+        common::kvstore::delete("cluster/nodes/TestInvalid").await.ok();
     }
 
     #[tokio::test]
-    async fn test_get_node_role_from_etcd_etcd_missing_cluster_info() {
+    async fn test_get_node_role_from_kvstore_kvstore_missing_cluster_info() {
         // Setup: Only nodes/{hostname} exists but not cluster/nodes/{hostname}
         // This should fallback to settings.yaml
-        common::etcd::put("nodes/TestMissing", "192.168.1.104")
+        common::kvstore::put("nodes/TestMissing", "192.168.1.104")
             .await
             .ok();
 
         let manager = ActionControllerManager::new();
-        let result = manager.get_node_role_from_etcd("TestMissing").await;
+        let result = manager.get_node_role_from_kvstore("TestMissing").await;
 
         // Should fallback to settings.yaml configuration
         // Result depends on settings.yaml, so we accept both ok and err
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("nodes/TestMissing").await.ok();
+        common::kvstore::delete("nodes/TestMissing").await.ok();
     }
 
     // ==================== trigger_manager_action Tests ====================
@@ -1024,7 +1024,7 @@ mod tests {
     #[tokio::test]
     async fn test_trigger_manager_action_invalid_scenario_yaml() {
         // Setup: Insert invalid YAML for scenario
-        common::etcd::put("Scenario/invalid-yaml", "{ invalid: yaml: ]")
+        common::kvstore::put("Scenario/invalid-yaml", "{ invalid: yaml: ]")
             .await
             .unwrap();
 
@@ -1038,13 +1038,13 @@ mod tests {
             .contains("Failed to parse scenario"));
 
         // Cleanup
-        common::etcd::delete("Scenario/invalid-yaml").await.unwrap();
+        common::kvstore::delete("Scenario/invalid-yaml").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_package_not_found() {
         // Setup: Insert scenario but no corresponding package
-        common::etcd::put(
+        common::kvstore::put(
             "Scenario/test-scenario",
             r#"
 apiVersion: v1
@@ -1067,7 +1067,7 @@ spec:
         assert!(result.unwrap_err().to_string().contains("not found"));
 
         // Cleanup
-        common::etcd::delete("Scenario/test-scenario")
+        common::kvstore::delete("Scenario/test-scenario")
             .await
             .unwrap();
     }
@@ -1075,7 +1075,7 @@ spec:
     #[tokio::test]
     async fn test_trigger_manager_action_invalid_package_yaml() {
         // Setup: Insert valid scenario and invalid package
-        common::etcd::put(
+        common::kvstore::put(
             "Scenario/test-scenario",
             r#"
 apiVersion: v1
@@ -1091,7 +1091,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put("Package/invalid-pkg", "invalid: yaml: ]")
+        common::kvstore::put("Package/invalid-pkg", "invalid: yaml: ]")
             .await
             .unwrap();
 
@@ -1105,16 +1105,16 @@ spec:
             .contains("Failed to parse package"));
 
         // Cleanup
-        common::etcd::delete("Scenario/test-scenario")
+        common::kvstore::delete("Scenario/test-scenario")
             .await
             .unwrap();
-        common::etcd::delete("Package/invalid-pkg").await.unwrap();
+        common::kvstore::delete("Package/invalid-pkg").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_launch_success() {
         // Setup: Insert valid scenario and package
-        common::etcd::put(
+        common::kvstore::put(
             "Scenario/launch-test",
             r#"
 apiVersion: v1
@@ -1130,7 +1130,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::kvstore::put(
             "Package/launch-pkg",
             r#"
 apiVersion: v1
@@ -1162,14 +1162,14 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/launch-test").await.unwrap();
-        common::etcd::delete("Package/launch-pkg").await.unwrap();
+        common::kvstore::delete("Scenario/launch-test").await.unwrap();
+        common::kvstore::delete("Package/launch-pkg").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_terminate_success() {
         // Setup: Insert valid scenario with terminate action
-        common::etcd::put(
+        common::kvstore::put(
             "Scenario/terminate-test",
             r#"
 apiVersion: v1
@@ -1185,7 +1185,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::kvstore::put(
             "Package/terminate-pkg",
             r#"
 apiVersion: v1
@@ -1211,16 +1211,16 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/terminate-test")
+        common::kvstore::delete("Scenario/terminate-test")
             .await
             .unwrap();
-        common::etcd::delete("Package/terminate-pkg").await.unwrap();
+        common::kvstore::delete("Package/terminate-pkg").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_update_success() {
         // Setup: Insert valid scenario with update action
-        common::etcd::put(
+        common::kvstore::put(
             "Scenario/update-test",
             r#"
 apiVersion: v1
@@ -1236,7 +1236,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::kvstore::put(
             "Package/update-pkg",
             r#"
 apiVersion: v1
@@ -1263,14 +1263,14 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/update-test").await.unwrap();
-        common::etcd::delete("Package/update-pkg").await.unwrap();
+        common::kvstore::delete("Scenario/update-test").await.unwrap();
+        common::kvstore::delete("Package/update-pkg").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_rollback_success() {
         // Setup: Insert valid scenario with rollback action
-        common::etcd::put(
+        common::kvstore::put(
             "Scenario/rollback-test",
             r#"
 apiVersion: v1
@@ -1286,7 +1286,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::kvstore::put(
             "Package/rollback-pkg",
             r#"
 apiVersion: v1
@@ -1312,16 +1312,16 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/rollback-test")
+        common::kvstore::delete("Scenario/rollback-test")
             .await
             .unwrap();
-        common::etcd::delete("Package/rollback-pkg").await.unwrap();
+        common::kvstore::delete("Package/rollback-pkg").await.unwrap();
     }
 
     #[tokio::test]
     async fn test_trigger_manager_action_unknown_node() {
         // Setup: Insert scenario with unknown node
-        common::etcd::put(
+        common::kvstore::put(
             "Scenario/unknown-node-test",
             r#"
 apiVersion: v1
@@ -1336,7 +1336,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::kvstore::put(
             "Package/unknown-node-pkg",
             r#"
 apiVersion: v1
@@ -1364,10 +1364,10 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/unknown-node-test")
+        common::kvstore::delete("Scenario/unknown-node-test")
             .await
             .unwrap();
-        common::etcd::delete("Package/unknown-node-pkg")
+        common::kvstore::delete("Package/unknown-node-pkg")
             .await
             .unwrap();
     }
@@ -1375,7 +1375,7 @@ spec:
     #[tokio::test]
     async fn test_trigger_manager_action_nodeagent_workload() {
         // Setup: Insert scenario with nodeagent node
-        common::etcd::put(
+        common::kvstore::put(
             "Scenario/nodeagent-test",
             r#"
 apiVersion: v1
@@ -1390,7 +1390,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::kvstore::put(
             "Package/nodeagent-pkg",
             r#"
 apiVersion: v1
@@ -1416,10 +1416,10 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::etcd::delete("Scenario/nodeagent-test")
+        common::kvstore::delete("Scenario/nodeagent-test")
             .await
             .unwrap();
-        common::etcd::delete("Package/nodeagent-pkg").await.unwrap();
+        common::kvstore::delete("Package/nodeagent-pkg").await.unwrap();
     }
 
     // ==================== reconcile_do Tests ====================
@@ -1549,7 +1549,7 @@ spec:
 
     #[tokio::test]
     async fn test_trigger_manager_action_with_valid_data() {
-        common::etcd::put(
+        common::kvstore::put(
             "Scenario/antipinch-enable",
             r#"
 apiVersion: v1
@@ -1565,7 +1565,7 @@ spec:
         .await
         .unwrap();
 
-        common::etcd::put(
+        common::kvstore::put(
             "Package/antipinch-enable",
             r#"
 apiVersion: v1
@@ -1602,10 +1602,10 @@ spec:
 
         assert!(result.is_ok());
 
-        common::etcd::delete("Scenario/antipinch-enable")
+        common::kvstore::delete("Scenario/antipinch-enable")
             .await
             .unwrap();
-        common::etcd::delete("Package/antipinch-enable")
+        common::kvstore::delete("Package/antipinch-enable")
             .await
             .unwrap();
     }

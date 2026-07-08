@@ -12,8 +12,8 @@ use tokio::time::{sleep, Duration};
 /// server is running and accepts the request.
 #[tokio::test]
 async fn test_trigger_action_valid_scenario() {
-    // Insert mock Scenario YAML into etcd
-    common::etcd::put(
+    // Insert mock Scenario YAML into kvstore
+    common::kvstore::put(
         "Scenario/antipinch-enable",
         r#"
 apiVersion: v1
@@ -29,7 +29,7 @@ spec:
     .await
     .unwrap();
 
-    common::etcd::put(
+    common::kvstore::put(
         "Node/antipinch-enable",
         r#"
 apiVersion: v1
@@ -41,7 +41,7 @@ metadata:
     )
     .await
     .unwrap();
-    common::etcd::put(
+    common::kvstore::put(
         "Network/antipinch-enable",
         r#"
 apiVersion: v1
@@ -54,8 +54,8 @@ metadata:
     .await
     .unwrap();
 
-    // Insert mock Package YAML into etcd
-    common::etcd::put(
+    // Insert mock Package YAML into kvstore
+    common::kvstore::put(
         "Package/antipinch-enable",
         r#"
 apiVersion: v1
@@ -85,16 +85,16 @@ spec:
         result.err()
     );
     // Cleanup after test
-    common::etcd::delete("Scenario/antipinch-enable")
+    common::kvstore::delete("Scenario/antipinch-enable")
         .await
         .unwrap();
-    common::etcd::delete("Package/antipinch-enable")
+    common::kvstore::delete("Package/antipinch-enable")
         .await
         .unwrap();
-    common::etcd::delete("Network/antipinch-enable")
+    common::kvstore::delete("Network/antipinch-enable")
         .await
         .unwrap();
-    common::etcd::delete("Node/antipinch-enable").await.unwrap();
+    common::kvstore::delete("Node/antipinch-enable").await.unwrap();
 }
 
 /// Test Case: Empty Scenario Name

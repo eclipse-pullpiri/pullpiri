@@ -11,7 +11,7 @@
 //!   directly.
 //! * Appropriately parse the received string-type artifacts so that they can
 //!   be used within Pullpiri.
-//! * The parsing results are stored in etcd and passed to filtergateway so
+//! * The parsing results are stored in kvstore and passed to filtergateway so
 //!   that a filter can be created.
 
 mod artifact;

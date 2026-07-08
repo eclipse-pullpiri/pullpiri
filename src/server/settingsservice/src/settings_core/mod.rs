@@ -7,7 +7,7 @@ use crate::settings_api::ApiServer;
 use crate::settings_config::ConfigManager;
 use crate::settings_history::HistoryManager;
 use crate::settings_monitoring::MonitoringManager;
-use crate::settings_storage::EtcdClient;
+use crate::settings_storage::KVStoreClient;
 use crate::settings_utils::error::SettingsError;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -45,23 +45,23 @@ pub struct CoreManager {
 impl CoreManager {
     /// Create a new core manager
     pub async fn new(
-        etcd_endpoints: Vec<String>,
+        kvstore_endpoints: Vec<String>,
         bind_address: String,
         bind_port: u16,
         _config_file: PathBuf,
     ) -> Result<Self, SettingsError> {
         info!("Initializing Settings Service core manager");
 
-        // Initialize ETCD clients for each component
-        let storage_config = EtcdClient::new(etcd_endpoints.clone()).await.map_err(|e| {
+        // Initialize kvstore clients for each component
+        let storage_config = KVStoreClient::new(kvstore_endpoints.clone()).await.map_err(|e| {
             SettingsError::System(format!("Failed to create config storage: {}", e))
         })?;
 
-        let storage_history = EtcdClient::new(etcd_endpoints.clone()).await.map_err(|e| {
+        let storage_history = KVStoreClient::new(kvstore_endpoints.clone()).await.map_err(|e| {
             SettingsError::System(format!("Failed to create history storage: {}", e))
         })?;
 
-        let storage_monitoring = EtcdClient::new(etcd_endpoints).await.map_err(|e| {
+        let storage_monitoring = KVStoreClient::new(kvstore_endpoints).await.map_err(|e| {
             SettingsError::System(format!("Failed to create monitoring storage: {}", e))
         })?;
 

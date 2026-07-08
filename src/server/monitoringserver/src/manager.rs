@@ -48,7 +48,7 @@ impl MonitoringServerManager {
         println!("MonitoringServerManager init");
 
         // Clear stale container data from previous runs
-        if let Err(e) = crate::etcd_storage::delete_all_containers().await {
+        if let Err(e) = crate::kvstore_storage::delete_all_containers().await {
             eprintln!(
                 "[MonitoringServerManager] Warning: Failed to clear containers: {}",
                 e
@@ -266,7 +266,7 @@ impl MonitoringServerManager {
         // Print detailed NodeInfo first
         self.print_node_info(&node_info);
 
-        // Store NodeInfo and update SocInfo/BoardInfo with etcd storage
+        // Store NodeInfo and update SocInfo/BoardInfo with kvstore storage
         {
             let mut data_store = self.data_store.lock().await;
             match data_store.store_node_info(node_info.clone()).await {
@@ -858,8 +858,8 @@ impl MonitoringServerManager {
                             .unwrap_or("unknown");
                         let pid = val.get("pid").and_then(|p| p.as_i64()).unwrap_or(0);
 
-                        // Persist raw JSON into etcd (uses existing helper)
-                        match crate::etcd_storage::store_stress_metric_json(&json).await {
+                        // Persist raw JSON into kvstore (uses existing helper)
+                        match crate::kvstore_storage::store_stress_metric_json(&json).await {
                             Ok(_) => {
                                 println!(
                                     "[MonitoringServer] SUCCESS: Stored stress metric for process={} pid={}",
@@ -868,7 +868,7 @@ impl MonitoringServerManager {
                             }
                             Err(e) => {
                                 eprintln!(
-                                    "[MonitoringServer] ERROR: Failed to store stress metric to etcd: {}",
+                                    "[MonitoringServer] ERROR: Failed to store stress metric to kvstore: {}",
                                     e
                                 );
                             }

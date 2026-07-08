@@ -291,7 +291,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_stress_metric_roundtrip() {
-        use crate::etcd_storage;
+        use crate::kvstore_storage;
         use crate::manager;
 
         // create channels: tx -> receiver, rx -> manager
@@ -299,7 +299,7 @@ mod tests {
         let (tx_node, rx_node) = mpsc::channel::<NodeInfo>(4);
         let (tx_stress, rx_stress) = mpsc::channel::<String>(8);
 
-        // create and spawn the real manager (it will consume rx_stress and call etcd)
+        // create and spawn the real manager (it will consume rx_stress and call kvstore)
         let mgr = manager::MonitoringServerManager::new(rx_container, rx_node, rx_stress).await;
         let mgr_handle = tokio::spawn(async move {
             // run will spawn internal tasks and block until channels are closed
@@ -323,14 +323,14 @@ mod tests {
             "Successfully processed StressMonitoringMetric"
         );
 
-        // wait briefly for manager to process and store to etcd
+        // wait briefly for manager to process and store to kvstore
         tokio::time::sleep(Duration::from_millis(300)).await;
-        // verify etcd has at least one stress metric with expected process_name
-        // NOTE: requires working etcd and correct common::etcd configuration
-        let metrics = etcd_storage::get_all_stress_metrics().await;
+        // verify kvstore has at least one stress metric with expected process_name
+        // NOTE: requires working kvstore and correct common::kvstore configuration
+        let metrics = kvstore_storage::get_all_stress_metrics().await;
         assert!(
             metrics.is_ok(),
-            "failed to list stress metrics from etcd: {:?}",
+            "failed to list stress metrics from kvstore: {:?}",
             metrics.err()
         );
         let items = metrics.unwrap();
@@ -342,7 +342,7 @@ mod tests {
         });
         assert!(
             found,
-            "stored stress metric with process_name 'example_process' not found in etcd"
+            "stored stress metric with process_name 'example_process' not found in kvstore"
         );
 
         // cleanup: drop tx to allow manager tasks to exit, then await manager handle

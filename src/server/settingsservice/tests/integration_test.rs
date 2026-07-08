@@ -103,7 +103,7 @@ fn test_error_types() {
     let settings_error = SettingsError::Storage(storage_error);
     assert_eq!(
         format!("{}", settings_error),
-        "Storage error: ETCD connection failed: connection failed"
+        "Storage error: kvstore connection failed: connection failed"
     );
 }
 

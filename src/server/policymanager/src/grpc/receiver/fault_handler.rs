@@ -97,7 +97,7 @@ async fn process_deadline_miss_fault(request: &ReportFaultRequest) -> Result<Str
         .as_ref()
         .ok_or_else(|| format!("Package '{}' has no policy defined", package_name))?;
 
-    // Step 3: Load policy from etcd
+    // Step 3: Load policy from kvstore
     let policy = load_policy(policy_name).await?;
     println!("[PolicyManager] Loaded policy '{}'", policy_name);
 
@@ -164,7 +164,7 @@ async fn process_deadline_miss_fault(request: &ReportFaultRequest) -> Result<Str
 
 /// Find Package by schedule name (workload_id)
 async fn find_package_by_schedule(schedule_name: &str) -> Result<(String, Package), String> {
-    let packages = common::etcd::get_all_with_prefix("Package/").await?;
+    let packages = common::kvstore::get_all_with_prefix("Package/").await?;
 
     for (key, value) in packages {
         let package: Package = serde_yaml::from_str(&value)
@@ -185,10 +185,10 @@ async fn find_package_by_schedule(schedule_name: &str) -> Result<(String, Packag
     ))
 }
 
-/// Load Policy from etcd
+/// Load Policy from kvstore
 async fn load_policy(policy_name: &str) -> Result<Policy, String> {
     let key = format!("Policy/{}", policy_name);
-    let value = common::etcd::get(&key).await?;
+    let value = common::kvstore::get(&key).await?;
 
     if value.is_empty() {
         return Err(format!("Policy '{}' not found", policy_name));
@@ -282,7 +282,7 @@ mod tests {
         };
 
         let response = handle_fault_report(request).await;
-        // Should process but may fail to find package (etcd not running)
+        // Should process but may fail to find package (kvstore not running)
         assert!(response.processed || !response.processed);
     }
 

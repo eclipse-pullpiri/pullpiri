@@ -85,16 +85,16 @@ pub async fn send(action: HandleYamlRequest) -> Result<Response<HandleYamlRespon
     send_to_node(action, node_ip).await
 }
 
-// etcd에서 게스트 노드 정보를 가져오도록 수정
+// kvstore에서 게스트 노드 정보를 가져오도록 수정
 #[allow(dead_code)]
 pub async fn send_guest(
     action: HandleYamlRequest,
 ) -> Result<Vec<Response<HandleYamlResponse>>, Status> {
-    // etcd에서 게스트 노드 정보들을 가져오기
+    // kvstore에서 게스트 노드 정보들을 가져오기
     let guest_nodes = crate::node::node_lookup::find_guest_nodes().await;
 
     if guest_nodes.is_empty() {
-        return Err(Status::not_found("No guest nodes found in etcd"));
+        return Err(Status::not_found("No guest nodes found in kvstore"));
     }
 
     let mut responses = Vec::new();
@@ -289,7 +289,7 @@ spec:
     async fn test_send_guest_no_nodes_found() {
         let action = create_test_simple_yaml_request();
 
-        // This will try to find guest nodes in etcd
+        // This will try to find guest nodes in kvstore
         let result = send_guest(action).await;
 
         // Should either fail with not_found (no guest nodes) or unavailable (failed to send to any)
@@ -313,7 +313,7 @@ spec:
     async fn test_send_guest_with_mock_data() {
         let action = create_test_simple_yaml_request();
 
-        // The send_guest function will look for guest nodes in etcd
+        // The send_guest function will look for guest nodes in kvstore
         // Since we don't have mock data setup, it should fail gracefully
         let result = send_guest(action).await;
 
@@ -323,7 +323,7 @@ spec:
         // Should be either not found or unavailable
         match error.code() {
             Code::NotFound => {
-                assert_eq!(error.message(), "No guest nodes found in etcd");
+                assert_eq!(error.message(), "No guest nodes found in kvstore");
             }
             Code::Unavailable => {
                 assert_eq!(error.message(), "Failed to send to any guest nodes");

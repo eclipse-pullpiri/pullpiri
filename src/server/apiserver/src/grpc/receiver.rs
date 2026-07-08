@@ -11,7 +11,7 @@ use common::apiserver::{
     GetTopologyRequest, GetTopologyResponse, TopologyType, UpdateTopologyRequest,
     UpdateTopologyResponse,
 };
-use common::etcd;
+use common::kvstore;
 use common::logd;
 use common::nodeagent::fromapiserver::{
     NodeRegistrationRequest, NodeRegistrationResponse, NodeStatus,
@@ -29,7 +29,7 @@ impl NodeRegistry {
     ) -> Result<ClusterTopology, Box<dyn std::error::Error + Send + Sync>> {
         let topology_key = "cluster/topology";
 
-        match etcd::get(topology_key).await {
+        match kvstore::get(topology_key).await {
             Ok(encoded) => {
                 let buf = base64::engine::general_purpose::STANDARD.decode(&encoded)?;
                 let topology = ClusterTopology::decode(&buf[..])?;
@@ -56,7 +56,7 @@ impl NodeRegistry {
         // 인코딩을 제거하고 json string으로 변환
         let topology_json = serde_json::to_string(&topology)?;
 
-        etcd::put(topology_key, &topology_json).await?;
+        kvstore::put(topology_key, &topology_json).await?;
 
         logd!(2, "Updated cluster topology: {}", topology.cluster_name);
         Ok(topology)
@@ -164,7 +164,7 @@ impl ApiServerConnection for ApiServerReceiver {
         // Let's update the node status to Ready immediately
         match self.node_manager.register_node(req.clone()).await {
             Ok(cluster_token) => {
-                // Also directly add to etcd with a simple key
+                // Also directly add to kvstore with a simple key
                 let node_info = common::apiserver::NodeInfo {
                     node_id: req.node_id.clone(),
                     hostname: req.hostname.clone(),
@@ -185,12 +185,12 @@ impl ApiServerConnection for ApiServerReceiver {
                 // 두 가지 키로 저장
                 // 1. IP 주소로 빠른 조회용 (json 문자열로 변경)
                 let _ =
-                    common::etcd::put(&format!("nodes/{}", req.ip_address), &req.hostname).await;
+                    common::kvstore::put(&format!("nodes/{}", req.ip_address), &req.hostname).await;
                 logd!(1, "Hostname stored at IP key: nodes/{}", req.ip_address);
 
                 // 2. 호스트 이름으로 빠른 조회용 (ActionController용)
                 let _ =
-                    common::etcd::put(&format!("nodes/{}", req.hostname), &req.ip_address).await;
+                    common::kvstore::put(&format!("nodes/{}", req.hostname), &req.ip_address).await;
                 logd!(1, "Node IP stored at hostname key: nodes/{}", req.hostname);
 
                 // Immediately update the node status to Ready

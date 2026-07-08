@@ -6,7 +6,7 @@
 //! Node manager for cluster operations
 
 use common::apiserver::NodeInfo;
-use common::etcd;
+use common::kvstore;
 use common::logd;
 use common::nodeagent::fromapiserver::{NodeRegistrationRequest, NodeStatus};
 
@@ -44,15 +44,15 @@ impl NodeManager {
 
         // 1. cluster/nodes/{hostname}: 노드 정보(json string)
         let node_json = serde_json::to_string(&node_info)?;
-        etcd::put(&node_key, &node_json).await?;
+        kvstore::put(&node_key, &node_json).await?;
 
         // 2. nodes/{ip_address}: hostname(plain string)
         let ip_key = format!("nodes/{}", request.ip_address);
-        etcd::put(&ip_key, &request.hostname).await?;
+        kvstore::put(&ip_key, &request.hostname).await?;
 
         // 3. nodes/{hostname}: ip 주소(plain string)
         let hostname_key = format!("nodes/{}", request.hostname);
-        etcd::put(&hostname_key, &request.ip_address).await?;
+        kvstore::put(&hostname_key, &request.ip_address).await?;
 
         logd!(2, "Node {} registered successfully", request.node_id);
         Ok(format!("cluster-token-{}", request.node_id))
@@ -63,7 +63,7 @@ impl NodeManager {
         &self,
     ) -> Result<Vec<NodeInfo>, Box<dyn std::error::Error + Send + Sync>> {
         let prefix = "cluster/nodes/";
-        let kvs = etcd::get_all_with_prefix(prefix).await?;
+        let kvs = kvstore::get_all_with_prefix(prefix).await?;
 
         let mut nodes = Vec::new();
         for kv in kvs {
@@ -93,7 +93,7 @@ impl NodeManager {
         // node_id를 직접 사용 (hostname으로 간주)
         let node_key = format!("cluster/nodes/{}", node_id);
 
-        match etcd::get(&node_key).await {
+        match kvstore::get(&node_key).await {
             Ok(json_str) => {
                 let node_info = serde_json::from_str::<NodeInfo>(&json_str)?;
                 Ok(Some(node_info))
@@ -114,7 +114,7 @@ impl NodeManager {
             // node_name으로 키 생성
             let node_key = format!("cluster/nodes/{}", node.hostname);
             let node_json = serde_json::to_string(&node)?;
-            etcd::put(&node_key, &node_json).await?;
+            kvstore::put(&node_key, &node_json).await?;
 
             logd!(1, "Updated heartbeat for node {}", node_id);
         }
@@ -134,7 +134,7 @@ impl NodeManager {
             // node.hostname을 사용하여 키 생성 (node_id 대신)
             let node_key = format!("cluster/nodes/{}", node.hostname);
             let node_json = serde_json::to_string(&node)?;
-            etcd::put(&node_key, &node_json).await?;
+            kvstore::put(&node_key, &node_json).await?;
 
             logd!(1, "Updated status for node {} to {:?}", node_id, status);
         }
@@ -149,7 +149,7 @@ impl NodeManager {
         // get_node를 사용하여 노드 정보를 얻고 hostname을 추출
         if let Some(node) = self.get_node(node_id).await? {
             let node_key = format!("cluster/nodes/{}", node.hostname);
-            etcd::delete(&node_key).await?;
+            kvstore::delete(&node_key).await?;
 
             logd!(2, "Removed node {} from cluster", node_id);
             return Ok(());
@@ -291,7 +291,7 @@ mod tests {
         let request =
             create_test_registration_request("test-node-001", "test-host", "192.168.1.100");
 
-        // Test node registration (this will fail if etcd is not running, which is fine for test compilation)
+        // Test node registration (this will fail if kvstore is not running, which is fine for test compilation)
         match manager.register_node(request).await {
             Ok(token) => {
                 assert!(!token.is_empty());
@@ -299,8 +299,8 @@ mod tests {
                 assert!(token.contains("test-node-001"));
             }
             Err(e) => {
-                // Expected if etcd is not available during testing
-                logd!(4, "Expected etcd connection error: {}", e);
+                // Expected if kvstore is not available during testing
+                logd!(4, "Expected kvstore connection error: {}", e);
             }
         }
     }
@@ -325,7 +325,7 @@ mod tests {
                 Err(e) => {
                     logd!(
                         4,
-                        "Expected etcd connection error for {}: {}",
+                        "Expected kvstore connection error for {}: {}",
                         request.node_id,
                         e
                     );
@@ -340,12 +340,12 @@ mod tests {
 
         match manager.get_all_nodes().await {
             Ok(nodes) => {
-                // If etcd is available, we should get a vector (possibly empty)
+                // If kvstore is available, we should get a vector (possibly empty)
                 logd!(2, "Retrieved {} nodes", nodes.len());
             }
             Err(e) => {
-                // Expected if etcd is not available
-                logd!(4, "Expected etcd connection error: {}", e);
+                // Expected if kvstore is not available
+                logd!(4, "Expected kvstore connection error: {}", e);
             }
         }
     }
@@ -364,10 +364,10 @@ mod tests {
                 logd!(2, "Both methods returned {} nodes", nodes1.len());
             }
             (Err(e1), Err(e2)) => {
-                // Both should fail with same error if etcd unavailable
+                // Both should fail with same error if kvstore unavailable
                 logd!(
                     4,
-                    "Both methods failed as expected when etcd unavailable: {} / {}",
+                    "Both methods failed as expected when kvstore unavailable: {} / {}",
                     e1,
                     e2
                 );
@@ -398,7 +398,7 @@ mod tests {
                 logd!(5, "Node not found (expected if not previously registered)");
             }
             Err(e) => {
-                logd!(4, "Expected etcd connection error: {}", e);
+                logd!(4, "Expected kvstore connection error: {}", e);
             }
         }
     }
@@ -415,7 +415,7 @@ mod tests {
                 println!("Correctly returned None for nonexistent node");
             }
             Err(e) => {
-                println!("Expected etcd connection error: {}", e);
+                println!("Expected kvstore connection error: {}", e);
             }
         }
     }
@@ -430,7 +430,7 @@ mod tests {
             }
             Err(e) => {
                 println!(
-                    "Expected error if node doesn't exist or etcd unavailable: {}",
+                    "Expected error if node doesn't exist or kvstore unavailable: {}",
                     e
                 );
             }
@@ -457,7 +457,7 @@ mod tests {
                 }
                 Err(e) => {
                     println!(
-                        "Expected error if node doesn't exist or etcd unavailable: {}",
+                        "Expected error if node doesn't exist or kvstore unavailable: {}",
                         e
                     );
                 }
@@ -476,7 +476,7 @@ mod tests {
             Err(e) => {
                 println!("Expected error: {}", e);
                 // Should contain "Node not found" if node doesn't exist
-                // or connection error if etcd unavailable
+                // or connection error if kvstore unavailable
             }
         }
     }
@@ -491,7 +491,7 @@ mod tests {
             }
             Err(e) => {
                 let error_message = e.to_string();
-                // Should either be "Node not found" or etcd connection error
+                // Should either be "Node not found" or kvstore connection error
                 println!(
                     "Expected error when removing nonexistent node: {}",
                     error_message
@@ -509,7 +509,7 @@ mod tests {
             "192.168.1.200",
         );
 
-        // Test complete node lifecycle if etcd is available
+        // Test complete node lifecycle if kvstore is available
         if let Ok(token) = manager.register_node(request.clone()).await {
             println!("1. Node registered with token: {}", token);
 
@@ -543,7 +543,7 @@ mod tests {
                 }
             }
         } else {
-            println!("Etcd not available for full lifecycle test");
+            println!("kvstore not available for full lifecycle test");
         }
     }
 
@@ -565,7 +565,7 @@ mod tests {
                 }
                 Err(e) => {
                     println!(
-                        "Sequential registration {} failed (expected if etcd unavailable): {}",
+                        "Sequential registration {} failed (expected if kvstore unavailable): {}",
                         i + 1,
                         e
                     );

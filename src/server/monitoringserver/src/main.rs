@@ -9,7 +9,7 @@
 
 use common::monitoringserver::{ContainerList, NodeInfo};
 pub mod data_structures;
-pub mod etcd_storage;
+pub mod kvstore_storage;
 pub mod grpc;
 pub mod manager;
 

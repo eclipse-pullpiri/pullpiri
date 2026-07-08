@@ -11,10 +11,10 @@ The Settings Service is a core component of the Pullpiri framework that provides
 - **Configuration Management**: Create, read, update, and delete YAML/JSON configurations
 - **Schema Validation**: Validate configurations against JSON schemas
 - **Change History**: Track configuration changes with rollback capabilities
-- **Metrics Retrieval**: Retrieve and filter monitoring metrics from ETCD (NodeInfo, ContainerInfo, SocInfo, BoardInfo)
+- **Metrics Retrieval**: Retrieve and filter monitoring metrics from kvstore (NodeInfo, ContainerInfo, SocInfo, BoardInfo)
 - **Resource Management**: List vehicle orchestration resources (nodes, containers, SoCs, boards)
 - **Multiple Interfaces**: REST API interface
-- **ETCD Integration**: Direct integration with monitoring ETCD storage for real-time vehicle orchestration data
+- **kvstore Integration**: Direct integration with monitoring kvstore storage for real-time vehicle orchestration data
 - **YAML Artifact Management**: Apply and withdraw YAML artifacts through API Server integration
 
 ## Architecture
@@ -25,9 +25,9 @@ The Settings Service consists of the following modules:
 - `settings_config`: Configuration management with YAML/JSON support
 - `settings_history`: Change history tracking and rollback
 - `settings_monitoring`: High-level metrics data retrieval and filtering with caching (returns both Metric objects with labels and raw resource objects)
-- `monitoring_etcd`: Direct ETCD operations for monitoring data (`/pullpiri/metrics/`, `/pullpiri/logs/`)
+- `monitoring_kvstore`: Direct kvstore operations for monitoring data (`/pullpiri/metrics/`, `/pullpiri/logs/`)
 - `monitoring_types`: Type definitions for vehicle orchestration metrics (NodeInfo, SocInfo, BoardInfo)
-- `settings_storage`: ETCD client for configuration data persistence
+- `settings_storage`: kvstore client for configuration data persistence
 - `settings_api`: REST API server with comprehensive metrics endpoints
 - `settings_utils`: Common utilities (error handling, logging, YAML processing)
 
@@ -52,7 +52,7 @@ make build
 
 # Run with custom configuration
 ./target/debug/settingsservice \
-  --etcd-endpoints localhost:2379,localhost:2380 \
+  --kvstore-endpoints localhost:2379,localhost:2380 \
   --bind-address 0.0.0.0 \
   --bind-port 8080 \
   --log-level info
@@ -99,9 +99,9 @@ The Settings Service provides a comprehensive REST API:
 
 ### Metrics Management (Vehicle Orchestration)
 
-**Enhanced endpoints with direct ETCD access:**
+**Enhanced endpoints with direct kvstore access:**
 
-- `GET /api/v1/metrics` - Get all metrics from ETCD with optional filtering
+- `GET /api/v1/metrics` - Get all metrics from kvstore with optional filtering
 - `GET /api/v1/metrics/nodes` - Get all node metrics (NodeInfo)
 - `GET /api/v1/metrics/containers` - Get all container metrics (ContainerInfo)
 - `GET /api/v1/metrics/socs` - Get all SoC metrics (SocInfo)
@@ -136,7 +136,7 @@ The Settings Service provides a comprehensive REST API:
 The service can be configured using command-line arguments or environment variables:
 
 - `--config`: Configuration file path (default: `/etc/pullpiri/settings.yaml`)
-- `--etcd-endpoints`: ETCD endpoints (default: `localhost:2379`)
+- `--kvstore-endpoints`: kvstore endpoints (default: `localhost:2379`)
 - `--bind-address`: HTTP server bind address (default: `0.0.0.0`)
 - `--bind-port`: HTTP server bind port (default: `8080`)
 - `--log-level`: Log level (default: `info`)
@@ -406,17 +406,17 @@ The Settings Service provides two types of responses for resource data:
 
 The Settings Service integrates directly with the Pullpiri vehicle orchestration framework:
 
-- **MonitoringServer**: Stores vehicle node, container, SoC, and board metrics in ETCD at `/pullpiri/metrics/`
+- **MonitoringServer**: Stores vehicle node, container, SoC, and board metrics in kvstore at `/pullpiri/metrics/`
 - **NodeAgent**: Reports node resource utilization and container status to MonitoringServer
 - **APIServer**: Consumes configurations for orchestration policies and resource management; receives YAML artifacts forwarded by Settings Service
-- **ETCD**: Central storage for both configurations (`/pullpiri/settings/`) and real-time metrics (`/pullpiri/metrics/`)
+- **kvstore**: Central storage for both configurations (`/pullpiri/settings/`) and real-time metrics (`/pullpiri/metrics/`)
 
 ## Port Usage
 
 Following Pullpiri networking conventions:
 - **Settings Service**: `8080` (configurable within Pullpiri's 47001-47099 range)
 - **API Server**: `47099` (for YAML artifact forwarding)
-- **ETCD**: `2379, 2380` (standard ETCD ports)
+- **kvstore**: `47007`
 - **Other Pullpiri Services**: `47001-47099` (gRPC: 47001+, REST: up to 47099)
 
 ## Error Handling
@@ -440,7 +440,6 @@ Error responses include detailed error messages:
 ## Dependencies
 
 - Rust 1.70+
-- ETCD 3.5+
 - Protocol Buffers compiler (protoc)
 - API Server (for YAML artifact operations)
 

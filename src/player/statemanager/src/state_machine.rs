@@ -489,7 +489,7 @@ impl StateMachine {
                 self.state_enum_to_str(current_state, ResourceType::Model),
                 self.model_state_to_str(new_model_state)
             ),
-            actions_to_execute: vec!["update_etcd".to_string()],
+            actions_to_execute: vec!["update_kvstore".to_string()],
             transition_id: state_change.transition_id,
             error_details: String::new(),
         }
@@ -611,14 +611,14 @@ impl StateMachine {
 
     /// Retrieves all model states for models that belong to a given package
     ///
-    /// This function queries ETCD to get all model states and filters them
+    /// This function queries kvstore to get all model states and filters them
     /// to find models that belong to the specified package.
     pub async fn get_models_for_package(
         package_name: &str,
     ) -> std::result::Result<Vec<(String, common::statemanager::ModelState)>, String> {
-        // Get package definition from ETCD to find its models
+        // Get package definition from kvstore to find its models
         let package_key = format!("Package/{}", package_name);
-        let package_yaml = match common::etcd::get(&package_key).await {
+        let package_yaml = match common::kvstore::get(&package_key).await {
             Ok(yaml) => yaml,
             Err(e) => {
                 logd!(4, "    Failed to get package definition: {:?}", e);
@@ -642,7 +642,7 @@ impl StateMachine {
             let model_name = model_info.get_name();
             let model_state_key = format!("/model/{}/state", model_name);
 
-            match common::etcd::get(&model_state_key).await {
+            match common::kvstore::get(&model_state_key).await {
                 Ok(state_str) => {
                     let model_state = match state_str.as_str() {
                         "Created" => common::statemanager::ModelState::Created,
@@ -670,8 +670,8 @@ impl StateMachine {
     ) -> std::result::Result<Vec<String>, String> {
         let mut packages = Vec::new();
 
-        // Get all packages from ETCD with prefix
-        match common::etcd::get_all_with_prefix("Package/").await {
+        // Get all packages from ETkvstoreCD with prefix
+        match common::kvstore::get_all_with_prefix("Package/").await {
             Ok(package_entries) => {
                 for kv in package_entries {
                     match serde_yaml::from_str::<common::spec::artifact::Package>(&kv.1) {
@@ -691,20 +691,20 @@ impl StateMachine {
                 }
             }
             Err(e) => {
-                logd!(5, "    Failed to get packages from ETCD: {:?}", e);
-                return Err(format!("Failed to get packages from ETCD: {:?}", e));
+                logd!(5, "    Failed to get packages from kvstore: {:?}", e);
+                return Err(format!("Failed to get packages from kvstore: {:?}", e));
             }
         }
 
         Ok(packages)
     }
 
-    /// Get current package state from ETCD
+    /// Get current package state from kvstore
     pub async fn get_current_package_state(
         package_name: &str,
     ) -> Option<common::statemanager::PackageState> {
         let key = format!("/package/{}/state", package_name);
-        match common::etcd::get(&key).await {
+        match common::kvstore::get(&key).await {
             Ok(state_str) => match state_str.as_str() {
                 "PACKAGE_STATE_IDLE" | "idle" => Some(common::statemanager::PackageState::Idle),
                 "PACKAGE_STATE_PAUSED" | "paused" => {
@@ -1767,7 +1767,7 @@ mod tests {
 
         let result = state_machine.process_model_state_update("model-x", &[&container]);
         assert!(result.is_success());
-        assert_eq!(result.actions_to_execute, vec!["update_etcd".to_string()]);
+        assert_eq!(result.actions_to_execute, vec!["update_kvstore".to_string()]);
 
         // Resource should now exist with Model type
         let rs = state_machine.get_resource_state("model-x", ResourceType::Model);
@@ -1957,26 +1957,26 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_current_package_state_reads_etcd() {
-        // Put a package state into etcd and verify mapping
+    async fn test_get_current_package_state_reads_kvstore() {
+        // Put a package state into kvstore and verify mapping
         let key = "/package/testpkg/state";
-        let _ = common::etcd::put(key, "running").await;
+        let _ = common::kvstore::put(key, "running").await;
         let res = StateMachine::get_current_package_state("testpkg").await;
         assert!(res.is_some());
         assert_eq!(res.unwrap(), common::statemanager::PackageState::Running);
     }
 
     #[tokio::test]
-    async fn test_evaluate_and_update_package_state_all_dead_in_etcd() {
-        // Create a package with two models and set both models' states to Dead in ETCD
+    async fn test_evaluate_and_update_package_state_all_dead_in_kvstore() {
+        // Create a package with two models and set both models' states to Dead in kvstore
         let pkg_key = "Package/pkg-dead";
         let pkg_yaml = r#"{"apiVersion":"v1","kind":"Package","metadata":{"name":"pkg-dead"},"spec":{"pattern":[],"models":[{"name":"mdead1","node":"n","resources":{"volume":"","network":"","realtime":false}},{"name":"mdead2","node":"n","resources":{"volume":"","network":"","realtime":false}}]}}"#;
 
-        let _ = common::etcd::put(pkg_key, pkg_yaml).await;
-        let _ = common::etcd::put("/model/mdead1/state", "Dead").await;
-        let _ = common::etcd::put("/model/mdead2/state", "Dead").await;
+        let _ = common::kvstore::put(pkg_key, pkg_yaml).await;
+        let _ = common::kvstore::put("/model/mdead1/state", "Dead").await;
+        let _ = common::kvstore::put("/model/mdead2/state", "Dead").await;
         // Set current package state to running to ensure a state change is detected
-        let _ = common::etcd::put("/package/pkg-dead/state", "running").await;
+        let _ = common::kvstore::put("/package/pkg-dead/state", "running").await;
 
         let sm = StateMachine::new();
         let (changed, state) = sm
@@ -1991,15 +1991,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_evaluate_and_update_package_state_degraded_in_etcd() {
+    async fn test_evaluate_and_update_package_state_degraded_in_kvstore() {
         // Create a package with two models and set one model Dead and one Running
         let pkg_key = "Package/pkg-degraded";
         let pkg_yaml = r#"{"apiVersion":"v1","kind":"Package","metadata":{"name":"pkg-degraded"},"spec":{"pattern":[],"models":[{"name":"mdeg1","node":"n","resources":{"volume":"","network":"","realtime":false}},{"name":"mdeg2","node":"n","resources":{"volume":"","network":"","realtime":false}}]}}"#;
 
-        let _ = common::etcd::put(pkg_key, pkg_yaml).await;
-        let _ = common::etcd::put("/model/mdeg1/state", "Dead").await;
-        let _ = common::etcd::put("/model/mdeg2/state", "Running").await;
-        let _ = common::etcd::put("/package/pkg-degraded/state", "running").await;
+        let _ = common::kvstore::put(pkg_key, pkg_yaml).await;
+        let _ = common::kvstore::put("/model/mdeg1/state", "Dead").await;
+        let _ = common::kvstore::put("/model/mdeg2/state", "Running").await;
+        let _ = common::kvstore::put("/package/pkg-degraded/state", "running").await;
 
         let sm = StateMachine::new();
         let (changed, state) = sm
@@ -2016,11 +2016,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_models_for_package_missing_returns_empty() {
         // Ensure package key is absent
-        let _ = common::etcd::delete("Package/missing-package").await;
+        let _ = common::kvstore::delete("Package/missing-package").await;
         let res = StateMachine::get_models_for_package("missing-package").await;
         assert!(
             res.is_ok(),
-            "expected Ok result when package entry is missing in etcd"
+            "expected Ok result when package entry is missing in kvstore"
         );
         let models = res.unwrap();
         assert!(
@@ -2031,9 +2031,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_models_for_package_invalid_yaml_returns_empty() {
-        // Put an invalid YAML string into etcd under the package key
+        // Put an invalid YAML string into kvstore under the package key
         let pkg_key = "Package/pkg-invalid-yaml";
-        let _ = common::etcd::put(pkg_key, "::: not valid yaml :::").await;
+        let _ = common::kvstore::put(pkg_key, "::: not valid yaml :::").await;
         let res = StateMachine::get_models_for_package("pkg-invalid-yaml").await;
         assert!(
             res.is_ok(),
@@ -2054,8 +2054,8 @@ mod tests {
         let pkg_b_key = "Package/pkg-without-model";
         let pkg_b_yaml = r#"{"apiVersion":"v1","kind":"Package","metadata":{"name":"pkg-without-model"},"spec":{"pattern":[],"models":[]}}"#;
 
-        let _ = common::etcd::put(pkg_a_key, pkg_a_yaml).await;
-        let _ = common::etcd::put(pkg_b_key, pkg_b_yaml).await;
+        let _ = common::kvstore::put(pkg_a_key, pkg_a_yaml).await;
+        let _ = common::kvstore::put(pkg_b_key, pkg_b_yaml).await;
 
         let res = StateMachine::find_packages_containing_model("target_model").await;
         assert!(res.is_ok());
@@ -2069,7 +2069,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_current_package_state_none_when_missing() {
         // Ensure no state key exists for this package
-        let _ = common::etcd::delete("/package/no-state/state").await;
+        let _ = common::kvstore::delete("/package/no-state/state").await;
         let res = StateMachine::get_current_package_state("no-state").await;
         assert!(
             res.is_none(),
@@ -2095,8 +2095,8 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_and_update_package_state_no_models() {
         let sm = StateMachine::new();
-        // Ensure no package data is present in etcd for this test package
-        let _ = common::etcd::delete("Package/nonexistent-package").await;
+        // Ensure no package data is present in kvstore for this test package
+        let _ = common::kvstore::delete("Package/nonexistent-package").await;
         let (changed, state) = sm
             .evaluate_and_update_package_state("nonexistent-package")
             .await

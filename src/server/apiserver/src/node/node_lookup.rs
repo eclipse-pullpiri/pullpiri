@@ -6,15 +6,15 @@
 //! Node lookup utilities for finding nodes in the cluster
 
 use common::apiserver::NodeInfo;
-use common::etcd;
+use common::kvstore;
 use common::logd;
 use serde_json;
 use std::error::Error;
 
 /// Find a node by IP address from simplified node keys
 pub async fn find_node_by_simple_key() -> Option<String> {
-    logd!(1, "Checking simplified node keys in etcd...");
-    match etcd::get_all_with_prefix("nodes/").await {
+    logd!(1, "Checking simplified node keys in kvstore...");
+    match kvstore::get_all_with_prefix("nodes/").await {
         Ok(kvs) => {
             logd!(2, "Found {} simplified node keys", kvs.len());
             // Find first non-empty key
@@ -35,10 +35,10 @@ pub async fn find_node_by_simple_key() -> Option<String> {
     }
 }
 
-/// Find a node directly from etcd using cluster/nodes/ prefix
-pub async fn find_node_from_etcd() -> Option<String> {
-    logd!(1, "Checking cluster/nodes/ prefix in etcd...");
-    let kvs = match etcd::get_all_with_prefix("cluster/nodes/").await {
+/// Find a node directly from kvstore using cluster/nodes/ prefix
+pub async fn find_node_from_kvstore() -> Option<String> {
+    logd!(1, "Checking cluster/nodes/ prefix in kvstore...");
+    let kvs = match kvstore::get_all_with_prefix("cluster/nodes/").await {
         Ok(kvs) => kvs,
         Err(e) => {
             logd!(5, "Error getting nodes: {}", e);
@@ -112,7 +112,7 @@ pub async fn find_node_from_manager() -> Option<String> {
 /// Find a node by hostname
 pub async fn find_node_by_hostname(hostname: &str) -> Option<common::apiserver::NodeInfo> {
     logd!(1, "Looking for node with hostname: {}", hostname);
-    let kvs = match common::etcd::get_all_with_prefix("cluster/nodes/").await {
+    let kvs = match common::kvstore::get_all_with_prefix("cluster/nodes/").await {
         Ok(kvs) => kvs,
         Err(e) => {
             logd!(5, "Error searching for hostname {}: {}", hostname, e);
@@ -120,7 +120,7 @@ pub async fn find_node_by_hostname(hostname: &str) -> Option<common::apiserver::
         }
     };
 
-    logd!(2, "Found {} entries in etcd", kvs.len());
+    logd!(2, "Found {} entries in kvstore", kvs.len());
     for kv in kvs {
         logd!(
             1,
@@ -156,7 +156,7 @@ pub async fn get_node_ip() -> String {
         return ip;
     }
 
-    if let Some(ip) = find_node_from_etcd().await {
+    if let Some(ip) = find_node_from_kvstore().await {
         return ip;
     }
 
@@ -180,15 +180,15 @@ pub async fn get_node_ip() -> String {
 #[allow(dead_code)]
 pub async fn add_node_to_simple_keys(ip_address: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
     let key = format!("nodes/{}", ip_address);
-    etcd::put(&key, ip_address).await?;
+    kvstore::put(&key, ip_address).await?;
     logd!(2, "Added node IP to simple keys: {}", ip_address);
     Ok(())
 }
 
-/// 게스트 노드 정보를 etcd에서 검색하는 함수
+/// 게스트 노드 정보를 kvstore에서 검색하는 함수
 pub async fn find_guest_nodes() -> Vec<NodeInfo> {
-    logd!(1, "Finding guest nodes from etcd...");
-    let kvs = match etcd::get_all_with_prefix("cluster/nodes/").await {
+    logd!(1, "Finding guest nodes from kvstore...");
+    let kvs = match kvstore::get_all_with_prefix("cluster/nodes/").await {
         Ok(kvs) => kvs,
         Err(e) => {
             logd!(5, "Error searching for guest nodes: {}", e);
@@ -272,14 +272,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_node_from_etcd_success() {
-        let result = find_node_from_etcd().await;
+    async fn test_find_node_from_kvstore_success() {
+        let result = find_node_from_kvstore().await;
         match result {
             Some(ip) => {
                 assert!(!ip.is_empty());
-                println!("Found IP via etcd: {}", ip);
+                println!("Found IP via kvstore: {}", ip);
             }
-            None => println!("No nodes found via etcd (expected if etcd unavailable or empty)"),
+            None => println!("No nodes found via kvstore (expected if kvstore unavailable or empty)"),
         }
     }
 

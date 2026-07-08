@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-//! Integration with monitoring server's etcd storage
+//! Integration with monitoring server's kvstore storage
 
 use crate::monitoring_types::{BoardInfo, NodeInfo, SocInfo, StressMetrics};
 use common::monitoringserver::ContainerInfo;
@@ -9,11 +9,11 @@ use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use tracing::{debug, warn};
 
-/// Custom error type for monitoring etcd operations
+/// Custom error type for monitoring kvstore operations
 #[derive(Debug, Error)]
-pub enum MonitoringEtcdError {
-    #[error("Etcd operation error: {0}")]
-    EtcdOperation(String),
+pub enum MonitoringKVStoreError {
+    #[error("kvstore operation error: {0}")]
+    KVstoreOperation(String),
     #[error("Serialization error: {0}")]
     Serialize(#[from] serde_json::Error),
     #[error("UTF8 error: {0}")]
@@ -24,28 +24,28 @@ pub enum MonitoringEtcdError {
     Other(String),
 }
 
-type Result<T> = std::result::Result<T, MonitoringEtcdError>;
+type Result<T> = std::result::Result<T, MonitoringKVStoreError>;
 
-/// Generic function to store info in etcd
+/// Generic function to store info in kvstore
 async fn store_info<T: Serialize>(resource_type: &str, resource_id: &str, info: &T) -> Result<()> {
     let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
     let json_data = serde_json::to_string(info)?;
 
-    common::etcd::put(&key, &json_data)
+    common::kvstore::put(&key, &json_data)
         .await
-        .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
+        .map_err(|e| MonitoringKVStoreError::KVstoreOperation(e.to_string()))?;
 
     debug!("Stored {} for {}", resource_type, resource_id);
     Ok(())
 }
 
-/// Generic function to retrieve info from etcd
+/// Generic function to retrieve info from kvstore
 async fn get_info<T: DeserializeOwned>(resource_type: &str, resource_id: &str) -> Result<T> {
     let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
 
-    let json_data = common::etcd::get(&key)
+    let json_data = common::kvstore::get(&key)
         .await
-        .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
+        .map_err(|e| MonitoringKVStoreError::KVstoreOperation(e.to_string()))?;
 
     let info: T = serde_json::from_str(&json_data)?;
 
@@ -53,12 +53,12 @@ async fn get_info<T: DeserializeOwned>(resource_type: &str, resource_id: &str) -
     Ok(info)
 }
 
-/// Generic function to get all items of a type from etcd
+/// Generic function to get all items of a type from kvstore
 async fn get_all_info<T: DeserializeOwned>(resource_type: &str) -> Result<Vec<T>> {
     let prefix = format!("/pullpiri/metrics/{}/", resource_type);
-    let kv_pairs = common::etcd::get_all_with_prefix(&prefix)
+    let kv_pairs = common::kvstore::get_all_with_prefix(&prefix)
         .await
-        .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
+        .map_err(|e| MonitoringKVStoreError::KVstoreOperation(e.to_string()))?;
 
     let mut items = Vec::new();
     for kv in kv_pairs {
@@ -72,17 +72,17 @@ async fn get_all_info<T: DeserializeOwned>(resource_type: &str) -> Result<Vec<T>
             }
         }
     }
-    debug!("Retrieved {} {}s from etcd", items.len(), resource_type);
+    debug!("Retrieved {} {}s from kvstore", items.len(), resource_type);
     Ok(items)
 }
 
-/// Generic function to delete info from etcd
+/// Generic function to delete info from kvstore
 async fn delete_info(resource_type: &str, resource_id: &str) -> Result<()> {
     let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
 
-    common::etcd::delete(&key)
+    common::kvstore::delete(&key)
         .await
-        .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
+        .map_err(|e| MonitoringKVStoreError::KVstoreOperation(e.to_string()))?;
 
     debug!("Deleted {} for {}", resource_type, resource_id);
     Ok(())
@@ -90,122 +90,122 @@ async fn delete_info(resource_type: &str, resource_id: &str) -> Result<()> {
 
 // Public wrapper functions for specific types
 
-/// Store NodeInfo in etcd
+/// Store NodeInfo in kvstore
 pub async fn store_node_info(node_info: &NodeInfo) -> Result<()> {
     store_info("nodes", &node_info.node_name, node_info).await
 }
 
-/// Get NodeInfo from etcd
+/// Get NodeInfo from kvstore
 pub async fn get_node_info(node_name: &str) -> Result<NodeInfo> {
     get_info("nodes", node_name).await
 }
 
-/// Get Stressmetrics from etcd
+/// Get Stressmetrics from kvstore
 pub async fn get_stress_metrics(process_name: &str) -> Result<StressMetrics> {
     get_info("stress", process_name).await
 }
 
-/// Get all stress metrics from etcd
+/// Get all stress metrics from kvstore
 pub async fn get_all_stress_metrics() -> Result<Vec<StressMetrics>> {
     get_all_info("stress").await
 }
 
-/// Get all nodes from etcd
+/// Get all nodes from kvstore
 pub async fn get_all_nodes() -> Result<Vec<NodeInfo>> {
     get_all_info("nodes").await
 }
 
-/// Delete NodeInfo from etcd
+/// Delete NodeInfo from kvstore
 pub async fn delete_node_info(node_name: &str) -> Result<()> {
     delete_info("nodes", node_name).await
 }
 
-/// Store SocInfo in etcd
+/// Store SocInfo in kvstore
 pub async fn store_soc_info(soc_info: &SocInfo) -> Result<()> {
     store_info("socs", &soc_info.soc_id, soc_info).await
 }
 
-/// Get SocInfo from etcd
+/// Get SocInfo from kvstore
 pub async fn get_soc_info(soc_id: &str) -> Result<SocInfo> {
     get_info("socs", soc_id).await
 }
 
-/// Get all SoCs from etcd
+/// Get all SoCs from kvstore
 pub async fn get_all_socs() -> Result<Vec<SocInfo>> {
     get_all_info("socs").await
 }
 
-/// Delete SocInfo from etcd
+/// Delete SocInfo from kvstore
 pub async fn delete_soc_info(soc_id: &str) -> Result<()> {
     delete_info("socs", soc_id).await
 }
 
-/// Store BoardInfo in etcd
+/// Store BoardInfo in kvstore
 pub async fn store_board_info(board_info: &BoardInfo) -> Result<()> {
     store_info("boards", &board_info.board_id, board_info).await
 }
 
-/// Get BoardInfo from etcd
+/// Get BoardInfo from kvstore
 pub async fn get_board_info(board_id: &str) -> Result<BoardInfo> {
     get_info("boards", board_id).await
 }
 
-/// Get all boards from etcd
+/// Get all boards from kvstore
 pub async fn get_all_boards() -> Result<Vec<BoardInfo>> {
     get_all_info("boards").await
 }
 
-/// Delete BoardInfo from etcd
+/// Delete BoardInfo from kvstore
 pub async fn delete_board_info(board_id: &str) -> Result<()> {
     delete_info("boards", board_id).await
 }
 
-/// Store ContainerInfo in etcd
+/// Store ContainerInfo in kvstore
 pub async fn store_container_info(container_info: &ContainerInfo) -> Result<()> {
     store_info("containers", &container_info.id, container_info).await
 }
 
-/// Get ContainerInfo from etcd
+/// Get ContainerInfo from kvstore
 pub async fn get_container_info(container_id: &str) -> Result<ContainerInfo> {
     get_info("containers", container_id).await
 }
 
-/// Get all containers from etcd
+/// Get all containers from kvstore
 pub async fn get_all_containers() -> Result<Vec<ContainerInfo>> {
     get_all_info("containers").await
 }
 
-/// Delete ContainerInfo from etcd
+/// Delete ContainerInfo from kvstore
 pub async fn delete_container_info(container_id: &str) -> Result<()> {
     delete_info("containers", container_id).await
 }
 
-/// Get node logs from etcd
+/// Get node logs from kvstore
 pub async fn get_node_logs(node_name: &str) -> Result<Vec<String>> {
     get_logs("nodes", node_name).await
 }
 
-/// Get SoC logs from etcd
+/// Get SoC logs from kvstore
 pub async fn get_soc_logs(soc_id: &str) -> Result<Vec<String>> {
     get_logs("socs", soc_id).await
 }
 
-/// Get board logs from etcd
+/// Get board logs from kvstore
 pub async fn get_board_logs(board_id: &str) -> Result<Vec<String>> {
     get_logs("boards", board_id).await
 }
 
-/// Get container logs from etcd
+/// Get container logs from kvstore
 pub async fn get_container_logs(container_id: &str) -> Result<Vec<String>> {
     get_logs("containers", container_id).await
 }
 
-/// Generic function to get logs from etcd
+/// Generic function to get logs from kvstore
 async fn get_logs(resource_type: &str, resource_id: &str) -> Result<Vec<String>> {
     let prefix = format!("/pullpiri/logs/{}/{}", resource_type, resource_id);
-    let kv_pairs = common::etcd::get_all_with_prefix(&prefix)
+    let kv_pairs = common::kvstore::get_all_with_prefix(&prefix)
         .await
-        .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
+        .map_err(|e| MonitoringKVStoreError::KVstoreOperation(e.to_string()))?;
 
     let mut logs = Vec::new();
     for kv in kv_pairs {
@@ -221,22 +221,22 @@ async fn get_logs(resource_type: &str, resource_id: &str) -> Result<Vec<String>>
     Ok(logs)
 }
 
-/// Store node metadata in etcd
+/// Store node metadata in kvstore
 pub async fn store_node_metadata(node_name: &str, metadata: &serde_json::Value) -> Result<()> {
     store_metadata("nodes", node_name, metadata).await
 }
 
-/// Store SoC metadata in etcd
+/// Store SoC metadata in kvstore
 pub async fn store_soc_metadata(soc_id: &str, metadata: &serde_json::Value) -> Result<()> {
     store_metadata("socs", soc_id, metadata).await
 }
 
-/// Store board metadata in etcd
+/// Store board metadata in kvstore
 pub async fn store_board_metadata(board_id: &str, metadata: &serde_json::Value) -> Result<()> {
     store_metadata("boards", board_id, metadata).await
 }
 
-/// Store container metadata in etcd
+/// Store container metadata in kvstore
 pub async fn store_container_metadata(
     container_id: &str,
     metadata: &serde_json::Value,
@@ -244,7 +244,7 @@ pub async fn store_container_metadata(
     store_metadata("containers", container_id, metadata).await
 }
 
-/// Generic function to store metadata in etcd
+/// Generic function to store metadata in kvstore
 async fn store_metadata(
     resource_type: &str,
     resource_id: &str,
@@ -253,9 +253,9 @@ async fn store_metadata(
     let key = format!("/pullpiri/metadata/{}/{}", resource_type, resource_id);
     let value = serde_json::to_string(metadata)?;
 
-    common::etcd::put(&key, &value)
+    common::kvstore::put(&key, &value)
         .await
-        .map_err(|e| MonitoringEtcdError::EtcdOperation(e.to_string()))?;
+        .map_err(|e| MonitoringKVStoreError::KVstoreOperation(e.to_string()))?;
 
     debug!("Stored metadata for {} {}", resource_type, resource_id);
     Ok(())
@@ -268,8 +268,8 @@ mod tests {
     use serde_json::json;
     use std::collections::HashMap;
 
-    // Mock the common::etcd module for testing
-    mod mock_etcd {
+    // Mock the common::kvstore module for testing
+    mod mock_kvstore {
         use std::collections::HashMap;
         use std::sync::Mutex;
 
@@ -296,7 +296,7 @@ mod tests {
         pub async fn put(key: &str, value: &str) -> Result<(), String> {
             let should_fail = *SHOULD_FAIL.lock().unwrap();
             if should_fail {
-                return Err("Mock etcd error".to_string());
+                return Err("Mock kvstore error".to_string());
             }
 
             let mut storage = MOCK_STORAGE.lock().unwrap();
@@ -309,7 +309,7 @@ mod tests {
         pub async fn get(key: &str) -> Result<String, String> {
             let should_fail = *SHOULD_FAIL.lock().unwrap();
             if should_fail {
-                return Err("Mock etcd error".to_string());
+                return Err("Mock kvstore error".to_string());
             }
 
             let storage = MOCK_STORAGE.lock().unwrap();
@@ -325,7 +325,7 @@ mod tests {
         pub async fn delete(key: &str) -> Result<(), String> {
             let should_fail = *SHOULD_FAIL.lock().unwrap();
             if should_fail {
-                return Err("Mock etcd error".to_string());
+                return Err("Mock kvstore error".to_string());
             }
 
             let mut storage = MOCK_STORAGE.lock().unwrap();
@@ -344,7 +344,7 @@ mod tests {
         pub async fn get_all_with_prefix(prefix: &str) -> Result<Vec<KeyValue>, String> {
             let should_fail = *SHOULD_FAIL.lock().unwrap();
             if should_fail {
-                return Err("Mock etcd error".to_string());
+                return Err("Mock kvstore error".to_string());
             }
 
             let storage = MOCK_STORAGE.lock().unwrap();
@@ -365,7 +365,7 @@ mod tests {
         }
     }
 
-    // Replace the common::etcd functions with our mock for testing
+    // Replace the common::kvstore functions with our mock for testing
     // In a real test environment, you'd use a testing framework that supports mocking
 
     fn create_test_node_info() -> NodeInfo {
@@ -499,44 +499,44 @@ mod tests {
     }
 
     #[test]
-    fn test_monitoring_etcd_error_variants() {
-        let etcd_error = MonitoringEtcdError::EtcdOperation("ETCD failed".to_string());
-        let serialize_error = MonitoringEtcdError::Serialize(
+    fn test_monitoring_kvstore_error_variants() {
+        let kvstore_error = MonitoringKVStoreError::KVstoreOperation("KVStore failed".to_string());
+        let serialize_error = MonitoringKVStoreError::Serialize(
             serde_json::from_str::<serde_json::Value>("{invalid json").unwrap_err(),
         );
-        let not_found_error = MonitoringEtcdError::NotFound;
-        let other_error = MonitoringEtcdError::Other("Generic error".to_string());
+        let not_found_error = MonitoringKVStoreError::NotFound;
+        let other_error = MonitoringKVStoreError::Other("Generic error".to_string());
 
         // Test Display implementation
-        assert_eq!(etcd_error.to_string(), "Etcd operation error: ETCD failed");
+        assert_eq!(kvstore_error.to_string(), "KVStore operation error: KVStore failed");
         assert!(serialize_error.to_string().contains("Serialization error"));
         assert_eq!(not_found_error.to_string(), "Data not found");
         assert_eq!(other_error.to_string(), "Generic error");
 
         // Test Debug implementation
-        let debug_str = format!("{:?}", etcd_error);
-        assert!(debug_str.contains("EtcdOperation"));
-        assert!(debug_str.contains("ETCD failed"));
+        let debug_str = format!("{:?}", kvstore_error);
+        assert!(debug_str.contains("KVstoreOperation"));
+        assert!(debug_str.contains("KVStore failed"));
     }
 
     #[test]
-    fn test_monitoring_etcd_error_from_serde() {
+    fn test_monitoring_kvstore_error_from_serde() {
         let serde_error = serde_json::from_str::<serde_json::Value>("{invalid json").unwrap_err();
-        let monitoring_error = MonitoringEtcdError::from(serde_error);
+        let monitoring_error = MonitoringKVStoreError::from(serde_error);
 
         match monitoring_error {
-            MonitoringEtcdError::Serialize(_) => (),
+            MonitoringKVStoreError::Serialize(_) => (),
             _ => panic!("Expected Serialize variant"),
         }
     }
 
     #[test]
-    fn test_monitoring_etcd_error_from_utf8() {
+    fn test_monitoring_kvstore_error_from_utf8() {
         let utf8_error = std::str::from_utf8(&[0x80, 0x81]).unwrap_err();
-        let monitoring_error = MonitoringEtcdError::from(utf8_error);
+        let monitoring_error = MonitoringKVStoreError::from(utf8_error);
 
         match monitoring_error {
-            MonitoringEtcdError::Utf8(_) => (),
+            MonitoringKVStoreError::Utf8(_) => (),
             _ => panic!("Expected Utf8 variant"),
         }
     }
@@ -544,13 +544,13 @@ mod tests {
     #[test]
     fn test_result_type_alias() {
         let success: Result<i32> = Ok(42);
-        let error: Result<i32> = Err(MonitoringEtcdError::NotFound);
+        let error: Result<i32> = Err(MonitoringKVStoreError::NotFound);
 
         assert_eq!(success.unwrap(), 42);
         assert!(error.is_err());
     }
 
-    // Note: The following tests would require actual mocking of the common::etcd module
+    // Note: The following tests would require actual mocking of the common::kvstore module
     // In a real testing environment, you would use a mocking framework or dependency injection
 
     #[test]

@@ -296,13 +296,13 @@ impl ActionControllerConnection for ActionControllerReceiver {
         );
         println!("[ActionController]   Reason: {}", req.reason);
 
-        // Get Pod YAML from etcd for the package/model
+        // Get Pod YAML from kvstore for the package/model
         let pod_key = format!("Pod/{}", req.package_name);
-        let pod_yaml = match common::etcd::get(&pod_key).await {
+        let pod_yaml = match common::kvstore::get(&pod_key).await {
             Ok(yaml) if !yaml.is_empty() => yaml,
             Ok(_) => {
                 let msg = format!(
-                    "Pod not found for package '{}' in etcd key '{}'",
+                    "Pod not found for package '{}' in kvstore key '{}'",
                     req.package_name, pod_key
                 );
                 eprintln!("[ActionController] {}", msg);
@@ -312,7 +312,7 @@ impl ActionControllerConnection for ActionControllerReceiver {
                 }));
             }
             Err(e) => {
-                let msg = format!("Failed to get Pod from etcd: {}", e);
+                let msg = format!("Failed to get Pod from kvstore: {}", e);
                 eprintln!("[ActionController] {}", msg);
                 return Ok(Response::new(StopWorkloadResponse {
                     success: false,
@@ -381,7 +381,7 @@ mod tests {
 
     // #[tokio::test]
     // async fn test_reconcile_success_when_states_differ() {
-    //     // Pre-populate etcd keys
+    //     // Pre-populate kvstore keys
 
     //     let scenario_yaml = r#"
     //     apiVersion: v1
@@ -393,7 +393,7 @@ mod tests {
     //         action: update
     //         target: antipinch-enable
     //     "#;
-    //     common::etcd::put("scenario/antipinch-enable", scenario_yaml)
+    //     common::kvstore::put("scenario/antipinch-enable", scenario_yaml)
     //         .await
     //         .unwrap();
 
@@ -413,7 +413,7 @@ mod tests {
     //                 volume: antipinch-volume
     //                 network: antipinch-network
     //     "#;
-    //     common::etcd::put("package/antipinch-enable", package_yaml)
+    //     common::kvstore::put("package/antipinch-enable", package_yaml)
     //         .await
     //         .unwrap();
 
@@ -441,10 +441,10 @@ mod tests {
     //         "Expected success message, got: '{}'",
     //         response.get_ref().desc
     //     );
-    //     common::etcd::delete("scenario/antipinch-enable")
+    //     common::kvstore::delete("scenario/antipinch-enable")
     //         .await
     //         .unwrap();
-    //     common::etcd::delete("package/antipinch-enable")
+    //     common::kvstore::delete("package/antipinch-enable")
     //         .await
     //         .unwrap();
     // }
@@ -494,7 +494,7 @@ mod tests {
             target: antipinch-enable
         "#;
 
-        common::etcd::put("scenario/antipinch-enable", scenario_yaml)
+        common::kvstore::put("scenario/antipinch-enable", scenario_yaml)
             .await
             .unwrap();
 
@@ -515,15 +515,15 @@ mod tests {
                     network: antipinch-network
         "#;
 
-        common::etcd::put("package/antipinch-enable", package_yaml)
+        common::kvstore::put("package/antipinch-enable", package_yaml)
             .await
             .unwrap();
 
         // let response = receiver.trigger_action(request).await.unwrap();
         // assert_eq!(response.get_ref().status, 0);
 
-        let _ = common::etcd::delete("scenario/antipinch-enable").await;
-        let _ = common::etcd::delete("package/antipinch-enable").await;
+        let _ = common::kvstore::delete("scenario/antipinch-enable").await;
+        let _ = common::kvstore::delete("package/antipinch-enable").await;
     }
 
     #[tokio::test]
@@ -543,7 +543,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scenario_state_management_workflow() {
-        // Setup test scenario in ETCD
+        // Setup test scenario in kvstore
         let scenario_yaml = r#"
         apiVersion: v1
         kind: Scenario
@@ -555,7 +555,7 @@ mod tests {
             target: test-state-scenario
         "#;
 
-        common::etcd::put("scenario/test-state-scenario", scenario_yaml)
+        common::kvstore::put("scenario/test-state-scenario", scenario_yaml)
             .await
             .unwrap();
 
@@ -576,7 +576,7 @@ mod tests {
                     network: test-network
         "#;
 
-        common::etcd::put("package/test-state-scenario", package_yaml)
+        common::kvstore::put("package/test-state-scenario", package_yaml)
             .await
             .unwrap();
 
@@ -589,8 +589,8 @@ mod tests {
         println!("");
 
         // Cleanup
-        let _ = common::etcd::delete("scenario/test-state-scenario").await;
-        let _ = common::etcd::delete("package/test-state-scenario").await;
+        let _ = common::kvstore::delete("scenario/test-state-scenario").await;
+        let _ = common::kvstore::delete("package/test-state-scenario").await;
 
         println!("🎉 ActionController state management test completed successfully!");
     }

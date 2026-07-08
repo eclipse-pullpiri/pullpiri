@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! Store and retrieve monitoring data in etcd
+//! Store and retrieve monitoring data in kvstore
 
 use crate::data_structures::{BoardInfo, SocInfo};
 use common::monitoringserver::{ContainerInfo, NodeInfo}; // Use protobuf types
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
-/// Generic function to store info in etcd
+/// Generic function to store info in kvstore
 async fn store_info<T: Serialize>(
     resource_type: &str,
     resource_id: &str,
@@ -20,21 +20,21 @@ async fn store_info<T: Serialize>(
     let json_data = serde_json::to_string(info)
         .map_err(|e| format!("Failed to serialize {}: {}", resource_type, e))?;
 
-    common::etcd::put(&key, &json_data).await?;
+    common::kvstore::put(&key, &json_data).await?;
     println!(
-        "[ETCD] Stored the metrics for {}: {}",
+        "[kvstore] Stored the metrics for {}: {}",
         resource_type, resource_id
     );
     Ok(())
 }
 
-/// Generic function to retrieve info from etcd
+/// Generic function to retrieve info from kvstore
 async fn get_info<T: DeserializeOwned>(
     resource_type: &str,
     resource_id: &str,
 ) -> common::Result<T> {
     let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
-    let json_data = common::etcd::get(&key).await?;
+    let json_data = common::kvstore::get(&key).await?;
 
     let info: T = serde_json::from_str(&json_data)
         .map_err(|e| format!("Failed to deserialize {}: {}", resource_type, e))?;
@@ -42,28 +42,28 @@ async fn get_info<T: DeserializeOwned>(
     Ok(info)
 }
 
-/// Generic function to delete info from etcd
+/// Generic function to delete info from kvstore
 async fn delete_info(resource_type: &str, resource_id: &str) -> common::Result<()> {
     let key = format!("/pullpiri/metrics/{}/{}", resource_type, resource_id);
-    common::etcd::delete(&key).await?;
+    common::kvstore::delete(&key).await?;
     println!(
-        "[ETCD] Deleted the metrics for {}: {}",
+        "[kvstore] Deleted the metrics for {}: {}",
         resource_type, resource_id
     );
     Ok(())
 }
 
-/// Generic function to get all items of a type from etcd
+/// Generic function to get all items of a type from kvstore
 async fn get_all_info<T: DeserializeOwned>(resource_type: &str) -> common::Result<Vec<T>> {
     let prefix = format!("/pullpiri/metrics/{}/", resource_type);
-    let kv_pairs = common::etcd::get_all_with_prefix(&prefix).await?;
+    let kv_pairs = common::kvstore::get_all_with_prefix(&prefix).await?;
 
     let mut items = Vec::new();
     for kv in kv_pairs {
         match serde_json::from_str::<T>(&kv.1) {
             Ok(item) => items.push(item),
             Err(e) => eprintln!(
-                "[ETCD] Failed to deserialize {} {}: {}",
+                "[kvstore] Failed to deserialize {} {}: {}",
                 resource_type, kv.0, e
             ),
         }
@@ -74,22 +74,22 @@ async fn get_all_info<T: DeserializeOwned>(resource_type: &str) -> common::Resul
 
 // Public API functions using the generic implementations
 
-/// Store NodeInfo in etcd
+/// Store NodeInfo in kvstore
 pub async fn store_node_info(node_info: &NodeInfo) -> common::Result<()> {
     store_info("nodes", &node_info.node_name, node_info).await
 }
 
-/// Store SocInfo in etcd
+/// Store SocInfo in kvstore
 pub async fn store_soc_info(soc_info: &SocInfo) -> common::Result<()> {
     store_info("socs", &soc_info.soc_id, soc_info).await
 }
 
-/// Store BoardInfo in etcd
+/// Store BoardInfo in kvstore
 pub async fn store_board_info(board_info: &BoardInfo) -> common::Result<()> {
     store_info("boards", &board_info.board_id, board_info).await
 }
 
-/// Store ContainerInfo in etcd - Using same pattern as others
+/// Store ContainerInfo in kvstore - Using same pattern as others
 pub async fn store_container_info(container_info: &ContainerInfo) -> common::Result<()> {
     // Convert protobuf ContainerInfo to JSON for storage using the same pattern
     let json_value = serde_json::json!({
@@ -105,22 +105,22 @@ pub async fn store_container_info(container_info: &ContainerInfo) -> common::Res
     store_info("containers", &container_info.id, &json_value).await
 }
 
-/// Retrieve NodeInfo from etcd
+/// Retrieve NodeInfo from kvstore
 pub async fn get_node_info(node_name: &str) -> common::Result<NodeInfo> {
     get_info("nodes", node_name).await
 }
 
-/// Retrieve SocInfo from etcd
+/// Retrieve SocInfo from kvstore
 pub async fn get_soc_info(soc_id: &str) -> common::Result<SocInfo> {
     get_info("socs", soc_id).await
 }
 
-/// Retrieve BoardInfo from etcd
+/// Retrieve BoardInfo from kvstore
 pub async fn get_board_info(board_id: &str) -> common::Result<BoardInfo> {
     get_info("boards", board_id).await
 }
 
-/// Get ContainerInfo from etcd - Using same pattern as others
+/// Get ContainerInfo from kvstore - Using same pattern as others
 pub async fn get_container_info(container_id: &str) -> common::Result<ContainerInfo> {
     let json_value: serde_json::Value = get_info("containers", container_id).await?;
 
@@ -163,25 +163,25 @@ pub async fn get_container_info(container_id: &str) -> common::Result<ContainerI
     Ok(container_info)
 }
 
-/// Get all nodes from etcd
+/// Get all nodes from kvstore
 pub async fn get_all_nodes() -> common::Result<Vec<NodeInfo>> {
     get_all_info("nodes").await
 }
 
-/// Get all SoCs from etcd
+/// Get all SoCs from kvstore
 pub async fn get_all_socs() -> common::Result<Vec<SocInfo>> {
     get_all_info("socs").await
 }
 
-/// Get all boards from etcd
+/// Get all boards from kvstore
 pub async fn get_all_boards() -> common::Result<Vec<BoardInfo>> {
     get_all_info("boards").await
 }
 
-/// Get all containers from etcd
+/// Get all containers from kvstore
 pub async fn get_all_containers() -> common::Result<Vec<ContainerInfo>> {
     let prefix = "/pullpiri/metrics/containers/".to_string();
-    let kv_pairs = common::etcd::get_all_with_prefix(&prefix).await?;
+    let kv_pairs = common::kvstore::get_all_with_prefix(&prefix).await?;
 
     let mut containers = Vec::new();
     for kv in kv_pairs {
@@ -223,14 +223,14 @@ pub async fn get_all_containers() -> common::Result<Vec<ContainerInfo>> {
                 };
                 containers.push(container_info);
             }
-            Err(e) => eprintln!("[ETCD] Failed to deserialize container {}: {}", kv.0, e),
+            Err(e) => eprintln!("[kvstore] Failed to deserialize container {}: {}", kv.0, e),
         }
     }
 
     Ok(containers)
 }
 
-/// Delete all containers from etcd (used on startup to clear stale data)
+/// Delete all containers from kvstore (used on startup to clear stale data)
 /// Retries up to 10 times with 1 second intervals if DB is not ready
 pub async fn delete_all_containers() -> common::Result<()> {
     use tokio::time::{sleep, Duration};
@@ -245,7 +245,7 @@ pub async fn delete_all_containers() -> common::Result<()> {
         let mut result = None;
 
         for attempt in 1..=MAX_RETRIES {
-            match common::etcd::get_all_with_prefix(&prefix).await {
+            match common::kvstore::get_all_with_prefix(&prefix).await {
                 Ok(pairs) => {
                     result = Some(pairs);
                     break;
@@ -253,7 +253,7 @@ pub async fn delete_all_containers() -> common::Result<()> {
                 Err(e) => {
                     last_error = e.to_string();
                     eprintln!(
-                        "[ETCD] Attempt {}/{}: Failed to connect to DB, retrying in {}s... ({})",
+                        "[kvstore] Attempt {}/{}: Failed to connect to DB, retrying in {}s... ({})",
                         attempt, MAX_RETRIES, RETRY_INTERVAL_SECS, last_error
                     );
                     if attempt < MAX_RETRIES {
@@ -267,7 +267,7 @@ pub async fn delete_all_containers() -> common::Result<()> {
             Some(pairs) => pairs,
             None => {
                 eprintln!(
-                    "[ETCD] Warning: Failed to clear containers after {} retries: {}",
+                    "[kvstore] Warning: Failed to clear containers after {} retries: {}",
                     MAX_RETRIES, last_error
                 );
                 return Ok(()); // Continue to next step even on failure
@@ -277,9 +277,9 @@ pub async fn delete_all_containers() -> common::Result<()> {
 
     let mut deleted_count = 0;
     for (key, _) in kv_pairs {
-        if let Err(e) = common::etcd::delete(&key).await {
+        if let Err(e) = common::kvstore::delete(&key).await {
             eprintln!(
-                "[ETCD] Warning: Failed to delete container key {}: {}",
+                "[kvstore] Warning: Failed to delete container key {}: {}",
                 key, e
             );
         } else {
@@ -288,13 +288,13 @@ pub async fn delete_all_containers() -> common::Result<()> {
     }
 
     println!(
-        "[ETCD] Cleared {} containers from etcd on startup",
+        "[kvstore] Cleared {} containers from kvstore on startup",
         deleted_count
     );
     Ok(())
 }
 
-/// Store a raw stress metric JSON string in etcd under /pullpiri/metrics/stress/{process}/{pid}:{ts}
+/// Store a raw stress metric JSON string in kvstore under /pullpiri/metrics/stress/{process}/{pid}:{ts}
 pub async fn store_stress_metric_json(json_str: &str) -> common::Result<()> {
     // parse & validate JSON
     let v: Value = serde_json::from_str(json_str)
@@ -325,22 +325,22 @@ pub async fn delete_stress_metric(resource_id: &str) -> common::Result<()> {
     delete_info("stress", resource_id).await
 }
 
-/// Delete NodeInfo from etcd
+/// Delete NodeInfo from kvstore
 pub async fn delete_node_info(node_name: &str) -> common::Result<()> {
     delete_info("nodes", node_name).await
 }
 
-/// Delete SocInfo from etcd
+/// Delete SocInfo from kvstore
 pub async fn delete_soc_info(soc_id: &str) -> common::Result<()> {
     delete_info("socs", soc_id).await
 }
 
-/// Delete BoardInfo from etcd
+/// Delete BoardInfo from kvstore
 pub async fn delete_board_info(board_id: &str) -> common::Result<()> {
     delete_info("boards", board_id).await
 }
 
-/// Delete ContainerInfo from etcd
+/// Delete ContainerInfo from kvstore
 pub async fn delete_container_info(container_id: &str) -> common::Result<()> {
     delete_info("containers", container_id).await
 }
@@ -348,6 +348,7 @@ pub async fn delete_container_info(container_id: &str) -> common::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::kvstore_storage;
     use crate::data_structures::{BoardInfo, SocInfo};
     use common::monitoringserver::{ContainerInfo, NodeInfo};
     use std::time::SystemTime;
@@ -420,7 +421,7 @@ mod tests {
     async fn test_store_and_delete_node_info() {
         let node = sample_node("node1", "192.168.10.201");
         let result = store_node_info(&node).await;
-        // Should be Ok or error if etcd is not running
+        // Should be Ok or error if kvstore is not running
         assert!(result.is_ok() || result.is_err());
 
         let result = delete_node_info("node1").await;
@@ -485,7 +486,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_all_nodes_socs_boards_containers() {
-        // These should not panic, even if etcd is empty or not running
+        // These should not panic, even if kvstore is empty or not running
         let _ = get_all_nodes().await;
         let _ = get_all_socs().await;
         let _ = get_all_boards().await;
@@ -495,23 +496,23 @@ mod tests {
     #[tokio::test]
     async fn test_store_info_and_get_info_generic() {
         let node = sample_node("node1", "192.168.10.201");
-        let store_result = super::store_info("nodes", "node1", &node).await;
+        let store_result = kvstore_storage::store_info("nodes", "node1", &node).await;
         assert!(store_result.is_ok() || store_result.is_err());
 
-        let get_result: Result<NodeInfo, _> = super::get_info("nodes", "node1").await;
-        // Should be Ok if etcd is running, Err otherwise
+        let get_result: Result<NodeInfo, _> = kvstore_storage::get_info("nodes", "node1").await;
+        // Should be Ok if kvstore is running, Err otherwise
         assert!(get_result.is_ok() || get_result.is_err());
     }
 
     #[tokio::test]
     async fn test_delete_info_generic() {
-        let del_result = super::delete_info("nodes", "node1").await;
+        let del_result = kvstore_storage::delete_info("nodes", "node1").await;
         assert!(del_result.is_ok() || del_result.is_err());
     }
 
     #[tokio::test]
     async fn test_get_all_info_generic() {
-        let all_nodes: Result<Vec<NodeInfo>, _> = super::get_all_info("nodes").await;
+        let all_nodes: Result<Vec<NodeInfo>, _> = kvstore_storage::get_all_info("nodes").await;
         assert!(all_nodes.is_ok() || all_nodes.is_err());
     }
 

@@ -11,9 +11,9 @@ use common::logd;
 use common::nodeagent::fromapiserver::HandleYamlRequest;
 use tonic::transport::Server;
 
-/// Launch REST API listener, gRPC server, and reload scenario data in etcd
+/// Launch REST API listener, gRPC server, and reload scenario data in kvstore
 pub async fn initialize() {
-    // 먼저 호스트 노드를 etcd에 등록합니다.
+    // 먼저 호스트 노드를 kvstore에 등록합니다.
     if let Err(e) = register_host_node().await {
         logd!(5, "Failed to register host node: {:?}", e);
     } else {
@@ -52,9 +52,9 @@ async fn start_grpc_server() {
 #[allow(dead_code)]
 async fn send_download_request() {}
 
-/// settings.yaml에서 호스트 정보를 가져와 etcd에 등록합니다.
+/// settings.yaml에서 호스트 정보를 가져와 kvstore에 등록합니다.
 ///
-/// 이 함수는 apiserver가 시작될 때 호출되어 자신의 정보를 etcd에 등록합니다.
+/// 이 함수는 apiserver가 시작될 때 호출되어 자신의 정보를 kvstore에 등록합니다.
 /// 이렇게 하면 다른 컴포넌트가 apiserver 호스트 정보를 조회할 수 있습니다.
 ///
 /// ### Returns
@@ -95,25 +95,25 @@ async fn register_host_node() -> Result<(), Box<dyn std::error::Error + Send + S
 
     // 추가적으로 nodes/{hostname} 키에도 저장 (ActionController가 이 키를 사용)
     let hostname_key = format!("nodes/{}", hostname);
-    common::etcd::put(&hostname_key, &ip_address).await?;
+    common::kvstore::put(&hostname_key, &ip_address).await?;
 
     logd!(
         2,
-        "Host node information registered to etcd: {} ({})",
+        "Host node information registered to kvstore: {} ({})",
         hostname,
         ip_address
     );
     Ok(())
 }
 
-/// Reload all scenario data in etcd
+/// Reload all scenario data in kvstore
 ///
 /// ### Parametets
 /// * None
 /// ### Description
 /// This function is called once when the apiserver starts.
 async fn reload() {
-    let scenarios_result = crate::artifact::data::read_all_scenario_from_etcd().await;
+    let scenarios_result = crate::artifact::data::read_all_scenario_from_kvstore().await;
 
     if let Ok(scenarios) = scenarios_result {
         for scenario in scenarios {
@@ -135,7 +135,7 @@ async fn reload() {
 /// ### Parameters
 /// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Description
-/// write artifact in etcd
+/// write artifact in kvstore
 /// (optional) make yaml, kube files for Bluechi
 /// send a gRPC message to gateway
 pub async fn apply_artifact(body: &str) -> common::Result<()> {
@@ -154,7 +154,7 @@ pub async fn apply_artifact(body: &str) -> common::Result<()> {
 /// ### Parameters
 /// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Description
-/// delete artifact in etcd
+/// delete artifact in kvstore
 /// (optional) delete yaml, kube files for Bluechi
 /// send a gRPC message to gateway
 pub async fn withdraw_artifact(body: &str) -> common::Result<()> {
@@ -705,7 +705,7 @@ spec:
     /// Mocked version of reload function.
     /// Sends a gRPC reload request to the mock server.
     async fn reload() {
-        let scenarios_result = crate::artifact::data::read_all_scenario_from_etcd().await;
+        let scenarios_result = crate::artifact::data::read_all_scenario_from_kvstore().await;
         let grpc_addr = start_mock_server().await;
         if let Ok(scenarios) = scenarios_result {
             for scenario in scenarios {

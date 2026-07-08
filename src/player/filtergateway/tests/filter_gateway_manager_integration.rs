@@ -64,26 +64,26 @@ async fn test_initialize_manager_with_valid_scenario() {
     let (_tx, rx) = mpsc::channel(10);
     let manager = FilterGatewayManager::new(rx).await;
 
-    common::etcd::put("Scenario/helloworld_dds", VALID_SCENARIO_YAML)
+    common::kvstore::put("Scenario/helloworld_dds", VALID_SCENARIO_YAML)
         .await
         .unwrap();
-    common::etcd::put("Package/helloworld_dds", VALID_PACKAGE_YAML_SINGLE)
+    common::kvstore::put("Package/helloworld_dds", VALID_PACKAGE_YAML_SINGLE)
         .await
         .unwrap();
-    common::etcd::put("Model/helloworld_dds-core", VALID_MODEL_YAML_SINGLE)
+    common::kvstore::put("Model/helloworld_dds-core", VALID_MODEL_YAML_SINGLE)
         .await
         .unwrap();
 
     let result = manager.initialize().await;
     assert!(true);
 
-    common::etcd::delete("Scenario/helloworld_dds")
+    common::kvstore::delete("Scenario/helloworld_dds")
         .await
         .unwrap();
-    common::etcd::delete("Package/helloworld_dds")
+    common::kvstore::delete("Package/helloworld_dds")
         .await
         .unwrap();
-    common::etcd::delete("Model/helloworld_dds-core")
+    common::kvstore::delete("Model/helloworld_dds-core")
         .await
         .unwrap();
 }
@@ -168,19 +168,19 @@ async fn test_run_manager_with_withdraw_action() {
     let (tx, rx) = mpsc::channel(10);
     let manager = FilterGatewayManager::new(rx).await;
 
-    common::etcd::put("Scenario/helloworld_dds1", VALID_SCENARIO_YAML1)
+    common::kvstore::put("Scenario/helloworld_dds1", VALID_SCENARIO_YAML1)
         .await
         .unwrap();
-    common::etcd::put("Package/helloworld_dds1", VALID_PACKAGE_YAML_SINGLE1)
+    common::kvstore::put("Package/helloworld_dds1", VALID_PACKAGE_YAML_SINGLE1)
         .await
         .unwrap();
-    common::etcd::put("Network/helloworld_dds1", VALID_NETWORK_YAML_SINGLE1)
+    common::kvstore::put("Network/helloworld_dds1", VALID_NETWORK_YAML_SINGLE1)
         .await
         .unwrap();
-    common::etcd::put("Node/helloworld_dds1", VALID_NETWORK_YAML_SINGLE1)
+    common::kvstore::put("Node/helloworld_dds1", VALID_NETWORK_YAML_SINGLE1)
         .await
         .unwrap();
-    common::etcd::put("Pod/helloworld_dds-core1", VALID_MODEL_YAML_SINGLE1)
+    common::kvstore::put("Pod/helloworld_dds-core1", VALID_MODEL_YAML_SINGLE1)
         .await
         .unwrap();
     let scenario: Scenario = serde_yaml::from_str(VALID_SCENARIO_YAML1).unwrap();
@@ -203,17 +203,17 @@ async fn test_run_manager_with_withdraw_action() {
     tokio::time::sleep(Duration::from_millis(200)).await;
     handle.abort();
 
-    common::etcd::delete("Scenario/helloworld_dds1")
+    common::kvstore::delete("Scenario/helloworld_dds1")
         .await
         .unwrap();
-    common::etcd::delete("Package/helloworld_dds1")
+    common::kvstore::delete("Package/helloworld_dds1")
         .await
         .unwrap();
-    common::etcd::delete("Network/helloworld_dds1")
+    common::kvstore::delete("Network/helloworld_dds1")
         .await
         .unwrap();
-    common::etcd::delete("Node/helloworld_dds1").await.unwrap();
-    common::etcd::delete("Pod/helloworld_dds-core1")
+    common::kvstore::delete("Node/helloworld_dds1").await.unwrap();
+    common::kvstore::delete("Pod/helloworld_dds-core1")
         .await
         .unwrap();
     handle.abort();
@@ -279,19 +279,19 @@ async fn test_run_manager_with_withdraw_action_none() {
     let (tx, rx) = mpsc::channel(10);
     let manager = FilterGatewayManager::new(rx).await;
 
-    common::etcd::put("Scenario/helloworld_dds2", VALID_SCENARIO_YAML2)
+    common::kvstore::put("Scenario/helloworld_dds2", VALID_SCENARIO_YAML2)
         .await
         .unwrap();
-    common::etcd::put("Package/helloworld_dds2", VALID_PACKAGE_YAML_SINGLE2)
+    common::kvstore::put("Package/helloworld_dds2", VALID_PACKAGE_YAML_SINGLE2)
         .await
         .unwrap();
-    common::etcd::put("Node/helloworld_dds2", VALID_NETWORK_YAML_SINGLE2)
+    common::kvstore::put("Node/helloworld_dds2", VALID_NETWORK_YAML_SINGLE2)
         .await
         .unwrap();
-    common::etcd::put("Network/helloworld_dds2", VALID_NETWORK_YAML_SINGLE2)
+    common::kvstore::put("Network/helloworld_dds2", VALID_NETWORK_YAML_SINGLE2)
         .await
         .unwrap();
-    common::etcd::put("Pod/helloworld_dds-core2", VALID_MODEL_YAML_SINGLE2)
+    common::kvstore::put("Pod/helloworld_dds-core2", VALID_MODEL_YAML_SINGLE2)
         .await
         .unwrap();
     let scenario: Scenario = serde_yaml::from_str(VALID_SCENARIO_YAML2).unwrap();
@@ -311,17 +311,17 @@ async fn test_run_manager_with_withdraw_action_none() {
     tokio::time::sleep(Duration::from_millis(200)).await;
     handle.abort();
 
-    common::etcd::delete("Scenario/helloworld_dds2")
+    common::kvstore::delete("Scenario/helloworld_dds2")
         .await
         .unwrap();
-    common::etcd::delete("Package/helloworld_dds2")
+    common::kvstore::delete("Package/helloworld_dds2")
         .await
         .unwrap();
-    common::etcd::delete("Network/helloworld_dds2")
+    common::kvstore::delete("Network/helloworld_dds2")
         .await
         .unwrap();
-    common::etcd::delete("Node/helloworld_dds2").await.unwrap();
-    common::etcd::delete("Pod/helloworld_dds-core2")
+    common::kvstore::delete("Node/helloworld_dds2").await.unwrap();
+    common::kvstore::delete("Pod/helloworld_dds-core2")
         .await
         .unwrap();
 }
@@ -368,7 +368,7 @@ spec:
   target: helloworld_dds
 "#;
 
-    common::etcd::put("Scenario/invalid_scenario", INVALID_SCENARIO_YAML)
+    common::kvstore::put("Scenario/invalid_scenario", INVALID_SCENARIO_YAML)
         .await
         .unwrap();
 
@@ -376,7 +376,7 @@ spec:
     // Should not panic, ideally error or ok handled gracefully
     assert!(result.is_err() || result.is_ok());
 
-    common::etcd::delete("Scenario/invalid_scenario")
+    common::kvstore::delete("Scenario/invalid_scenario")
         .await
         .unwrap();
 }
@@ -397,14 +397,14 @@ spec:
   target: helloworld_dds
 "#;
 
-    common::etcd::put("Scenario/malformed", MALFORMED_YAML)
+    common::kvstore::put("Scenario/malformed", MALFORMED_YAML)
         .await
         .unwrap();
 
     let result = manager.initialize().await;
     assert!(result.is_err());
 
-    common::etcd::delete("Scenario/malformed").await.unwrap();
+    common::kvstore::delete("Scenario/malformed").await.unwrap();
 }
 
 #[tokio::test]

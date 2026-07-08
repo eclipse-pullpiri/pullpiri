@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! Convert string-type artifacts to struct and access etcd
+//! Convert string-type artifacts to struct and access kvstore
 
 pub mod data;
 
@@ -125,13 +125,13 @@ async fn process_artifact_document(doc: &str) -> common::Result<Option<(String, 
 
     let key = format!("{}/{}", kind, name);
 
-    let etcd_start = Instant::now();
-    data::write_to_etcd(&key, &artifact_str).await?;
+    let kvstore_start = Instant::now();
+    data::write_to_kvstore(&key, &artifact_str).await?;
     logd!(
         1,
-        "process_artifact: etcd write elapsed for {} = {:?}",
+        "process_artifact: kvstore write elapsed for {} = {:?}",
         key,
-        etcd_start.elapsed()
+        kvstore_start.elapsed()
     );
 
     if kind == KIND_SCENARIO {
@@ -141,14 +141,14 @@ async fn process_artifact_document(doc: &str) -> common::Result<Option<(String, 
     Ok(Some((kind, artifact_str)))
 }
 
-/// Apply downloaded artifact to etcd
+/// Apply downloaded artifact to kvstore
 ///
 /// ### Parametets
 /// * `body: &str` - whole yaml string of pullpiri artifact
 /// ### Returns
 /// * `Result(String, String)` - scenario and package yaml in downloaded artifact
 /// ### Description
-/// Write artifact in etcd
+/// Write artifact in kvstore
 pub async fn apply(body: &str) -> common::Result<String> {
     use std::time::Instant;
     let total_start = Instant::now();
@@ -179,7 +179,7 @@ pub async fn apply(body: &str) -> common::Result<String> {
     }
 }
 
-/// Delete downloaded artifact to etcd
+/// Delete downloaded artifact to kvstore
 ///
 /// ### Parametets
 /// * `body: &str` - whole yaml string of pullpiri artifact
@@ -197,7 +197,7 @@ pub async fn withdraw(body: &str) -> common::Result<String> {
             if kind == KIND_SCENARIO {
                 let artifact_str = serde_yaml::to_string(&value)?;
                 let key = format!("{}/{}", KIND_SCENARIO, name);
-                data::delete_at_etcd(&key).await?;
+                data::delete_at_kvstore(&key).await?;
                 return Ok(artifact_str);
             }
         }
@@ -210,12 +210,12 @@ pub async fn withdraw(body: &str) -> common::Result<String> {
 async fn load_model_with_resources(
     model_info: &common::spec::artifact::package::ModelInfo,
 ) -> common::Result<Model> {
-    let model_str = common::etcd::get(&format!("{}/{}", KIND_MODEL, model_info.get_name())).await?;
+    let model_str = common::kvstore::get(&format!("{}/{}", KIND_MODEL, model_info.get_name())).await?;
     let mut model: Model = serde_yaml::from_str(&model_str)?;
 
     // Load volume if specified
     if let Some(volume_name) = model_info.get_resources().get_volume() {
-        let volume_str = common::etcd::get(&format!("{}/{}", KIND_VOLUME, volume_name)).await?;
+        let volume_str = common::kvstore::get(&format!("{}/{}", KIND_VOLUME, volume_name)).await?;
         let volume: Volume = serde_yaml::from_str(&volume_str)?;
 
         if let Some(volume_spec) = volume.get_spec() {
@@ -228,7 +228,7 @@ async fn load_model_with_resources(
 
     // Load network if specified
     if let Some(network_name) = model_info.get_resources().get_network() {
-        let network_str = common::etcd::get(&format!("{}/{}", KIND_NETWORK, network_name)).await?;
+        let network_str = common::kvstore::get(&format!("{}/{}", KIND_NETWORK, network_name)).await?;
         let _network: Network = serde_yaml::from_str(&network_str)?;
         // TODO: Apply network configuration
     }
@@ -251,7 +251,7 @@ async fn save_pod_yaml_from_package(package_str: &str) -> common::Result<()> {
     for pod in pods {
         let pod_yaml = serde_yaml::to_string(&pod)?;
         let key = format!("{}/{}", "Pod", pod.get_name());
-        data::write_to_etcd(&key, &pod_yaml).await?;
+        data::write_to_kvstore(&key, &pod_yaml).await?;
     }
 
     Ok(())
@@ -364,7 +364,7 @@ spec:
         // First, create the required Model that the Package references
         let model_value: serde_yaml::Value = serde_yaml::from_str(VALID_MODEL_YAML).unwrap();
         let model_str = serde_yaml::to_string(&model_value).unwrap();
-        data::write_to_etcd("Model/helloworld-core", &model_str)
+        data::write_to_kvstore("Model/helloworld-core", &model_str)
             .await
             .unwrap();
 
@@ -382,7 +382,7 @@ spec:
         assert!(!scenario.is_empty(), "Scenario YAML should not be empty");
 
         // Cleanup: Remove the created Model
-        let _ = data::delete_at_etcd("Model/helloworld-core").await;
+        let _ = data::delete_at_kvstore("Model/helloworld-core").await;
     }
 
     /// Test apply() with missing `action` field (invalid Scenario)

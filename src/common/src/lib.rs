@@ -5,7 +5,7 @@
 pub use crate::error::Result;
 
 pub mod error;
-pub mod etcd;
+pub mod kvstore;
 pub mod setting;
 pub mod spec;
 

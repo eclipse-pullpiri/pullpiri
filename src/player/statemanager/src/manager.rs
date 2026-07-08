@@ -101,7 +101,7 @@ impl StateManagerManager {
     /// * `Result<()>` - Success or initialization error
     ///
     /// # Future Enhancements
-    /// - Load persisted resource states from storage (etcd, database)
+    /// - Load persisted resource states from storage (kvstore, database)
     /// - Initialize state machine validators for each resource type
     /// - Set up dependency tracking and validation systems
     /// - Configure ASIL safety monitoring and alerting
@@ -267,7 +267,7 @@ impl StateManagerManager {
         //    - Handle rollback scenarios if transition fails partway through
         //
         // PHASE 5: PERSISTENT STORAGE AND AUDIT
-        //    - Update resource state in persistent storage (etcd cluster, database)
+        //    - Update resource state in persistent storage (kvstore cluster, database)
         //    - Record detailed state transition history for compliance auditing
         //    - Update health status and monitoring data with new state information
         //    - Maintain state generation counters for optimistic concurrency control
@@ -338,34 +338,34 @@ impl StateManagerManager {
             logd!(2, "    Success Message: {}", result.message);
             logd!(1, "    Transition ID: {}", result.transition_id);
 
-            // 🔍 COMMENT 6: Save scenario state changes to ETCD
+            // 🔍 COMMENT 6: Save scenario state changes to kvstore
             // StateManager receives state change requests from FilterGateway, ActionController, and PolicyManager
-            // and saves the scenario state transitions to ETCD for persistence
+            // and saves the scenario state transitions to kvstore for persistence
             if resource_type == ResourceType::Scenario {
                 logd!(
                     1,
-                    "💾 SCENARIO STATE PERSISTENCE: StateManager ETCD Storage"
+                    "💾 SCENARIO STATE PERSISTENCE: StateManager kvstore Storage"
                 );
                 logd!(1, "   📋 Scenario: {}", state_change.resource_name);
                 logd!(1, "   🔄 Final State: {}", new_state_str);
                 logd!(1, "   🔍 Reason: Successful state transition completed");
 
-                let etcd_key = format!("/scenario/{}/state", state_change.resource_name);
-                let etcd_value = new_state_str;
+                let kvstore_key = format!("/scenario/{}/state", state_change.resource_name);
+                let kvstore_value = new_state_str;
 
-                logd!(1, "   📤 Saving to ETCD:");
-                logd!(1, "      • Key: {}", etcd_key);
-                logd!(1, "      • Value: {}", etcd_value);
-                logd!(1, "      • Operation: common::etcd::put()");
+                logd!(1, "   📤 Saving to kvstore:");
+                logd!(1, "      • Key: {}", kvstore_key);
+                logd!(1, "      • Value: {}", kvstore_value);
+                logd!(1, "      • Operation: common::kvstore::put()");
 
-                if let Err(e) = common::etcd::put(&etcd_key, etcd_value).await {
-                    logd!(4, "   ❌ Failed to save scenario state to ETCD: {:?}", e);
+                if let Err(e) = common::kvstore::put(&kvstore_key, kvstore_value).await {
+                    logd!(4, "   ❌ Failed to save scenario state to kvstore: {:?}", e);
                 } else {
                     logd!(
                         1,
-                        "   ✅ Successfully saved scenario state to ETCD: {} → {}",
-                        etcd_key,
-                        etcd_value
+                        "   ✅ Successfully saved scenario state to kvstore: {} → {}",
+                        kvstore_key,
+                        kvstore_value
                     );
                 }
             }
@@ -478,7 +478,7 @@ impl StateManagerManager {
     /// 1. Analyze container health and status changes
     /// 2. Identify models affected by container changes  
     /// 3. Evaluate model state based on container states
-    /// 4. Update model states in ETCD if transitions occur
+    /// 4. Update model states in kvstore if transitions occur
     async fn process_container_list(&self, container_list: ContainerList) {
         logd!(2, "=== PROCESSING CONTAINER LIST ===");
         logd!(2, "  Node Name: {}", container_list.node_name);
@@ -519,15 +519,15 @@ impl StateManagerManager {
                         _ => common::statemanager::ModelState::Running,
                     };
 
-                    // Save the new model state to ETCD
+                    // Save the new model state to kvstore
                     drop(state_machine); // Release the lock before async operation
                     if let Err(e) = self
-                        .save_model_state_to_etcd(&model_name, new_model_state)
+                        .save_model_state_to_kvstore(&model_name, new_model_state)
                         .await
                     {
-                        logd!(4, "    Failed to save model state to ETCD: {:?}", e);
+                        logd!(4, "    Failed to save model state to kvstore: {:?}", e);
                     } else {
-                        logd!(1, "    Successfully saved model state to ETCD");
+                        logd!(1, "    Successfully saved model state to kvstore");
 
                         // Trigger package state evaluation based on model state change
                         // This implements the chain reaction described in the Korean documentation
@@ -604,8 +604,8 @@ impl StateManagerManager {
         None
     }
 
-    /// Saves model state to ETCD using the format specified in the documentation
-    async fn save_model_state_to_etcd(
+    /// Saves model state to kvstore using the format specified in the documentation
+    async fn save_model_state_to_kvstore(
         &self,
         model_name: &str,
         model_state: common::statemanager::ModelState,
@@ -620,9 +620,9 @@ impl StateManagerManager {
             _ => "Unknown",
         };
 
-        logd!(1, "    Saving to ETCD - Key: {}, Value: {}", key, value);
+        logd!(1, "    Saving to kvstore - Key: {}, Value: {}", key, value);
 
-        if let Err(e) = common::etcd::put(&key, value).await {
+        if let Err(e) = common::kvstore::put(&key, value).await {
             logd!(5, "    Failed to save model state: {:?}", e);
             return Err(format!(
                 "Failed to save model state for {}: {:?}",
@@ -633,10 +633,10 @@ impl StateManagerManager {
         Ok(())
     }
 
-    /// Saves package state to ETCD using the format specified in the Korean documentation
+    /// Saves package state to kvstore using the format specified in the Korean documentation
     ///
     /// Format: /package/{package_name}/state -> state_value (e.g., "running", "degraded", "error")
-    async fn save_package_state_to_etcd(
+    async fn save_package_state_to_kvstore(
         &self,
         package_name: &str,
         package_state: common::statemanager::PackageState,
@@ -646,12 +646,12 @@ impl StateManagerManager {
 
         logd!(
             1,
-            "    Saving package state to ETCD - Key: {}, Value: {}",
+            "    Saving package state to kvstore - Key: {}, Value: {}",
             key,
             value
         );
 
-        if let Err(e) = common::etcd::put(&key, value).await {
+        if let Err(e) = common::kvstore::put(&key, value).await {
             logd!(5, "    Failed to save package state: {:?}", e);
             return Err(format!(
                 "Failed to save package state for {}: {:?}",
@@ -700,9 +700,9 @@ impl StateManagerManager {
                     drop(state_machine); // Release lock before async operations
 
                     if state_changed {
-                        // Save new state to ETCD
+                        // Save new state to kvstore
                         if let Err(e) = self
-                            .save_package_state_to_etcd(&package_name, new_state)
+                            .save_package_state_to_kvstore(&package_name, new_state)
                             .await
                         {
                             logd!(5, "      Failed to save package state: {:?}", e);
@@ -824,8 +824,8 @@ impl StateManagerManager {
         &self,
         package_name: &str,
     ) -> std::result::Result<Option<String>, String> {
-        // Get all scenarios from ETCD
-        match common::etcd::get_all_with_prefix("Scenario/").await {
+        // Get all scenarios from kvstore
+        match common::kvstore::get_all_with_prefix("Scenario/").await {
             Ok(scenario_entries) => {
                 for kv in scenario_entries {
                     match serde_yaml::from_str::<common::spec::artifact::Scenario>(&kv.1) {
@@ -843,8 +843,8 @@ impl StateManagerManager {
                 Ok(None) // No scenario found containing this package
             }
             Err(e) => {
-                logd!(4, "      Failed to get scenarios from ETCD: {:?}", e);
-                Err(format!("Failed to get scenarios from ETCD: {:?}", e))
+                logd!(4, "      Failed to get scenarios from kvstore: {:?}", e);
+                Err(format!("Failed to get scenarios from kvstore: {:?}", e))
             }
         }
     }
@@ -1230,7 +1230,7 @@ async fn execute_action(command: ActionCommand) {
 //    - Resource-specific validation logic and business rules
 //
 // 2. PERSISTENT STATE STORAGE
-//    - Integration with etcd or database for state persistence
+//    - Integration with kvstore or database for state persistence
 //    - State history tracking and audit trails with StateTransitionHistory
 //    - Recovery from persistent storage on startup
 //    - ResourceState management with generation counters
@@ -1353,6 +1353,16 @@ mod integration_tests {
                 transition_id: "mock-transition-id".to_string(),
             }))
         }
+
+        async fn stop_workload(
+            &self,
+            _request: Request<common::actioncontroller::StopWorkloadRequest>,
+        ) -> std::result::Result<Response<common::actioncontroller::StopWorkloadResponse>, Status> {
+            Ok(Response::new(common::actioncontroller::StopWorkloadResponse {
+                success: true,
+                message: "Mock stop workload success".to_string(),
+            }))
+        }
     }
 
     #[tokio::test]
@@ -1378,7 +1388,7 @@ mod integration_tests {
         // Give server time to start
         tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
 
-        // Create test scenario and package data in etcd
+        // Create test scenario and package data in kvstore
         let scenario_yaml = r#"
 apiVersion: v1
 kind: Scenario
@@ -1408,14 +1418,14 @@ spec:
         mode: host
 "#;
 
-        // Put test data in etcd
-        common::etcd::put("Scenario/test-communication-scenario", scenario_yaml)
+        // Put test data in kvstore
+        common::kvstore::put("Scenario/test-communication-scenario", scenario_yaml)
             .await
-            .expect("Failed to put scenario in etcd");
+            .expect("Failed to put scenario in kvstore");
 
-        common::etcd::put("Package/test-communication-package", package_yaml)
+        common::kvstore::put("Package/test-communication-package", package_yaml)
             .await
-            .expect("Failed to put package in etcd");
+            .expect("Failed to put package in kvstore");
 
         // Create StateManager and test the reconcile communication
         let (tx_container, rx_container) = tokio::sync::mpsc::channel(100);
@@ -1449,13 +1459,13 @@ spec:
         let received_requests = mock_receiver.get_received_requests().await;
 
         // Cleanup
-        common::etcd::delete("Scenario/test-communication-scenario")
+        common::kvstore::delete("Scenario/test-communication-scenario")
             .await
-            .expect("Failed to cleanup scenario from etcd");
+            .expect("Failed to cleanup scenario from kvstore");
 
-        common::etcd::delete("Package/test-communication-package")
+        common::kvstore::delete("Package/test-communication-package")
             .await
-            .expect("Failed to cleanup package from etcd");
+            .expect("Failed to cleanup package from kvstore");
 
         server_handle.abort();
         println!("🎉 Test completed successfully!");
@@ -1850,7 +1860,7 @@ mod unit_tests {
     }
 
     #[tokio::test]
-    async fn test_save_model_and_package_state_to_etcd_success() {
+    async fn test_save_model_and_package_state_to_kvstore_success() {
         let (tx_container, rx_container) = mpsc::channel::<ContainerList>(1);
         let (tx_state_change, rx_state_change) =
             mpsc::channel::<common::statemanager::StateChange>(1);
@@ -1859,64 +1869,64 @@ mod unit_tests {
 
         // Attempt to save a model state (success path)
         let res = manager
-            .save_model_state_to_etcd("test-model", common::statemanager::ModelState::Running)
+            .save_model_state_to_kvstore("test-model", common::statemanager::ModelState::Running)
             .await;
         assert!(
             res.is_ok(),
-            "save_model_state_to_etcd should succeed: {:?}",
+            "save_model_state_to_kvstore should succeed: {:?}",
             res
         );
 
         // Attempt to save a package state (success path)
         let res2 = manager
-            .save_package_state_to_etcd("test-package", common::statemanager::PackageState::Running)
+            .save_package_state_to_kvstore("test-package", common::statemanager::PackageState::Running)
             .await;
         assert!(
             res2.is_ok(),
-            "save_package_state_to_etcd should succeed: {:?}",
+            "save_package_state_to_kvstore should succeed: {:?}",
             res2
         );
     }
 
     #[tokio::test]
-    async fn test_save_model_state_to_etcd_failure_on_long_key() {
+    async fn test_save_model_state_to_kvstore_failure_on_long_key() {
         let (tx_container, rx_container) = mpsc::channel::<ContainerList>(1);
         let (tx_state_change, rx_state_change) =
             mpsc::channel::<common::statemanager::StateChange>(1);
 
         let manager = StateManagerManager::new(rx_container, rx_state_change).await;
 
-        // Create an excessively long model name to force an ETCD key length validation error
+        // Create an excessively long model name to force an kvstore key length validation error
         let long_name = "a".repeat(2000);
 
         let res = manager
-            .save_model_state_to_etcd(&long_name, common::statemanager::ModelState::Running)
+            .save_model_state_to_kvstore(&long_name, common::statemanager::ModelState::Running)
             .await;
 
         assert!(
             res.is_err(),
-            "Expected save_model_state_to_etcd to fail for long key"
+            "Expected save_model_state_to_kvstore to fail for long key"
         );
     }
 
     #[tokio::test]
-    async fn test_save_package_state_to_etcd_failure_on_long_key() {
+    async fn test_save_package_state_to_kvstore_failure_on_long_key() {
         let (tx_container, rx_container) = mpsc::channel::<ContainerList>(1);
         let (tx_state_change, rx_state_change) =
             mpsc::channel::<common::statemanager::StateChange>(1);
 
         let manager = StateManagerManager::new(rx_container, rx_state_change).await;
 
-        // Create an excessively long package name to force an ETCD key length validation error
+        // Create an excessively long package name to force a kvstore key length validation error
         let long_name = "b".repeat(2000);
 
         let res = manager
-            .save_package_state_to_etcd(&long_name, common::statemanager::PackageState::Running)
+            .save_package_state_to_kvstore(&long_name, common::statemanager::PackageState::Running)
             .await;
 
         assert!(
             res.is_err(),
-            "Expected save_package_state_to_etcd to fail for long key"
+            "Expected save_package_state_to_kvstore to fail for long key"
         );
     }
 
@@ -1928,7 +1938,7 @@ mod unit_tests {
 
         let manager = StateManagerManager::new(rx_container, rx_state_change).await;
 
-        // Use a package name unlikely to have a scenario mapping in ETCD
+        // Use a package name unlikely to have a scenario mapping in kvstore
         let res = manager
             .trigger_action_controller_reconcile("no-such-package")
             .await;
@@ -1987,7 +1997,7 @@ mod unit_tests {
     }
 
     #[tokio::test]
-    async fn test_manager_process_state_change_scenario_saves_etcd() {
+    async fn test_manager_process_state_change_scenario_saves_kvstore() {
         let (tx_container, rx_container) = mpsc::channel::<ContainerList>(1);
         let (tx_state_change, rx_state_change) =
             mpsc::channel::<common::statemanager::StateChange>(1);
@@ -1997,21 +2007,21 @@ mod unit_tests {
         // Build a valid Scenario state change Idle -> Waiting
         let sc = StateChange {
             resource_type: common::statemanager::ResourceType::Scenario as i32,
-            resource_name: "etcd-save-scenario".to_string(),
+            resource_name: "kvstore-save-scenario".to_string(),
             current_state: "Idle".to_string(),
             target_state: "Waiting".to_string(),
-            transition_id: "t-etcd".to_string(),
+            transition_id: "t-kvstore".to_string(),
             timestamp_ns: 1,
             source: "unittest".to_string(),
         };
 
         manager.process_state_change(sc.clone()).await;
 
-        // Check etcd key exists for scenario state
+        // Check kvstore key exists for scenario state
         let key = format!("/scenario/{}/state", sc.resource_name);
-        let val = common::etcd::get(&key)
+        let val = common::kvstore::get(&key)
             .await
-            .expect("etcd get should succeed");
+            .expect("kvstore get should succeed");
         assert!(val == "Waiting" || val == "Allowed" || !val.is_empty());
     }
 
@@ -2024,7 +2034,7 @@ mod unit_tests {
         let manager = StateManagerManager::new(rx_container, rx_state_change).await;
 
         // Ensure no packages exist for this test model
-        let _ = common::etcd::delete("Package/no-packages").await;
+        let _ = common::kvstore::delete("Package/no-packages").await;
 
         // Should run without panic even if no packages found
         manager
@@ -2043,12 +2053,12 @@ mod unit_tests {
         // Create a package with a single model that is Dead -> package should become Error
         let pkg_key = "Package/pkg-update";
         let pkg_yaml = r#"{"apiVersion":"v1","kind":"Package","metadata":{"name":"pkg-update"},"spec":{"pattern":[],"models":[{"name":"mup","node":"n","resources":{"volume":"","network":"","realtime":false}}]}}"#;
-        let _ = common::etcd::put(pkg_key, pkg_yaml).await;
+        let _ = common::kvstore::put(pkg_key, pkg_yaml).await;
 
         // Set model state to Dead
-        let _ = common::etcd::put("/model/mup/state", "Dead").await;
+        let _ = common::kvstore::put("/model/mup/state", "Dead").await;
         // Set current package state to running so a change is detected
-        let _ = common::etcd::put("/package/pkg-update/state", "running").await;
+        let _ = common::kvstore::put("/package/pkg-update/state", "running").await;
 
         // Trigger evaluation
         manager.trigger_package_state_evaluation("mup").await;
@@ -2068,7 +2078,7 @@ mod unit_tests {
         let manager = StateManagerManager::new(rx_container, rx_state_change).await;
 
         // Ensure no scenarios present
-        let _ = common::etcd::delete("Scenario/nonexistent").await;
+        let _ = common::kvstore::delete("Scenario/nonexistent").await;
 
         let res = manager.find_scenario_for_package("no-scn").await;
         assert!(res.is_ok());

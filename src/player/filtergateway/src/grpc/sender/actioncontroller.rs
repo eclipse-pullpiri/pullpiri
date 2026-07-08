@@ -133,6 +133,18 @@ mod tests {
                 transition_id: "mock-transition-id".to_string(),
             }))
         }
+
+        async fn stop_workload(
+            &self,
+            request: Request<common::actioncontroller::StopWorkloadRequest>,
+        ) -> std::result::Result<Response<common::actioncontroller::StopWorkloadResponse>, Status> {
+            let req = request.into_inner();
+            println!("Mock server received stop_workload: {}", req.model_name);
+            Ok(Response::new(common::actioncontroller::StopWorkloadResponse {
+                success: true,
+                message: "Mock stop workload successful".to_string(),
+            }))
+        }
     }
 
     async fn spawn_mock_server(

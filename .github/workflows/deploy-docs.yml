@@ -13,11 +13,8 @@ on:
     paths:
       - 'doc/**'
       - '.github/workflows/deploy-docs.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'doc/**'
-      - '.github/workflows/deploy-docs.yml'
+    tags:
+      - v*
   workflow_dispatch:
 
 permissions:

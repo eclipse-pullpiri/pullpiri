@@ -9,23 +9,12 @@ under the `doc` folder for external (official) use.
 
 ## Preparation
 
-Basically, there is Pullpiri-related documents in `doc/docs` folder, but there
+Basically, there is Pullpiri-related documents in `doc` folder, but there
 are many parts that are different from the present as past data, so it is
 only used for reference.
 
 You need to install `Podman` with container runtime.
 You can also use `Docker` (but **NOT** recommend).
-
-It is STRONGLY recommended to install
-[`etcdctl`](https://github.com/etcd-io/etcd/blob/main/etcdctl/README.md)
-for low-level verification.
-[Download link](https://github.com/etcd-io/etcd/releases)
-
-Download appropriate `tar.gz` and untar file, you can see `etcdctl` binary.
-If you put this binary in a PATH like `/usr/bin`, you can use it without installing anything.
-
-*Optional* :
-CentOS stream (or RHEL) + Eclipse Bluechi (Maybe you will need it later)
 
 ## Make container image & Run Pullpiri
 

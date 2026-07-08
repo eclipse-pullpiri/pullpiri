@@ -14,7 +14,6 @@ The following packages (Rust Crate) use the [MIT](/LICENSES/MIT.txt) license.
 - clap
 - config
 - dbus
-- etcd-client
 - futures
 - hyper
 - hyperlocal
@@ -37,7 +36,6 @@ The following packages (Rust Crate) use the [Apache-2.0](/LICENSES/Apache-2.0.tx
 - dbus
 - dust_dds
 - dust_dds_gen
-- etcd-client
 - futures
 - prost
 - reqwest

@@ -13,6 +13,40 @@ trigger Reconcile actions based on application performance metrics.
 This document defines the app performance metrics to be collected by MonitoringServer
 and delivered to PolicyManager.
 
+## Candidate Metric Research
+
+The following candidate metrics were evaluated for applicability as PolicyManager
+triggering signals. Candidates include metrics already present in the codebase and
+additional metrics explored beyond the representative examples listed in the issue.
+
+| Metric | Unit | Scope | Feasibility | Collection Complexity | Notes |
+|--------|------|-------|-------------|----------------------|-------|
+| FPS | frames/s | Per App | High | Low | Already in `StressMonitoringMetric`; App Data Provider pushes it |
+| Latency | ms | Per App | High | Low | Already in `StressMonitoringMetric`; end-to-end response time |
+| Per-core CPU Load | % / core | Per App | High | Low | Already in `StressMonitoringMetric`; pushed per collection event |
+| CPU Usage (Node) | % | Per Node | High | Low | Already in `NodeInfo`; collected by NodeAgent via sysinfo |
+| Memory Usage (Node) | % | Per Node | High | Low | Already in `NodeInfo`; collected by NodeAgent via sysinfo |
+| Network I/O (Node) | bytes/interval | Per Node | High | Low | Already in `NodeInfo`; delta values since last collection |
+| Storage I/O (Node) | bytes/interval | Per Node | High | Low | Already in `NodeInfo`; delta values since last collection |
+| GPU Utilization | % | Per Node / Per App | Medium | Medium | Not yet tracked; requires vendor-specific API (e.g., NVML) or sysfs |
+| Frame Drop Count | count/interval | Per App | High | Low | Derivable from FPS delta; App Data Provider can include in payload |
+| Latency Jitter | ms | Per App | Medium | Low | Derivable from variance of successive latency samples |
+| Throughput | requests/s or msg/s | Per App | Medium | Medium | App must expose metric; no standard interface exists yet |
+| Error / Fault Rate | count/interval | Per App | Medium | Medium | App must expose metric; useful for reliability-based Reconcile |
+| CPU Temperature | °C | Per Node | Low | Medium | Available via sysfs thermal zones; platform-specific and not safety-critical in most cases |
+| Power Consumption | watts | Per Node | Low | High | Platform-specific (RAPL on x86, vendor API on ARM); limited availability in vehicle ECUs |
+| Context Switch Rate | count/s | Per Node / Per App | Low | Medium | Available from `/proc/stat`; limited direct value for Reconcile decisions |
+| Real-time Deadline Violation | count/interval | Per App | Low | High | Requires RT-Linux or RTOS integration; out of scope for current architecture |
+
+### Feasibility Summary
+
+- **High feasibility**: Metric source already exists in the codebase or is trivially
+  derivable; low engineering effort to forward to PolicyManager.
+- **Medium feasibility**: Metric is technically accessible but requires new collection
+  integration or App-side instrumentation.
+- **Low feasibility**: Metric is platform-specific, requires significant infrastructure
+  changes, or has limited direct value for the Reconcile use case.
+
 ## Current State
 
 ### Existing Delivery Path (Node-Level Metrics)
@@ -74,11 +108,20 @@ use case. They are grouped by scope:
 
 ### App-Level Metrics (delivery path to PolicyManager is missing)
 
+These metrics were confirmed based on High feasibility rating from the candidate
+evaluation above.
+
 | Metric | Unit | Collection Interval | Scope | Notes |
 |--------|------|---------------------|-------|-------|
 | FPS | frames/second | Push (on demand from App) | Per App (process) | Useful for rendering/multimedia workloads |
 | Latency | milliseconds | Push (on demand from App) | Per App (process) | End-to-end response time |
 | Per-core CPU Load | % per core | Push (on demand from App) | Per App (process) | Granular CPU usage by core |
+| Frame Drop Count | count/interval | Push (on demand from App) | Per App (process) | Derivable from FPS delta; indicates rendering degradation |
+| Latency Jitter | milliseconds | Push (on demand from App) | Per App (process) | Derivable from variance of successive latency samples |
+
+Metrics with Medium or Low feasibility (GPU Utilization, Throughput, Error Rate,
+Temperature, Power Consumption, Context Switch Rate, Deadline Violation) are deferred
+to future iterations pending further feasibility assessment and platform availability.
 
 ## Gap Analysis
 

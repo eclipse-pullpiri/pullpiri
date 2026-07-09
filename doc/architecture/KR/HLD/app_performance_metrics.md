@@ -13,6 +13,37 @@ Reconcile 동작을 트리거할 수 있어야 합니다.
 본 문서는 MonitoringServer가 수집하여 PolicyManager로 전달해야 하는
 App 성능 메트릭을 정의합니다.
 
+## 후보 메트릭 조사
+
+PolicyManager 트리거에 활용 가능한 메트릭 후보 목록과 실질적 활용 가능성 및
+수집 난이도를 평가합니다. 후보 목록은 코드베이스에 이미 존재하는 메트릭뿐만 아니라
+이슈에서 언급한 대표 예시를 넘어 폭넓게 검토하였습니다.
+
+| 메트릭 | 단위 | 범위 | 활용 가능성 | 수집 난이도 | 비고 |
+|--------|------|------|------------|------------|------|
+| FPS | frames/초 | App 단위 | 높음 | 낮음 | `StressMonitoringMetric`에 이미 포함; App Data Provider가 Push |
+| 지연 시간 (Latency) | ms | App 단위 | 높음 | 낮음 | `StressMonitoringMetric`에 이미 포함; End-to-end 응답 시간 |
+| 코어별 CPU 부하 | % / 코어 | App 단위 | 높음 | 낮음 | `StressMonitoringMetric`에 이미 포함; 수집 이벤트마다 Push |
+| CPU 사용률 (Node) | % | Node 단위 | 높음 | 낮음 | `NodeInfo`에 이미 포함; NodeAgent가 sysinfo로 수집 |
+| 메모리 사용률 (Node) | % | Node 단위 | 높음 | 낮음 | `NodeInfo`에 이미 포함; NodeAgent가 sysinfo로 수집 |
+| 네트워크 I/O (Node) | bytes/주기 | Node 단위 | 높음 | 낮음 | `NodeInfo`에 이미 포함; 마지막 수집 이후 델타 값 |
+| 스토리지 I/O (Node) | bytes/주기 | Node 단위 | 높음 | 낮음 | `NodeInfo`에 이미 포함; 마지막 수집 이후 델타 값 |
+| 프레임 드롭 수 | count/주기 | App 단위 | 높음 | 낮음 | FPS 델타로 도출 가능; App Data Provider가 페이로드에 포함 가능 |
+| 지연 시간 지터 (Jitter) | ms | App 단위 | 보통 | 낮음 | 연속 Latency 샘플의 분산으로 도출 가능 |
+| GPU 사용률 | % | Node/App 단위 | 보통 | 보통 | 미수집; NVML 등 벤더 API 또는 sysfs 필요 |
+| 처리량 (Throughput) | req/s 또는 msg/s | App 단위 | 보통 | 보통 | App에서 노출 필요; 표준 인터페이스 미존재 |
+| 오류/결함 발생률 | count/주기 | App 단위 | 보통 | 보통 | App에서 노출 필요; 신뢰성 기반 Reconcile에 활용 가능 |
+| CPU 온도 | °C | Node 단위 | 낮음 | 보통 | sysfs thermal zone에서 접근 가능; 플랫폼 의존적 |
+| 전력 소비량 | watts | Node 단위 | 낮음 | 높음 | 플랫폼 의존적 (x86 RAPL, ARM 벤더 API); 차량 ECU에서 제한적 |
+| 컨텍스트 스위치 횟수 | count/s | Node/App 단위 | 낮음 | 보통 | `/proc/stat`에서 접근 가능; Reconcile 결정에 직접적 활용 가치 낮음 |
+| 실시간 데드라인 위반 | count/주기 | App 단위 | 낮음 | 높음 | RT-Linux 또는 RTOS 통합 필요; 현 아키텍처 범위 외 |
+
+### 활용 가능성 기준
+
+- **높음**: 코드베이스에 이미 수집 수단이 존재하거나 간단히 도출 가능; PolicyManager 전달에 소요 공수가 낮음
+- **보통**: 기술적으로 접근 가능하나 신규 수집 통합 또는 App 측 계측 작업 필요
+- **낮음**: 플랫폼 의존적이거나, 상당한 인프라 변경이 필요하거나, Reconcile Use Case에서 직접적 활용 가치가 낮음
+
 ## 현황 분석
 
 ### 기존 전달 경로 (Node 수준 메트릭)
@@ -73,11 +104,19 @@ App 성능 기반 Reconcile Use Case에 활용할 메트릭을 다음과 같이 
 
 ### App 수준 메트릭 (PolicyManager 전달 경로 누락)
 
+위 후보 평가에서 활용 가능성이 높음으로 분류된 메트릭을 우선 확정합니다.
+
 | 메트릭 | 단위 | 수집 주기 | 수집 범위 | 비고 |
 |--------|------|-----------|-----------|------|
 | FPS | frames/초 | Push (App에서 요청 시) | App 단위 (프로세스) | 렌더링/멀티미디어 워크로드에 활용 |
 | 지연 시간 (Latency) | 밀리초 (ms) | Push (App에서 요청 시) | App 단위 (프로세스) | End-to-end 응답 시간 |
 | 코어별 CPU 부하 | % / 코어 | Push (App에서 요청 시) | App 단위 (프로세스) | 코어 단위 CPU 사용량 세부 정보 |
+| 프레임 드롭 수 | count/주기 | Push (App에서 요청 시) | App 단위 (프로세스) | FPS 델타로 도출 가능; 렌더링 품질 저하 감지 |
+| 지연 시간 지터 (Jitter) | 밀리초 (ms) | Push (App에서 요청 시) | App 단위 (프로세스) | 연속 Latency 샘플의 분산으로 도출 가능 |
+
+활용 가능성이 보통 또는 낮음으로 분류된 메트릭(GPU 사용률, 처리량, 오류 발생률,
+온도, 전력 소비량, 컨텍스트 스위치 횟수, 데드라인 위반)은 추가 가능성 검토 및
+플랫폼 가용성 확인 후 차후 반복 작업에서 검토합니다.
 
 ## 갭 분석
 

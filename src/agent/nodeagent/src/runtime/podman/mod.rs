@@ -8,39 +8,31 @@ pub mod container;
 use common::nodeagent::fromactioncontroller::WorkloadCommand;
 use hyper::{Body, Client, Method, Request, Uri};
 use hyperlocal::{UnixConnector, Uri as UnixUri};
+use once_cell::sync::Lazy;
+
+// Modify this if you want to run without root authorization
+// or if you have a different socket path.
+// For example, if you run Podman as root, you might use:
+// "/var/run/podman/podman.sock"
+// Or if you run it as a user, you might use:
+// "/run/user/1000/podman/podman.sock"
+const PODMAN_SOCKET: &str = "/var/run/podman/podman.sock";
+
+// A single `hyper::Client` is cheap to clone and manages its own connection
+// pool internally, so it is created once and reused for every request
+// instead of being rebuilt on each call to `get`/`post`/`delete`.
+static PODMAN_CLIENT: Lazy<Client<UnixConnector, Body>> =
+    Lazy::new(|| Client::builder().build::<_, Body>(UnixConnector));
 
 pub async fn get(path: &str) -> Result<hyper::body::Bytes, hyper::Error> {
-    let connector = UnixConnector;
-    let client = Client::builder().build::<_, Body>(connector);
+    let uri: Uri = UnixUri::new(PODMAN_SOCKET, path).into();
 
-    // Modify this if you want to run without root authorization
-    // or if you have a different socket path.
-    // For example, if you run Podman as root, you might use:
-    // let socket = "/var/run/podman/podman.sock";
-    // Or if you run it as a user, you might use:
-    // let socket = "/run/user/1000/podman/podman.sock
-    let socket = "/var/run/podman/podman.sock";
-    // let socket = "/var/run/podman/podman.sock";
-    let uri: Uri = UnixUri::new(socket, path).into();
-
-    let res = client.get(uri).await?;
+    let res = PODMAN_CLIENT.get(uri).await?;
     hyper::body::to_bytes(res).await
 }
 
 pub async fn post(path: &str, body: Body) -> Result<hyper::body::Bytes, hyper::Error> {
-    let connector = UnixConnector;
-    let client = Client::builder().build::<_, Body>(connector);
-
-    // Modify this if you want to run without root authorization
-    // or if you have a different socket path.
-    // For example, if you run Podman as root, you might use:
-    // let socket = "/var/run/podman/podman.sock";
-    // Or if you run it as a user, you might use:
-    // let socket = "/run/user/1000/podman/podman.sock
-    let socket = "/var/run/podman/podman.sock";
-    // let socket = "/var/run/podman/podman.sock";
-    // let path = "/v4.0.0/libpod/containers/{name}/start";
-    let uri: Uri = UnixUri::new(socket, path).into();
+    let uri: Uri = UnixUri::new(PODMAN_SOCKET, path).into();
 
     let req = Request::builder()
         .method(Method::POST)
@@ -48,16 +40,12 @@ pub async fn post(path: &str, body: Body) -> Result<hyper::body::Bytes, hyper::E
         .body(body)
         .unwrap();
 
-    let res = client.request(req).await?;
+    let res = PODMAN_CLIENT.request(req).await?;
     hyper::body::to_bytes(res).await
 }
 
 pub async fn delete(path: &str) -> Result<hyper::body::Bytes, hyper::Error> {
-    let connector = UnixConnector;
-    let client = Client::builder().build::<_, Body>(connector);
-
-    let socket = "/var/run/podman/podman.sock";
-    let uri: Uri = UnixUri::new(socket, path).into();
+    let uri: Uri = UnixUri::new(PODMAN_SOCKET, path).into();
 
     let req = Request::builder()
         .method(Method::DELETE)
@@ -65,7 +53,7 @@ pub async fn delete(path: &str) -> Result<hyper::body::Bytes, hyper::Error> {
         .body(Body::empty())
         .unwrap();
 
-    let res = client.request(req).await?;
+    let res = PODMAN_CLIENT.request(req).await?;
     hyper::body::to_bytes(res).await
 }
 

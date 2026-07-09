@@ -75,7 +75,7 @@
 
 **예시**
 - `feat/123-filter-gateway-impl`
-- `fix/145-etcd-connection-timeout`
+- `fix/145-kvstore-connection-timeout`
 - `docs/167-contribution-guide`
 
 ### 3.2 모델 브랜치
@@ -178,7 +178,7 @@ main ─────────────────────────
   ├──► feat/123-filter-gateway ────────┘
   │       └── 신규 기능 개발
   │
-  └──► fix/145-etcd-timeout ──────────► (PR 머지 후 삭제)
+  └──► fix/145-kvstore-timeout ──────────► (PR 머지 후 삭제)
           └── 버그 수정
 ```
 

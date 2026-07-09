@@ -241,8 +241,8 @@ for gRPC
 for REST
 ~47099
 
-for etcd (default)
-2379, 2380
+for kvstore
+47007
 ```
 
 ## Other document

@@ -36,7 +36,7 @@ This document includes:
    - Local operation in offline state and synchronization upon reconnection
 
 3. **Centralized State Management**
-   - Stores container monitoring data in etcd
+   - Stores container monitoring data in kvstore
    - Efficiently delivers state changes to the StateManager
    - Concentrates API Server, FilterGateway, ActionController, StateManager, and MonitoringServer on the master node
 
@@ -308,8 +308,8 @@ Pullpiri’s clustering architecture is designed for small clusters optimized fo
    - Lightweight runtime for embedded devices
    - OCI standard compatibility
 
-3. **etcd-based State Storage**
-   - Store container monitoring data in etcd
+3. **DB-based State Storage**
+   - Store container monitoring data in kvstore
    - Distributed key-value store for consistency
    - Lightweight config for embedded
    - Data retention policy for limited storage
@@ -345,7 +345,6 @@ Pullpiri’s clustering architecture is designed for small clusters optimized fo
 ### 5.1 Initial Cluster Setup
 
 - Master node setup (API Server, etc.)  
-- etcd initialization  
 - Config file creation  
 
 ### 5.2 Cluster Expansion
@@ -387,5 +386,5 @@ l------|------------|
 | NodeAgent | Agent on each node for monitoring and communication |
 | Embedded Environment | Devices with limited CPU, memory, storage |
 | Podman | Daemonless container tool |
-| etcd | Distributed key-value store |
+| kvstore | Distributed key-value store |
 

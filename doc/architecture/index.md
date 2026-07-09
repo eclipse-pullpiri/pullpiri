@@ -89,7 +89,7 @@ management system optimized for embedded environments.
 
     ---
 
-    - Manage state information based on etcd
+    - Manage state information based on kvstore
     - Synchronize state information between nodes
     - Detect and notify state changes
     - Support offline mode and resynchronization upon reconnection
@@ -128,10 +128,10 @@ lightweight design optimized for embedded environments.
 
 | Component | Role | Interaction |
 |---|---|---|
-| **API Server** | Cluster management, node registration, policy distribution | NodeAgent, StateManager, etcd |
+| **API Server** | Cluster management, node registration, policy distribution | NodeAgent, StateManager, kvstore |
 | **NodeAgent** | Node status monitoring, communication with master node | API Server, StateManager, MonitoringServer |
-| **StateManager** | Cluster state management and synchronization | API Server, NodeAgent, etcd |
-| **etcd** | Cluster state information storage | All components |
+| **StateManager** | Cluster state management and synchronization | API Server, NodeAgent, kvstore |
+| **kvstore** | Cluster state information storage | All components |
 | **Installation Script** | Deploy and configure NodeAgent | Node system |
 | **System Check Script** | Verify node readiness | Node system |
 
@@ -141,7 +141,7 @@ lightweight design optimized for embedded environments.
 |---|---|---|
 | **Core Service** | https://www.rust-lang.org/ | High-performance, memory-safe core service implementation language |
 | **Communication Protocol** | https://grpc.io/ | Efficient protocol for master-sub node communication |
-| **State Storage** | https://etcd.io/ | Distributed key-value store for cluster state management |
+| **State Storage** | RocksDB | Distributed key-value store for cluster state management |
 | **Container Runtime** | https://podman.io/ | Daemonless lightweight container management tool |
 | **Service Management** | https://systemd.io/ | Node service management and auto-start configuration |
 | **Deployment Tool** | [Bash scwww.gnu.org/software/bash/ | Automation tool for node installation and configuration |

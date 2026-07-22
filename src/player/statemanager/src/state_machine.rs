@@ -1767,7 +1767,10 @@ mod tests {
 
         let result = state_machine.process_model_state_update("model-x", &[&container]);
         assert!(result.is_success());
-        assert_eq!(result.actions_to_execute, vec!["update_kvstore".to_string()]);
+        assert_eq!(
+            result.actions_to_execute,
+            vec!["update_kvstore".to_string()]
+        );
 
         // Resource should now exist with Model type
         let rs = state_machine.get_resource_state("model-x", ResourceType::Model);

@@ -9,6 +9,13 @@ service SchedInfoService {
   rpc AddSchedInfo (SchedInfo) returns (Response) {}
 }
 
+// RecoveryService in Timpani-O
+service RecoveryService {
+  // Enforce a recovery policy
+  // From Pullpiri to Timpani-O
+  rpc EnforceRecoveryPolicy (RecoveryCommand) returns (Response) {}
+}
+
 // FaultService in Pullpiri
 service FaultService {
   // Notify a fault
@@ -29,6 +36,15 @@ enum SchedPolicy {
   FIFO = 1;
   // SCHED_RR
   RR = 2;
+}
+
+// Temporal class for workload classification (DDR-001/DDR-007)
+// Determines the scheduling mechanism:
+//   TEMPORAL_PERIODIC → L1 → Time-Triggered (TT)
+//   TEMPORAL_SPORADIC → L2 → Constant Bandwidth Server (CBS)
+enum TemporalClass {
+  TEMPORAL_PERIODIC = 0;
+  TEMPORAL_SPORADIC = 1;
 }
 
 message TaskInfo {
@@ -54,9 +70,25 @@ message TaskInfo {
   int32 max_dmiss = 10;
 }
 
+enum RecoveryPolicy {
+  RECOVERY_UNKNOWN = 0;
+  RECOVERY_STOP = 1;
+  RECOVERY_RESTART = 2;
+  RECOVERY_TERMINATE = 3;
+}
+
+message RecoveryCommand {
+  string workload_id = 1;
+  RecoveryPolicy recovery_policy = 2;
+}
+
 message SchedInfo {
   string workload_id = 1;
   repeated TaskInfo tasks = 2;
+  // Workload temporal class — classifies the entire workload (DDR-007 §3.2)
+  // All tasks in a SchedInfo share the same scheduling level.
+  // Default (0 = TEMPORAL_PERIODIC) → L1 TT for backward compatibility.
+  TemporalClass temporal_class = 3;
 }
 
 enum FaultType {
@@ -71,4 +103,10 @@ message FaultInfo {
   string node_id = 2;
   string task_name = 3;
   FaultType type = 4;
+  // DEBUG/VERIFICATION ONLY (0612 meeting agreement).
+  // This field carries the cumulative deadline miss count for the task.
+  // It is intended solely for verifying that max_dmiss values propagate
+  // correctly through the pipeline (Pullpiri → O → N → O → Pullpiri).
+  // Do NOT use this field for policy decision-making.
+  uint32 cumulative_dmiss = 5;
 }

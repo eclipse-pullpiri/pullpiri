@@ -508,7 +508,10 @@ mod tests {
         let other_error = MonitoringKVStoreError::Other("Generic error".to_string());
 
         // Test Display implementation
-        assert_eq!(kvstore_error.to_string(), "KVStore operation error: KVStore failed");
+        assert_eq!(
+            kvstore_error.to_string(),
+            "KVStore operation error: KVStore failed"
+        );
         assert!(serialize_error.to_string().contains("Serialization error"));
         assert_eq!(not_found_error.to_string(), "Data not found");
         assert_eq!(other_error.to_string(), "Generic error");

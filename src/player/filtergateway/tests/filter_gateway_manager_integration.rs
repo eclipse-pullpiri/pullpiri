@@ -212,7 +212,9 @@ async fn test_run_manager_with_withdraw_action() {
     common::kvstore::delete("Network/helloworld_dds1")
         .await
         .unwrap();
-    common::kvstore::delete("Node/helloworld_dds1").await.unwrap();
+    common::kvstore::delete("Node/helloworld_dds1")
+        .await
+        .unwrap();
     common::kvstore::delete("Pod/helloworld_dds-core1")
         .await
         .unwrap();
@@ -320,7 +322,9 @@ async fn test_run_manager_with_withdraw_action_none() {
     common::kvstore::delete("Network/helloworld_dds2")
         .await
         .unwrap();
-    common::kvstore::delete("Node/helloworld_dds2").await.unwrap();
+    common::kvstore::delete("Node/helloworld_dds2")
+        .await
+        .unwrap();
     common::kvstore::delete("Pod/helloworld_dds-core2")
         .await
         .unwrap();

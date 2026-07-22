@@ -15,6 +15,14 @@ impl Schedule {
     pub fn get_spec(&self) -> &Option<Vec<ScheduleSpec>> {
         &self.spec
     }
+
+    /// Get the temporal class of this schedule
+    /// Returns PERIODIC as default if not specified
+    pub fn get_temporal_class(&self) -> TemporalClass {
+        self.temporal_class
+            .clone()
+            .unwrap_or(TemporalClass::PERIODIC)
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -39,4 +47,15 @@ pub enum SchedPolicy {
     FIFO = 1,
     // SCHED_RR
     RR = 2,
+}
+
+/// Temporal class for workload classification (DDR-001/DDR-007)
+/// Determines the scheduling mechanism:
+/// - PERIODIC → L1 → Time-Triggered (TT)
+/// - SPORADIC → L2 → Constant Bandwidth Server (CBS)
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Default)]
+pub enum TemporalClass {
+    #[default]
+    PERIODIC = 0,
+    SPORADIC = 1,
 }

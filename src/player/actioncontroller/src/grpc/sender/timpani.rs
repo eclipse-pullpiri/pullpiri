@@ -153,6 +153,7 @@ mod tests {
                 node_id: String::from("HPC"),
                 max_dmiss: 3,
             }],
+            temporal_class: 0,
         };
 
         assert!(validate_sched_info(&sched_info));
@@ -174,6 +175,7 @@ mod tests {
                 node_id: String::from("HPC"),
                 max_dmiss: 3,
             }],
+            temporal_class: 0,
         };
 
         assert!(validate_sched_info(&sched_info));
@@ -184,6 +186,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("valid_id"),
             tasks: vec![],
+            temporal_class: 0,
         };
 
         assert!(validate_sched_info(&sched_info));
@@ -205,6 +208,7 @@ mod tests {
                 node_id: String::from("HPC"),
                 max_dmiss: 3,
             }],
+            temporal_class: 0,
         };
 
         assert!(!validate_sched_info(&sched_info));
@@ -240,6 +244,7 @@ mod tests {
                     max_dmiss: 5,
                 },
             ],
+            temporal_class: 0,
         };
 
         assert!(!validate_sched_info(&sched_info));
@@ -275,6 +280,7 @@ mod tests {
                     max_dmiss: 5,
                 },
             ],
+            temporal_class: 0,
         };
 
         assert!(validate_sched_info(&sched_info));
@@ -382,6 +388,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("test_workload"),
             tasks: vec![task],
+            temporal_class: 0,
         };
 
         assert_eq!(sched_info.workload_id, "test_workload");
@@ -420,6 +427,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("multi_workload"),
             tasks,
+            temporal_class: 0,
         };
 
         assert_eq!(sched_info.tasks.len(), 2);
@@ -430,6 +438,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("empty_workload"),
             tasks: vec![],
+            temporal_class: 0,
         };
 
         assert_eq!(sched_info.workload_id, "empty_workload");
@@ -478,6 +487,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("realtime_system"),
             tasks: vec![high_priority_task, medium_priority_task],
+            temporal_class: 0,
         };
 
         assert_eq!(sched_info.tasks.len(), 2);
@@ -515,6 +525,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("multi_node_workload"),
             tasks: vec![hpc_task, zone_task],
+            temporal_class: 0,
         };
 
         assert_eq!(sched_info.tasks.len(), 2);
@@ -539,6 +550,7 @@ mod tests {
                 node_id: String::from("HPC"),
                 max_dmiss: 3,
             }],
+            temporal_class: 0,
         }
     }
 

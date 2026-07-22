@@ -340,7 +340,10 @@ impl DataStore {
                 Ok(())
             }
             Err(e) => {
-                eprintln!("[KVSTORE] Warning: Failed to load containers from kvstore: {}", e);
+                eprintln!(
+                    "[KVSTORE] Warning: Failed to load containers from kvstore: {}",
+                    e
+                );
                 Ok(()) // Don't fail initialization
             }
         }

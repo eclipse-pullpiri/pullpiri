@@ -6,7 +6,9 @@
 //! gRPC sender for PolicyManager to communicate with StateManager and ActionController
 
 use common::actioncontroller::action_controller_connection_client::ActionControllerConnectionClient;
-use common::actioncontroller::{connect_server as connect_actioncontroller, StopWorkloadRequest, StopWorkloadResponse};
+use common::actioncontroller::{
+    connect_server as connect_actioncontroller, StopWorkloadRequest, StopWorkloadResponse,
+};
 use common::statemanager::state_manager_connection_client::StateManagerConnectionClient;
 use common::statemanager::{connect_server, OffloadingRequest, OffloadingResponse};
 use tonic::{Request, Response, Status};

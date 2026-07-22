@@ -53,13 +53,17 @@ impl CoreManager {
         info!("Initializing Settings Service core manager");
 
         // Initialize kvstore clients for each component
-        let storage_config = KVStoreClient::new(kvstore_endpoints.clone()).await.map_err(|e| {
-            SettingsError::System(format!("Failed to create config storage: {}", e))
-        })?;
+        let storage_config = KVStoreClient::new(kvstore_endpoints.clone())
+            .await
+            .map_err(|e| {
+                SettingsError::System(format!("Failed to create config storage: {}", e))
+            })?;
 
-        let storage_history = KVStoreClient::new(kvstore_endpoints.clone()).await.map_err(|e| {
-            SettingsError::System(format!("Failed to create history storage: {}", e))
-        })?;
+        let storage_history = KVStoreClient::new(kvstore_endpoints.clone())
+            .await
+            .map_err(|e| {
+                SettingsError::System(format!("Failed to create history storage: {}", e))
+            })?;
 
         let storage_monitoring = KVStoreClient::new(kvstore_endpoints).await.map_err(|e| {
             SettingsError::System(format!("Failed to create monitoring storage: {}", e))

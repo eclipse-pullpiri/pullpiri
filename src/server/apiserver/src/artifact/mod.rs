@@ -210,7 +210,8 @@ pub async fn withdraw(body: &str) -> common::Result<String> {
 async fn load_model_with_resources(
     model_info: &common::spec::artifact::package::ModelInfo,
 ) -> common::Result<Model> {
-    let model_str = common::kvstore::get(&format!("{}/{}", KIND_MODEL, model_info.get_name())).await?;
+    let model_str =
+        common::kvstore::get(&format!("{}/{}", KIND_MODEL, model_info.get_name())).await?;
     let mut model: Model = serde_yaml::from_str(&model_str)?;
 
     // Load volume if specified
@@ -228,7 +229,8 @@ async fn load_model_with_resources(
 
     // Load network if specified
     if let Some(network_name) = model_info.get_resources().get_network() {
-        let network_str = common::kvstore::get(&format!("{}/{}", KIND_NETWORK, network_name)).await?;
+        let network_str =
+            common::kvstore::get(&format!("{}/{}", KIND_NETWORK, network_name)).await?;
         let _network: Network = serde_yaml::from_str(&network_str)?;
         // TODO: Apply network configuration
     }

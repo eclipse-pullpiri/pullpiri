@@ -286,8 +286,12 @@ spec:
     // Test passes if no panic occurred and error path was exercised
     assert!(true);
     // Cleanup after test
-    common::kvstore::delete("Scenario/antipinch-en").await.unwrap();
-    common::kvstore::delete("Package/antipinch-en").await.unwrap();
+    common::kvstore::delete("Scenario/antipinch-en")
+        .await
+        .unwrap();
+    common::kvstore::delete("Package/antipinch-en")
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -356,7 +360,9 @@ spec:
     common::kvstore::delete("Scenario/antipinch-en1")
         .await
         .unwrap();
-    common::kvstore::delete("Package/antipinch-en1").await.unwrap();
+    common::kvstore::delete("Package/antipinch-en1")
+        .await
+        .unwrap();
 }
 
 #[tokio::test]

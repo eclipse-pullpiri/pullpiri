@@ -94,7 +94,9 @@ spec:
     common::kvstore::delete("Network/antipinch-enable")
         .await
         .unwrap();
-    common::kvstore::delete("Node/antipinch-enable").await.unwrap();
+    common::kvstore::delete("Node/antipinch-enable")
+        .await
+        .unwrap();
 }
 
 /// Test Case: Empty Scenario Name

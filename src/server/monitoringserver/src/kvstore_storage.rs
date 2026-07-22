@@ -348,8 +348,8 @@ pub async fn delete_container_info(container_id: &str) -> common::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kvstore_storage;
     use crate::data_structures::{BoardInfo, SocInfo};
+    use crate::kvstore_storage;
     use common::monitoringserver::{ContainerInfo, NodeInfo};
     use std::time::SystemTime;
 

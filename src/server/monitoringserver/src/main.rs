@@ -9,8 +9,8 @@
 
 use common::monitoringserver::{ContainerList, NodeInfo};
 pub mod data_structures;
-pub mod kvstore_storage;
 pub mod grpc;
+pub mod kvstore_storage;
 pub mod manager;
 
 use common::logd;

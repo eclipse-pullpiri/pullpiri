@@ -1357,11 +1357,14 @@ mod integration_tests {
         async fn stop_workload(
             &self,
             _request: Request<common::actioncontroller::StopWorkloadRequest>,
-        ) -> std::result::Result<Response<common::actioncontroller::StopWorkloadResponse>, Status> {
-            Ok(Response::new(common::actioncontroller::StopWorkloadResponse {
-                success: true,
-                message: "Mock stop workload success".to_string(),
-            }))
+        ) -> std::result::Result<Response<common::actioncontroller::StopWorkloadResponse>, Status>
+        {
+            Ok(Response::new(
+                common::actioncontroller::StopWorkloadResponse {
+                    success: true,
+                    message: "Mock stop workload success".to_string(),
+                },
+            ))
         }
     }
 
@@ -1879,7 +1882,10 @@ mod unit_tests {
 
         // Attempt to save a package state (success path)
         let res2 = manager
-            .save_package_state_to_kvstore("test-package", common::statemanager::PackageState::Running)
+            .save_package_state_to_kvstore(
+                "test-package",
+                common::statemanager::PackageState::Running,
+            )
             .await;
         assert!(
             res2.is_ok(),

@@ -10,7 +10,9 @@ use common::logd;
 use common::{
     actioncontroller::PodStatus as Status,
     spec::artifact::{
-        package::ModelInfo, schedule::SchedPolicy, Artifact, Package, Scenario, Schedule,
+        package::ModelInfo,
+        schedule::{SchedPolicy, TemporalClass},
+        Artifact, Package, Scenario, Schedule,
     },
     statemanager::{ResourceType, StateChange},
     Result,
@@ -198,9 +200,10 @@ impl ActionControllerManager {
             )
         })?;
 
-        let network_str = common::kvstore::get(&format!("{}/{}", KVSTORE_NETWORK_PREFIX, scenario_name))
-            .await
-            .ok();
+        let network_str =
+            common::kvstore::get(&format!("{}/{}", KVSTORE_NETWORK_PREFIX, scenario_name))
+                .await
+                .ok();
         let node_str = common::kvstore::get(&format!("{}/{}", KVSTORE_NODE_PREFIX, scenario_name))
             .await
             .ok();
@@ -343,7 +346,8 @@ impl ActionControllerManager {
     /// Handle realtime scheduling for a model
     async fn handle_realtime_sched(&self, sched: &str) -> Result<()> {
         use common::external::timpani::{SchedInfo, TaskInfo};
-        let sched_str = common::kvstore::get(&format!("{}/{}", KVSTORE_SCHED_PREFIX, sched)).await?;
+        let sched_str =
+            common::kvstore::get(&format!("{}/{}", KVSTORE_SCHED_PREFIX, sched)).await?;
         let schedule: Schedule = serde_yaml::from_str(&sched_str)?;
         let spec_vec = schedule
             .get_spec()
@@ -373,6 +377,10 @@ impl ActionControllerManager {
         let sched_info = SchedInfo {
             workload_id: schedule.get_name(),
             tasks,
+            temporal_class: match schedule.get_temporal_class() {
+                TemporalClass::PERIODIC => 0,
+                TemporalClass::SPORADIC => 1,
+            },
         };
         crate::grpc::sender::timpani::add_sched_info(sched_info)
             .await
@@ -968,7 +976,9 @@ mod tests {
 
         // Cleanup
         common::kvstore::delete("nodes/TestInvalid").await.ok();
-        common::kvstore::delete("cluster/nodes/TestInvalid").await.ok();
+        common::kvstore::delete("cluster/nodes/TestInvalid")
+            .await
+            .ok();
     }
 
     #[tokio::test]
@@ -1038,7 +1048,9 @@ mod tests {
             .contains("Failed to parse scenario"));
 
         // Cleanup
-        common::kvstore::delete("Scenario/invalid-yaml").await.unwrap();
+        common::kvstore::delete("Scenario/invalid-yaml")
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -1108,7 +1120,9 @@ spec:
         common::kvstore::delete("Scenario/test-scenario")
             .await
             .unwrap();
-        common::kvstore::delete("Package/invalid-pkg").await.unwrap();
+        common::kvstore::delete("Package/invalid-pkg")
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -1162,7 +1176,9 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::kvstore::delete("Scenario/launch-test").await.unwrap();
+        common::kvstore::delete("Scenario/launch-test")
+            .await
+            .unwrap();
         common::kvstore::delete("Package/launch-pkg").await.unwrap();
     }
 
@@ -1214,7 +1230,9 @@ spec:
         common::kvstore::delete("Scenario/terminate-test")
             .await
             .unwrap();
-        common::kvstore::delete("Package/terminate-pkg").await.unwrap();
+        common::kvstore::delete("Package/terminate-pkg")
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -1263,7 +1281,9 @@ spec:
         assert!(result.is_ok() || result.is_err());
 
         // Cleanup
-        common::kvstore::delete("Scenario/update-test").await.unwrap();
+        common::kvstore::delete("Scenario/update-test")
+            .await
+            .unwrap();
         common::kvstore::delete("Package/update-pkg").await.unwrap();
     }
 
@@ -1315,7 +1335,9 @@ spec:
         common::kvstore::delete("Scenario/rollback-test")
             .await
             .unwrap();
-        common::kvstore::delete("Package/rollback-pkg").await.unwrap();
+        common::kvstore::delete("Package/rollback-pkg")
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -1419,7 +1441,9 @@ spec:
         common::kvstore::delete("Scenario/nodeagent-test")
             .await
             .unwrap();
-        common::kvstore::delete("Package/nodeagent-pkg").await.unwrap();
+        common::kvstore::delete("Package/nodeagent-pkg")
+            .await
+            .unwrap();
     }
 
     // ==================== reconcile_do Tests ====================

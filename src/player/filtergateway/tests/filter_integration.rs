@@ -84,7 +84,9 @@ spec:
         volume:
         network:
 "#;
-    common::kvstore::put("Scenario/test_eq", yaml).await.unwrap();
+    common::kvstore::put("Scenario/test_eq", yaml)
+        .await
+        .unwrap();
     common::kvstore::put("Package/test_eq", VALID_PACKAGE_YAML)
         .await
         .unwrap();
@@ -132,7 +134,9 @@ spec:
         volume:
         network:
 "#;
-    common::kvstore::put("Scenario/test_eq1", yaml).await.unwrap();
+    common::kvstore::put("Scenario/test_eq1", yaml)
+        .await
+        .unwrap();
     common::kvstore::put("Package/test_eq1", VALID_PACKAGE_YAML)
         .await
         .unwrap();
@@ -180,7 +184,9 @@ spec:
         volume:
         network:
 "#;
-    common::kvstore::put("Scenario/test_lt", yaml).await.unwrap();
+    common::kvstore::put("Scenario/test_lt", yaml)
+        .await
+        .unwrap();
     common::kvstore::put("Package/test_lt", VALID_PACKAGE_YAML)
         .await
         .unwrap();
@@ -307,7 +313,9 @@ spec:
         volume:
         network:
 "#;
-    common::kvstore::put("Scenario/test_le", yaml).await.unwrap();
+    common::kvstore::put("Scenario/test_le", yaml)
+        .await
+        .unwrap();
     common::kvstore::put("Package/test_le", VALID_PACKAGE_YAML)
         .await
         .unwrap();
@@ -355,7 +363,9 @@ spec:
         volume:
         network:
 "#;
-    common::kvstore::put("Scenario/test_ge", yaml).await.unwrap();
+    common::kvstore::put("Scenario/test_ge", yaml)
+        .await
+        .unwrap();
     common::kvstore::put("Package/test_ge", VALID_PACKAGE_YAML)
         .await
         .unwrap();
@@ -403,7 +413,9 @@ spec:
         volume:
         network:
 "#;
-    common::kvstore::put("Scenario/test_gt", yaml).await.unwrap();
+    common::kvstore::put("Scenario/test_gt", yaml)
+        .await
+        .unwrap();
     common::kvstore::put("Package/test_gt", VALID_PACKAGE_YAML)
         .await
         .unwrap();
@@ -467,8 +479,12 @@ spec:
 
     // Should log error but still return Ok from process_data
     assert!(filter.process_data(&dds).await.is_ok());
-    common::kvstore::delete("Scenario/invalid_expr").await.unwrap();
-    common::kvstore::delete("Package/invalid_expr").await.unwrap();
+    common::kvstore::delete("Scenario/invalid_expr")
+        .await
+        .unwrap();
+    common::kvstore::delete("Package/invalid_expr")
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -558,7 +574,9 @@ spec:
         volume:
         network:
 "#;
-    common::kvstore::put("Scenario/test_gt", yaml).await.unwrap();
+    common::kvstore::put("Scenario/test_gt", yaml)
+        .await
+        .unwrap();
     common::kvstore::put("Package/test_gt", VALID_PACKAGE_YAML)
         .await
         .unwrap();
@@ -1094,7 +1112,9 @@ spec:
         volume:
         network:
 "#;
-    common::kvstore::put("Scenario/inactive", yaml).await.unwrap();
+    common::kvstore::put("Scenario/inactive", yaml)
+        .await
+        .unwrap();
     common::kvstore::put("Package/inactive", VALID_PACKAGE_YAML)
         .await
         .unwrap();
@@ -1165,8 +1185,12 @@ spec:
     assert!(filter.is_active());
 
     assert!(filter.process_data(&dds).await.is_ok());
-    common::kvstore::delete("Scenario/pause_resume").await.unwrap();
-    common::kvstore::delete("Package/pause_resume").await.unwrap();
+    common::kvstore::delete("Scenario/pause_resume")
+        .await
+        .unwrap();
+    common::kvstore::delete("Package/pause_resume")
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -1217,6 +1241,8 @@ spec:
     let mut filter = Filter::new("helloworld".into(), scenario, true, sender);
 
     assert!(filter.process_data(&dds).await.is_ok());
-    common::kvstore::delete("Scenario/helloworld").await.unwrap();
+    common::kvstore::delete("Scenario/helloworld")
+        .await
+        .unwrap();
     common::kvstore::delete("Package/helloworld").await.unwrap();
 }

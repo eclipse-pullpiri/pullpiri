@@ -96,7 +96,10 @@ mod main_tests {
             "kvstore1:2379,kvstore2:2379,kvstore3:2379",
         ]);
 
-        assert_eq!(args.kvstore_endpoints, "kvstore1:2379,kvstore2:2379,kvstore3:2379");
+        assert_eq!(
+            args.kvstore_endpoints,
+            "kvstore1:2379,kvstore2:2379,kvstore3:2379"
+        );
         assert_eq!(args.config, PathBuf::from("/etc/pullpiri/settings.yaml")); // Should remain default
     }
 

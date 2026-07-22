@@ -279,7 +279,9 @@ mod tests {
                 assert!(!ip.is_empty());
                 println!("Found IP via kvstore: {}", ip);
             }
-            None => println!("No nodes found via kvstore (expected if kvstore unavailable or empty)"),
+            None => {
+                println!("No nodes found via kvstore (expected if kvstore unavailable or empty)")
+            }
         }
     }
 

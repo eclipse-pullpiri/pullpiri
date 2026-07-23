@@ -5,7 +5,9 @@
 
 //! Running gRPC message sending to timpani
 use common::external::timpani::{
-    connect_timpani_server, sched_info_service_client::SchedInfoServiceClient, Response, SchedInfo,
+    connect_timpani_server, recovery_service_client::RecoveryServiceClient,
+    sched_info_service_client::SchedInfoServiceClient, RecoveryCommand, RecoveryPolicy, Response,
+    SchedInfo,
 };
 use common::logd;
 
@@ -37,6 +39,65 @@ pub async fn add_sched_info(sched_info: SchedInfo) -> Result<(), String> {
         Err(e) => {
             logd!(5, "[add_sched_info] ERROR={:?}", e);
             Err(format!("Timpani add_sched_info failed: {}", e))
+        }
+    }
+}
+
+/// Send recovery policy enforcement notification to Timpani server
+///
+/// Notifies Timpani that a workload has been stopped/recovered due to fault handling.
+/// This allows Timpani to perform necessary cleanup or post-processing.
+///
+/// # Arguments
+/// * `workload_id` - The workload ID (schedule name) that was recovered
+/// * `policy` - The recovery policy that was applied (STOP, RESTART, TERMINATE)
+///
+/// # Returns
+/// * `Ok(())` if successful
+/// * `Err(String)` if connection or sending fails
+pub async fn enforce_recovery_policy(
+    workload_id: &str,
+    policy: RecoveryPolicy,
+) -> Result<(), String> {
+    logd!(
+        1,
+        "[Timpani] Sending recovery policy: workload='{}', policy={:?}",
+        workload_id,
+        policy
+    );
+
+    let mut client = RecoveryServiceClient::connect(connect_timpani_server())
+        .await
+        .map_err(|e| format!("Failed to connect to Timpani RecoveryService: {}", e))?;
+
+    let command = RecoveryCommand {
+        workload_id: workload_id.to_string(),
+        recovery_policy: policy as i32,
+    };
+
+    let response: Result<Response, tonic::Status> = client
+        .enforce_recovery_policy(command)
+        .await
+        .map(|r| r.into_inner());
+
+    match response {
+        Ok(res) => {
+            logd!(
+                3,
+                "[enforce_recovery_policy] RESPONSE={:?}, workload='{}'",
+                res,
+                workload_id
+            );
+            Ok(())
+        }
+        Err(e) => {
+            logd!(
+                5,
+                "[enforce_recovery_policy] ERROR={:?}, workload='{}'",
+                e,
+                workload_id
+            );
+            Err(format!("Timpani enforce_recovery_policy failed: {}", e))
         }
     }
 }

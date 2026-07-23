@@ -95,6 +95,7 @@ mod tests {
             model_name: "test-model".to_string(),
             node_name: "test-node".to_string(),
             reason: "Test deadline miss".to_string(),
+            workload_id: "test-workload".to_string(),
         };
 
         let result = stop_workload(request).await;

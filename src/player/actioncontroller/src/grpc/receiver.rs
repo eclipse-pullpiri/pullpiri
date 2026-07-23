@@ -324,17 +324,42 @@ impl ActionControllerConnection for ActionControllerReceiver {
         // Determine node type (default to "nodeagent" for now)
         let node_type = "nodeagent";
 
-        // Execute stop operation
-        match self
+        // Execute stop operation and convert error to String to make it Send
+        let stop_result = self
             .manager
             .stop_workload(&pod_yaml, &req.node_name, node_type)
             .await
-        {
+            .map_err(|e| e.to_string());
+
+        match stop_result {
             Ok(_) => {
                 println!(
                     "[ActionController] Successfully stopped workload '{}' on node '{}'",
                     req.model_name, req.node_name
                 );
+
+                // Notify Timpani about the recovery action (if workload_id is provided)
+                if !req.workload_id.is_empty() {
+                    use common::external::timpani::RecoveryPolicy;
+                    if let Err(e) = crate::grpc::sender::timpani::enforce_recovery_policy(
+                        &req.workload_id,
+                        RecoveryPolicy::RecoveryStop,
+                    )
+                    .await
+                    {
+                        // Log but don't fail the operation - Timpani notification is best-effort
+                        eprintln!(
+                            "[ActionController] Failed to notify Timpani about recovery: {}",
+                            e
+                        );
+                    } else {
+                        println!(
+                            "[ActionController] Notified Timpani about recovery: workload='{}', policy=STOP",
+                            req.workload_id
+                        );
+                    }
+                }
+
                 Ok(Response::new(StopWorkloadResponse {
                     success: true,
                     message: format!(

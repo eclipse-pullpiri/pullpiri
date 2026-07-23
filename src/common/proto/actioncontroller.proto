@@ -72,6 +72,7 @@ message StopWorkloadRequest {
   string model_name = 2;           // Model (container) to stop
   string node_name = 3;            // Node where the workload is running
   string reason = 4;               // Reason for stopping (e.g., "deadline miss threshold exceeded")
+  string workload_id = 5;          // Workload ID (schedule name) for Timpani notification
 }
 
 // Response for stop workload request

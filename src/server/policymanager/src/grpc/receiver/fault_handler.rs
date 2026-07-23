@@ -249,6 +249,7 @@ async fn stop_workload(
         model_name: model_name.to_string(),
         node_name: node_name.to_string(),
         reason: format!("Deadline miss threshold exceeded for '{}'", workload_id),
+        workload_id: workload_id.to_string(),
     };
 
     match sender::stop_workload(request).await {

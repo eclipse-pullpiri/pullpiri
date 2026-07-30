@@ -28,4 +28,38 @@ service NodeAgentConnection {
   // from ACTION-CONTROLLER : Handle workload (container)
   rpc HandleWorkload(nodeagent.fromactioncontroller.HandleWorkloadRequest)
       returns (nodeagent.fromactioncontroller.HandleWorkloadResponse);
+
+  // from ACTION-CONTROLLER : Dynamic Resource Scaling (#514 / #526)
+  // Update CPU / Memory limits of a running container at runtime via the
+  // Podman REST API, and query the actual runtime resource state.
+  rpc UpdateResources(UpdateResourcesRequest)
+      returns (UpdateResourcesResponse);
+  rpc GetResourceStatus(GetResourceStatusRequest)
+      returns (GetResourceStatusResponse);
+}
+
+// Runtime resource update request. Used for both scale-up and scale-down and
+// for CPU-only, memory-only, or combined updates (unused fields are omitted).
+message UpdateResourcesRequest {
+  string workload_id = 1;            // container name or id
+  optional uint32 cpu_limit = 2;     // CPU limit in millicores (1000 = 1 core)
+  optional uint64 memory_limit = 3;  // memory limit in MiB
+}
+
+message UpdateResourcesResponse {
+  bool success = 1;
+  string message = 2;
+  uint32 actual_cpu_limit = 3;       // actual CPU limit in millicores (1000 = 1 core) after update
+  uint64 actual_memory_limit = 4;    // actual memory limit in MiB after update
+}
+
+message GetResourceStatusRequest {
+  string workload_id = 1;
+}
+
+message GetResourceStatusResponse {
+  bool found = 1;
+  uint32 cpu_limit = 2;              // current CPU limit in millicores (1000 = 1 core)
+  uint64 memory_limit = 3;           // current memory limit in MiB
+  string message = 4;
 }

@@ -14,6 +14,42 @@ service ActionControllerConnection {
   
   // Offload a model from one node to another (terminate + launch)
   rpc OffloadModel(OffloadModelRequest) returns (OffloadModelResponse);
+
+  // Dynamic Resource Scaling (#514 / #526)
+  // Entry point of the scaling workflow. Specifies which node, which workload,
+  // and the target CPU / memory to apply at runtime.
+  rpc RequestResourceScaling(ScalingActionRequest) returns (ScalingActionResponse);
+}
+
+enum ScalingType {
+  SCALE_UP = 0;
+  SCALE_DOWN = 1;
+}
+
+// Resource synchronization state (Kubernetes-style desired-state model).
+enum ResourceSyncState {
+  SYNC_UNKNOWN = 0;
+  SYNC_PENDING = 1;
+  SYNC_APPLYING = 2;
+  SYNC_SYNCHRONIZED = 3;
+  SYNC_DRIFT_DETECTED = 4;
+  SYNC_FAILED = 5;
+}
+
+message ScalingActionRequest {
+  string node_id = 1;
+  string workload_id = 2;
+  uint32 target_cpu_limit = 3;       // target CPU limit in millicores (1000 = 1 core)
+  uint64 target_memory_limit = 4;    // target memory limit in MiB
+  ScalingType scaling_type = 5;      // deprecated: direction is derived server-side from current desired state
+}
+
+message ScalingActionResponse {
+  bool success = 1;
+  string message = 2;
+  ResourceSyncState sync_state = 3;
+  uint32 actual_cpu_limit = 4;       // actual CPU limit in millicores (1000 = 1 core)
+  uint64 actual_memory_limit = 5;
 }
 
 message TriggerActionRequest {

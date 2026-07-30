@@ -130,6 +130,18 @@ pub mod statemanager {
     }
 }
 
+pub mod resourcemanager {
+    include!("generated/resourcemanager.rs");
+
+    pub fn open_server() -> String {
+        super::open_server(47008)
+    }
+
+    pub fn connect_server() -> String {
+        super::connect_server(47008)
+    }
+}
+
 pub mod logd;
 
 pub mod external {

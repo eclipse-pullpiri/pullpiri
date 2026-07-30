@@ -4,6 +4,7 @@
 */
 
 pub mod container;
+pub mod resource;
 
 use common::nodeagent::fromactioncontroller::WorkloadCommand;
 use hyper::{Body, Client, Method, Request, Uri};
@@ -16,7 +17,15 @@ use once_cell::sync::Lazy;
 // "/var/run/podman/podman.sock"
 // Or if you run it as a user, you might use:
 // "/run/user/1000/podman/podman.sock"
-const PODMAN_SOCKET: &str = "/var/run/podman/podman.sock";
+//
+// The default may be overridden at runtime with the `PODMAN_SOCKET`
+// environment variable (useful for rootless Podman and for testing).
+const DEFAULT_PODMAN_SOCKET: &str = "/var/run/podman/podman.sock";
+
+/// Resolve the Podman socket path, honoring the `PODMAN_SOCKET` override.
+static PODMAN_SOCKET: Lazy<String> = Lazy::new(|| {
+    std::env::var("PODMAN_SOCKET").unwrap_or_else(|_| DEFAULT_PODMAN_SOCKET.to_string())
+});
 
 // A single `hyper::Client` is cheap to clone and manages its own connection
 // pool internally, so it is created once and reused for every request
@@ -25,14 +34,14 @@ static PODMAN_CLIENT: Lazy<Client<UnixConnector, Body>> =
     Lazy::new(|| Client::builder().build::<_, Body>(UnixConnector));
 
 pub async fn get(path: &str) -> Result<hyper::body::Bytes, hyper::Error> {
-    let uri: Uri = UnixUri::new(PODMAN_SOCKET, path).into();
+    let uri: Uri = UnixUri::new(PODMAN_SOCKET.as_str(), path).into();
 
     let res = PODMAN_CLIENT.get(uri).await?;
     hyper::body::to_bytes(res).await
 }
 
 pub async fn post(path: &str, body: Body) -> Result<hyper::body::Bytes, hyper::Error> {
-    let uri: Uri = UnixUri::new(PODMAN_SOCKET, path).into();
+    let uri: Uri = UnixUri::new(PODMAN_SOCKET.as_str(), path).into();
 
     let req = Request::builder()
         .method(Method::POST)
@@ -45,7 +54,7 @@ pub async fn post(path: &str, body: Body) -> Result<hyper::body::Bytes, hyper::E
 }
 
 pub async fn delete(path: &str) -> Result<hyper::body::Bytes, hyper::Error> {
-    let uri: Uri = UnixUri::new(PODMAN_SOCKET, path).into();
+    let uri: Uri = UnixUri::new(PODMAN_SOCKET.as_str(), path).into();
 
     let req = Request::builder()
         .method(Method::DELETE)

@@ -54,6 +54,16 @@ podman run -d \
   ${CONTAINER_IMAGE} \
   /pullpiri/policymanager
 
+# Run resourcemanager container (Dynamic Resource Scaling, #514 / #526)
+podman run -d \
+  --pod pullpiri-server \
+  --name pullpiri-resourcemanager \
+  -e ROCKSDB_SERVICE_URL="http://${MASTER_IP}:47007" \
+  -v /etc/pullpiri/settings.yaml:/etc/pullpiri/settings.yaml:Z \
+  -v /run/pullpirilog/:/run/pullpirilog/ \
+  ${CONTAINER_IMAGE} \
+  /pullpiri/resourcemanager
+
 # Run monitoringserver container
 podman run -d \
   --pod pullpiri-server \

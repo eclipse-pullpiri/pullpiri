@@ -74,6 +74,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 COPY --from=builder /pullpiri/target/release/apiserver /pullpiri/
 COPY --from=builder /pullpiri/target/release/monitoringserver /pullpiri/
 COPY --from=builder /pullpiri/target/release/policymanager /pullpiri/
+COPY --from=builder /pullpiri/target/release/resourcemanager /pullpiri/
 COPY --from=builder /pullpiri/target/release/settingsservice /pullpiri/
 COPY --from=builder /pullpiri/target/release/logservice /pullpiri/
 #COPY --from=builder /pullpiri/target/release/nodeagent /pullpiri/

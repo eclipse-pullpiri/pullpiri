@@ -15,6 +15,8 @@ use common::nodeagent::{
         HeartbeatResponse, NodeRegistrationRequest, NodeRegistrationResponse, StatusAck,
         StatusReport,
     },
+    GetResourceStatusRequest, GetResourceStatusResponse, UpdateResourcesRequest,
+    UpdateResourcesResponse,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -104,5 +106,25 @@ impl NodeAgentConnection for NodeAgentReceiver {
         request: Request<HandleWorkloadRequest>,
     ) -> Result<Response<HandleWorkloadResponse>, Status> {
         actioncontroller::handle_workload(request, Arc::clone(&self.desired_states_cache)).await
+    }
+
+    /// Update the CPU / memory limits of a running container at runtime.
+    ///
+    /// Dynamic Resource Scaling (#514 / #526): applies the change through the
+    /// Podman REST API and returns the actual runtime state read back after the
+    /// update for desired/actual synchronization.
+    async fn update_resources(
+        &self,
+        request: Request<UpdateResourcesRequest>,
+    ) -> Result<Response<UpdateResourcesResponse>, Status> {
+        actioncontroller::update_resources(request).await
+    }
+
+    /// Query the actual runtime CPU / memory limits of a container.
+    async fn get_resource_status(
+        &self,
+        request: Request<GetResourceStatusRequest>,
+    ) -> Result<Response<GetResourceStatusResponse>, Status> {
+        actioncontroller::get_resource_status(request).await
     }
 }

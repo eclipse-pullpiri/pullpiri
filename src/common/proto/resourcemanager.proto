@@ -1,0 +1,92 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2026 LG Electronics Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+
+package resourcemanager;
+
+// ResourceManager owns the desired resource state and validates whether a
+// requested resource update can be applied given the available node capacity.
+// It also detects drift between the desired and the actual runtime state.
+// (Dynamic Resource Scaling, #514 / #526)
+service ResourceManagerConnection {
+  // Validate that the requested CPU / memory can be allocated on the node.
+  // Scale-down never exceeds capacity and is always allowed.
+  rpc ValidateResourceUpdate(ValidateResourceUpdateRequest)
+      returns (ValidateResourceUpdateResponse);
+
+  // Record the desired resource state for a workload (owned by ResourceManager).
+  rpc UpdateDesiredState(UpdateDesiredStateRequest)
+      returns (UpdateDesiredStateResponse);
+
+  // Report the actual runtime resource state and reconcile against desired.
+  rpc ReportActualState(ReportActualStateRequest)
+      returns (ReportActualStateResponse);
+
+  // Query the current desired / actual resource state and sync status.
+  rpc GetResourceState(GetResourceStateRequest)
+      returns (GetResourceStateResponse);
+}
+
+// Resource synchronization state (Kubernetes-style desired-state model).
+enum ResourceSyncState {
+  SYNC_UNKNOWN = 0;
+  SYNC_PENDING = 1;
+  SYNC_APPLYING = 2;
+  SYNC_SYNCHRONIZED = 3;
+  SYNC_DRIFT_DETECTED = 4;
+  SYNC_FAILED = 5;
+}
+
+message ValidateResourceUpdateRequest {
+  string node_id = 1;
+  string workload_id = 2;
+  uint32 requested_cpu = 3;       // requested CPU cores
+  uint64 requested_memory = 4;    // requested memory limit in MiB
+}
+
+message ValidateResourceUpdateResponse {
+  bool allowed = 1;
+  string reason = 2;
+  uint32 available_cpu = 3;       // available CPU cores at validation time
+  uint64 available_memory = 4;    // available memory in MiB at validation time
+}
+
+message UpdateDesiredStateRequest {
+  string workload_id = 1;
+  uint32 cpu_limit = 2;              // CPU limit in millicores (1000 = 1 core)
+  uint64 memory_limit = 3;
+}
+
+message UpdateDesiredStateResponse {
+  bool success = 1;
+  ResourceSyncState sync_state = 2;
+}
+
+message ReportActualStateRequest {
+  string workload_id = 1;
+  uint32 cpu_limit = 2;              // CPU limit in millicores (1000 = 1 core)
+  uint64 memory_limit = 3;
+  bool update_success = 4;
+}
+
+message ReportActualStateResponse {
+  bool synchronized = 1;
+  ResourceSyncState sync_state = 2;
+  bool drift_detected = 3;
+}
+
+message GetResourceStateRequest {
+  string workload_id = 1;
+}
+
+message GetResourceStateResponse {
+  bool found = 1;
+  uint32 desired_cpu = 2;
+  uint64 desired_memory = 3;
+  uint32 actual_cpu = 4;
+  uint64 actual_memory = 5;
+  ResourceSyncState sync_state = 6;
+}

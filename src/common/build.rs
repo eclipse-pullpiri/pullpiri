@@ -21,6 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "proto/monitoringserver.proto",
                 "proto/policymanager.proto",
                 "proto/statemanager.proto",
+                "proto/resourcemanager.proto",
                 "proto/nodeagent.proto",
                 "proto/logd.proto",
                 "proto/external/pharos/pharos_service.proto",

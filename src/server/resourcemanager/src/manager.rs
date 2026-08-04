@@ -296,7 +296,7 @@ mod tests {
         let m = ResourceManagerManager::with_capacity(8000, 8192);
         m.update_desired("other", 0, 7168); // available memory == 1024 MiB
         m.update_desired("w1", 1000, 8192); // w1 currently holds large memory
-        // CPU 1000 -> 2000 (up), memory 8192 -> 2048 (down, but 2048 > 1024).
+                                            // CPU 1000 -> 2000 (up), memory 8192 -> 2048 (down, but 2048 > 1024).
         let r = m.validate("w1", 2000, 2048);
         assert!(
             r.allowed,

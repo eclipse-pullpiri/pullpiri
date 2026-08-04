@@ -13,9 +13,8 @@ use common::actioncontroller::{
     },
     CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, OffloadModelRequest,
     OffloadModelResponse, PodStatus as ActionStatus, ReconcileRequest, ReconcileResponse,
-    StopWorkloadRequest, StopWorkloadResponse, TriggerActionRequest, TriggerActionResponse,
-    ResourceSyncState, ScalingActionRequest, ScalingActionResponse,
-    TriggerActionRequest, TriggerActionResponse,
+    ResourceSyncState, ScalingActionRequest, ScalingActionResponse, StopWorkloadRequest,
+    StopWorkloadResponse, TriggerActionRequest, TriggerActionResponse,
 };
 use common::logd;
 
@@ -524,7 +523,7 @@ async fn resolve_node_ip(node_id: &str) -> String {
 /// stored under the `cluster/nodes/` key prefix. Returns `None` when the store
 /// is unreachable or no node matches.
 async fn lookup_node_ip_by_hostname(hostname: &str) -> Option<String> {
-    let kvs = common::etcd::get_all_with_prefix("cluster/nodes/")
+    let kvs = common::kvstore::get_all_with_prefix("cluster/nodes/")
         .await
         .ok()?;
     for (_key, value) in kvs {

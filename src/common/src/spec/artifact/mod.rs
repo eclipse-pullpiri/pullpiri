@@ -73,6 +73,10 @@ pub struct Schedule {
     apiVersion: String,
     kind: String,
     metadata: MetaData,
+    /// Workload temporal class for scheduling mechanism classification (DDR-007)
+    /// - PERIODIC (default): L1 Time-Triggered (TT)
+    /// - SPORADIC: L2 Constant Bandwidth Server (CBS)
+    pub temporal_class: Option<schedule::TemporalClass>,
     spec: Option<Vec<schedule::ScheduleSpec>>,
 }
 

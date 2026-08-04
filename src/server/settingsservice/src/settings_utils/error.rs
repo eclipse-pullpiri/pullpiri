@@ -38,14 +38,14 @@ pub enum SettingsError {
 #[derive(Error, Debug)]
 #[allow(dead_code)]
 pub enum StorageError {
-    #[error("ETCD connection failed: {0}")]
+    #[error("kvstore connection failed: {0}")]
     ConnectionFailed(String),
 
-    #[error("ETCD operation failed: {0}")]
+    #[error("kvstore operation failed: {0}")]
     OperationFailed(String),
 
-    #[error("ETCD error: {0}")]
-    EtcdError(String),
+    #[error("kvstore error: {0}")]
+    KVStoreError(String),
 
     #[error("Key not found: {0}")]
     KeyNotFound(String),

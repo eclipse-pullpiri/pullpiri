@@ -74,7 +74,7 @@ pub enum MetricValue {
     Histogram { buckets: Vec<HistogramBucket> },
     Summary { quantiles: Vec<SummaryQuantile> },
 
-    // Resource-based metric types (matching etcd data)
+    // Resource-based metric types (matching kvstore data)
     NodeInfo { value: NodeInfo },
     ContainerInfo { value: ContainerInfo },
     SocInfo { value: SocInfo },
@@ -163,8 +163,8 @@ impl MonitoringManager {
             return Ok(cached);
         }
 
-        // Fetch from monitoring ETCD directly
-        let metrics = self.fetch_metrics_from_monitoring_etcd(filter).await?;
+        // Fetch from monitoring kvstore directly
+        let metrics = self.fetch_metrics_from_monitoring_kvstore(filter).await?;
 
         // Cache the results
         self.set_cached(&cache_key, metrics.clone());
@@ -172,15 +172,15 @@ impl MonitoringManager {
         Ok(metrics)
     }
 
-    /// Fetch metrics directly from monitoring ETCD
-    async fn fetch_metrics_from_monitoring_etcd(
+    /// Fetch metrics directly from monitoring kvstore
+    async fn fetch_metrics_from_monitoring_kvstore(
         &mut self,
         filter: Option<&MetricsFilter>,
     ) -> Result<Vec<Metric>, SettingsError> {
         let mut metrics = Vec::new();
 
-        // Get nodes and convert to Metric format - using monitoring_etcd
-        match crate::monitoring_etcd::get_all_nodes().await {
+        // Get nodes and convert to Metric format - using monitoring_kvstore
+        match crate::monitoring_kvstore::get_all_nodes().await {
             Ok(nodes) => {
                 for node_info in nodes {
                     let metric = Metric {
@@ -209,8 +209,8 @@ impl MonitoringManager {
             }
         }
 
-        // Get containers and convert to Metric format - using monitoring_etcd
-        match crate::monitoring_etcd::get_all_containers().await {
+        // Get containers and convert to Metric format - using monitoring_kvstore
+        match crate::monitoring_kvstore::get_all_containers().await {
             Ok(containers) => {
                 for container_info in containers {
                     let metric = Metric {
@@ -245,8 +245,8 @@ impl MonitoringManager {
             }
         }
 
-        // Get SoCs and convert to Metric format - using monitoring_etcd
-        match crate::monitoring_etcd::get_all_socs().await {
+        // Get SoCs and convert to Metric format - using monitoring_kvstore
+        match crate::monitoring_kvstore::get_all_socs().await {
             Ok(socs) => {
                 for soc_info in socs {
                     let metric = Metric {
@@ -274,8 +274,8 @@ impl MonitoringManager {
             }
         }
 
-        // Get boards and convert to Metric format - using monitoring_etcd
-        match crate::monitoring_etcd::get_all_boards().await {
+        // Get boards and convert to Metric format - using monitoring_kvstore
+        match crate::monitoring_kvstore::get_all_boards().await {
             Ok(boards) => {
                 for board_info in boards {
                     let metric = Metric {
@@ -307,8 +307,8 @@ impl MonitoringManager {
             }
         }
 
-        // Get stress metrics and convert to Metric format - using monitoring_etcd
-        match crate::monitoring_etcd::get_all_stress_metrics().await {
+        // Get stress metrics and convert to Metric format - using monitoring_kvstore
+        match crate::monitoring_kvstore::get_all_stress_metrics().await {
             Ok(stress_list) => {
                 for stress in stress_list {
                     // try to populate sensible labels; adjust field names to your StressMetrics struct
@@ -351,15 +351,15 @@ impl MonitoringManager {
         // Sort by timestamp (newest first)
         metrics.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
 
-        info!("Fetched {} metrics from monitoring ETCD", metrics.len());
+        info!("Fetched {} metrics from monitoring kvstore", metrics.len());
         Ok(metrics)
     }
 
-    /// Get all node metrics - SIMPLIFIED to use monitoring_etcd directly
+    /// Get all node metrics - SIMPLIFIED to use monitoring_kvstore directly
     pub async fn get_node_metrics(&mut self) -> Result<Vec<NodeInfo>, SettingsError> {
         debug!("Getting all node metrics");
 
-        match crate::monitoring_etcd::get_all_nodes().await {
+        match crate::monitoring_kvstore::get_all_nodes().await {
             Ok(nodes) => {
                 info!("Retrieved {} node metrics", nodes.len());
                 Ok(nodes)
@@ -374,11 +374,11 @@ impl MonitoringManager {
         }
     }
 
-    /// Get all container metrics - SIMPLIFIED to use monitoring_etcd directly
+    /// Get all container metrics - SIMPLIFIED to use monitoring_kvstore directly
     pub async fn get_container_metrics(&mut self) -> Result<Vec<ContainerInfo>, SettingsError> {
         debug!("Getting all container metrics");
 
-        crate::monitoring_etcd::get_all_containers()
+        crate::monitoring_kvstore::get_all_containers()
             .await
             .map_err(|e| {
                 SettingsError::Storage(crate::settings_utils::error::StorageError::OperationFailed(
@@ -394,9 +394,9 @@ impl MonitoringManager {
     ) -> Result<Option<ContainerInfo>, SettingsError> {
         debug!("Getting container metric for ID: {}", container_id);
 
-        match crate::monitoring_etcd::get_container_info(container_id).await {
+        match crate::monitoring_kvstore::get_container_info(container_id).await {
             Ok(container) => Ok(Some(container)),
-            Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Ok(None),
+            Err(crate::monitoring_kvstore::MonitoringKVStoreError::NotFound) => Ok(None),
             Err(e) => Err(SettingsError::Storage(
                 crate::settings_utils::error::StorageError::OperationFailed(format!(
                     "Failed to get container: {}",
@@ -413,9 +413,9 @@ impl MonitoringManager {
     ) -> Result<Option<StressMetrics>, SettingsError> {
         debug!("Getting stress metric for process: {}", process_name);
 
-        match crate::monitoring_etcd::get_stress_metrics(process_name).await {
+        match crate::monitoring_kvstore::get_stress_metrics(process_name).await {
             Ok(metrics) => Ok(Some(metrics)),
-            Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Ok(None),
+            Err(crate::monitoring_kvstore::MonitoringKVStoreError::NotFound) => Ok(None),
             Err(e) => Err(SettingsError::Storage(
                 crate::settings_utils::error::StorageError::OperationFailed(format!(
                     "Failed to get container: {}",
@@ -432,7 +432,7 @@ impl MonitoringManager {
     ) -> Result<Vec<String>, SettingsError> {
         debug!("Getting logs for container: {}", container_id);
 
-        crate::monitoring_etcd::get_container_logs(container_id)
+        crate::monitoring_kvstore::get_container_logs(container_id)
             .await
             .map_err(|e| {
                 SettingsError::Storage(crate::settings_utils::error::StorageError::OperationFailed(
@@ -441,11 +441,11 @@ impl MonitoringManager {
             })
     }
 
-    /// Get all soc metrics - SIMPLIFIED to use monitoring_etcd directly
+    /// Get all soc metrics - SIMPLIFIED to use monitoring_kvstore directly
     pub async fn get_soc_metrics(&mut self) -> Result<Vec<SocInfo>, SettingsError> {
         debug!("Getting all soc metrics");
 
-        match crate::monitoring_etcd::get_all_socs().await {
+        match crate::monitoring_kvstore::get_all_socs().await {
             Ok(socs) => {
                 info!("Retrieved {} soc metrics", socs.len());
                 Ok(socs)
@@ -460,11 +460,11 @@ impl MonitoringManager {
         }
     }
 
-    /// Get all board metrics - SIMPLIFIED to use monitoring_etcd directly
+    /// Get all board metrics - SIMPLIFIED to use monitoring_kvstore directly
     pub async fn get_board_metrics(&mut self) -> Result<Vec<BoardInfo>, SettingsError> {
         debug!("Getting all board metrics");
 
-        match crate::monitoring_etcd::get_all_boards().await {
+        match crate::monitoring_kvstore::get_all_boards().await {
             Ok(boards) => {
                 info!("Retrieved {} board metrics", boards.len());
                 Ok(boards)
@@ -479,11 +479,11 @@ impl MonitoringManager {
         }
     }
 
-    /// Get all board StressMetrics - SIMPLIFIED to use monitoring_etcd directly
+    /// Get all board StressMetrics - SIMPLIFIED to use monitoring_kvstore directly
     pub async fn get_board_stress_metrics(&mut self) -> Result<Vec<StressMetrics>, SettingsError> {
         debug!("Getting all board stress metrics");
 
-        match crate::monitoring_etcd::get_all_stress_metrics().await {
+        match crate::monitoring_kvstore::get_all_stress_metrics().await {
             Ok(metrics) => {
                 info!("Retrieved {} board stress metrics", metrics.len());
                 Ok(metrics)
@@ -498,14 +498,14 @@ impl MonitoringManager {
         }
     }
 
-    /// Get node metric by name - SIMPLIFIED to use monitoring_etcd directly
+    /// Get node metric by name - SIMPLIFIED to use monitoring_kvstore directly
     pub async fn get_node_metric_by_name(
         &mut self,
         node_name: &str,
     ) -> Result<Option<NodeInfo>, SettingsError> {
         debug!("Getting node metric for: {}", node_name);
 
-        match crate::monitoring_etcd::get_node_info(node_name).await {
+        match crate::monitoring_kvstore::get_node_info(node_name).await {
             Ok(node_info) => Ok(Some(node_info)),
             Err(_) => Ok(None),
         }
@@ -524,28 +524,28 @@ impl MonitoringManager {
 
         match component {
             "nodes" => {
-                crate::monitoring_etcd::delete_node_info(metric_id)
+                crate::monitoring_kvstore::delete_node_info(metric_id)
                     .await
                     .map_err(|e| {
                         SettingsError::Metrics(format!("Failed to delete node metric: {}", e))
                     })?;
             }
             "containers" => {
-                crate::monitoring_etcd::delete_container_info(metric_id)
+                crate::monitoring_kvstore::delete_container_info(metric_id)
                     .await
                     .map_err(|e| {
                         SettingsError::Metrics(format!("Failed to delete container metric: {}", e))
                     })?;
             }
             "socs" => {
-                crate::monitoring_etcd::delete_soc_info(metric_id)
+                crate::monitoring_kvstore::delete_soc_info(metric_id)
                     .await
                     .map_err(|e| {
                         SettingsError::Metrics(format!("Failed to delete SoC metric: {}", e))
                     })?;
             }
             "boards" => {
-                crate::monitoring_etcd::delete_board_info(metric_id)
+                crate::monitoring_kvstore::delete_board_info(metric_id)
                     .await
                     .map_err(|e| {
                         SettingsError::Metrics(format!("Failed to delete board metric: {}", e))
@@ -654,7 +654,7 @@ impl MonitoringManager {
         // Try to find in different component types
 
         // Check if it's a node metric
-        if let Ok(node_info) = crate::monitoring_etcd::get_node_info(metric_id).await {
+        if let Ok(node_info) = crate::monitoring_kvstore::get_node_info(metric_id).await {
             let metric = Metric {
                 id: node_info.node_name.clone(),
                 component: "node".to_string(),
@@ -672,7 +672,7 @@ impl MonitoringManager {
         }
 
         // Check if it's a container metric
-        if let Ok(container_info) = crate::monitoring_etcd::get_container_info(metric_id).await {
+        if let Ok(container_info) = crate::monitoring_kvstore::get_container_info(metric_id).await {
             let metric = Metric {
                 id: container_info.id.clone(),
                 component: "container".to_string(),

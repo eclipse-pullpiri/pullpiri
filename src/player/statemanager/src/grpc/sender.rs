@@ -7,6 +7,11 @@ use common::actioncontroller::{
     action_controller_connection_client::ActionControllerConnectionClient, connect_server,
     OffloadModelRequest, OffloadModelResponse, ReconcileRequest, ReconcileResponse,
 };
+use common::policymanager::{
+    connect_server as policymanager_connect_server,
+    policy_manager_connection_client::PolicyManagerConnectionClient, ReportFaultRequest,
+    ReportFaultResponse,
+};
 use std::env;
 use tonic::{Request, Response, Status};
 
@@ -52,6 +57,36 @@ pub async fn offload_model(
             );
             Err(Status::unavailable(format!(
                 "Failed to connect to ActionController: {}",
+                e
+            )))
+        }
+    }
+}
+
+/// Send fault report to PolicyManager
+///
+/// This forwards fault notifications (e.g., deadline miss) from Timpani to PolicyManager
+/// for policy-based decision making
+pub async fn report_fault_to_policymanager(
+    request: ReportFaultRequest,
+) -> Result<Response<ReportFaultResponse>, Status> {
+    // Test mode bypass
+    if env::var("PULLPIRI_TEST_MODE").is_ok() {
+        let resp = ReportFaultResponse {
+            processed: true,
+            message: "mock fault report".to_string(),
+        };
+        return Ok(Response::new(resp));
+    }
+
+    let client = PolicyManagerConnectionClient::connect(policymanager_connect_server()).await;
+
+    match client {
+        Ok(mut client) => client.report_fault(Request::new(request)).await,
+        Err(e) => {
+            eprintln!("[StateManager] Failed to connect to PolicyManager: {}", e);
+            Err(Status::unavailable(format!(
+                "Failed to connect to PolicyManager: {}",
                 e
             )))
         }

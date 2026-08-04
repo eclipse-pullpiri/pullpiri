@@ -661,11 +661,11 @@ settingscli -v -u http://192.168.1.100:8080 -t 60 get metrics
 │                 │                 │   (port 8080)   │
 └─────────────────┘                 └─────────────────┘
                                             │
-                                            │ ETCD
+                                            │
                                             ▼
                                     ┌─────────────────┐
-                                    │      ETCD       │
-                                    │  (2379, 2380)   │
+                                    │     RocksDB     │
+                                    │  (port 47007)   │
                                     └─────────────────┘
                                             ▲
                     ┌───────────────────────┼───────────────────────┐
@@ -683,7 +683,7 @@ Following Pullpiri networking conventions:
 - **SettingsCLI**: Connects to SettingsService (no listening port)
 - **API Server**: `47099` (receives YAML artifacts from SettingsService)
 - **Other Pullpiri Services**: `47001-47099` (gRPC: 47001+, REST: up to 47099)
-- **ETCD**: `2379, 2380` (standard ETCD ports)
+- **RocksDB**: `47007`
 
 ## License
 

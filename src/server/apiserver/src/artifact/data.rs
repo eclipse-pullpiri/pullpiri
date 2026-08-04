@@ -3,62 +3,62 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! Read/Write/Delete artifact data in etcd
+//! Read/Write/Delete artifact data in kvstore
 
 use common::logd;
 
-/// Read yaml string of artifacts from etcd
+/// Read yaml string of artifacts from kvstore
 ///
 /// ### Parameters
 /// * `artifact_name: &str` - name of the newly released artifact
 /// ### Return
 /// * `Result<(String)>` - `Ok()` contains yaml string if success
 #[allow(dead_code)]
-pub async fn read_from_etcd(artifact_name: &str) -> common::Result<String> {
-    let raw = common::etcd::get(artifact_name).await?;
+pub async fn read_from_kvstore(artifact_name: &str) -> common::Result<String> {
+    let raw = common::kvstore::get(artifact_name).await?;
     Ok(raw)
 }
 
-/// Read all scenario yaml string in etcd
+/// Read all scenario yaml string in kvstore
 ///
 /// ### Parameters
 /// * None
 /// ### Return
 /// * `Result<Vec<String>>` - `Ok(_)` contains scenario yaml string vector
-pub async fn read_all_scenario_from_etcd() -> common::Result<Vec<String>> {
-    let kv_scenario = common::etcd::get_all_with_prefix("Scenario").await?;
+pub async fn read_all_scenario_from_kvstore() -> common::Result<Vec<String>> {
+    let kv_scenario = common::kvstore::get_all_with_prefix("Scenario").await?;
     let values = kv_scenario.into_iter().map(|kv| kv.1).collect();
 
     Ok(values)
 }
 
-/// Write yaml string of artifacts to etcd
+/// Write yaml string of artifacts to kvstore
 ///
 /// ### Parameters
-/// * `key: &str, artifact_name: &str` - etcd key and the name of the newly released artifact
+/// * `key: &str, artifact_name: &str` - kvstore key and the name of the newly released artifact
 /// ### Return
 /// * `Result<()>` - `Ok` if success, `Err` otherwise
-pub async fn write_to_etcd(key: &str, artifact_str: &str) -> common::Result<()> {
+pub async fn write_to_kvstore(key: &str, artifact_str: &str) -> common::Result<()> {
     use std::time::Instant;
     let start = Instant::now();
 
-    let result = common::etcd::put(key, artifact_str).await;
+    let result = common::kvstore::put(key, artifact_str).await;
     let elapsed = start.elapsed();
 
-    logd!(1, "write_to_etcd: elapsed = {:?}", elapsed);
+    logd!(1, "write_to_kvstore: elapsed = {:?}", elapsed);
 
     result?;
     Ok(())
 }
 
-/// Write yaml string of artifacts to etcd
+/// Write yaml string of artifacts to kvstore
 ///
 /// ### Parameters
-/// * `key: &str` - data key to delete from etcd
+/// * `key: &str` - data key to delete from kvstore
 /// ### Return
 /// * `Result<()>` - `Ok` if success, `Err` otherwise
-pub async fn delete_at_etcd(key: &str) -> common::Result<()> {
-    common::etcd::delete(key).await?;
+pub async fn delete_at_kvstore(key: &str) -> common::Result<()> {
+    common::kvstore::delete(key).await?;
     Ok(())
 }
 
@@ -121,11 +121,11 @@ spec:
 
     // Test reading valid key (exists or not — should not panic)
     #[tokio::test]
-    async fn test_read_from_etcd_positive() {
-        let result = read_from_etcd(TEST_KEY).await;
-        logd!(1, "read_from_etcd (positive) result = {:?}", result);
+    async fn test_read_from_kvstore_positive() {
+        let result = read_from_kvstore(TEST_KEY).await;
+        logd!(1, "read_from_kvstore (positive) result = {:?}", result);
 
-        //we accept both Ok and Err depending on etcd state
+        //we accept both Ok and Err depending on kvstore state
         assert!(
             result.is_ok() || result.is_err(),
             "Expected Ok or Err but got: {:?}",
@@ -135,15 +135,15 @@ spec:
 
     // Test reading all Scenario keys (should return Vec<String> or Err)
     #[tokio::test]
-    async fn test_read_all_scenario_from_etcd_positive() {
-        let result = read_all_scenario_from_etcd().await;
+    async fn test_read_all_scenario_from_kvstore_positive() {
+        let result = read_all_scenario_from_kvstore().await;
         logd!(
             2,
-            "read_all_scenario_from_etcd (positive) result = {:?}",
+            "read_all_scenario_from_kvstore (positive) result = {:?}",
             result
         );
 
-        //we accept both Ok (some scenarios) or Ok(empty Vec) or Err (etcd error)
+        //we accept both Ok (some scenarios) or Ok(empty Vec) or Err (kvstore error)
         assert!(
             result.is_ok() || result.is_err(),
             "Expected Ok or Err but got: {:?}",
@@ -153,29 +153,29 @@ spec:
 
     // Test writing valid key and yaml
     #[tokio::test]
-    async fn test_write_to_etcd_positive() {
+    async fn test_write_to_kvstore_positive() {
         use std::time::Instant;
         let start = Instant::now();
-        let result = write_to_etcd(TEST_KEY, TEST_YAML).await;
+        let result = write_to_kvstore(TEST_KEY, TEST_YAML).await;
         let duration = start.elapsed();
         logd!(
             2,
-            "write_to_etcd (positive) result = {:?}, elapsed = {:?}",
+            "write_to_kvstore (positive) result = {:?}, elapsed = {:?}",
             result,
             duration
         );
         assert!(
             result.is_ok() || result.is_err(),
-            "Expected write_to_etcd to succeed or Err but got: {:?}",
+            "Expected write_to_kvstore to succeed or Err but got: {:?}",
             result
         );
     }
 
     // Test deleting valid key (whether key exists or not — should succeed or cleanly fail)
     #[tokio::test]
-    async fn test_delete_at_etcd_positive() {
-        let result = delete_at_etcd(TEST_KEY).await;
-        logd!(2, "delete_at_etcd (positive) result = {:?}", result);
+    async fn test_delete_at_kvstore_positive() {
+        let result = delete_at_kvstore(TEST_KEY).await;
+        logd!(2, "delete_at_kvstore (positive) result = {:?}", result);
         // We accept Ok (key deleted) or Err (key not found) as valid outcomes
         assert!(
             result.is_ok() || result.is_err(),
@@ -188,32 +188,32 @@ spec:
 
     // Test reading with invalid keys (empty/nullbyte) — should fail
     #[tokio::test]
-    async fn test_read_from_etcd_negative_invalid_key() {
-        let result = read_from_etcd(INVALID_KEY_EMPTY).await;
+    async fn test_read_from_kvstore_negative_invalid_key() {
+        let result = read_from_kvstore(INVALID_KEY_EMPTY).await;
         assert!(
             result.is_err(),
-            "Expected read_from_etcd with empty key to fail but got Ok: {:?}",
+            "Expected read_from_kvstore with empty key to fail but got Ok: {:?}",
             result.ok()
         );
     }
 
     // Test writing with invalid keys (empty/nullbyte) — should fail
     #[tokio::test]
-    async fn test_write_to_etcd_negative_invalid_key() {
-        let result = write_to_etcd(INVALID_KEY_EMPTY, TEST_YAML).await;
+    async fn test_write_to_kvstore_negative_invalid_key() {
+        let result = write_to_kvstore(INVALID_KEY_EMPTY, TEST_YAML).await;
         assert!(
             result.is_err(),
-            "Expected write_to_etcd with empty key to fail but got Ok"
+            "Expected write_to_kvstore with empty key to fail but got Ok"
         );
     }
 
     // Test deleting with invalid keys (empty/nullbyte) — should fail
     #[tokio::test]
-    async fn test_delete_at_etcd_negative_invalid_key() {
-        let result = delete_at_etcd(INVALID_KEY_EMPTY).await;
+    async fn test_delete_at_kvstore_negative_invalid_key() {
+        let result = delete_at_kvstore(INVALID_KEY_EMPTY).await;
         assert!(
             result.is_err(),
-            "Expected delete_at_etcd with empty key to fail but got Ok"
+            "Expected delete_at_kvstore with empty key to fail but got Ok"
         );
     }
 }

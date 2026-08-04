@@ -54,8 +54,8 @@ pub async fn restart_workload(pod: &str, node_name: &str) -> Result<()> {
 
 /// Find a node by IP address from simplified node keys
 async fn get_node_name_from_hostname(hostname: &str) -> Option<String> {
-    logd!(2, "Checking node keys in etcd...");
-    match common::etcd::get(&format!("nodes/{}", hostname)).await {
+    logd!(2, "Checking node keys in kvstore...");
+    match common::kvstore::get(&format!("nodes/{}", hostname)).await {
         Ok(ip) => {
             logd!(2, "Found node IP: {}", ip);
             Some(ip)

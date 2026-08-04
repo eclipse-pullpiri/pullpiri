@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! REST API server module
-use crate::monitoring_etcd;
+use crate::monitoring_kvstore;
 use crate::monitoring_types::{BoardInfo, NodeInfo, SocInfo}; //, StressMetrics};
 use crate::settings_config::{Config, ConfigManager, ConfigSummary, ValidationResult};
 use crate::settings_history::{HistoryEntry, HistoryManager};
@@ -624,7 +624,7 @@ async fn list_nodes(
 ) -> Result<Json<NodeListResponse>, (StatusCode, Json<ErrorResponse>)> {
     debug!("GET /api/v1/nodes with query: {:?}", query);
 
-    // Fetch from monitoring server data via etcd or direct integration
+    // Fetch from monitoring server data via kvstore or direct integration
     match fetch_all_nodes_from_monitoring_server().await {
         Ok(nodes) => {
             let filtered_nodes = if let Some(filter) = query.filter {
@@ -869,64 +869,64 @@ async fn get_pod_metrics(
 // Log fetching functions
 async fn fetch_node_logs(node_name: &str) -> Result<Vec<String>, String> {
     // Integration with monitoring server to fetch node logs
-    // This could query etcd or directly communicate with monitoring server
-    monitoring_etcd::get_node_logs(node_name)
+    // This could query kvstore or directly communicate with monitoring server
+    monitoring_kvstore::get_node_logs(node_name)
         .await
         .map_err(|e| format!("Failed to fetch node logs: {}", e))
 }
 
 async fn fetch_soc_logs(soc_id: &str) -> Result<Vec<String>, String> {
-    monitoring_etcd::get_soc_logs(soc_id)
+    monitoring_kvstore::get_soc_logs(soc_id)
         .await
         .map_err(|e| format!("Failed to fetch SoC logs: {}", e))
 }
 
 async fn fetch_board_logs(board_id: &str) -> Result<Vec<String>, String> {
-    monitoring_etcd::get_board_logs(board_id)
+    monitoring_kvstore::get_board_logs(board_id)
         .await
         .map_err(|e| format!("Failed to fetch board logs: {}", e))
 }
 
 // Integration functions with monitoring server
 async fn fetch_all_nodes_from_monitoring_server() -> Result<Vec<NodeInfo>, String> {
-    crate::monitoring_etcd::get_all_nodes()
+    crate::monitoring_kvstore::get_all_nodes()
         .await
-        .map_err(|e| format!("ETCD error: {}", e))
+        .map_err(|e| format!("KVStore error: {}", e))
 }
 
 async fn fetch_node_from_monitoring_server(name: &str) -> Result<Option<NodeInfo>, String> {
-    match crate::monitoring_etcd::get_node_info(name).await {
+    match crate::monitoring_kvstore::get_node_info(name).await {
         Ok(node) => Ok(Some(node)),
-        Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Ok(None),
-        Err(e) => Err(format!("ETCD error: {}", e)),
+        Err(crate::monitoring_kvstore::MonitoringKVStoreError::NotFound) => Ok(None),
+        Err(e) => Err(format!("KVStore error: {}", e)),
     }
 }
 
 async fn fetch_all_socs_from_monitoring_server() -> Result<Vec<SocInfo>, String> {
-    crate::monitoring_etcd::get_all_socs()
+    crate::monitoring_kvstore::get_all_socs()
         .await
-        .map_err(|e| format!("ETCD error: {}", e))
+        .map_err(|e| format!("KVStore error: {}", e))
 }
 
 async fn fetch_all_boards_from_monitoring_server() -> Result<Vec<BoardInfo>, String> {
-    crate::monitoring_etcd::get_all_boards()
+    crate::monitoring_kvstore::get_all_boards()
         .await
-        .map_err(|e| format!("ETCD error: {}", e))
+        .map_err(|e| format!("KVStore error: {}", e))
 }
 
 // Container integration functions
 #[allow(dead_code)]
 async fn fetch_all_containers_from_monitoring_server() -> Result<Vec<ContainerInfo>, String> {
-    crate::monitoring_etcd::get_all_containers()
+    crate::monitoring_kvstore::get_all_containers()
         .await
-        .map_err(|e| format!("ETCD error: {}", e))
+        .map_err(|e| format!("KVStore error: {}", e))
 }
 #[allow(dead_code)]
 async fn fetch_container_from_monitoring_server(id: &str) -> Result<Option<ContainerInfo>, String> {
-    match crate::monitoring_etcd::get_container_info(id).await {
+    match crate::monitoring_kvstore::get_container_info(id).await {
         Ok(container) => Ok(Some(container)),
-        Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Ok(None),
-        Err(e) => Err(format!("ETCD error: {}", e)),
+        Err(crate::monitoring_kvstore::MonitoringKVStoreError::NotFound) => Ok(None),
+        Err(e) => Err(format!("KVStore error: {}", e)),
     }
 }
 
@@ -1084,7 +1084,7 @@ async fn get_containers_by_node(
 }
 #[allow(dead_code)]
 async fn resolve_hostname_for_node(node_name: &str) -> Option<String> {
-    match crate::monitoring_etcd::get_node_info(node_name).await {
+    match crate::monitoring_kvstore::get_node_info(node_name).await {
         Ok(node_info) => Some(node_info.node_name.clone()),
         Err(_) => None,
     }
@@ -1253,7 +1253,7 @@ async fn get_all_stress_metrics(
 ) -> Result<Json<Vec<Value>>, (StatusCode, Json<ErrorResponse>)> {
     debug!("GET /api/v1/metrics/stressmonitor with query: {:?}", query);
 
-    match crate::monitoring_etcd::get_all_stress_metrics().await {
+    match crate::monitoring_kvstore::get_all_stress_metrics().await {
         Ok(mut metrics) => {
             if let Some(ref q) = query.process_name {
                 metrics = metrics
@@ -1290,7 +1290,7 @@ async fn get_stress_metric_by_process_name(
 ) -> Result<Json<Value>, (StatusCode, Json<ErrorResponse>)> {
     debug!("GET /api/v1/metrics/stressmonitor/{}", id);
 
-    match crate::monitoring_etcd::get_all_stress_metrics().await {
+    match crate::monitoring_kvstore::get_all_stress_metrics().await {
         Ok(metrics) => {
             // id may be "process_name", "process:pid" or a pid string
             if let Some((proc_part, pid_part)) = id.split_once(':') {
@@ -1369,19 +1369,19 @@ async fn get_container_metric_by_id(
 
 // SoC integration functions
 async fn fetch_soc_from_monitoring_server(name: &str) -> Result<Option<SocInfo>, String> {
-    match crate::monitoring_etcd::get_soc_info(name).await {
+    match crate::monitoring_kvstore::get_soc_info(name).await {
         Ok(soc) => Ok(Some(soc)),
-        Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Ok(None),
-        Err(e) => Err(format!("ETCD error: {}", e)),
+        Err(crate::monitoring_kvstore::MonitoringKVStoreError::NotFound) => Ok(None),
+        Err(e) => Err(format!("KVStore error: {}", e)),
     }
 }
 
 // Board integration functions
 async fn fetch_board_from_monitoring_server(name: &str) -> Result<Option<BoardInfo>, String> {
-    match crate::monitoring_etcd::get_board_info(name).await {
+    match crate::monitoring_kvstore::get_board_info(name).await {
         Ok(board) => Ok(Some(board)),
-        Err(crate::monitoring_etcd::MonitoringEtcdError::NotFound) => Ok(None),
-        Err(e) => Err(format!("ETCD error: {}", e)),
+        Err(crate::monitoring_kvstore::MonitoringKVStoreError::NotFound) => Ok(None),
+        Err(e) => Err(format!("KVStore error: {}", e)),
     }
 }
 

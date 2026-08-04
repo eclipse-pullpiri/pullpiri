@@ -69,7 +69,7 @@ src/
 - **Type**: grpc
 - **Parameters**: scenario_yaml_str: String, action: i32
 - **Returns**: common::Result<()>
-- **Description**:  API-Server로 부터 Pullpiri 시나리오 이름을 받아서 ETCD에 저장된 시나리오 정보를 추가하거나 삭제한다.
+- **Description**:  API-Server로 부터 Pullpiri 시나리오 이름을 받아서 KV Store 에 저장된 시나리오 정보를 추가하거나 삭제한다.
 API-Server로 부터 시나리오 yaml string 을 받아서 Scenario struct 에 넣는다. 차량 데이터 토픽을 구독등록하고 Filter 생성 후 실행 한다.
 
 ### API : subscribe_vehicle_data

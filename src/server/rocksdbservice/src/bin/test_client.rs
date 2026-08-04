@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use common::etcd;
+use common::kvstore;
 use std::env;
 
 #[tokio::main]
@@ -18,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test health check
     println!("\n📋 Testing health check...");
-    match etcd::health_check().await {
+    match kvstore::health_check().await {
         Ok(is_healthy) => {
             println!(
                 "✅ Health check successful: {}",
@@ -33,14 +33,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test PUT operation
     println!("\n📝 Testing PUT operation...");
-    match etcd::put("test_key", "test_value").await {
+    match kvstore::put("test_key", "test_value").await {
         Ok(()) => println!("✅ PUT operation successful"),
         Err(e) => println!("❌ PUT operation failed: {}", e),
     }
 
     // Test GET operation
     println!("\n📖 Testing GET operation...");
-    match etcd::get("test_key").await {
+    match kvstore::get("test_key").await {
         Ok(value) => println!("✅ GET operation successful: {}", value),
         Err(e) => println!("❌ GET operation failed: {}", e),
     }
@@ -51,14 +51,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("batch_key1".to_string(), "batch_value1".to_string()),
         ("batch_key2".to_string(), "batch_value2".to_string()),
     ];
-    match etcd::batch_put(items).await {
+    match kvstore::batch_put(items).await {
         Ok(()) => println!("✅ Batch PUT operation successful"),
         Err(e) => println!("❌ Batch PUT operation failed: {}", e),
     }
 
     // Test get_all_with_prefix operation
     println!("\n🔍 Testing get_all_with_prefix operation...");
-    match etcd::get_all_with_prefix("batch_").await {
+    match kvstore::get_all_with_prefix("batch_").await {
         Ok(kvs) => {
             println!(
                 "✅ Get all with prefix successful: found {} items",
@@ -73,7 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test DELETE operation
     println!("\n🗑️  Testing DELETE operation...");
-    match etcd::delete("test_key").await {
+    match kvstore::delete("test_key").await {
         Ok(()) => println!("✅ DELETE operation successful"),
         Err(e) => println!("❌ DELETE operation failed: {}", e),
     }

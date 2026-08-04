@@ -5,15 +5,26 @@
 
 //! Running gRPC message sending to timpani
 use common::external::timpani::{
-    connect_timpani_server, sched_info_service_client::SchedInfoServiceClient, Response, SchedInfo,
+    connect_timpani_server, recovery_service_client::RecoveryServiceClient,
+    sched_info_service_client::SchedInfoServiceClient, RecoveryCommand, RecoveryPolicy, Response,
+    SchedInfo,
 };
 use common::logd;
 
-pub async fn add_sched_info(sched_info: SchedInfo) {
+/// Send schedule info to Timpani server
+///
+/// # Arguments
+/// * `sched_info` - Schedule information to send
+///
+/// # Returns
+/// * `Ok(())` if successful
+/// * `Err(String)` if connection or sending fails
+pub async fn add_sched_info(sched_info: SchedInfo) -> Result<(), String> {
     logd!(1, "Connecting to Timpani server ....");
+
     let mut client = SchedInfoServiceClient::connect(connect_timpani_server())
         .await
-        .unwrap();
+        .map_err(|e| format!("Failed to connect to Timpani server: {}", e))?;
 
     let response: Result<Response, tonic::Status> = client
         .add_sched_info(sched_info)
@@ -23,9 +34,70 @@ pub async fn add_sched_info(sched_info: SchedInfo) {
     match response {
         Ok(res) => {
             logd!(3, "[add_sched_info] RESPONSE={:?}", res);
+            Ok(())
         }
         Err(e) => {
             logd!(5, "[add_sched_info] ERROR={:?}", e);
+            Err(format!("Timpani add_sched_info failed: {}", e))
+        }
+    }
+}
+
+/// Send recovery policy enforcement notification to Timpani server
+///
+/// Notifies Timpani that a workload has been stopped/recovered due to fault handling.
+/// This allows Timpani to perform necessary cleanup or post-processing.
+///
+/// # Arguments
+/// * `workload_id` - The workload ID (schedule name) that was recovered
+/// * `policy` - The recovery policy that was applied (STOP, RESTART, TERMINATE)
+///
+/// # Returns
+/// * `Ok(())` if successful
+/// * `Err(String)` if connection or sending fails
+pub async fn enforce_recovery_policy(
+    workload_id: &str,
+    policy: RecoveryPolicy,
+) -> Result<(), String> {
+    logd!(
+        1,
+        "[Timpani] Sending recovery policy: workload='{}', policy={:?}",
+        workload_id,
+        policy
+    );
+
+    let mut client = RecoveryServiceClient::connect(connect_timpani_server())
+        .await
+        .map_err(|e| format!("Failed to connect to Timpani RecoveryService: {}", e))?;
+
+    let command = RecoveryCommand {
+        workload_id: workload_id.to_string(),
+        recovery_policy: policy as i32,
+    };
+
+    let response: Result<Response, tonic::Status> = client
+        .enforce_recovery_policy(command)
+        .await
+        .map(|r| r.into_inner());
+
+    match response {
+        Ok(res) => {
+            logd!(
+                3,
+                "[enforce_recovery_policy] RESPONSE={:?}, workload='{}'",
+                res,
+                workload_id
+            );
+            Ok(())
+        }
+        Err(e) => {
+            logd!(
+                5,
+                "[enforce_recovery_policy] ERROR={:?}, workload='{}'",
+                e,
+                workload_id
+            );
+            Err(format!("Timpani enforce_recovery_policy failed: {}", e))
         }
     }
 }
@@ -142,6 +214,7 @@ mod tests {
                 node_id: String::from("HPC"),
                 max_dmiss: 3,
             }],
+            temporal_class: 0,
         };
 
         assert!(validate_sched_info(&sched_info));
@@ -163,6 +236,7 @@ mod tests {
                 node_id: String::from("HPC"),
                 max_dmiss: 3,
             }],
+            temporal_class: 0,
         };
 
         assert!(validate_sched_info(&sched_info));
@@ -173,6 +247,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("valid_id"),
             tasks: vec![],
+            temporal_class: 0,
         };
 
         assert!(validate_sched_info(&sched_info));
@@ -194,6 +269,7 @@ mod tests {
                 node_id: String::from("HPC"),
                 max_dmiss: 3,
             }],
+            temporal_class: 0,
         };
 
         assert!(!validate_sched_info(&sched_info));
@@ -229,6 +305,7 @@ mod tests {
                     max_dmiss: 5,
                 },
             ],
+            temporal_class: 0,
         };
 
         assert!(!validate_sched_info(&sched_info));
@@ -264,6 +341,7 @@ mod tests {
                     max_dmiss: 5,
                 },
             ],
+            temporal_class: 0,
         };
 
         assert!(validate_sched_info(&sched_info));
@@ -371,6 +449,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("test_workload"),
             tasks: vec![task],
+            temporal_class: 0,
         };
 
         assert_eq!(sched_info.workload_id, "test_workload");
@@ -409,6 +488,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("multi_workload"),
             tasks,
+            temporal_class: 0,
         };
 
         assert_eq!(sched_info.tasks.len(), 2);
@@ -419,6 +499,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("empty_workload"),
             tasks: vec![],
+            temporal_class: 0,
         };
 
         assert_eq!(sched_info.workload_id, "empty_workload");
@@ -467,6 +548,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("realtime_system"),
             tasks: vec![high_priority_task, medium_priority_task],
+            temporal_class: 0,
         };
 
         assert_eq!(sched_info.tasks.len(), 2);
@@ -504,6 +586,7 @@ mod tests {
         let sched_info = SchedInfo {
             workload_id: String::from("multi_node_workload"),
             tasks: vec![hpc_task, zone_task],
+            temporal_class: 0,
         };
 
         assert_eq!(sched_info.tasks.len(), 2);
@@ -528,6 +611,7 @@ mod tests {
                 node_id: String::from("HPC"),
                 max_dmiss: 3,
             }],
+            temporal_class: 0,
         }
     }
 

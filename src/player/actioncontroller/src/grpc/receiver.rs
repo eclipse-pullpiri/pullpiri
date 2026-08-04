@@ -13,6 +13,7 @@ use common::actioncontroller::{
     },
     CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, OffloadModelRequest,
     OffloadModelResponse, PodStatus as ActionStatus, ReconcileRequest, ReconcileResponse,
+    StopWorkloadRequest, StopWorkloadResponse, TriggerActionRequest, TriggerActionResponse,
     ResourceSyncState, ScalingActionRequest, ScalingActionResponse,
     TriggerActionRequest, TriggerActionResponse,
 };
@@ -272,6 +273,116 @@ impl ActionControllerConnection for ActionControllerReceiver {
         }
     }
 
+    /// Handle stop workload requests from PolicyManager
+    ///
+    /// Stops a specific workload (model/container) on a given node.
+    /// Used by policy-based fault handling (e.g., deadline miss threshold exceeded).
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - gRPC request containing package, model, and node info
+    ///
+    /// # Returns
+    ///
+    /// * `Response<StopWorkloadResponse>` - gRPC response with success status
+    /// * `Status` - gRPC status error if the request fails
+    async fn stop_workload(
+        &self,
+        request: Request<StopWorkloadRequest>,
+    ) -> Result<Response<StopWorkloadResponse>, Status> {
+        let req = request.into_inner();
+
+        println!(
+            "[ActionController] Stopping workload: package='{}', model='{}', node='{}'",
+            req.package_name, req.model_name, req.node_name
+        );
+        println!("[ActionController]   Reason: {}", req.reason);
+
+        // Get Pod YAML from kvstore for the package/model
+        let pod_key = format!("Pod/{}", req.package_name);
+        let pod_yaml = match common::kvstore::get(&pod_key).await {
+            Ok(yaml) if !yaml.is_empty() => yaml,
+            Ok(_) => {
+                let msg = format!(
+                    "Pod not found for package '{}' in kvstore key '{}'",
+                    req.package_name, pod_key
+                );
+                eprintln!("[ActionController] {}", msg);
+                return Ok(Response::new(StopWorkloadResponse {
+                    success: false,
+                    message: msg,
+                }));
+            }
+            Err(e) => {
+                let msg = format!("Failed to get Pod from kvstore: {}", e);
+                eprintln!("[ActionController] {}", msg);
+                return Ok(Response::new(StopWorkloadResponse {
+                    success: false,
+                    message: msg,
+                }));
+            }
+        };
+
+        // Determine node type (default to "nodeagent" for now)
+        let node_type = "nodeagent";
+
+        // Execute stop operation and convert error to String to make it Send
+        let stop_result = self
+            .manager
+            .stop_workload(&pod_yaml, &req.node_name, node_type)
+            .await
+            .map_err(|e| e.to_string());
+
+        match stop_result {
+            Ok(_) => {
+                println!(
+                    "[ActionController] Successfully stopped workload '{}' on node '{}'",
+                    req.model_name, req.node_name
+                );
+
+                // Notify Timpani about the recovery action (if workload_id is provided)
+                if !req.workload_id.is_empty() {
+                    use common::external::timpani::RecoveryPolicy;
+                    if let Err(e) = crate::grpc::sender::timpani::enforce_recovery_policy(
+                        &req.workload_id,
+                        RecoveryPolicy::RecoveryStop,
+                    )
+                    .await
+                    {
+                        // Log but don't fail the operation - Timpani notification is best-effort
+                        eprintln!(
+                            "[ActionController] Failed to notify Timpani about recovery: {}",
+                            e
+                        );
+                    } else {
+                        println!(
+                            "[ActionController] Notified Timpani about recovery: workload='{}', policy=STOP",
+                            req.workload_id
+                        );
+                    }
+                }
+
+                Ok(Response::new(StopWorkloadResponse {
+                    success: true,
+                    message: format!(
+                        "Workload '{}' successfully stopped on node '{}'",
+                        req.model_name, req.node_name
+                    ),
+                }))
+            }
+            Err(e) => {
+                let msg = format!(
+                    "Failed to stop workload '{}' on node '{}': {}",
+                    req.model_name, req.node_name, e
+                );
+                eprintln!("[ActionController] {}", msg);
+                Ok(Response::new(StopWorkloadResponse {
+                    success: false,
+                    message: msg,
+                }))
+            }
+        }
+    }
     /// Orchestrate the Dynamic Resource Scaling workflow (#514 / #526).
     ///
     /// Steps: validate availability via ResourceManager (which derives the
@@ -449,7 +560,7 @@ mod tests {
 
     // #[tokio::test]
     // async fn test_reconcile_success_when_states_differ() {
-    //     // Pre-populate etcd keys
+    //     // Pre-populate kvstore keys
 
     //     let scenario_yaml = r#"
     //     apiVersion: v1
@@ -461,7 +572,7 @@ mod tests {
     //         action: update
     //         target: antipinch-enable
     //     "#;
-    //     common::etcd::put("scenario/antipinch-enable", scenario_yaml)
+    //     common::kvstore::put("scenario/antipinch-enable", scenario_yaml)
     //         .await
     //         .unwrap();
 
@@ -481,7 +592,7 @@ mod tests {
     //                 volume: antipinch-volume
     //                 network: antipinch-network
     //     "#;
-    //     common::etcd::put("package/antipinch-enable", package_yaml)
+    //     common::kvstore::put("package/antipinch-enable", package_yaml)
     //         .await
     //         .unwrap();
 
@@ -509,10 +620,10 @@ mod tests {
     //         "Expected success message, got: '{}'",
     //         response.get_ref().desc
     //     );
-    //     common::etcd::delete("scenario/antipinch-enable")
+    //     common::kvstore::delete("scenario/antipinch-enable")
     //         .await
     //         .unwrap();
-    //     common::etcd::delete("package/antipinch-enable")
+    //     common::kvstore::delete("package/antipinch-enable")
     //         .await
     //         .unwrap();
     // }
@@ -562,7 +673,7 @@ mod tests {
             target: antipinch-enable
         "#;
 
-        common::etcd::put("scenario/antipinch-enable", scenario_yaml)
+        common::kvstore::put("scenario/antipinch-enable", scenario_yaml)
             .await
             .unwrap();
 
@@ -583,15 +694,15 @@ mod tests {
                     network: antipinch-network
         "#;
 
-        common::etcd::put("package/antipinch-enable", package_yaml)
+        common::kvstore::put("package/antipinch-enable", package_yaml)
             .await
             .unwrap();
 
         // let response = receiver.trigger_action(request).await.unwrap();
         // assert_eq!(response.get_ref().status, 0);
 
-        let _ = common::etcd::delete("scenario/antipinch-enable").await;
-        let _ = common::etcd::delete("package/antipinch-enable").await;
+        let _ = common::kvstore::delete("scenario/antipinch-enable").await;
+        let _ = common::kvstore::delete("package/antipinch-enable").await;
     }
 
     #[tokio::test]
@@ -611,7 +722,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scenario_state_management_workflow() {
-        // Setup test scenario in ETCD
+        // Setup test scenario in kvstore
         let scenario_yaml = r#"
         apiVersion: v1
         kind: Scenario
@@ -623,7 +734,7 @@ mod tests {
             target: test-state-scenario
         "#;
 
-        common::etcd::put("scenario/test-state-scenario", scenario_yaml)
+        common::kvstore::put("scenario/test-state-scenario", scenario_yaml)
             .await
             .unwrap();
 
@@ -644,7 +755,7 @@ mod tests {
                     network: test-network
         "#;
 
-        common::etcd::put("package/test-state-scenario", package_yaml)
+        common::kvstore::put("package/test-state-scenario", package_yaml)
             .await
             .unwrap();
 
@@ -657,8 +768,8 @@ mod tests {
         println!("");
 
         // Cleanup
-        let _ = common::etcd::delete("scenario/test-state-scenario").await;
-        let _ = common::etcd::delete("package/test-state-scenario").await;
+        let _ = common::kvstore::delete("scenario/test-state-scenario").await;
+        let _ = common::kvstore::delete("package/test-state-scenario").await;
 
         println!("🎉 ActionController state management test completed successfully!");
     }

@@ -9,12 +9,12 @@
 ### Major features
 
 ActionController는 FilterGateway로부터 특정 시나리오의 조건 충족 이벤트를 전달받아, 해당 시나리오의 Action과 Target 정보를 기반으로 Bluechi Controller API 또는 NodeAgent API를 호출하여 작업을 수행하는 모듈입니다.  
-또한, ETCD에서 시나리오 정보를 읽어와 각 노드의 상태를 조정하며, Bluechi와 NodeAgent를 사용하는 노드를 구분하여 처리합니다. filtergateway와 statmaanger로부터 메세지를 전달받고 Bluechi와 nodeagent로 함수를 호출합니다. 노드 별로 알맞은 함수 호출을 담당합니다.
+또한, KV Store 에서 시나리오 정보를 읽어와 각 노드의 상태를 조정하며, Bluechi와 NodeAgent를 사용하는 노드를 구분하여 처리합니다. filtergateway와 statmaanger로부터 메세지를 전달받고 Bluechi와 nodeagent로 함수를 호출합니다. 노드 별로 알맞은 함수 호출을 담당합니다.
 
 ### Main Dataflow
 
 1. **초기화**: `settings.json` 파일에서 노드 정보를 읽어와 Bluechi 노드와 NodeAgent 노드를 구분합니다.
-1. **시나리오 처리**: FilterGateway로부터 전달받은 시나리오 이름으로 ETCD에서 Action과 Target 정보를 조회합니다.
+1. **시나리오 처리**: FilterGateway로부터 전달받은 시나리오 이름으로 KV Store 에서 Action과 Target 정보를 조회합니다.
 1. **작업 수행**: Action과 Target 정보를 기반으로 Bluechi API 또는 NodeAgent API를 호출하여 작업을 수행합니다.
 1. **상태 관리**: 외부 모듈 StateManager로부터 시나리오(scenario), 현재상태(current), 기존스펙(desired) 상태 정보를 전달받습니다.
 1. **상태 조정**: current와 desired를 상태를 비교해서 desired 상태로 current를 변경합니다.
@@ -102,7 +102,7 @@ ActionController/
 - **Type**: function
 - **Parameters**: scenario_name: string
 - **Returns**: common::Result<()>
-- **Description**: grpc receiver로부터 전달받은 시나리오 데이터를 기반으로 ETCD에서 Action과 Target 정보를 조회하고, 작업을 수행합니다.
+- **Description**: grpc receiver로부터 전달받은 시나리오 데이터를 기반으로 KV Store 에서 Action과 Target 정보를 조회하고, 작업을 수행합니다.
 
 ### API : ReconcileDo
 
@@ -120,7 +120,7 @@ ActionController/
 - **Type**: function
 - **Parameters**: scenario_name: string
 - **Returns**: common::Result<()>
-- **Description**: ETCD에서 Systemd 파일 및 Pod YAML 파일을 읽어와 작업을 생성합니다. Bluechi, NodeAgent따라 적절한 API를 호출합니다.
+- **Description**: KV Store 에서 Systemd 파일 및 Pod YAML 파일을 읽어와 작업을 생성합니다. Bluechi, NodeAgent따라 적절한 API를 호출합니다.
 
 ### API : DeleteWorkload
 

@@ -3,7 +3,7 @@
  * Creates keys in format: helloworld_(word)_number
  */
 
-use common::etcd;
+use common::kvstore;
 use std::env;
 use std::io::{self, Write};
 
@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test health check first
     println!("\n🏥 Health Check...");
-    match etcd::health_check().await {
+    match kvstore::health_check().await {
         Ok(is_healthy) => {
             if is_healthy {
                 println!("✅ RocksDB 서비스 정상 동작 중!");
@@ -101,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("\n🎯 PUT #{}: helloworld_{}_{}", i, user_word, i);
 
         // PUT Scenario
-        match etcd::put(&scenario_key, &scenario_yaml).await {
+        match kvstore::put(&scenario_key, &scenario_yaml).await {
             Ok(()) => {
                 put_success += 1;
                 println!("   ✅ Scenario PUT 성공");
@@ -113,7 +113,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // PUT Package
-        match etcd::put(&package_key, &package_yaml).await {
+        match kvstore::put(&package_key, &package_yaml).await {
             Ok(()) => {
                 put_success += 1;
                 println!("   ✅ Package PUT 성공");
@@ -125,7 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // PUT Model
-        match etcd::put(&model_key, &model_yaml).await {
+        match kvstore::put(&model_key, &model_yaml).await {
             Ok(()) => {
                 put_success += 1;
                 println!("   ✅ Model PUT 성공");
@@ -156,7 +156,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("\n🎯 GET #{}: helloworld_{}_{}", i, user_word, i);
 
         // GET Scenario
-        match etcd::get(&scenario_key).await {
+        match kvstore::get(&scenario_key).await {
             Ok(value) => {
                 get_success += 1;
                 println!("   ✅ Scenario GET 성공 ({} bytes)", value.len());
@@ -168,7 +168,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // GET Package
-        match etcd::get(&package_key).await {
+        match kvstore::get(&package_key).await {
             Ok(value) => {
                 get_success += 1;
                 println!("   ✅ Package GET 성공 ({} bytes)", value.len());
@@ -180,7 +180,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // GET Model
-        match etcd::get(&model_key).await {
+        match kvstore::get(&model_key).await {
             Ok(value) => {
                 get_success += 1;
                 println!("   ✅ Model GET 성공 ({} bytes)", value.len());
@@ -197,7 +197,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("\n📖 샘플 데이터 전체 내용 (Scenario #1):");
         println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         let sample_key = format!("Scenario/helloworld_scenario_{}_1", user_word);
-        match etcd::get(&sample_key).await {
+        match kvstore::get(&sample_key).await {
             Ok(value) => {
                 println!("{}", value);
             }

@@ -49,11 +49,11 @@ runtime and systemd.
 
 ## Getting started
 
-Refer to [Getting Started](/doc/docs/getting-started.md).
+Refer to [Getting Started](/doc/guides/getting-started.md).
 
 ## Development
 
-Refer to [Development](/doc/docs/developments.md).
+Refer to [Development](/doc/guides/developments.md).
 
 ## License
 
@@ -66,7 +66,7 @@ For detail, refer to [license-readme](/LICENSES/README.md).
 ## How to Get Involved
 
 To contribute to this project, please review the contribution guidelines and join the conversation.
-- [Contribution guidelines](doc/contribution/guidelines-en.md)
+- [Contribution guidelines](/contribution/guidelines-en.md)
 - [Weekly meeting (Microsoft Teams)](https://teams.microsoft.com/meet/46052781724289?p=v7AILMRZryXY01ApNs)
 
 Meeting minutes and announcements are posted here:

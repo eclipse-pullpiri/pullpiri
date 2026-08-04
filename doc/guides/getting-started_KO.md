@@ -73,11 +73,21 @@ podman --version
 
 #### 시스템 준비
 
+Pullpiri는 여러 모듈로 구성되어 있습니다.
+각 모듈에 대한 자세한 내용은 [Structure](/doc/guides/developments.md#structure)를 참고하세요.  
+또한 [예제](/examples/README.md)가 도움이 될 것입니다.
+
 ```bash
 # 필수 디렉토리 생성
 sudo mkdir -p /etc/pullpiri
 sudo mkdir -p /run/pullpirilog
 ```
+
+- 멀티 노드 시스템 및 그에 따른 노드 셀렉터는 아직 완전히 고려되지 않았습니다.
+- 원활한 운영을 위해 `root` 사용자로 운영하는 것을 권장합니다 (systemd 서비스 등록 및 `/etc`, `/opt` 등 시스템 경로 접근에 필요).
+- `/etc/containers/systemd` 폴더는 Pullpiri systemd 서비스 파일에 사용됩니다. 이 경로는 변경할 수 없습니다.
+- 아직 초기 버전이므로 컨테이너 시작/중지/업데이트에 시간이 오래 걸릴 수 있습니다.
+- 그 외 다른 문제가 발생할 수 있습니다.
 
 #### 필요 포트 개방
 
@@ -95,28 +105,6 @@ Pullpiri는 다음 TCP 포트를 사용합니다. 방화벽에서 해당 포트�
 | 47007 | RocksDB Service (gRPC) |
 | 47098 | API Server (gRPC) |
 | 47099 | API Server (REST) |
-
-**Ubuntu (ufw):**
-
-먼저 ufw 활성화 여부를 확인합니다:
-
-```bash
-sudo ufw status
-# Status: active   → 아래 명령어 실행
-# Status: inactive → 방화벽이 비활성화 상태, 포트가 이미 열려 있으므로 이 단계 생략
-```
-
-ufw가 활성화된 경우 필요한 포트를 개방합니다:
-
-```bash
-sudo ufw allow 8080/tcp
-sudo ufw allow 47001:47007/tcp
-sudo ufw allow 47098:47099/tcp
-sudo ufw reload
-sudo ufw status numbered
-```
-
-> **참고:** ufw가 비활성화 상태인 경우(Ubuntu 기본 설치 시 비활성), 모든 포트가 이미 접근 가능하므로 방화벽 설정이 필요하지 않습니다.
 
 **CentOS Stream 9 / RHEL (firewalld):**
 

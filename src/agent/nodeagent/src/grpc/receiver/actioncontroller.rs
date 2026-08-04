@@ -3,8 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 use crate::desired_state::{DesiredState, LivenessProbe, ProbeConfig, ProbeType, RestartPolicy};
+use crate::runtime::podman::resource;
 use common::nodeagent::fromactioncontroller::{
     HandleWorkloadRequest, HandleWorkloadResponse, WorkloadCommand,
+};
+use common::nodeagent::{
+    GetResourceStatusRequest, GetResourceStatusResponse, UpdateResourcesRequest,
+    UpdateResourcesResponse,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -175,6 +180,58 @@ pub async fn handle_workload(
                 e
             ))),
         }
+    }
+}
+
+/// Handle an `UpdateResources` request from the ActionController.
+///
+/// Applies the requested CPU / memory limits to the running container through
+/// the Podman REST API and returns the actual runtime state read back after the
+/// update (Dynamic Resource Scaling, #514 / #526).
+pub async fn update_resources(
+    request: Request<UpdateResourcesRequest>,
+) -> Result<Response<UpdateResourcesResponse>, Status> {
+    let req = request.into_inner();
+    println!(
+        "[NodeAgent] UpdateResources workload='{}' cpu={:?} mem={:?}MiB",
+        req.workload_id, req.cpu_limit, req.memory_limit
+    );
+
+    match resource::update_resources(&req.workload_id, req.cpu_limit, req.memory_limit).await {
+        Ok(status) => Ok(Response::new(UpdateResourcesResponse {
+            success: true,
+            message: "resource update applied".to_string(),
+            actual_cpu_limit: status.cpu_limit,
+            actual_memory_limit: status.memory_limit,
+        })),
+        Err(e) => Ok(Response::new(UpdateResourcesResponse {
+            success: false,
+            message: format!("resource update failed: {}", e),
+            actual_cpu_limit: 0,
+            actual_memory_limit: 0,
+        })),
+    }
+}
+
+/// Handle a `GetResourceStatus` request: report the actual runtime CPU / memory
+/// limits currently applied to the container.
+pub async fn get_resource_status(
+    request: Request<GetResourceStatusRequest>,
+) -> Result<Response<GetResourceStatusResponse>, Status> {
+    let req = request.into_inner();
+    match resource::get_resource_status(&req.workload_id).await {
+        Ok(status) => Ok(Response::new(GetResourceStatusResponse {
+            found: true,
+            cpu_limit: status.cpu_limit,
+            memory_limit: status.memory_limit,
+            message: "ok".to_string(),
+        })),
+        Err(e) => Ok(Response::new(GetResourceStatusResponse {
+            found: false,
+            cpu_limit: 0,
+            memory_limit: 0,
+            message: format!("resource status query failed: {}", e),
+        })),
     }
 }
 

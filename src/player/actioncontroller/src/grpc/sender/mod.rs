@@ -8,5 +8,6 @@
 pub mod nodeagent;
 pub mod pharos;
 pub mod policymanager;
+pub mod resourcemanager;
 pub mod statemanager;
 pub mod timpani;

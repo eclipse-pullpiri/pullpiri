@@ -73,11 +73,21 @@ podman --version
 
 #### Prepare System
 
+Pullpiri consists of many modules.
+For each modules, refer to [Structure](/doc/guides/developments.md#structure).  
+And the [example](/examples/README.md) would be helpful.
+
 ```bash
 # Create required directories
 sudo mkdir -p /etc/pullpiri
 sudo mkdir -p /run/pullpirilog
 ```
+
+- Multi-node system and the resulting node-selectors have not yet been fully considered.
+- For better operation, recommend operating with `root` user (required for systemd service registration and access to system paths such as `/etc`, `/opt`).
+- `/etc/containers/systemd` folder is used for pullpiri systemd service files. This cannot be changed.
+- Because it is still an early version, it may sometimes take a lot of time to start/stop/update the container.
+- There may be other issues as well.
 
 #### Open Required Ports
 
@@ -95,28 +105,6 @@ Pullpiri uses the following TCP ports. Configure your firewall to allow them:
 | 47007 | RocksDB Service (gRPC) |
 | 47098 | API Server (gRPC) |
 | 47099 | API Server (REST) |
-
-**Ubuntu (ufw):**
-
-First check whether ufw is active:
-
-```bash
-sudo ufw status
-# Status: active   → run the commands below
-# Status: inactive → firewall is off, ports are already open; skip this step
-```
-
-If ufw is active, open the required ports:
-
-```bash
-sudo ufw allow 8080/tcp
-sudo ufw allow 47001:47007/tcp
-sudo ufw allow 47098:47099/tcp
-sudo ufw reload
-sudo ufw status numbered
-```
-
-> **Note:** If ufw is inactive on your system (default on many Ubuntu installs), all ports are already reachable — no firewall changes are needed.
 
 **CentOS Stream 9 / RHEL (firewalld):**
 

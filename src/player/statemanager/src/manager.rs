@@ -1279,8 +1279,8 @@ mod integration_tests {
             ActionControllerConnection, ActionControllerConnectionServer,
         },
         CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, OffloadModelRequest,
-        OffloadModelResponse, ReconcileRequest, ReconcileResponse, TriggerActionRequest,
-        TriggerActionResponse,
+        OffloadModelResponse, ReconcileRequest, ReconcileResponse, ResourceSyncState,
+        ScalingActionRequest, ScalingActionResponse, TriggerActionRequest, TriggerActionResponse,
     };
     use std::sync::Arc;
     use tonic::{transport::Server, Request, Response, Status};
@@ -1365,6 +1365,21 @@ mod integration_tests {
                     message: "Mock stop workload success".to_string(),
                 },
             ))
+        }
+
+        async fn request_resource_scaling(
+            &self,
+            request: Request<ScalingActionRequest>,
+        ) -> std::result::Result<Response<ScalingActionResponse>, Status> {
+            let req = request.into_inner();
+
+            Ok(Response::new(ScalingActionResponse {
+                success: true,
+                message: "Mock resource scaling success".to_string(),
+                sync_state: ResourceSyncState::SyncSynchronized as i32,
+                actual_cpu_limit: req.target_cpu_limit,
+                actual_memory_limit: req.target_memory_limit,
+            }))
         }
     }
 

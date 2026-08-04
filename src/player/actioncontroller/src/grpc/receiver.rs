@@ -14,6 +14,8 @@ use common::actioncontroller::{
     CompleteNetworkSettingRequest, CompleteNetworkSettingResponse, OffloadModelRequest,
     OffloadModelResponse, PodStatus as ActionStatus, ReconcileRequest, ReconcileResponse,
     StopWorkloadRequest, StopWorkloadResponse, TriggerActionRequest, TriggerActionResponse,
+    ResourceSyncState, ScalingActionRequest, ScalingActionResponse,
+    TriggerActionRequest, TriggerActionResponse,
 };
 use common::logd;
 
@@ -381,6 +383,158 @@ impl ActionControllerConnection for ActionControllerReceiver {
             }
         }
     }
+    /// Orchestrate the Dynamic Resource Scaling workflow (#514 / #526).
+    ///
+    /// Steps: validate availability via ResourceManager (which derives the
+    /// scale direction from the current desired state), record the desired
+    /// state, apply the runtime update through the NodeAgent (Podman REST API),
+    /// then reconcile the reported actual state.
+    async fn request_resource_scaling(
+        &self,
+        request: Request<ScalingActionRequest>,
+    ) -> Result<Response<ScalingActionResponse>, Status> {
+        use crate::grpc::sender::{nodeagent as na_sender, resourcemanager as rm_sender};
+        use common::nodeagent::UpdateResourcesRequest;
+        use common::resourcemanager::{
+            ReportActualStateRequest, UpdateDesiredStateRequest, ValidateResourceUpdateRequest,
+        };
+
+        let req = request.into_inner();
+
+        println!(
+            "[ActionController] RequestResourceScaling node='{}' workload='{}' cpu={}m mem={}MiB",
+            req.node_id, req.workload_id, req.target_cpu_limit, req.target_memory_limit
+        );
+
+        // 1. Validate resource availability. The ResourceManager decides whether
+        //    this is an increase (capacity-checked) or a scale-down / unchanged
+        //    request (always allowed) by comparing against the current desired
+        //    state, so the caller cannot bypass the check via a scaling flag.
+        let validation = rm_sender::validate_resource_update(ValidateResourceUpdateRequest {
+            node_id: req.node_id.clone(),
+            workload_id: req.workload_id.clone(),
+            requested_cpu: req.target_cpu_limit,
+            requested_memory: req.target_memory_limit,
+        })
+        .await?;
+
+        if !validation.allowed {
+            return Ok(Response::new(ScalingActionResponse {
+                success: false,
+                message: format!("validation rejected: {}", validation.reason),
+                sync_state: ResourceSyncState::SyncFailed as i32,
+                actual_cpu_limit: 0,
+                actual_memory_limit: 0,
+            }));
+        }
+
+        // 2. Record the desired resource state (ResourceManager owns it).
+        rm_sender::update_desired_state(UpdateDesiredStateRequest {
+            workload_id: req.workload_id.clone(),
+            cpu_limit: req.target_cpu_limit,
+            memory_limit: req.target_memory_limit,
+        })
+        .await?;
+
+        // 3. Apply the update at runtime through the target NodeAgent.
+        let node_ip = resolve_node_ip(&req.node_id).await;
+        let update = na_sender::send_update_resources(
+            &node_ip,
+            UpdateResourcesRequest {
+                workload_id: req.workload_id.clone(),
+                cpu_limit: Some(req.target_cpu_limit),
+                memory_limit: Some(req.target_memory_limit),
+            },
+        )
+        .await;
+
+        let update = match update {
+            Ok(u) => u,
+            Err(e) => {
+                // NodeAgent unreachable / transport failure: mark desired failed.
+                let _ = rm_sender::report_actual_state(ReportActualStateRequest {
+                    workload_id: req.workload_id.clone(),
+                    cpu_limit: 0,
+                    memory_limit: 0,
+                    update_success: false,
+                })
+                .await;
+                return Ok(Response::new(ScalingActionResponse {
+                    success: false,
+                    message: format!("NodeAgent update failed: {}", e),
+                    sync_state: ResourceSyncState::SyncFailed as i32,
+                    actual_cpu_limit: 0,
+                    actual_memory_limit: 0,
+                }));
+            }
+        };
+
+        // 4. Reconcile the reported actual state against the desired state.
+        let report = rm_sender::report_actual_state(ReportActualStateRequest {
+            workload_id: req.workload_id.clone(),
+            cpu_limit: update.actual_cpu_limit,
+            memory_limit: update.actual_memory_limit,
+            update_success: update.success,
+        })
+        .await?;
+
+        let message = if !update.success {
+            update.message.clone()
+        } else if report.synchronized {
+            "scaling applied and synchronized".to_string()
+        } else {
+            "scaling applied but drift detected (reconcile required)".to_string()
+        };
+
+        Ok(Response::new(ScalingActionResponse {
+            success: update.success && report.synchronized,
+            message,
+            sync_state: report.sync_state,
+            actual_cpu_limit: update.actual_cpu_limit,
+            actual_memory_limit: update.actual_memory_limit,
+        }))
+    }
+}
+
+/// Resolve a `node_id` (which may be a hostname or an IP address) to the IP
+/// address the NodeAgent gRPC endpoint is reachable at.
+///
+/// Resolution order:
+///   1. Empty -> local node (`127.0.0.1`).
+///   2. Already an IP literal -> used as-is.
+///   3. Otherwise treated as a node hostname and looked up in the cluster node
+///      registry (`cluster/nodes/` in the key-value store). This allows
+///      targeting a workload on a remote node by name.
+///   4. If the lookup fails, the original value is passed through so the caller
+///      still receives a meaningful connection error.
+async fn resolve_node_ip(node_id: &str) -> String {
+    if node_id.is_empty() {
+        return "127.0.0.1".to_string();
+    }
+    if node_id.parse::<std::net::IpAddr>().is_ok() {
+        return node_id.to_string();
+    }
+    if let Some(ip) = lookup_node_ip_by_hostname(node_id).await {
+        return ip;
+    }
+    node_id.to_string()
+}
+
+/// Look up a node's IP address by hostname from the cluster node registry
+/// stored under the `cluster/nodes/` key prefix. Returns `None` when the store
+/// is unreachable or no node matches.
+async fn lookup_node_ip_by_hostname(hostname: &str) -> Option<String> {
+    let kvs = common::etcd::get_all_with_prefix("cluster/nodes/")
+        .await
+        .ok()?;
+    for (_key, value) in kvs {
+        if let Ok(node) = serde_json::from_str::<common::apiserver::NodeInfo>(&value) {
+            if node.hostname == hostname && !node.ip_address.is_empty() {
+                return Some(node.ip_address);
+            }
+        }
+    }
+    None
 }
 
 fn i32_to_status(value: i32) -> ActionStatus {

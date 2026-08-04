@@ -67,6 +67,9 @@ mod tests {
     use common::actioncontroller::CompleteNetworkSettingResponse;
     use common::actioncontroller::OffloadModelRequest;
     use common::actioncontroller::OffloadModelResponse;
+    use common::actioncontroller::ResourceSyncState;
+    use common::actioncontroller::ScalingActionRequest;
+    use common::actioncontroller::ScalingActionResponse;
     use common::actioncontroller::{
         action_controller_connection_server::{
             ActionControllerConnection, ActionControllerConnectionServer,
@@ -147,6 +150,21 @@ mod tests {
                     message: "Mock stop workload successful".to_string(),
                 },
             ))
+        }
+
+        async fn request_resource_scaling(
+            &self,
+            request: Request<ScalingActionRequest>,
+        ) -> std::result::Result<Response<ScalingActionResponse>, Status> {
+            let req = request.into_inner();
+
+            Ok(Response::new(ScalingActionResponse {
+                success: true,
+                message: "Mock scaling successful".to_string(),
+                sync_state: ResourceSyncState::SyncSynchronized as i32,
+                actual_cpu_limit: req.target_cpu_limit,
+                actual_memory_limit: req.target_memory_limit,
+            }))
         }
     }
 

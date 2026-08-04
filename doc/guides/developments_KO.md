@@ -12,7 +12,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ### 환경 설정
 
-자세한 내용은 [설치 가이드](/doc/docs/getting-started.md#installation)를 참고하세요.
+자세한 내용은 [설치 가이드](/doc/guides/getting-started.md#installation)를 참고하세요.
 
 ### 빌드
 
@@ -50,7 +50,7 @@ make image
 make install
 ```
 
-자세한 내용은 [시작하기](/doc/docs/getting-started.md)를 참고하세요.
+자세한 내용은 [시작하기](/doc/guides/getting-started.md)를 참고하세요.
 
 ## 정적 분석
 
@@ -247,7 +247,7 @@ etcd (기본값)
 
 이 프로젝트의 문서 파일은 [doc](/doc/) 디렉토리에 위치하며, 다음을 포함합니다:
 
-- [시작하기](/doc/docs/getting-started.md): 실행 방법
+- [시작하기](/doc/guides/getting-started.md): 실행 방법
 - [예제](/examples/README.md): 예제 수행을 위한 모든 파일과 가이드가 포함된 디렉토리
 - (Deprecated) ~~[pullpiri.drawio](/doc/images/pullpiri.drawio):
 Pullpiri에 사용된 모든 다이어그램이 포함된 파일~~

@@ -45,13 +45,13 @@ dds:
 ### Pullpiri modules
 
 Pullpiri consists of many modules.
-For each modules, refer to [Structure](/doc/docs/developments.md#structure).  
+For each modules, refer to [Structure](/doc/guides/developments.md#structure).  
 And the [example](/examples/README.md) would be helpful.
 
 ## Limitations
 
 - Multi-node system and the resulting node-selectors have not yet been fully considered.
-- For better operation, recommend operating with `root` user with selinux permissive mode.
+- For better operation, recommend operating with `root` user (required for systemd service registration and access to system paths such as `/etc`, `/opt`).
 - `/etc/containers/systemd` folder is used for pullpiri systemd service files. This cannot be changed.
 - Because it is still an early version, it may sometimes take a lot of time to start/stop/update the container.
 - There may be other issues as well.
@@ -60,16 +60,11 @@ And the [example](/examples/README.md) would be helpful.
 
 ### Before installation
 
-need some packages, disable firewall, permissive selinux
+need some packages.
 
 ```bash
-# disable firewall
-systemctl stop firewalld
-systemctl disable firewalld
 # install package
 dnf install git-all make gcc -y
-# permissive selinux
-setenforce 0
 ```
 
 For modifying configuration, see [configuration](#pullpiri-configuration).

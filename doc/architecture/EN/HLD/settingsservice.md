@@ -44,7 +44,7 @@ The Settings Service provides the following main features:
    - Change verification and collision prevention
 
 4. **Monitoring Information**
-   - View Pullpiri resource status information stored in ETCD
+   - View Pullpiri resource status information stored in KV Store
    - Visualize resource-specific monitoring data
    - Export monitoring data
 
@@ -72,7 +72,7 @@ The main components of the Settings Service are as follows:
    - Rollback functionality
 
 4. **Monitoring Viewer**
-   - Retrieve monitoring data from ETCD
+   - Retrieve monitoring data from KV Store
    - Process resource-specific monitoring data
    - Visualize monitoring information
 
@@ -88,7 +88,7 @@ The main components of the Settings Service are as follows:
 
 7. **External Integration**
    - API Server integration
-   - ETCD storage integration
+   - KV storage integration
    - External system integration
 
 ### 2.2 Data Flow
@@ -98,7 +98,7 @@ The main data flows in the Settings Service are as follows:
 1. **Configuration Change Flow**
    - User requests configuration change via Web UI or CLI
    - Configuration validation and impact analysis
-   - Save changes to ETCD and record history
+   - Save changes to kvstore and record history
    - Forward changes to API Server
    - Monitor change application results and provide feedback
 
@@ -111,7 +111,7 @@ The main data flows in the Settings Service are as follows:
 
 3. **Monitoring Data Retrieval Flow**
    - User requests monitoring information
-   - Retrieve resource status information from ETCD
+   - Retrieve resource status information from kvstore
    - Process and aggregate monitoring data
    - Provide data visualization or export in requested format
 
@@ -129,7 +129,7 @@ The Settings Service integrates with other Pullpiri framework components as foll
    - Monitor component status
    - Make rollback decisions based on state
 
-3. **ETCD**
+3. **KV Store**
    - Store configuration data
    - Manage change history
    - Configuration version management
@@ -167,7 +167,7 @@ The web-based user interface provides the following features:
    - Rollback functionality
 
 4. **Monitoring Viewer**
-   - View Pullpiri resource status information collected from ETCD
+   - View Pullpiri resource status information collected from kvstore
    - Visualize resource-specific monitoring data
    - Filter and export monitoring data
 
@@ -372,11 +372,6 @@ components:
     healthCheck: "Passed"
     uptime: "5d 12h 40m"
     version: "v1.2.1"
-  - name: "ETCD"
-    status: "Running"
-    healthCheck: "Passed"
-    uptime: "10d 8h 15m"
-    version: "v3.5.2"
 resourceSummary:
   nodes:
     total: 5
@@ -492,11 +487,11 @@ The rollback functionality is performed in the following process:
 
 ### 5.3 Monitoring Information Retrieval
 
-#### 5.3.1 ETCD-based Monitoring Data Retrieval
+#### 5.3.1 DB-based Monitoring Data Retrieval
 
-The process of retrieving monitoring data from ETCD is as follows:
+The process of retrieving monitoring data from kvstore is as follows:
 
-1. **Resource Information Retrieval**: Retrieve resource list and status information stored in ETCD
+1. **Resource Information Retrieval**: Retrieve resource list and status information stored in kvstore
 2. **Data Processing**: Process raw data into user-friendly format
 3. **Status Aggregation**: Aggregate and summarize status information by resource type
 4. **Event Correlation**: Display with related event information
@@ -596,7 +591,7 @@ The following considerations should be taken into account when implementing the 
    - Rust language
    - Actix Web framework
    - gRPC communication
-   - ETCD storage
+   - KV Store
 
 2. **Modularity**
    - Separate modules by functionality

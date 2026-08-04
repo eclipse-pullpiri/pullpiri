@@ -41,7 +41,7 @@ The Pullpiri Clustering System is designed to implement a distributed container 
    - Configure geographically distributed clusters
 
 3. **State Synchronization**
-   - Manage state information based on etcd
+   - Manage state information based on kvstore
    - Synchronize state information between nodes
    - Detect and notify state changes
    - Support offline mode and resynchronization upon reconnection
@@ -62,7 +62,7 @@ The Pullpiri Clustering System is designed to implement a distributed container 
 ## 2. Technologies and Environment
 
 **Main Languages/Frameworks**: Rust, Bash scripts  
-**Other Libraries/Tools**: gRPC, etcd, Podman, systemd  
+**Other Libraries/Tools**: gRPC, kvstore, Podman, systemd  
 **Deployment/Operation Environment**: Embedded Linux, cloud environment (hybrid)
 
 ## 3. Architecture
@@ -90,7 +90,7 @@ graph TD
     D <--> H
     D <--> J
     D <--> L
-    M[etcd] <--> B
+    M[kvstore] <--> B
     M <--> C
     M <--> D
 ```
@@ -99,10 +99,10 @@ graph TD
 
 | Component | Role | Interaction |
 |-----------|------|-------------|
-| API Server | Cluster management, node registration, policy distribution | NodeAgent, StateManager, etcd |
+| API Server | Cluster management, node registration, policy distribution | NodeAgent, StateManager, kvstore |
 | NodeAgent | Node status monitoring, communication with master node | API Server, StateManager, MonitoringServer |
-| StateManager | Cluster state management and synchronization | API Server, NodeAgent, etcd |
-| etcd | Cluster state information storage | All components |
+| StateManager | Cluster state management and synchronization | API Server, NodeAgent, kvstore |
+| kvstore | Cluster state information storage | All components |
 | Installation Script | Deploy and configure NodeAgent | Node system |
 | System Check Script | Verify node readiness | Node system |
 
@@ -112,7 +112,7 @@ graph TD
 |-------|------------|-------------|
 | Core Service | Rust | High-performance, memory-safe core service implementation language |
 | Communication Protocol | gRPC | Efficient protocol for master-sub node communication |
-| State Storage | etcd | Distributed key-value store for cluster state management |
+| State Storage | kvstore | Distributed key-value store for cluster state management |
 | Container Runtime | Podman | Daemonless lightweight container management tool |
 | Service Management | systemd | Node service management and auto-start configuration |
 | Deployment Tool | Bash scripts | Automation tool for node installation and configuration |
@@ -164,18 +164,18 @@ sequenceDiagram
     participant NA as NodeAgent
     participant AS as API Server
     participant SM as StateManager
-    participant ET as etcd
+    participant DB as kvstore
     
     SN->>NA: Install and initialize
     NA->>NA: System readiness check
     NA->>AS: Node registration request
     AS->>AS: Verify node information
-    AS->>ET: Store node information
+    AS->>DB: Store node information
     AS->>SM: Notify node state change
     AS-->>NA: Registration complete
     loop Periodic monitoring
         NA->>AS: Heartbeat and status report
-        AS->>ET: Update status information
+        AS->>DB: Update status information
     end
 ```
 
@@ -186,7 +186,7 @@ sequenceDiagram
 2. Perform system readiness check
 3. Send registration request to master node API Server
 4. Perform node authentication and authorization
-5. Store node information in etcd
+5. Store node information in kvstore
 6. Update cluster topology
 7. Start periodic heartbeat and status reporting
 8. Notify StateManager on status change
@@ -200,11 +200,11 @@ sequenceDiagram
 sequenceDiagram
     participant A as Administrator
     participant AS as API Server
-    participant ET as etcd
+    participant DB as kvstore
     participant NA as NodeAgent
     
     A->>AS: Request topology configuration
-    AS->>ET: Store topology information
+    AS->>DB: Store topology information
     AS->>NA: Distribute configuration
     NA-->>AS: Confirm configuration applied
     AS-->>A: Topology configuration complete
@@ -286,7 +286,7 @@ service NodeAgentService {
 ### 7.2 Internal Interfaces
 
 - API Server ↔ StateManager: Node state change notifications, topology sync  
-- API Server ↔ etcd: Store/retrieve node and topology info  
+- API Server ↔ kvstore: Store/retrieve node and topology info  
 - NodeAgent ↔ System Monitoring: Podman container status, resource usage, hardware checks  
 
 ## 8. Performance & Scalability
@@ -302,7 +302,6 @@ Scaling strategies: gradual node scaling, multi-cluster hierarchy, hybrid cloud 
 - TLS-based node authentication  
 - Role-based access control  
 - Encrypted gRPC communication  
-- etcd encryption, audit logging  
 
 ## 10. Fault Handling & Recovery
 
@@ -340,7 +339,6 @@ Scaling strategies: gradual node scaling, multi-cluster hierarchy, hybrid cloud 
 - Pullpiri framework design docs  
 - API Server design docs  
 - NodeAgent design docs  
-- etcd docs: https://etcd.io/docs/  
 - Podman docs: https://podman.io/docs/  
 
 ## Appendix
@@ -352,7 +350,7 @@ Scaling strategies: gradual node scaling, multi-cluster hierarchy, hybrid cloud 
 | Master Node | Central node managing the cluster |
 | Sub Node | Worker node managed by master |
 | NodeAgent | Agent running on each node |
-| etcd | Distributed key-value store |
+| kvstore | Distributed key-value store |
 | Podman | Daemonless container tool |
 | Topology | Node connection structure |
 | Heartbeat | Periodic signal for liveness check |

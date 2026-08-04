@@ -92,7 +92,6 @@ The server layer provides central orchestration, storage, and management service
 **Key Features**:
 - Provides gRPC interface on port 47007
 - Stores all artifacts, scenarios, policies, and node information
-- Replaces etcd for centralized storage
 - Supports batch operations for efficiency
 - Ensures data persistence across restarts
 
@@ -388,7 +387,7 @@ height="75%"
 ## apiserver
 
 Apiserver works similarly to apiserver in k8s.
-It parses resources received via REST API through `importer` and writes actions and conditions to `etcd` so that the `gateway` can recognize the conditions.
+It parses resources received via REST API through `importer` and writes actions and conditions to `kvstore` so that the `gateway` can recognize the conditions.
 In addition, it can access `statemanager` directly.
 
 We are also developing to collect metrics for monitoring.

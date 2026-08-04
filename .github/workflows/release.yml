@@ -262,7 +262,7 @@ jobs:
         id: upload_coding_guidelines
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: doc/contribution/coding-rule.md
+          file: contribution/coding-rule.md
           tag: ${{ github.ref }}
 
       - name: Upload Release Process to release
@@ -274,23 +274,23 @@ jobs:
           tag: ${{ github.ref }}
 
       # Upload nodeagent installation and utility scripts
-      - name: Upload nodeagent installation script to release
-        uses: svenstaro/upload-release-action@v2
-        id: upload_install_script
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: doc/scripts/install_nodeagent.sh
-          asset_name: install_nodeagent.sh
-          tag: ${{ github.ref }}
+      # - name: Upload nodeagent installation script to release
+      #   uses: svenstaro/upload-release-action@v2
+      #   id: upload_install_script
+      #   with:
+      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
+      #     file: doc/scripts/install_nodeagent.sh
+      #     asset_name: install_nodeagent.sh
+      #     tag: ${{ github.ref }}
 
-      - name: Upload node ready check script to release
-        uses: svenstaro/upload-release-action@v2
-        id: upload_check_script
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: doc/scripts/node_ready_check.sh
-          asset_name: node_ready_check.sh
-          tag: ${{ github.ref }}
+      # - name: Upload node ready check script to release
+      #   uses: svenstaro/upload-release-action@v2
+      #   id: upload_check_script
+      #   with:
+      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
+      #     file: doc/scripts/node_ready_check.sh
+      #     asset_name: node_ready_check.sh
+      #     tag: ${{ github.ref }}
 
       # Archive the entire doc folder for easy release viewing
       - name: Archive doc folder

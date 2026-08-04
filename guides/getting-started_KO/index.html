@@ -436,25 +436,14 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        사전 정보
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="사전 정보">
+    <nav class="md-nav" aria-label="시스템 요구사항">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#pullpiri" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pullpiri 설정
+        최소 하드웨어 요구사항
       
     </span>
   </a>
@@ -462,10 +451,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#pullpiri_1" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pullpiri 모듈
+        소프트웨어 사전 요구사항
       
     </span>
   </a>
@@ -478,33 +467,45 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        제한 사항
+        빠른 시작
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="빠른 시작">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1: 사전 요구사항 설치
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1: 사전 요구사항 설치">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#podman" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Podman 설치
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        설치
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="설치">
-      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        설치 전 준비사항
+        시스템 준비
       
     </span>
   </a>
@@ -515,7 +516,7 @@
   <a href="#_7" class="md-nav__link">
     <span class="md-ellipsis">
       
-        설치 과정
+        필요 포트 개방
       
     </span>
   </a>
@@ -524,6 +525,110 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: 저장소 클론
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-pullpiri" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: Pullpiri 배포
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4: 설치 확인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서비스 포트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        제거
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        소스 빌드
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        튜토리얼
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        설정 참조
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        추가 자료
+      
+    </span>
+  </a>
   
 </li>
       
@@ -559,92 +664,342 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <h1 id="_1">시작하기<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>Pullpiri는 Rust 기반의 차량 서비스 오케스트레이터 프레임워크로, 차량 내 클라우드 네이티브 서비스를 효율적으로 배포하고 관리할 수 있게 합니다. 서버, 에이전트, 플레이어 컴포넌트로 구성된 마이크로서비스 아키텍처를 사용하여 차량 시스템에서 컨테이너화된 워크로드를 오케스트레이션합니다.</p>
+<p>이 가이드는 Pullpiri를 실행하는 세 가지 방법을 안내합니다:</p>
+<table>
+<thead>
+<tr>
+<th>방법</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#빠른-시작">빠른 시작</a></td>
+<td>GitHub Container Registry의 사전 빌드된 컨테이너 이미지 배포</td>
+</tr>
+<tr>
+<td><a href="../build/">소스 빌드</a></td>
+<td>소스 코드에서 Docker 이미지 및 바이너리 빌드</td>
+</tr>
+<tr>
+<td><a href="../tutorial/">튜토리얼</a></td>
+<td>내장 예제 시나리오를 처음부터 끝까지 실행</td>
+</tr>
+</tbody>
+</table>
+<hr />
 <h2 id="_2">시스템 요구사항<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
-<p>Pullpiri는 Ubuntu 24.04에서 테스트되었습니다.</p>
-<p><a href="https://podman.io/">Podman</a>은 컨테이너 런타임으로 사용되므로 반드시 설치되어 있어야 합니다 (Pullpiri는 버전 4.0.0 이상의 Podman이 필요합니다).<br />
-또한 컨테이너를 사용하지 않고 테스트하려면 <a href="https://www.rust-lang.org">Rust</a>가 필요합니다.</p>
-<h2 id="_3">사전 정보<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<h3 id="pullpiri">Pullpiri 설정<a class="headerlink" href="#pullpiri" title="Permanent link">&para;</a></h3>
-<p>설정을 위한 <code>settings.yaml</code> 파일이 있습니다. 이 파일은 설치 중에 <code>/etc/piccolo/settings.yaml</code> 경로에 자동으로 생성됩니다.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">yaml_storage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/etc/piccolo/yaml</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">piccolo_cloud</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://0.0.0.0:41234</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">host</span><span class="p">:</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HPC</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">ip</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0.0.0</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bluechi</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nt">guest</span><span class="p">:</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1">#  - name: ZONE</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1">#    ip: 192.168.0.1</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1">#    type: nodeagent</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nt">dds</span><span class="p">:</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">idl_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">src/vehicle/dds/idl</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="nt">domain_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="c1"># Removed out_dir - will use Cargo&#39;s default OUT_DIR</span>
+<p>Pullpiri는 다음 Linux 배포판에서 테스트되었습니다:</p>
+<ul>
+<li>Ubuntu 24.04 LTS</li>
+<li>CentOS Stream 9</li>
+</ul>
+<h3 id="_3">최소 하드웨어 요구사항<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>리소스</th>
+<th>최소 사양</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU</td>
+<td>2코어</td>
+</tr>
+<tr>
+<td>RAM</td>
+<td>512 MB</td>
+</tr>
+<tr>
+<td>디스크</td>
+<td>20 GB</td>
+</tr>
+<tr>
+<td>아키텍처</td>
+<td><code>x86_64</code> 또는 <code>aarch64</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_4">소프트웨어 사전 요구사항<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>소프트웨어</th>
+<th>버전</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://podman.io/">Podman</a></td>
+<td>≥ 4.0.0</td>
+<td>필수 컨테이너 런타임</td>
+</tr>
+<tr>
+<td>Linux 커널</td>
+<td>≥ 5.10</td>
+<td>호스트 네트워킹 지원</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_5">빠른 시작<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<p>GitHub Container Registry에 게시된 사전 빌드된 컨테이너 이미지를 사용하는 것이 가장 빠른 방법입니다.</p>
+<h3 id="step-1">Step 1: 사전 요구사항 설치<a class="headerlink" href="#step-1" title="Permanent link">&para;</a></h3>
+<h4 id="podman">Podman 설치<a class="headerlink" href="#podman" title="Permanent link">&para;</a></h4>
+<p><strong>Ubuntu 22.04 / 24.04:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sudo<span class="w"> </span>apt<span class="w"> </span>update
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>podman
+</code></pre></div>
+<p><strong>CentOS Stream 9 / RHEL:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>podman
+</code></pre></div>
+<p>Podman 설치 확인:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>podman<span class="w"> </span>--version
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># podman version 4.x.x or higher</span>
+</code></pre></div>
+<h4 id="_6">시스템 준비<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h4>
+<p>Pullpiri는 여러 모듈로 구성되어 있습니다.
+각 모듈에 대한 자세한 내용은 <a href="/doc/guides/developments.md#structure">Structure</a>를 참고하세요.<br />
+또한 <a href="/examples/README.md">예제</a>가 도움이 될 것입니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># 필수 디렉토리 생성</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/etc/pullpiri
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/run/pullpirilog
 </code></pre></div>
 <ul>
-<li>yaml_storage : Podman을 이용해 systemd 서비스를 생성하기 위해 <code>.kube</code> 및 <code>.yaml</code> 파일이 필요합니다.</li>
-<li>piccolo_cloud : <code>Packages</code>와 <code>scenarios</code>를 저장하는 저장소 주소입니다.</li>
-<li>host : <code>bluechi</code>를 통해 systemd 명령을 전달하기 위해 노드 이름이 필요합니다.</li>
-<li>guest : Bluechi 에이전트 노드 정보입니다.</li>
-<li>dds : 추후 업데이트 예정입니다.</li>
-</ul>
-<h3 id="pullpiri_1">Pullpiri 모듈<a class="headerlink" href="#pullpiri_1" title="Permanent link">&para;</a></h3>
-<p>Pullpiri는 여러 모듈로 구성되어 있습니다.
-각 모듈에 대한 자세한 내용은 <a href="/doc/docs/developments.md#structure">Structure</a>를 참고하세요.<br />
-또한 <a href="/examples/README.md">예제</a>가 도움이 될 것입니다.</p>
-<h2 id="_4">제한 사항<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
-<ul>
 <li>멀티 노드 시스템 및 그에 따른 노드 셀렉터는 아직 완전히 고려되지 않았습니다.</li>
-<li>원활한 운영을 위해 selinux permissive 모드의 <code>root</code> 사용자로 운영하는 것을 권장합니다.</li>
+<li>원활한 운영을 위해 <code>root</code> 사용자로 운영하는 것을 권장합니다 (systemd 서비스 등록 및 <code>/etc</code>, <code>/opt</code> 등 시스템 경로 접근에 필요).</li>
 <li><code>/etc/containers/systemd</code> 폴더는 Pullpiri systemd 서비스 파일에 사용됩니다. 이 경로는 변경할 수 없습니다.</li>
 <li>아직 초기 버전이므로 컨테이너 시작/중지/업데이트에 시간이 오래 걸릴 수 있습니다.</li>
 <li>그 외 다른 문제가 발생할 수 있습니다.</li>
 </ul>
-<h2 id="_5">설치<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
-<h3 id="_6">설치 전 준비사항<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
-<p>필요한 패키지 설치, 방화벽 비활성화, selinux permissive 설정이 필요합니다.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 방화벽 비활성화</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>systemctl<span class="w"> </span>stop<span class="w"> </span>firewalld
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>systemctl<span class="w"> </span>disable<span class="w"> </span>firewalld
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># 패키지 설치</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>dnf<span class="w"> </span>install<span class="w"> </span>git-all<span class="w"> </span>make<span class="w"> </span>gcc<span class="w"> </span>-y
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># selinux permissive 설정</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>setenforce<span class="w"> </span><span class="m">0</span>
+<h4 id="_7">필요 포트 개방<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h4>
+<p>Pullpiri는 다음 TCP 포트를 사용합니다. 방화벽에서 해당 포트를 허용하도록 설정하세요:</p>
+<table>
+<thead>
+<tr>
+<th>포트</th>
+<th>서비스</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8080</td>
+<td>Settings Service (REST)</td>
+</tr>
+<tr>
+<td>47001</td>
+<td>Action Controller (gRPC)</td>
+</tr>
+<tr>
+<td>47002</td>
+<td>Filter Gateway (gRPC)</td>
+</tr>
+<tr>
+<td>47003</td>
+<td>Monitoring Server (gRPC)</td>
+</tr>
+<tr>
+<td>47004</td>
+<td>NodeAgent (gRPC)</td>
+</tr>
+<tr>
+<td>47005</td>
+<td>Policy Manager (gRPC)</td>
+</tr>
+<tr>
+<td>47006</td>
+<td>State Manager (gRPC)</td>
+</tr>
+<tr>
+<td>47007</td>
+<td>RocksDB Service (gRPC)</td>
+</tr>
+<tr>
+<td>47098</td>
+<td>API Server (gRPC)</td>
+</tr>
+<tr>
+<td>47099</td>
+<td>API Server (REST)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>CentOS Stream 9 / RHEL (firewalld):</strong></p>
+<p>먼저 firewalld 실행 여부를 확인합니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>is-active<span class="w"> </span>firewalld
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># active   → 아래 명령어 실행</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># inactive → 방화벽이 비활성화 상태, 포트가 이미 열려 있으므로 이 단계 생략</span>
 </code></pre></div>
-<p>설정 변경에 대한 자세한 내용은 <a href="#pullpiri-설정">설정</a>을 참고하세요.</p>
-<h3 id="_7">설치 과정<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
-<p>모든 Pullpiri 애플리케이션과 테스트 앱은 컨테이너 내에서 실행됩니다.
-컨테이너에 익숙하다면 쉽게 사용할 수 있을 것입니다.
-<code>Pullpiri</code>는 기본적으로 <code>podman play</code>를 사용합니다.
-처음 사용하는 경우 <a href="/examples/README.md">예제</a>를 먼저 따라해보는 것을 권장합니다.</p>
-<p>시작하기 전에 Pullpiri 컨테이너 이미지를 빌드해야 합니다.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>builder
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>make<span class="w"> </span>image
+<p>firewalld가 활성화된 경우 필요한 포트를 개방합니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-port<span class="o">=</span><span class="m">8080</span>/tcp
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-port<span class="o">=</span><span class="m">47001</span>-47007/tcp
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-port<span class="o">=</span><span class="m">47098</span>-47099/tcp
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--reload
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--list-ports
 </code></pre></div>
-<p><em>주의</em> - 성공적인 빌드를 위해서는 최소 20GB의 디스크 공간이 필요합니다.</p>
-<p><code>apt update</code> 중 오류가 발생하면 DNS 네임서버를 확인하세요.</p>
-<p>시작하려면,</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>install
+<h3 id="step-2">Step 2: 저장소 클론<a class="headerlink" href="#step-2" title="Permanent link">&para;</a></h3>
+<p>설치 스크립트는 저장소에 포함되어 있습니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/eclipse-pullpiri/pullpiri.git
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">cd</span><span class="w"> </span>pullpiri
 </code></pre></div>
-<p>중지하려면,</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>uninstall
+<h3 id="step-3-pullpiri">Step 3: Pullpiri 배포<a class="headerlink" href="#step-3-pullpiri" title="Permanent link">&para;</a></h3>
+<p>설치 스크립트는 GitHub Container Registry에서 컨테이너 이미지를 자동으로 받아 Podman 파드로 배포합니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># root 권한으로 실행 (Podman 파드 및 시스템 설정에 필요)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>sudo<span class="w"> </span>bash<span class="w"> </span>containers/install-pullpiri.sh
 </code></pre></div>
-<p><code>podman ps</code> 명령으로 컨테이너 목록을 확인할 수 있습니다. (infra 컨테이너는 생략됩니다.)</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>[root@master pullpiri]# podman ps
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>CONTAINER ID  IMAGE                                 COMMAND               CREATED         STATUS         PORTS          NAMES
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>fd03b211e2ac  gcr.io/etcd-development/etcd:v3.5.24  --data-dir=/etcd-...  32 seconds ago  Up 32 seconds  2379-2380/tcp  piccolo-server-etcd
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>c6fbbb6feca5  localhost/pullpiri-server:latest                            32 seconds ago  Up 31 seconds                 piccolo-server-apiserver
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>341edada2c33  localhost/pullpiri-agent:latest                             31 seconds ago  Up 31 seconds                 piccolo-agent-nodeagent
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>eee2153bb581  localhost/pullpiri-player:latest                            31 seconds ago  Up 30 seconds                 piccolo-player-filtergateway
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>8d8011a24b43  localhost/pullpiri-player:latest                            31 seconds ago  Up 30 seconds                 piccolo-player-actioncontroller
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>[root@master images]# podman pod ps
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>POD ID        NAME            STATUS      CREATED             INFRA ID      # OF CONTAINERS
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>cc169812bd3e  piccolo-player  Degraded    About a minute ago  fb8974d9ba47  4
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>85eeff5e07cf  piccolo-agent   Running     About a minute ago  518c9482ae00  2
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>809508bfdc46  piccolo-server  Degraded    About a minute ago  1a738d6106f0  5
+<p>스크립트 실행 내용:
+1. <code>/etc/pullpiri/settings.yaml</code> 설정 파일 생성
+2. <code>ghcr.io/eclipse-pullpiri/pullpiri:latest</code> 이미지 풀 (서버 및 플레이어 컴포넌트)
+3. <code>ghcr.io/mco-piccolo/pullpiri-rocksdb:v11.18.0</code> 이미지 풀 (RocksDB 스토리지 서비스)
+4. <code>pullpiri-server</code> Podman 파드 시작 (RocksDB, APIServer, PolicyManager, MonitoringServer, LogService, SettingsService)
+5. <code>pullpiri-player</code> Podman 파드 시작 (FilterGateway, ActionController, StateManager)
+6. GitHub Releases에서 <code>nodeagent</code> 바이너리를 다운로드하여 <strong>systemd 서비스</strong> (<code>nodeagent.service</code>)로 등록</p>
+<blockquote>
+<p><strong>참고:</strong> 컨테이너 이미지를 다운로드하는 첫 실행은 몇 분 정도 소요될 수 있습니다.</p>
+</blockquote>
+<h3 id="step-4">Step 4: 설치 확인<a class="headerlink" href="#step-4" title="Permanent link">&para;</a></h3>
+<p>모든 컨테이너가 실행 중인지 확인합니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>podman<span class="w"> </span>pod<span class="w"> </span>ps
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># NAME              STATUS    ...</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># pullpiri-server   Running   ...</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># pullpiri-player   Running   ...</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>podman<span class="w"> </span>ps
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># pullpiri-rocksdbservice   Running ...</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1"># pullpiri-apiserver        Running ...</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="c1"># pullpiri-policymanager    Running ...</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="c1"># pullpiri-monitoringserver Running ...</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="c1"># pullpiri-logservice       Running ...</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="c1"># pullpiri-settingsservice  Running ...</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="c1"># pullpiri-filtergateway    Running ...</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="c1"># pullpiri-actioncontroller Running ...</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="c1"># pullpiri-statemanager     Running ...</span>
 </code></pre></div>
-<p><a href="/Makefile">Makefile</a>도 참고하세요.</p>
+<p>nodeagent systemd 서비스가 실행 중인지 확인합니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>systemctl<span class="w"> </span>status<span class="w"> </span>nodeagent.service
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># ● nodeagent.service - Pullpiri NodeAgent Service</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1">#    Active: active (running) ...</span>
+</code></pre></div>
+<p>API 서버가 수신 대기 중인지 확인합니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nv">HOST_IP</span><span class="o">=</span><span class="k">$(</span>hostname<span class="w"> </span>-I<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $1}&#39;</span><span class="k">)</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span><span class="s2">&quot;http://</span><span class="si">${</span><span class="nv">HOST_IP</span><span class="si">}</span><span class="s2">:47099/api/notify&quot;</span>
+</code></pre></div>
+<h3 id="_8">서비스 포트<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>서비스</th>
+<th>포트</th>
+<th>프로토콜</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API Server (REST)</td>
+<td>47099</td>
+<td>REST (HTTP)</td>
+</tr>
+<tr>
+<td>API Server (gRPC)</td>
+<td>47098</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>Action Controller</td>
+<td>47001</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>Filter Gateway</td>
+<td>47002</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>Monitoring Server</td>
+<td>47003</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>NodeAgent</td>
+<td>47004</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>Policy Manager</td>
+<td>47005</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>State Manager</td>
+<td>47006</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>RocksDB Service</td>
+<td>47007</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>Settings Service</td>
+<td>8080</td>
+<td>REST (HTTP)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_9">제거<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<p>모든 Pullpiri 컨테이너와 파드를 중지하고 제거하려면:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>sudo<span class="w"> </span>make<span class="w"> </span>uninstall
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># 동일한 명령: sudo bash containers/uninstall-pullpiri.sh</span>
+</code></pre></div>
+<hr />
+<h2 id="_10">소스 빌드<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
+<p>소스 코드에서 Pullpiri를 빌드해야 하는 경우(예: 커스텀 수정 또는 특정 아키텍처), 자세한 <strong><a href="../build/">빌드 가이드</a></strong>를 참고하세요.</p>
+<p>빌드 가이드에서 다루는 내용:
+- 프로젝트 <code>Dockerfile</code>로 Docker/Podman 컨테이너 이미지 빌드
+- 컨테이너 빌드 스테이지 내에서 모든 Rust 바이너리 컴파일
+- 빌드된 이미지를 대상 시스템에 설치</p>
+<hr />
+<h2 id="_11">튜토리얼<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
+<p>Pullpiri를 설치하고 실행한 후, <strong><a href="../tutorial/">튜토리얼</a></strong>을 따라 첫 번째 차량 서비스 시나리오를 배포해 보세요.</p>
+<p>튜토리얼 내용:
+- <code>examples/</code> 디렉토리의 내장 <code>helloworld</code> 시나리오 실행
+- 배포된 컨테이너 워크로드 확인
+- Scenario → Package → Model 리소스 모델 이해</p>
+<hr />
+<h2 id="_12">설정 참조<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<p>주요 설정 파일은 설치 중에 <code>/etc/pullpiri/settings.yaml</code> 경로에 자동으로 생성됩니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">host</span><span class="p">:</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;hostname&gt;</span><span class="w">        </span><span class="c1"># 노드 호스트명 (자동 감지)</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">ip</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;host-ip&gt;</span><span class="w">           </span><span class="c1"># 호스트 IP 주소 (자동 감지)</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vehicle</span><span class="w">           </span><span class="c1"># 노드 타입</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">master</span><span class="w">            </span><span class="c1"># 노드 역할 (master 또는 nodeagent)</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nt">dds</span><span class="p">:</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span><span class="nt">idl_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">src/vehicle/dds/idl</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">  </span><span class="nt">domain_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+</code></pre></div>
+<p>원격 게스트 노드를 추가하려면(멀티 노드 구성), <code>/etc/pullpiri/settings.yaml</code>을 편집합니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nt">host</span><span class="p">:</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HPC</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nt">ip</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">192.168.0.100</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vehicle</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">master</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="nt">guest</span><span class="p">:</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ZONE1</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">    </span><span class="nt">ip</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">192.168.0.101</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vehicle</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">    </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nodeagent</span>
+</code></pre></div>
+<hr />
+<h2 id="_13">추가 자료<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../structure/">프로젝트 구조</a></li>
+<li><a href="../pullpiri-apis/">API 참조</a></li>
+<li><a href="../developments/">개발 가이드</a></li>
+<li><a href="../release/">릴리즈 노트</a></li>
+</ul>
 
 
 

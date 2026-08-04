@@ -952,7 +952,6 @@ height="75%"
 <p><strong>Key Features</strong>:
 - Provides gRPC interface on port 47007
 - Stores all artifacts, scenarios, policies, and node information
-- Replaces etcd for centralized storage
 - Supports batch operations for efficiency
 - Ensures data persistence across restarts</p>
 <p><strong>Storage Keys</strong>:
@@ -1230,7 +1229,7 @@ height="75%"
 </code></pre></div>
 <h2 id="apiserver">apiserver<a class="headerlink" href="#apiserver" title="Permanent link">&para;</a></h2>
 <p>Apiserver works similarly to apiserver in k8s.
-It parses resources received via REST API through <code>importer</code> and writes actions and conditions to <code>etcd</code> so that the <code>gateway</code> can recognize the conditions.
+It parses resources received via REST API through <code>importer</code> and writes actions and conditions to <code>kvstore</code> so that the <code>gateway</code> can recognize the conditions.
 In addition, it can access <code>statemanager</code> directly.</p>
 <p>We are also developing to collect metrics for monitoring.</p>
 <h2 id="importer">importer<a class="headerlink" href="#importer" title="Permanent link">&para;</a></h2>

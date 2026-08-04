@@ -431,30 +431,19 @@
   <a href="#system-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
-        System requirements
+        System Requirements
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#preliminary-info" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Preliminary Info
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Preliminary Info">
+    <nav class="md-nav" aria-label="System Requirements">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#pullpiri-configuration" class="md-nav__link">
+  <a href="#minimum-hardware-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pullpiri Configuration
+        Minimum Hardware Requirements
       
     </span>
   </a>
@@ -462,10 +451,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#pullpiri-modules" class="md-nav__link">
+  <a href="#software-prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pullpiri modules
+        Software Prerequisites
       
     </span>
   </a>
@@ -478,33 +467,34 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#limitations" class="md-nav__link">
+  <a href="#quick-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Limitations
+        Quick Start
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Installation">
+    <nav class="md-nav" aria-label="Quick Start">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#before-installation" class="md-nav__link">
+  <a href="#step-1-install-prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Before installation
+        Step 1: Install Prerequisites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1: Install Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-podman" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install Podman
       
     </span>
   </a>
@@ -512,10 +502,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#install-process" class="md-nav__link">
+  <a href="#prepare-system" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install process
+        Prepare System
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-required-ports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open Required Ports
       
     </span>
   </a>
@@ -524,6 +525,110 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-clone-the-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: Clone the Repository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-deploy-pullpiri" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: Deploy Pullpiri
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-verify-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4: Verify Installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-ports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Ports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uninstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uninstall
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-from-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build from Source
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tutorial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tutorial
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further Reading
+      
+    </span>
+  </a>
   
 </li>
       
@@ -558,93 +663,343 @@ SPDX-FileCopyrightText: Copyright 2024 LG Electronics Inc.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<h1 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
-<h2 id="system-requirements">System requirements<a class="headerlink" href="#system-requirements" title="Permanent link">&para;</a></h2>
-<p>Pullpiri has been tested with Ubuntu 24.04.</p>
-<p><a href="https://podman.io/">Podman</a> needs to be installed as this is used as container runtime (Pullpiri needs podman with version &gt; 4.0.0).<br />
-Also, <a href="https://www.rust-lang.org">Rust</a> is required to test without using a container.</p>
-<h2 id="preliminary-info">Preliminary Info<a class="headerlink" href="#preliminary-info" title="Permanent link">&para;</a></h2>
-<h3 id="pullpiri-configuration">Pullpiri Configuration<a class="headerlink" href="#pullpiri-configuration" title="Permanent link">&para;</a></h3>
-<p>There is a <code>settings.yaml</code> for configuration. This is automatically generated in <code>/etc/pullpiri/settings.yaml</code> during installation.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">yaml_storage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/etc/pullpiri/yaml</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">pullpiri_cloud</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://0.0.0.0:41234</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">host</span><span class="p">:</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HPC</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">ip</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0.0.0</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bluechi</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nt">guest</span><span class="p">:</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1">#  - name: ZONE</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1">#    ip: 192.168.0.1</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1">#    type: nodeagent</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nt">dds</span><span class="p">:</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">idl_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">src/vehicle/dds/idl</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="nt">domain_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="c1"># Removed out_dir - will use Cargo&#39;s default OUT_DIR</span>
+<h1 id="getting-started">Getting Started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
+<p>Pullpiri is a Rust-based vehicle service orchestrator framework that enables efficient deployment and management of cloud-native in-vehicle services. It uses a microservices architecture with server, agent, and player components to orchestrate containerized workloads on vehicle systems.</p>
+<p>This guide walks you through three paths to get Pullpiri running on your system:</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#quick-start">Quick Start</a></td>
+<td>Deploy pre-built container images from GitHub Container Registry</td>
+</tr>
+<tr>
+<td><a href="../build/">Build from Source</a></td>
+<td>Build Docker images and binaries from source code</td>
+</tr>
+<tr>
+<td><a href="../tutorial/">Tutorial</a></td>
+<td>Run a built-in example scenario end-to-end</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="system-requirements">System Requirements<a class="headerlink" href="#system-requirements" title="Permanent link">&para;</a></h2>
+<p>Pullpiri has been tested on the following Linux distributions:</p>
+<ul>
+<li>Ubuntu 24.04 LTS</li>
+<li>CentOS Stream 9</li>
+</ul>
+<h3 id="minimum-hardware-requirements">Minimum Hardware Requirements<a class="headerlink" href="#minimum-hardware-requirements" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Minimum</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU</td>
+<td>2 cores</td>
+</tr>
+<tr>
+<td>RAM</td>
+<td>512 MB</td>
+</tr>
+<tr>
+<td>Disk</td>
+<td>20 GB</td>
+</tr>
+<tr>
+<td>Architecture</td>
+<td><code>x86_64</code> or <code>aarch64</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="software-prerequisites">Software Prerequisites<a class="headerlink" href="#software-prerequisites" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Software</th>
+<th>Version</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://podman.io/">Podman</a></td>
+<td>≥ 4.0.0</td>
+<td>Required container runtime</td>
+</tr>
+<tr>
+<td>Linux kernel</td>
+<td>≥ 5.10</td>
+<td>Host networking support</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
+<p>The fastest way to get Pullpiri running is to use the pre-built container images published to the GitHub Container Registry.</p>
+<h3 id="step-1-install-prerequisites">Step 1: Install Prerequisites<a class="headerlink" href="#step-1-install-prerequisites" title="Permanent link">&para;</a></h3>
+<h4 id="install-podman">Install Podman<a class="headerlink" href="#install-podman" title="Permanent link">&para;</a></h4>
+<p><strong>Ubuntu 22.04 / 24.04:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sudo<span class="w"> </span>apt<span class="w"> </span>update
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>podman
+</code></pre></div>
+<p><strong>CentOS Stream 9 / RHEL:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>podman
+</code></pre></div>
+<p>Verify Podman installation:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>podman<span class="w"> </span>--version
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># podman version 4.x.x or higher</span>
+</code></pre></div>
+<h4 id="prepare-system">Prepare System<a class="headerlink" href="#prepare-system" title="Permanent link">&para;</a></h4>
+<p>Pullpiri consists of many modules.
+For each modules, refer to <a href="/doc/guides/developments.md#structure">Structure</a>.<br />
+And the <a href="/examples/README.md">example</a> would be helpful.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Create required directories</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/etc/pullpiri
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/run/pullpirilog
 </code></pre></div>
 <ul>
-<li>yaml_storage : For making systemd service with podman, we need <code>.kube</code> and <code>.yaml</code> files.</li>
-<li>pullpiri_cloud : The repository address saving <code>Packages</code> and <code>scenarios</code>.</li>
-<li>host : To deliver systemd command with <code>bluechi</code>, we need node name.</li>
-<li>guest : Bluechi agent node information.</li>
-<li>dds : will be updated.</li>
-</ul>
-<h3 id="pullpiri-modules">Pullpiri modules<a class="headerlink" href="#pullpiri-modules" title="Permanent link">&para;</a></h3>
-<p>Pullpiri consists of many modules.
-For each modules, refer to <a href="/doc/docs/developments.md#structure">Structure</a>.<br />
-And the <a href="/examples/README.md">example</a> would be helpful.</p>
-<h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>
-<ul>
 <li>Multi-node system and the resulting node-selectors have not yet been fully considered.</li>
-<li>For better operation, recommend operating with <code>root</code> user with selinux permissive mode.</li>
+<li>For better operation, recommend operating with <code>root</code> user (required for systemd service registration and access to system paths such as <code>/etc</code>, <code>/opt</code>).</li>
 <li><code>/etc/containers/systemd</code> folder is used for pullpiri systemd service files. This cannot be changed.</li>
 <li>Because it is still an early version, it may sometimes take a lot of time to start/stop/update the container.</li>
 <li>There may be other issues as well.</li>
 </ul>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<h3 id="before-installation">Before installation<a class="headerlink" href="#before-installation" title="Permanent link">&para;</a></h3>
-<p>need some packages, disable firewall, permissive selinux</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># disable firewall</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>systemctl<span class="w"> </span>stop<span class="w"> </span>firewalld
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>systemctl<span class="w"> </span>disable<span class="w"> </span>firewalld
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># install package</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>dnf<span class="w"> </span>install<span class="w"> </span>git-all<span class="w"> </span>make<span class="w"> </span>gcc<span class="w"> </span>-y
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># permissive selinux</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>setenforce<span class="w"> </span><span class="m">0</span>
+<h4 id="open-required-ports">Open Required Ports<a class="headerlink" href="#open-required-ports" title="Permanent link">&para;</a></h4>
+<p>Pullpiri uses the following TCP ports. Configure your firewall to allow them:</p>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Service</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8080</td>
+<td>Settings Service (REST)</td>
+</tr>
+<tr>
+<td>47001</td>
+<td>Action Controller (gRPC)</td>
+</tr>
+<tr>
+<td>47002</td>
+<td>Filter Gateway (gRPC)</td>
+</tr>
+<tr>
+<td>47003</td>
+<td>Monitoring Server (gRPC)</td>
+</tr>
+<tr>
+<td>47004</td>
+<td>NodeAgent (gRPC)</td>
+</tr>
+<tr>
+<td>47005</td>
+<td>Policy Manager (gRPC)</td>
+</tr>
+<tr>
+<td>47006</td>
+<td>State Manager (gRPC)</td>
+</tr>
+<tr>
+<td>47007</td>
+<td>RocksDB Service (gRPC)</td>
+</tr>
+<tr>
+<td>47098</td>
+<td>API Server (gRPC)</td>
+</tr>
+<tr>
+<td>47099</td>
+<td>API Server (REST)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>CentOS Stream 9 / RHEL (firewalld):</strong></p>
+<p>First check whether firewalld is running:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>is-active<span class="w"> </span>firewalld
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># active   → run the commands below</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># inactive → firewall is off, ports are already open; skip this step</span>
 </code></pre></div>
-<p>For modifying configuration, see <a href="#pullpiri-configuration">configuration</a>.</p>
-<h3 id="install-process">Install process<a class="headerlink" href="#install-process" title="Permanent link">&para;</a></h3>
-<p>All Pullpiri applications with test app will start in container.
-If you are familiar with container, you will find it easy to use.
-<code>Pullpiri</code> also uses <code>podman play</code> by default.
-If this is your first time, I recommend following <a href="/examples/README.md">Example</a> first.</p>
-<p>Before starting, you must build Pullpiri container image,</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>builder
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>make<span class="w"> </span>image
+<p>If firewalld is active, open the required ports:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-port<span class="o">=</span><span class="m">8080</span>/tcp
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-port<span class="o">=</span><span class="m">47001</span>-47007/tcp
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-port<span class="o">=</span><span class="m">47098</span>-47099/tcp
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--reload
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--list-ports
 </code></pre></div>
-<p><em>CAUTION</em> - A successful build requires at least 20GB of disk space.</p>
-<p>If you have errors during <code>apt update</code>, then check dns nameserver.</p>
-<p>For starting,</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>install
+<h3 id="step-2-clone-the-repository">Step 2: Clone the Repository<a class="headerlink" href="#step-2-clone-the-repository" title="Permanent link">&para;</a></h3>
+<p>The install scripts are included in the repository:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/eclipse-pullpiri/pullpiri.git
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">cd</span><span class="w"> </span>pullpiri
 </code></pre></div>
-<p>For stoping,</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>uninstall
+<h3 id="step-3-deploy-pullpiri">Step 3: Deploy Pullpiri<a class="headerlink" href="#step-3-deploy-pullpiri" title="Permanent link">&para;</a></h3>
+<p>The install script pulls all container images from GitHub Container Registry automatically and deploys them as Podman pods.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Run as root (required for Podman pod and system configuration)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>sudo<span class="w"> </span>bash<span class="w"> </span>containers/install-pullpiri.sh
 </code></pre></div>
-<p>You can see container list via <code>podman ps</code>. (infra container is omitted.)</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>[root@master pullpiri]# podman ps
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>CONTAINER ID  IMAGE                                 COMMAND               CREATED         STATUS         PORTS          NAMES
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>fd03b211e2ac  gcr.io/etcd-development/etcd:v3.5.24  --data-dir=/etcd-...  32 seconds ago  Up 32 seconds  2379-2380/tcp  pullpiri-server-etcd
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>c6fbbb6feca5  localhost/pullpiri-server:latest                            32 seconds ago  Up 31 seconds                 pullpiri-server-apiserver
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>341edada2c33  localhost/pullpiri-agent:latest                             31 seconds ago  Up 31 seconds                 pullpiri-agent-nodeagent
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>eee2153bb581  localhost/pullpiri-player:latest                            31 seconds ago  Up 30 seconds                 pullpiri-player-filtergateway
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>8d8011a24b43  localhost/pullpiri-player:latest                            31 seconds ago  Up 30 seconds                 pullpiri-player-actioncontroller
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>[root@master images]# podman pod ps
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>POD ID        NAME            STATUS      CREATED             INFRA ID      # OF CONTAINERS
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>cc169812bd3e  pullpiri-player  Degraded    About a minute ago  fb8974d9ba47  4
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>85eeff5e07cf  pullpiri-agent   Running     About a minute ago  518c9482ae00  2
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>809508bfdc46  pullpiri-server  Degraded    About a minute ago  1a738d6106f0  5
+<p>The script will:
+1. Create the <code>/etc/pullpiri/settings.yaml</code> configuration file.
+2. Pull <code>ghcr.io/eclipse-pullpiri/pullpiri:latest</code> (server and player components).
+3. Pull <code>ghcr.io/mco-piccolo/pullpiri-rocksdb:v11.18.0</code> (RocksDB storage service).
+4. Start the <code>pullpiri-server</code> Podman pod (RocksDB, APIServer, PolicyManager, MonitoringServer, LogService, SettingsService).
+5. Start the <code>pullpiri-player</code> Podman pod (FilterGateway, ActionController, StateManager).
+6. Download the <code>nodeagent</code> binary from GitHub Releases and register it as a <strong>systemd service</strong> (<code>nodeagent.service</code>).</p>
+<blockquote>
+<p><strong>Note:</strong> The first run may take a few minutes while container images are downloaded.</p>
+</blockquote>
+<h3 id="step-4-verify-installation">Step 4: Verify Installation<a class="headerlink" href="#step-4-verify-installation" title="Permanent link">&para;</a></h3>
+<p>Check that all containers are running:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>podman<span class="w"> </span>pod<span class="w"> </span>ps
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># NAME              STATUS    ...</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># pullpiri-server   Running   ...</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># pullpiri-player   Running   ...</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>podman<span class="w"> </span>ps
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># pullpiri-rocksdbservice   Running ...</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1"># pullpiri-apiserver        Running ...</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="c1"># pullpiri-policymanager    Running ...</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="c1"># pullpiri-monitoringserver Running ...</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="c1"># pullpiri-logservice       Running ...</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="c1"># pullpiri-settingsservice  Running ...</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="c1"># pullpiri-filtergateway    Running ...</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="c1"># pullpiri-actioncontroller Running ...</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="c1"># pullpiri-statemanager     Running ...</span>
 </code></pre></div>
-<p>Also refer to <a href="/Makefile">Makefile</a>.</p>
+<p>Verify the nodeagent systemd service is running:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>systemctl<span class="w"> </span>status<span class="w"> </span>nodeagent.service
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># ● nodeagent.service - Pullpiri NodeAgent Service</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1">#    Active: active (running) ...</span>
+</code></pre></div>
+<p>Verify the API server is listening:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nv">HOST_IP</span><span class="o">=</span><span class="k">$(</span>hostname<span class="w"> </span>-I<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $1}&#39;</span><span class="k">)</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span><span class="s2">&quot;http://</span><span class="si">${</span><span class="nv">HOST_IP</span><span class="si">}</span><span class="s2">:47099/api/notify&quot;</span>
+</code></pre></div>
+<h3 id="service-ports">Service Ports<a class="headerlink" href="#service-ports" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Port</th>
+<th>Protocol</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API Server (REST)</td>
+<td>47099</td>
+<td>REST (HTTP)</td>
+</tr>
+<tr>
+<td>API Server (gRPC)</td>
+<td>47098</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>Action Controller</td>
+<td>47001</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>Filter Gateway</td>
+<td>47002</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>Monitoring Server</td>
+<td>47003</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>NodeAgent</td>
+<td>47004</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>Policy Manager</td>
+<td>47005</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>State Manager</td>
+<td>47006</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>RocksDB Service</td>
+<td>47007</td>
+<td>gRPC</td>
+</tr>
+<tr>
+<td>Settings Service</td>
+<td>8080</td>
+<td>REST (HTTP)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="uninstall">Uninstall<a class="headerlink" href="#uninstall" title="Permanent link">&para;</a></h3>
+<p>To stop and remove all Pullpiri containers and pods:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>sudo<span class="w"> </span>make<span class="w"> </span>uninstall
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># equivalent to: sudo bash containers/uninstall-pullpiri.sh</span>
+</code></pre></div>
+<hr />
+<h2 id="build-from-source">Build from Source<a class="headerlink" href="#build-from-source" title="Permanent link">&para;</a></h2>
+<p>If you need to build Pullpiri from source (e.g., for custom modifications or specific architectures), see the detailed <strong><a href="../build/">Build Guide</a></strong>.</p>
+<p>The build guide covers:
+- Building the Docker/Podman container image from the project <code>Dockerfile</code>
+- Compiling all Rust binaries inside the container build stage
+- Installing the built images on the target system</p>
+<hr />
+<h2 id="tutorial">Tutorial<a class="headerlink" href="#tutorial" title="Permanent link">&para;</a></h2>
+<p>Once Pullpiri is installed and running, follow the <strong><a href="../tutorial/">Tutorial</a></strong> to deploy your first vehicle service scenario.</p>
+<p>The tutorial guides you through:
+- Running the built-in <code>helloworld</code> scenario from the <code>examples/</code> directory
+- Verifying the deployed container workload
+- Understanding the Scenario → Package → Model resource model</p>
+<hr />
+<h2 id="configuration-reference">Configuration Reference<a class="headerlink" href="#configuration-reference" title="Permanent link">&para;</a></h2>
+<p>The main configuration file is automatically created at <code>/etc/pullpiri/settings.yaml</code> during installation:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">host</span><span class="p">:</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;hostname&gt;</span><span class="w">        </span><span class="c1"># Node hostname (auto-detected)</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">ip</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;host-ip&gt;</span><span class="w">           </span><span class="c1"># Host IP address (auto-detected)</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vehicle</span><span class="w">           </span><span class="c1"># Node type</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">master</span><span class="w">            </span><span class="c1"># Node role (master or nodeagent)</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nt">dds</span><span class="p">:</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span><span class="nt">idl_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">src/vehicle/dds/idl</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">  </span><span class="nt">domain_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+</code></pre></div>
+<p>To add remote guest nodes (multi-node setup), edit <code>/etc/pullpiri/settings.yaml</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nt">host</span><span class="p">:</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HPC</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nt">ip</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">192.168.0.100</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vehicle</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">master</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="nt">guest</span><span class="p">:</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ZONE1</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">    </span><span class="nt">ip</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">192.168.0.101</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vehicle</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">    </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nodeagent</span>
+</code></pre></div>
+<hr />
+<h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../structure/">Project Structure</a></li>
+<li><a href="../pullpiri-apis/">API Reference</a></li>
+<li><a href="../developments/">Development Guide</a></li>
+<li><a href="../release/">Release Notes</a></li>
+</ul>
 
 
 

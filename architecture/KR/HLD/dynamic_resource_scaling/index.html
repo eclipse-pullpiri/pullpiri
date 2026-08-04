@@ -1,0 +1,1085 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Container orchestration platform optimized for automotive environments.
+" name="description"/>
+<meta content="Eclipse Pullpiri Contributors" name="author"/>
+<link href="https://eclipse-pullpiri.github.io/pullpiri/architecture/KR/HLD/dynamic_resource_scaling/" rel="canonical"/>
+<link href="../../../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>Dynamic resource scaling - Eclipse Pullpiri</title>
+<link href="../../../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link href="../../../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#dynamic-resource-scaling">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="Eclipse Pullpiri" class="md-header__button md-logo" data-md-component="logo" href="../../../.." title="Eclipse Pullpiri">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            Eclipse Pullpiri
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Dynamic resource scaling
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="indigo" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/eclipse-pullpiri/pullpiri" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    eclipse-pullpiri/pullpiri
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../..">
+        
+  
+  
+    
+  
+  Main
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../../why-pullpiri/">
+        
+  
+  
+    
+  
+  Why Pullpiri
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="Eclipse Pullpiri" class="md-nav__button md-logo" data-md-component="logo" href="../../../.." title="Eclipse Pullpiri">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    Eclipse Pullpiri
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/eclipse-pullpiri/pullpiri" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    eclipse-pullpiri/pullpiri
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../..">
+<span class="md-ellipsis">
+    
+  
+    Main
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../../why-pullpiri/">
+<span class="md-ellipsis">
+    
+  
+    Why Pullpiri
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../">
+<span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1">
+<span class="md-ellipsis">
+      
+        1. 프로젝트 개요
+      
+    </span>
+</a>
+<nav aria-label="1. 프로젝트 개요" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#11">
+<span class="md-ellipsis">
+      
+        1.1 목적
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#12">
+<span class="md-ellipsis">
+      
+        1.2 주요 기능
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#13">
+<span class="md-ellipsis">
+      
+        1.3 범위
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2">
+<span class="md-ellipsis">
+      
+        2. 기술 및 환경
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#3">
+<span class="md-ellipsis">
+      
+        3. 아키텍처
+      
+    </span>
+</a>
+<nav aria-label="3. 아키텍처" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#31">
+<span class="md-ellipsis">
+      
+        3.1 시스템 구조
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#32">
+<span class="md-ellipsis">
+      
+        3.2 핵심 컴포넌트
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#33">
+<span class="md-ellipsis">
+      
+        3.3 기술 스택
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#4">
+<span class="md-ellipsis">
+      
+        4. 요구사항
+      
+    </span>
+</a>
+<nav aria-label="4. 요구사항" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#41">
+<span class="md-ellipsis">
+      
+        4.1 기능 요구사항
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#42">
+<span class="md-ellipsis">
+      
+        4.2 비기능 요구사항
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#5">
+<span class="md-ellipsis">
+      
+        5. 주요 기능 상세
+      
+    </span>
+</a>
+<nav aria-label="5. 주요 기능 상세" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#51">
+<span class="md-ellipsis">
+      
+        5.1 과부하 / 저부하 감지
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#52-scaling">
+<span class="md-ellipsis">
+      
+        5.2 Scaling 판단
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#53-resource">
+<span class="md-ellipsis">
+      
+        5.3 Resource 검증
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#54-runtime-resource">
+<span class="md-ellipsis">
+      
+        5.4 Runtime Resource 변경
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#55">
+<span class="md-ellipsis">
+      
+        5.5 시퀀스 시나리오
+      
+    </span>
+</a>
+<nav aria-label="5.5 시퀀스 시나리오" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-scale-up">
+<span class="md-ellipsis">
+      
+        시나리오 1. Scale-Up (과부하)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-scale-down">
+<span class="md-ellipsis">
+      
+        시나리오 2. Scale-Down (저부하)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#3-failure-case">
+<span class="md-ellipsis">
+      
+        시나리오 3. Failure Case
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#6">
+<span class="md-ellipsis">
+      
+        6. 데이터 모델
+      
+    </span>
+</a>
+<nav aria-label="6. 데이터 모델" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#61-state-ownership">
+<span class="md-ellipsis">
+      
+        6.1 State Ownership
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#62">
+<span class="md-ellipsis">
+      
+        6.2 동기화 상태
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#7">
+<span class="md-ellipsis">
+      
+        7. 인터페이스
+      
+    </span>
+</a>
+<nav aria-label="7. 인터페이스" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#71-actioncontroller-requestresourcescaling">
+<span class="md-ellipsis">
+      
+        7.1 ActionController — RequestResourceScaling
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#72-nodeagent-updateresources-getresourcestatus">
+<span class="md-ellipsis">
+      
+        7.2 NodeAgent — UpdateResources / GetResourceStatus
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#73-resourcemanager-validateresourceupdate">
+<span class="md-ellipsis">
+      
+        7.3 ResourceManager — ValidateResourceUpdate
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#74-api-ownership">
+<span class="md-ellipsis">
+      
+        7.4 API Ownership
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#8">
+<span class="md-ellipsis">
+      
+        8. 성능 및 확장성
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#9">
+<span class="md-ellipsis">
+      
+        9. 보안
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#10">
+<span class="md-ellipsis">
+      
+        10. 장애 처리 및 복구
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#11_1">
+<span class="md-ellipsis">
+      
+        11. 모니터링 및 로깅
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#12_1">
+<span class="md-ellipsis">
+      
+        12. 배포 및 운영
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#13_1">
+<span class="md-ellipsis">
+      
+        13. 제약사항 및 한계
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#14">
+<span class="md-ellipsis">
+      
+        14. 향후 개선
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#15">
+<span class="md-ellipsis">
+      
+        15. 참고자료
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<a class="md-content__button md-icon" href="https://github.com/eclipse-pullpiri/pullpiri/edit/main/doc/architecture/KR/HLD/dynamic_resource_scaling.md" rel="edit" title="Edit this page">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
+</a>
+<!--
+* SPDX-FileCopyrightText: Copyright 2026 LG Electronics Inc.
+* SPDX-License-Identifier: Apache-2.0
+-->
+<h1 id="dynamic-resource-scaling">Dynamic Resource Scaling 시스템 설계 문서<a class="headerlink" href="#dynamic-resource-scaling" title="Permanent link">¶</a></h1>
+<p><strong>Document No.</strong>: Pullpiri-RESOURCESCALING-HLD-2026-001<br/>
+<strong>Version</strong>: 1.0<br/>
+<strong>Date</strong>: 2026-07-29<br/>
+<strong>Author</strong>: Pullpiri Team<br/>
+<strong>Classification</strong>: HLD (High-Level Design)</p>
+<h2 id="1">1. 프로젝트 개요<a class="headerlink" href="#1" title="Permanent link">¶</a></h2>
+<p><strong>프로젝트명</strong>: Performance-Based Reconcile를 위한 Dynamic Resource Scaling<br/>
+<strong>목적/배경</strong>: Monitoring이 감지한 성능 저하를 기반으로, 실행 중인 Workload의 CPU 및 Memory Resource를 Runtime에 변경하는 기능을 제공한다.<br/>
+<strong>주요 기능</strong>: 과부하 감지, Scaling 판단, Resource 검증, Podman REST API를 통한 Runtime Resource 변경, Desired/Actual State 동기화<br/>
+<strong>대상 사용자</strong>: 임베디드 / 차량 서비스 개발자 및 운영자</p>
+<h3 id="11">1.1 목적<a class="headerlink" href="#11" title="Permanent link">¶</a></h3>
+<p>Dynamic Resource Scaling은 Workload를 재시작하지 않고 실행 중인 상태에서 CPU 및 Memory Limit을 조정할 수 있게 한다.</p>
+<ol>
+<li>Runtime Metric을 기반으로 애플리케이션 성능 저하(과부하)를 감지한다.</li>
+<li>필요한 Resource 조정량을 판단하고 Runtime에 적용한다.</li>
+<li>Pullpiri 관리 상태와 실제 Container Runtime 상태가 일관성을 유지하도록 한다.</li>
+<li>Reconciliation 모델을 통해 Update 실패 및 State Drift에서 복구한다.</li>
+</ol>
+<h3 id="12">1.2 주요 기능<a class="headerlink" href="#12" title="Permanent link">¶</a></h3>
+<ol>
+<li><strong>과부하 / 저부하 감지</strong></li>
+<li>MonitoringServer가 Workload Metric을 Quota / Limitation과 비교</li>
+<li>사용량이 기준 % 이상이면 과부하로 판단</li>
+<li>
+<p>사용량이 기준 % 미만이면 저부하로 판단</p>
+</li>
+<li>
+<p><strong>Scaling 판단</strong></p>
+</li>
+<li>PolicyManager가 Scaling 조건을 평가</li>
+<li>Scaling Factor(기본 2배, Configuration 조정 가능)를 적용</li>
+<li>
+<p>Scaling Action(node, workload, 목표 CPU / memory)을 생성</p>
+</li>
+<li>
+<p><strong>Resource 검증 및 State 관리</strong></p>
+</li>
+<li>ResourceManager가 적용 전 가용 CPU / Memory를 검증</li>
+<li>
+<p>Desired Resource State의 Owner이며 Actual State와의 Drift를 탐지</p>
+</li>
+<li>
+<p><strong>Runtime Resource 변경</strong></p>
+</li>
+<li>NodeAgent가 Podman REST API를 통해 Runtime에 변경 적용</li>
+<li>실제 Runtime State를 조회하여 동기화를 위해 보고</li>
+</ol>
+<h3 id="13">1.3 범위<a class="headerlink" href="#13" title="Permanent link">¶</a></h3>
+<ul>
+<li>단일 노드의 단일 Workload에 대한 Runtime CPU / Memory 변경</li>
+<li>Metric 기반 Scale-Up 및 Scale-Down</li>
+<li>Desired/Actual Resource State 동기화 및 Reconcile</li>
+<li>Podman 기반 Container Runtime</li>
+</ul>
+<h2 id="2">2. 기술 및 환경<a class="headerlink" href="#2" title="Permanent link">¶</a></h2>
+<p><strong>주요 언어/프레임워크</strong>: Rust<br/>
+<strong>기타 라이브러리/도구</strong>: gRPC, Podman REST API (libpod), etcd<br/>
+<strong>배포/운영 환경</strong>: 임베디드 Linux, Podman Container Runtime</p>
+<h2 id="3">3. 아키텍처<a class="headerlink" href="#3" title="Permanent link">¶</a></h2>
+<p>Dynamic Resource Scaling은 정책 판단(Decision), 실행(Execution), 상태 관리(State Management)를 분리한 계층형 구조를 따른다.</p>
+<h3 id="31">3.1 시스템 구조<a class="headerlink" href="#31" title="Permanent link">¶</a></h3>
+<pre class="mermaid"><code>flowchart TB
+    subgraph Monitoring_Layer["Monitoring Layer"]
+        MS["MonitoringServer<br/>- Collect App / Resource Metrics<br/>- Detect Overload / Underload"]
+    end
+    subgraph Decision_Layer["Decision Layer"]
+        PM["PolicyManager<br/>- Evaluate Scaling Condition<br/>- Apply Scaling Factor<br/>- Generate Scaling Action"]
+    end
+    subgraph Control_Layer["Control Layer"]
+        AC["ActionController<br/>- Orchestrate Scaling Workflow<br/>- Request Validation<br/>- Track Scaling Result"]
+        RM["ResourceManager<br/>- Validate Available CPU / Memory<br/>- Own Desired Resource State<br/>- Drift Detection"]
+    end
+    subgraph Node_Execution_Layer["Node Execution Layer"]
+        NA["NodeAgent<br/>- Apply Runtime Resource Update<br/>- Query Actual Runtime State"]
+        PODMAN["Podman Runtime<br/>- Podman REST API (update)<br/>- Apply CPU / Memory Limit"]
+    end
+    subgraph Workload_Layer["Workload Layer"]
+        WL["Running Workload<br/>CPU / Memory Updated at Runtime"]
+    end
+
+    MS --&gt;|"Performance degradation detected"| PM
+    PM --&gt;|"Create scaling action"| AC
+    AC --&gt;|"Validate requested resources"| RM
+    RM --&gt;|"Validation result"| AC
+    AC --&gt;|"UpdateResources request"| NA
+    NA --&gt;|"Podman REST API<br/>CPU / Memory"| PODMAN
+    PODMAN --&gt;|"Resource update applied"| WL
+    WL --&gt;|"Actual resource usage / limit"| PODMAN
+    PODMAN --&gt;|"Actual runtime state"| NA
+    NA --&gt;|"Update result / actual state"| AC
+    AC --&gt;|"Update scaling status"| RM
+    RM --&gt;|"Synchronized resource state"| MS
+</code></pre>
+<h3 id="32">3.2 핵심 컴포넌트<a class="headerlink" href="#32" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>역할</th>
+<th>상호작용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MonitoringServer</td>
+<td>Metric 수집, 과부하/저부하 감지</td>
+<td>PolicyManager, NodeAgent</td>
+</tr>
+<tr>
+<td>PolicyManager</td>
+<td>Scaling 조건 평가, Scaling Factor 적용, Action 생성</td>
+<td>MonitoringServer, ActionController</td>
+</tr>
+<tr>
+<td>ActionController</td>
+<td>Scaling Workflow 오케스트레이션, 결과 추적</td>
+<td>PolicyManager, ResourceManager, NodeAgent</td>
+</tr>
+<tr>
+<td>ResourceManager</td>
+<td>Resource 검증, Desired State 소유, Drift 탐지</td>
+<td>ActionController, NodeAgent</td>
+</tr>
+<tr>
+<td>NodeAgent</td>
+<td>Runtime Resource 변경 적용, Actual State 조회</td>
+<td>ActionController, Podman Runtime</td>
+</tr>
+<tr>
+<td>Podman Runtime</td>
+<td>실제 Container Resource Limit 적용</td>
+<td>NodeAgent</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> ResourceManager는 본 기능을 위해 신규 도입되는 컴포넌트이며, 세부 역할 및 책임 범위는 별도 논의가 필요하다. (2026-07-13 설계 리뷰)</p>
+</blockquote>
+<h3 id="33">3.3 기술 스택<a class="headerlink" href="#33" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Core Service</td>
+<td>Rust</td>
+<td>핵심 서비스 구현 언어</td>
+</tr>
+<tr>
+<td>Communication Protocol</td>
+<td>gRPC</td>
+<td>컴포넌트 간 통신</td>
+</tr>
+<tr>
+<td>Container Runtime</td>
+<td>Podman</td>
+<td>Podman REST API(libpod)를 통한 Runtime Resource 변경</td>
+</tr>
+<tr>
+<td>State Storage</td>
+<td>etcd</td>
+<td>Desired / Actual Resource State 저장</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4">4. 요구사항<a class="headerlink" href="#4" title="Permanent link">¶</a></h2>
+<h3 id="41">4.1 기능 요구사항<a class="headerlink" href="#41" title="Permanent link">¶</a></h3>
+<ol>
+<li>Metric을 기준 % 임계값과 비교하여 Workload 과부하/저부하를 감지한다.</li>
+<li>조정 가능한 Scaling Factor(기본 2배)로 Scaling Action을 생성한다.</li>
+<li>Scale-Up 적용 전 노드 가용 Resource를 검증한다.</li>
+<li>Podman REST API를 통해 실행 중인 Container의 CPU / Memory Limit을 변경한다.</li>
+<li>Update 이후 실제 Runtime Resource State를 조회하고 보고한다.</li>
+<li>Desired와 Actual State를 비교하여 Drift를 탐지하고 Reconciliation을 트리거한다.</li>
+</ol>
+<h3 id="42">4.2 비기능 요구사항<a class="headerlink" href="#42" title="Permanent link">¶</a></h3>
+<ol>
+<li>지원 가능한 Resource 유형은 Workload 재시작 없이 변경되어야 한다.</li>
+<li>주기적/이벤트 기반 동기화를 통해 Desired/Actual State가 수렴해야 한다.</li>
+<li>Scale-Up은 가용 Resource 범위 내에서 수행되는 Best-Effort Operation이다.</li>
+<li>NodeAgent 또는 컴포넌트 재시작 이후에도 상태 정합성을 유지해야 한다.</li>
+</ol>
+<h2 id="5">5. 주요 기능 상세<a class="headerlink" href="#5" title="Permanent link">¶</a></h2>
+<h3 id="51">5.1 과부하 / 저부하 감지<a class="headerlink" href="#51" title="Permanent link">¶</a></h3>
+<p>MonitoringServer는 Workload Metric(latency, throughput, CPU, memory)을 Quota / Limitation과 비교하여 결과를 JSON 형태로 PolicyManager에 전달한다. 사용량이 기준 % 이상이면 과부하, 미만이면 저부하로 판단한다.</p>
+<h3 id="52-scaling">5.2 Scaling 판단<a class="headerlink" href="#52-scaling" title="Permanent link">¶</a></h3>
+<p>PolicyManager는 Scaling 필요 여부를 평가하고 Scaling Factor(기본 2배, Configuration 조정 가능)를 적용하여 목표 CPU / Memory를 산출한다. 대상 노드, Workload, Resource 조정량을 지정한 Scaling Action을 생성한다.</p>
+<h3 id="53-resource">5.3 Resource 검증<a class="headerlink" href="#53-resource" title="Permanent link">¶</a></h3>
+<p>ResourceManager는 가용 Resource(<code>Total - Allocated - Reserved</code>)를 계산하여 요청량 할당 가능 여부를 판단한다. Scale-Down은 가용량을 초과하지 않으므로 검증이 필요하지 않다.</p>
+<h3 id="54-runtime-resource">5.4 Runtime Resource 변경<a class="headerlink" href="#54-runtime-resource" title="Permanent link">¶</a></h3>
+<p>NodeAgent는 Podman REST API(<code>POST /containers/{id}/update</code>)를 통해 Runtime에 변경을 적용한 뒤, 동기화를 위해 실제 Runtime State를 조회한다.</p>
+<h3 id="55">5.5 시퀀스 시나리오<a class="headerlink" href="#55" title="Permanent link">¶</a></h3>
+<h4 id="1-scale-up">시나리오 1. Scale-Up (과부하)<a class="headerlink" href="#1-scale-up" title="Permanent link">¶</a></h4>
+<pre class="mermaid"><code>sequenceDiagram
+    autonumber
+    participant App as Running Workload
+    participant MS as MonitoringServer
+    participant PM as PolicyManager
+    participant AC as ActionController
+    participant RM as ResourceManager
+    participant NA as NodeAgent
+    participant PR as Podman Runtime
+
+    App-&gt;&gt;MS: Report metrics (latency, throughput, CPU, memory)
+    MS-&gt;&gt;MS: Detect overload (usage &gt;= threshold %)
+    MS-&gt;&gt;PM: Notify degradation (JSON)
+    PM-&gt;&gt;PM: Evaluate condition, apply scaling factor (default 2x)
+    PM-&gt;&gt;AC: Create scaling action (node, workload, target CPU / memory)
+    AC-&gt;&gt;RM: Validate resource availability
+    RM--&gt;&gt;AC: Validation success
+    AC-&gt;&gt;RM: Update desired resource state
+    RM--&gt;&gt;AC: Desired state recorded
+    AC-&gt;&gt;NA: UpdateResources request
+    NA-&gt;&gt;PR: Podman REST API update (increase)
+    PR-&gt;&gt;App: Apply runtime resource limits
+    PR--&gt;&gt;NA: Update success
+    NA-&gt;&gt;PR: Query actual resource limits
+    PR--&gt;&gt;NA: Return actual runtime state
+    NA--&gt;&gt;AC: UpdateResources response (success, actual CPU / memory)
+    AC-&gt;&gt;RM: Update actual resource state
+    RM-&gt;&gt;RM: Compare desired vs actual
+    RM--&gt;&gt;AC: Resource state synchronized
+    AC--&gt;&gt;PM: Scaling action completed
+    PM--&gt;&gt;MS: Scaling result updated
+</code></pre>
+<h4 id="2-scale-down">시나리오 2. Scale-Down (저부하)<a class="headerlink" href="#2-scale-down" title="Permanent link">¶</a></h4>
+<pre class="mermaid"><code>sequenceDiagram
+    autonumber
+    participant App as Running Workload
+    participant MS as MonitoringServer
+    participant PM as PolicyManager
+    participant AC as ActionController
+    participant RM as ResourceManager
+    participant NA as NodeAgent
+    participant PR as Podman Runtime
+
+    App-&gt;&gt;MS: Report metrics (low CPU / memory utilization)
+    MS-&gt;&gt;MS: Detect underload (usage &lt; threshold %)
+    MS-&gt;&gt;PM: Notify low utilization (JSON)
+    PM-&gt;&gt;PM: Determine reduced target (&gt;= minimum quota)
+    PM-&gt;&gt;AC: Create scaling action (reduced CPU / memory)
+    AC-&gt;&gt;RM: Update desired resource state (reduced)
+    RM--&gt;&gt;AC: Desired state recorded
+    AC-&gt;&gt;NA: UpdateResources request
+    NA-&gt;&gt;PR: Podman REST API update (decrease)
+    PR-&gt;&gt;App: Apply reduced runtime resource limits
+    PR--&gt;&gt;NA: Update success
+    NA--&gt;&gt;AC: UpdateResources response (success)
+    AC-&gt;&gt;RM: Update actual state, release reclaimed resources
+    RM--&gt;&gt;AC: Resource state synchronized
+    AC--&gt;&gt;PM: Scaling action completed
+    PM--&gt;&gt;MS: Scaling result updated
+</code></pre>
+<h4 id="3-failure-case">시나리오 3. Failure Case<a class="headerlink" href="#3-failure-case" title="Permanent link">¶</a></h4>
+<pre class="mermaid"><code>sequenceDiagram
+    autonumber
+    participant MS as MonitoringServer
+    participant PM as PolicyManager
+    participant AC as ActionController
+    participant RM as ResourceManager
+    participant NA as NodeAgent
+    participant PR as Podman Runtime
+
+    MS-&gt;&gt;PM: Notify performance degradation (JSON)
+    PM-&gt;&gt;AC: Create scaling action
+    AC-&gt;&gt;RM: Validate resource availability
+    alt Resource is insufficient
+        RM--&gt;&gt;AC: Validation failed (insufficient CPU / memory)
+        AC--&gt;&gt;PM: Scaling action rejected
+        PM--&gt;&gt;MS: Report resource shortage
+    else Resource is available
+        RM--&gt;&gt;AC: Validation success
+        AC-&gt;&gt;NA: UpdateResources request
+        NA-&gt;&gt;PR: Podman REST API update
+        alt Podman REST API failed
+            PR--&gt;&gt;NA: Update failed (runtime error)
+            NA--&gt;&gt;AC: UpdateResources response (failed, reason)
+            AC-&gt;&gt;RM: Mark desired state failed
+            AC--&gt;&gt;PM: Scaling action failed
+            PM--&gt;&gt;MS: Report scaling failure
+        else Update success but state mismatch
+            PR--&gt;&gt;NA: Update success
+            NA--&gt;&gt;AC: UpdateResources response (success)
+            AC-&gt;&gt;RM: Update actual state
+            RM-&gt;&gt;RM: Compare desired vs actual
+            RM--&gt;&gt;AC: State mismatch detected
+            AC--&gt;&gt;PM: Scaling action partially failed (reconcile required)
+            PM--&gt;&gt;MS: Report state inconsistency
+        end
+    end
+</code></pre>
+<h2 id="6">6. 데이터 모델<a class="headerlink" href="#6" title="Permanent link">¶</a></h2>
+<h3 id="61-state-ownership">6.1 State Ownership<a class="headerlink" href="#61-state-ownership" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Owner</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Desired Resource State</td>
+<td>ResourceManager</td>
+<td>Pullpiri가 목표로 하는 Resource 상태</td>
+</tr>
+<tr>
+<td>Actual Resource State</td>
+<td>NodeAgent</td>
+<td>Container Runtime에 실제 적용된 Resource 상태</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># Desired Resource State</span>
+<a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a><span class="nt">workload-a</span><span class="p">:</span>
+<a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="w">  </span><span class="nt">cpu_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="w">  </span><span class="nt">memory_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2048Mi</span>
+</code></pre></div>
+<h3 id="62">6.2 동기화 상태<a class="headerlink" href="#62" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="kd">enum</span><span class="w"> </span><span class="n">ResourceSyncState</span><span class="w"> </span><span class="p">{</span>
+<a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="w">  </span><span class="na">UNKNOWN</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="w">  </span><span class="na">PENDING</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<a href="#__codelineno-1-4" id="__codelineno-1-4" name="__codelineno-1-4"></a><span class="w">  </span><span class="na">APPLYING</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<a href="#__codelineno-1-5" id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="w">  </span><span class="na">SYNCHRONIZED</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<a href="#__codelineno-1-6" id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="w">  </span><span class="na">DRIFT_DETECTED</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<a href="#__codelineno-1-7" id="__codelineno-1-7" name="__codelineno-1-7"></a><span class="w">  </span><span class="na">FAILED</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+<a href="#__codelineno-1-8" id="__codelineno-1-8" name="__codelineno-1-8"></a><span class="p">}</span>
+</code></pre></div>
+<p>상태 전이: <code>PENDING → APPLYING → SYNCHRONIZED</code>, Drift 발생 시 <code>DRIFT_DETECTED → RECONCILE → SYNCHRONIZED</code>, 실패 시 <code>FAILED</code>.</p>
+<h2 id="7">7. 인터페이스<a class="headerlink" href="#7" title="Permanent link">¶</a></h2>
+<h3 id="71-actioncontroller-requestresourcescaling">7.1 ActionController — RequestResourceScaling<a class="headerlink" href="#71-actioncontroller-requestresourcescaling" title="Permanent link">¶</a></h3>
+<p>Scaling Workflow를 트리거한다. 어떤 노드의 어떤 Workload를 어느 정도 조정할지 지정한다.</p>
+<div class="highlight"><pre><span></span><code><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="k">rpc</span><span class="w"> </span><span class="n">RequestResourceScaling</span><span class="w"> </span><span class="p">(</span><span class="n">ScalingActionRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">ScalingActionResponse</span><span class="p">);</span>
+<a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a>
+<a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a><span class="kd">message</span><span class="w"> </span><span class="nc">ScalingActionRequest</span><span class="w"> </span><span class="p">{</span>
+<a href="#__codelineno-2-4" id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="na">node_id</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<a href="#__codelineno-2-5" id="__codelineno-2-5" name="__codelineno-2-5"></a><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="na">workload_id</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<a href="#__codelineno-2-6" id="__codelineno-2-6" name="__codelineno-2-6"></a><span class="w">  </span><span class="kt">uint32</span><span class="w"> </span><span class="na">target_cpu_limit</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<a href="#__codelineno-2-7" id="__codelineno-2-7" name="__codelineno-2-7"></a><span class="w">  </span><span class="kt">uint64</span><span class="w"> </span><span class="na">target_memory_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<a href="#__codelineno-2-8" id="__codelineno-2-8" name="__codelineno-2-8"></a><span class="w">  </span><span class="n">ScalingType</span><span class="w"> </span><span class="na">scaling_type</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w">   </span><span class="c1">// SCALE_UP / SCALE_DOWN</span>
+<a href="#__codelineno-2-9" id="__codelineno-2-9" name="__codelineno-2-9"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="72-nodeagent-updateresources-getresourcestatus">7.2 NodeAgent — UpdateResources / GetResourceStatus<a class="headerlink" href="#72-nodeagent-updateresources-getresourcestatus" title="Permanent link">¶</a></h3>
+<p>CPU와 Memory(그리고 Scale-Up/Scale-Down)에 공통으로 사용하는 통합 API이다. NodeAgent는 Podman REST API <code>POST /containers/{id}/update</code>를 호출하여 Runtime에 변경을 적용한다.</p>
+<div class="highlight"><pre><span></span><code><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="k">rpc</span><span class="w"> </span><span class="n">UpdateResources</span><span class="w">  </span><span class="p">(</span><span class="n">UpdateResourcesRequest</span><span class="p">)</span><span class="w">  </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">UpdateResourcesResponse</span><span class="p">);</span>
+<a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="k">rpc</span><span class="w"> </span><span class="n">GetResourceStatus</span><span class="p">(</span><span class="n">GetResourceStatusRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">GetResourceStatusResponse</span><span class="p">);</span>
+<a href="#__codelineno-3-3" id="__codelineno-3-3" name="__codelineno-3-3"></a>
+<a href="#__codelineno-3-4" id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="kd">message</span><span class="w"> </span><span class="nc">UpdateResourcesRequest</span><span class="w"> </span><span class="p">{</span>
+<a href="#__codelineno-3-5" id="__codelineno-3-5" name="__codelineno-3-5"></a><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="na">workload_id</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<a href="#__codelineno-3-6" id="__codelineno-3-6" name="__codelineno-3-6"></a><span class="w">  </span><span class="k">optional</span><span class="w"> </span><span class="kt">uint32</span><span class="w"> </span><span class="na">cpu_limit</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<a href="#__codelineno-3-7" id="__codelineno-3-7" name="__codelineno-3-7"></a><span class="w">  </span><span class="k">optional</span><span class="w"> </span><span class="kt">uint64</span><span class="w"> </span><span class="na">memory_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w">   </span><span class="c1">// MiB</span>
+<a href="#__codelineno-3-8" id="__codelineno-3-8" name="__codelineno-3-8"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="73-resourcemanager-validateresourceupdate">7.3 ResourceManager — ValidateResourceUpdate<a class="headerlink" href="#73-resourcemanager-validateresourceupdate" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="k">rpc</span><span class="w"> </span><span class="n">ValidateResourceUpdate</span><span class="w"> </span><span class="p">(</span><span class="n">ValidateResourceUpdateRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">ValidateResourceUpdateResponse</span><span class="p">);</span>
+<a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a>
+<a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a><span class="kd">message</span><span class="w"> </span><span class="nc">ValidateResourceUpdateRequest</span><span class="w"> </span><span class="p">{</span>
+<a href="#__codelineno-4-4" id="__codelineno-4-4" name="__codelineno-4-4"></a><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="na">workload_id</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<a href="#__codelineno-4-5" id="__codelineno-4-5" name="__codelineno-4-5"></a><span class="w">  </span><span class="kt">uint32</span><span class="w"> </span><span class="na">requested_cpu</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<a href="#__codelineno-4-6" id="__codelineno-4-6" name="__codelineno-4-6"></a><span class="w">  </span><span class="kt">uint64</span><span class="w"> </span><span class="na">requested_memory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<a href="#__codelineno-4-7" id="__codelineno-4-7" name="__codelineno-4-7"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="74-api-ownership">7.4 API Ownership<a class="headerlink" href="#74-api-ownership" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RequestResourceScaling</td>
+<td>ActionController</td>
+</tr>
+<tr>
+<td>UpdateResources</td>
+<td>NodeAgent</td>
+</tr>
+<tr>
+<td>GetResourceStatus</td>
+<td>NodeAgent</td>
+</tr>
+<tr>
+<td>ValidateResourceUpdate</td>
+<td>ResourceManager</td>
+</tr>
+</tbody>
+</table>
+<h2 id="8">8. 성능 및 확장성<a class="headerlink" href="#8" title="Permanent link">¶</a></h2>
+<ul>
+<li>Runtime Resource 변경은 Workload 재시작을 피해 서비스 중단을 최소화한다.</li>
+<li>통합 <code>UpdateResources</code> API는 CPU-only, Memory-only, CPU+Memory 변경을 지원하며 향후 Resource 유형(network, storage)으로 재사용 가능하다.</li>
+</ul>
+<h2 id="9">9. 보안<a class="headerlink" href="#9" title="Permanent link">¶</a></h2>
+<ul>
+<li>Resource 변경은 신뢰된 Pullpiri 컴포넌트 간 내부 gRPC 인터페이스로만 발행된다.</li>
+<li>Podman REST API는 대상 노드에서 NodeAgent가 로컬로 접근한다.</li>
+</ul>
+<h2 id="10">10. 장애 처리 및 복구<a class="headerlink" href="#10" title="Permanent link">¶</a></h2>
+<p>Dynamic Resource Scaling은 Kubernetes 스타일의 Desired State Reconciliation 모델을 채택한다.</p>
+<ul>
+<li><strong>Drift 탐지</strong>: ResourceManager가 Desired와 Actual State를 비교하여 <code>DRIFT_DETECTED</code>로 표시한다.</li>
+<li><strong>Reconciliation</strong>: Drift 발생 시 <code>UpdateResources</code> 재시도로 Desired State를 재적용한다.</li>
+<li><strong>Startup Reconciliation</strong>: 재시작 시 Desired State를 로드하고 Runtime State를 조회하여 비교, Actual State를 재구성한다.</li>
+<li><strong>Failure 상태</strong>: NodeAgent 불가, Podman Update 실패, Runtime 조회 실패 시 동기화 상태를 <code>FAILED</code>로 전이한다.</li>
+</ul>
+<h2 id="11_1">11. 모니터링 및 로깅<a class="headerlink" href="#11_1" title="Permanent link">¶</a></h2>
+<ul>
+<li>MonitoringServer는 Scaling을 트리거하는 Metric을 제공하고 최종 Scaling 결과를 수신한다.</li>
+<li>각 Scaling Action은 관찰 가능한 상태(<code>PENDING</code>, <code>RUNNING</code>, <code>SUCCESS</code>, <code>FAILED</code>)를 거친다.</li>
+</ul>
+<h2 id="12_1">12. 배포 및 운영<a class="headerlink" href="#12_1" title="Permanent link">¶</a></h2>
+<ul>
+<li>Scaling Factor와 기준 % 임계값은 Configuration으로 제공되며 배포별로 조정 가능하다.</li>
+<li>주기적 동기화 주기(예: 30/60/300초)는 운영 정책에 따라 결정한다.</li>
+</ul>
+<h2 id="13_1">13. 제약사항 및 한계<a class="headerlink" href="#13_1" title="Permanent link">¶</a></h2>
+<ul>
+<li><strong>Runtime Capability 의존성</strong>: Runtime이 지원하는 Resource 유형(CPU limit/shares/affinity, Memory limit)만 동적 변경 가능하며 HugePages, NUMA Binding, Kernel Parameter는 불가하다.</li>
+<li><strong>Best-Effort 할당</strong>: Scale-Up은 노드 가용 Resource에 의해 제한되며 거부될 수 있다.</li>
+<li><strong>성능 개선 미보장</strong>: Resource 증가가 외부 지연, 네트워크, 애플리케이션 로직에 기인한 저하를 해결하지는 못한다.</li>
+<li><strong>State Divergence 및 동기화 지연</strong>: Desired와 Actual State가 일시적으로 다를 수 있다.</li>
+<li><strong>NodeAgent 의존성</strong>: NodeAgent는 Runtime Update의 Single Execution Point이다.</li>
+<li><strong>Scale-Down 위험</strong>: 과도한 Scale-Down은 OOM이나 성능 저하를 유발할 수 있어 추가 검증이 필요하다.</li>
+<li><strong>자동 Rollback / Multi-Node 정합성 미포함</strong>: 본 설계 범위 밖이다.</li>
+</ul>
+<h2 id="14">14. 향후 개선<a class="headerlink" href="#14" title="Permanent link">¶</a></h2>
+<ul>
+<li>동시 요청 시 Overcommit 방지를 위한 Resource Reservation / Allocation Locking.</li>
+<li>Partial Update 시 자동 Rollback.</li>
+<li>Cluster-Level Resource 관리 및 Cross-Node Migration.</li>
+<li>동일한 <code>UpdateResources</code> API를 통한 Network / Storage Resource Scaling 확장.</li>
+</ul>
+<h2 id="15">15. 참고자료<a class="headerlink" href="#15" title="Permanent link">¶</a></h2>
+<ul>
+<li>Issue: [Design] Dynamic Resource Scaling for Performance-Based Reconcile (eclipse-pullpiri/pullpiri#514)</li>
+</ul>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+<div class="md-copyright__highlight">
+      Copyright © 2024–2026 Eclipse Pullpiri Contributors
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/eclipse-pullpiri/pullpiri" rel="noopener" target="_blank" title="github.com">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+<script type="module">import mermaid from "https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs";
+window.mermaidConfig = {default: {
+    startOnLoad: false
+}};</script></body>
+</html>

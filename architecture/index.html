@@ -795,7 +795,7 @@ management system optimized for embedded environments.</p>
 <p><strong>State Synchronization</strong></p>
 <hr />
 <ul>
-<li>Manage state information based on etcd</li>
+<li>Manage state information based on kvstore</li>
 <li>Synchronize state information between nodes</li>
 <li>Detect and notify state changes</li>
 <li>Support offline mode and resynchronization upon reconnection</li>
@@ -840,7 +840,7 @@ lightweight design optimized for embedded environments.</p>
 <tr>
 <td><strong>API Server</strong></td>
 <td>Cluster management, node registration, policy distribution</td>
-<td>NodeAgent, StateManager, etcd</td>
+<td>NodeAgent, StateManager, kvstore</td>
 </tr>
 <tr>
 <td><strong>NodeAgent</strong></td>
@@ -850,10 +850,10 @@ lightweight design optimized for embedded environments.</p>
 <tr>
 <td><strong>StateManager</strong></td>
 <td>Cluster state management and synchronization</td>
-<td>API Server, NodeAgent, etcd</td>
+<td>API Server, NodeAgent, kvstore</td>
 </tr>
 <tr>
-<td><strong>etcd</strong></td>
+<td><strong>kvstore</strong></td>
 <td>Cluster state information storage</td>
 <td>All components</td>
 </tr>
@@ -891,7 +891,7 @@ lightweight design optimized for embedded environments.</p>
 </tr>
 <tr>
 <td><strong>State Storage</strong></td>
-<td>https://etcd.io/</td>
+<td>RocksDB</td>
 <td>Distributed key-value store for cluster state management</td>
 </tr>
 <tr>

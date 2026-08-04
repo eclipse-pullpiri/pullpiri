@@ -885,7 +885,7 @@
 <li>
 <p><strong>Centralized State Management</strong></p>
 </li>
-<li>Stores container monitoring data in etcd</li>
+<li>Stores container monitoring data in kvstore</li>
 <li>Efficiently delivers state changes to the StateManager</li>
 <li>
 <p>Concentrates API Server, FilterGateway, ActionController, StateManager, and MonitoringServer on the master node</p>
@@ -1147,9 +1147,9 @@
 <p>OCI standard compatibility</p>
 </li>
 <li>
-<p><strong>etcd-based State Storage</strong></p>
+<p><strong>DB-based State Storage</strong></p>
 </li>
-<li>Store container monitoring data in etcd</li>
+<li>Store container monitoring data in kvstore</li>
 <li>Distributed key-value store for consistency</li>
 <li>Lightweight config for embedded</li>
 <li>
@@ -1186,7 +1186,6 @@
 <h3 id="51-initial-cluster-setup">5.1 Initial Cluster Setup<a class="headerlink" href="#51-initial-cluster-setup" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Master node setup (API Server, etc.)  </li>
-<li>etcd initialization  </li>
 <li>Config file creation  </li>
 </ul>
 <h3 id="52-cluster-expansion">5.2 Cluster Expansion<a class="headerlink" href="#52-cluster-expansion" title="Permanent link">&para;</a></h3>
@@ -1225,7 +1224,7 @@ l------|------------|
 | NodeAgent | Agent on each node for monitoring and communication |
 | Embedded Environment | Devices with limited CPU, memory, storage |
 | Podman | Daemonless container tool |
-| etcd | Distributed key-value store |</p>
+| kvstore | Distributed key-value store |</p>
 
 
 

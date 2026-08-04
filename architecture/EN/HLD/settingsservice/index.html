@@ -919,7 +919,7 @@
 <li>
 <p><strong>Monitoring Information</strong></p>
 </li>
-<li>View Pullpiri resource status information stored in ETCD</li>
+<li>View Pullpiri resource status information stored in KV Store</li>
 <li>Visualize resource-specific monitoring data</li>
 <li>Export monitoring data</li>
 </ol>
@@ -953,7 +953,7 @@
 <li>
 <p><strong>Monitoring Viewer</strong></p>
 </li>
-<li>Retrieve monitoring data from ETCD</li>
+<li>Retrieve monitoring data from KV Store</li>
 <li>Process resource-specific monitoring data</li>
 <li>
 <p>Visualize monitoring information</p>
@@ -978,7 +978,7 @@
 <p><strong>External Integration</strong></p>
 </li>
 <li>API Server integration</li>
-<li>ETCD storage integration</li>
+<li>KV storage integration</li>
 <li>External system integration</li>
 </ol>
 <h3 id="22-data-flow">2.2 Data Flow<a class="headerlink" href="#22-data-flow" title="Permanent link">&para;</a></h3>
@@ -987,7 +987,7 @@
 <li><strong>Configuration Change Flow</strong></li>
 <li>User requests configuration change via Web UI or CLI</li>
 <li>Configuration validation and impact analysis</li>
-<li>Save changes to ETCD and record history</li>
+<li>Save changes to kvstore and record history</li>
 <li>Forward changes to API Server</li>
 <li>
 <p>Monitor change application results and provide feedback</p>
@@ -1006,7 +1006,7 @@
 <p><strong>Monitoring Data Retrieval Flow</strong></p>
 </li>
 <li>User requests monitoring information</li>
-<li>Retrieve resource status information from ETCD</li>
+<li>Retrieve resource status information from kvstore</li>
 <li>Process and aggregate monitoring data</li>
 <li>Provide data visualization or export in requested format</li>
 </ol>
@@ -1028,7 +1028,7 @@
 <p>Make rollback decisions based on state</p>
 </li>
 <li>
-<p><strong>ETCD</strong></p>
+<p><strong>KV Store</strong></p>
 </li>
 <li>Store configuration data</li>
 <li>Manage change history</li>
@@ -1075,7 +1075,7 @@
 <li>
 <p><strong>Monitoring Viewer</strong></p>
 </li>
-<li>View Pullpiri resource status information collected from ETCD</li>
+<li>View Pullpiri resource status information collected from kvstore</li>
 <li>Visualize resource-specific monitoring data</li>
 <li>Filter and export monitoring data</li>
 </ol>
@@ -1299,29 +1299,24 @@
 <a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span><span class="nt">healthCheck</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Passed&quot;</span>
 <a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="nt">uptime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;5d</span><span class="nv"> </span><span class="s">12h</span><span class="nv"> </span><span class="s">40m&quot;</span>
 <a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v1.2.1&quot;</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ETCD&quot;</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Running&quot;</span>
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">    </span><span class="nt">healthCheck</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Passed&quot;</span>
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">    </span><span class="nt">uptime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;10d</span><span class="nv"> </span><span class="s">8h</span><span class="nv"> </span><span class="s">15m&quot;</span>
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v3.5.2&quot;</span>
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="nt">resourceSummary</span><span class="p">:</span>
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">  </span><span class="nt">nodes</span><span class="p">:</span>
-<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">    </span><span class="nt">total</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
-<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">    </span><span class="nt">healthy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
-<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="nt">unhealthy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
-<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">  </span><span class="nt">models</span><span class="p">:</span>
-<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">    </span><span class="nt">total</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">42</span>
-<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">    </span><span class="nt">running</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">38</span>
-<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">    </span><span class="nt">failed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">    </span><span class="nt">pending</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
-<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">  </span><span class="nt">networks</span><span class="p">:</span>
-<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">    </span><span class="nt">total</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
-<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">    </span><span class="nt">healthy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
-<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="w">    </span><span class="nt">degraded</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
-<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="nt">alerts</span><span class="p">:</span>
-<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="w">  </span><span class="nt">critical</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
-<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="w">  </span><span class="nt">warning</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
-<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a><span class="w">  </span><span class="nt">info</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="nt">resourceSummary</span><span class="p">:</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">  </span><span class="nt">nodes</span><span class="p">:</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">    </span><span class="nt">total</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">    </span><span class="nt">healthy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">    </span><span class="nt">unhealthy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">  </span><span class="nt">models</span><span class="p">:</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">    </span><span class="nt">total</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">42</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">    </span><span class="nt">running</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">38</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">    </span><span class="nt">failed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="nt">pending</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">  </span><span class="nt">networks</span><span class="p">:</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">    </span><span class="nt">total</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">    </span><span class="nt">healthy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">    </span><span class="nt">degraded</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="nt">alerts</span><span class="p">:</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">  </span><span class="nt">critical</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">  </span><span class="nt">warning</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">  </span><span class="nt">info</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
 </code></pre></div>
 <h2 id="5-detailed-functionality">5. Detailed Functionality<a class="headerlink" href="#5-detailed-functionality" title="Permanent link">&para;</a></h2>
 <h3 id="51-configuration-management">5.1 Configuration Management<a class="headerlink" href="#51-configuration-management" title="Permanent link">&para;</a></h3>
@@ -1409,11 +1404,11 @@ status: ACTIVE
 <a id="__codelineno-3-48" name="__codelineno-3-48" href="#__codelineno-3-48"></a>
 <a id="__codelineno-3-49" name="__codelineno-3-49" href="#__codelineno-3-49"></a>### 5.3 Monitoring Information Retrieval
 <a id="__codelineno-3-50" name="__codelineno-3-50" href="#__codelineno-3-50"></a>
-<a id="__codelineno-3-51" name="__codelineno-3-51" href="#__codelineno-3-51"></a>#### 5.3.1 ETCD-based Monitoring Data Retrieval
+<a id="__codelineno-3-51" name="__codelineno-3-51" href="#__codelineno-3-51"></a>#### 5.3.1 DB-based Monitoring Data Retrieval
 <a id="__codelineno-3-52" name="__codelineno-3-52" href="#__codelineno-3-52"></a>
-<a id="__codelineno-3-53" name="__codelineno-3-53" href="#__codelineno-3-53"></a>The process of retrieving monitoring data from ETCD is as follows:
+<a id="__codelineno-3-53" name="__codelineno-3-53" href="#__codelineno-3-53"></a>The process of retrieving monitoring data from kvstore is as follows:
 <a id="__codelineno-3-54" name="__codelineno-3-54" href="#__codelineno-3-54"></a>
-<a id="__codelineno-3-55" name="__codelineno-3-55" href="#__codelineno-3-55"></a>1. **Resource Information Retrieval**: Retrieve resource list and status information stored in ETCD
+<a id="__codelineno-3-55" name="__codelineno-3-55" href="#__codelineno-3-55"></a>1. **Resource Information Retrieval**: Retrieve resource list and status information stored in kvstore
 <a id="__codelineno-3-56" name="__codelineno-3-56" href="#__codelineno-3-56"></a>2. **Data Processing**: Process raw data into user-friendly format
 <a id="__codelineno-3-57" name="__codelineno-3-57" href="#__codelineno-3-57"></a>3. **Status Aggregation**: Aggregate and summarize status information by resource type
 <a id="__codelineno-3-58" name="__codelineno-3-58" href="#__codelineno-3-58"></a>4. **Event Correlation**: Display with related event information
@@ -1513,7 +1508,7 @@ status: ACTIVE
 <a id="__codelineno-3-152" name="__codelineno-3-152" href="#__codelineno-3-152"></a>   - Rust language
 <a id="__codelineno-3-153" name="__codelineno-3-153" href="#__codelineno-3-153"></a>   - Actix Web framework
 <a id="__codelineno-3-154" name="__codelineno-3-154" href="#__codelineno-3-154"></a>   - gRPC communication
-<a id="__codelineno-3-155" name="__codelineno-3-155" href="#__codelineno-3-155"></a>   - ETCD storage
+<a id="__codelineno-3-155" name="__codelineno-3-155" href="#__codelineno-3-155"></a>   - KV Store
 <a id="__codelineno-3-156" name="__codelineno-3-156" href="#__codelineno-3-156"></a>
 <a id="__codelineno-3-157" name="__codelineno-3-157" href="#__codelineno-3-157"></a>2. **Modularity**
 <a id="__codelineno-3-158" name="__codelineno-3-158" href="#__codelineno-3-158"></a>   - Separate modules by functionality

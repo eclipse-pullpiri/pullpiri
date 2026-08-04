@@ -657,7 +657,7 @@
 <li>
 <p><strong>State Synchronization</strong></p>
 </li>
-<li>Manage state information based on etcd</li>
+<li>Manage state information based on kvstore</li>
 <li>Synchronize state information between nodes</li>
 <li>Detect and notify state changes</li>
 <li>
@@ -680,7 +680,7 @@
 </ul>
 <h2 id="2-technologies-and-environment">2. Technologies and Environment<a class="headerlink" href="#2-technologies-and-environment" title="Permanent link">¶</a></h2>
 <p><strong>Main Languages/Frameworks</strong>: Rust, Bash scripts<br/>
-<strong>Other Libraries/Tools</strong>: gRPC, etcd, Podman, systemd<br/>
+<strong>Other Libraries/Tools</strong>: gRPC, kvstore, Podman, systemd<br/>
 <strong>Deployment/Operation Environment</strong>: Embedded Linux, cloud environment (hybrid)</p>
 <h2 id="3-architecture">3. Architecture<a class="headerlink" href="#3-architecture" title="Permanent link">¶</a></h2>
 <p>The Pullpiri Clustering System is based on a master-sub node structure and adopts a lightweight design optimized for embedded environments.</p>
@@ -703,7 +703,7 @@
     D &lt;--&gt; H
     D &lt;--&gt; J
     D &lt;--&gt; L
-    M[etcd] &lt;--&gt; B
+    M[kvstore] &lt;--&gt; B
     M &lt;--&gt; C
     M &lt;--&gt; D
 </code></pre>
@@ -720,7 +720,7 @@
 <tr>
 <td>API Server</td>
 <td>Cluster management, node registration, policy distribution</td>
-<td>NodeAgent, StateManager, etcd</td>
+<td>NodeAgent, StateManager, kvstore</td>
 </tr>
 <tr>
 <td>NodeAgent</td>
@@ -730,10 +730,10 @@
 <tr>
 <td>StateManager</td>
 <td>Cluster state management and synchronization</td>
-<td>API Server, NodeAgent, etcd</td>
+<td>API Server, NodeAgent, kvstore</td>
 </tr>
 <tr>
-<td>etcd</td>
+<td>kvstore</td>
 <td>Cluster state information storage</td>
 <td>All components</td>
 </tr>
@@ -771,7 +771,7 @@
 </tr>
 <tr>
 <td>State Storage</td>
-<td>etcd</td>
+<td>kvstore</td>
 <td>Distributed key-value store for cluster state management</td>
 </tr>
 <tr>
@@ -842,18 +842,18 @@
     participant NA as NodeAgent
     participant AS as API Server
     participant SM as StateManager
-    participant ET as etcd
+    participant DB as kvstore
 
     SN-&gt;&gt;NA: Install and initialize
     NA-&gt;&gt;NA: System readiness check
     NA-&gt;&gt;AS: Node registration request
     AS-&gt;&gt;AS: Verify node information
-    AS-&gt;&gt;ET: Store node information
+    AS-&gt;&gt;DB: Store node information
     AS-&gt;&gt;SM: Notify node state change
     AS--&gt;&gt;NA: Registration complete
     loop Periodic monitoring
         NA-&gt;&gt;AS: Heartbeat and status report
-        AS-&gt;&gt;ET: Update status information
+        AS-&gt;&gt;DB: Update status information
     end
 </code></pre>
 <h4 id="512-core-logic">5.1.2 Core Logic<a class="headerlink" href="#512-core-logic" title="Permanent link">¶</a></h4>
@@ -861,7 +861,7 @@
 <a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>2. Perform system readiness check
 <a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>3. Send registration request to master node API Server
 <a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a>4. Perform node authentication and authorization
-<a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>5. Store node information in etcd
+<a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>5. Store node information in kvstore
 <a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a>6. Update cluster topology
 <a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>7. Start periodic heartbeat and status reporting
 <a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>8. Notify StateManager on status change
@@ -871,11 +871,11 @@
 <pre class="mermaid"><code>sequenceDiagram
     participant A as Administrator
     participant AS as API Server
-    participant ET as etcd
+    participant DB as kvstore
     participant NA as NodeAgent
 
     A-&gt;&gt;AS: Request topology configuration
-    AS-&gt;&gt;ET: Store topology information
+    AS-&gt;&gt;DB: Store topology information
     AS-&gt;&gt;NA: Distribute configuration
     NA--&gt;&gt;AS: Confirm configuration applied
     AS--&gt;&gt;A: Topology configuration complete
@@ -975,7 +975,7 @@
 <h3 id="72-internal-interfaces">7.2 Internal Interfaces<a class="headerlink" href="#72-internal-interfaces" title="Permanent link">¶</a></h3>
 <ul>
 <li>API Server ↔ StateManager: Node state change notifications, topology sync  </li>
-<li>API Server ↔ etcd: Store/retrieve node and topology info  </li>
+<li>API Server ↔ kvstore: Store/retrieve node and topology info  </li>
 <li>NodeAgent ↔ System Monitoring: Podman container status, resource usage, hardware checks  </li>
 </ul>
 <h2 id="8-performance-scalability">8. Performance &amp; Scalability<a class="headerlink" href="#8-performance-scalability" title="Permanent link">¶</a></h2>
@@ -990,7 +990,6 @@
 <li>TLS-based node authentication  </li>
 <li>Role-based access control  </li>
 <li>Encrypted gRPC communication  </li>
-<li>etcd encryption, audit logging  </li>
 </ul>
 <h2 id="10-fault-handling-recovery">10. Fault Handling &amp; Recovery<a class="headerlink" href="#10-fault-handling-recovery" title="Permanent link">¶</a></h2>
 <ul>
@@ -1028,7 +1027,6 @@
 <li>Pullpiri framework design docs  </li>
 <li>API Server design docs  </li>
 <li>NodeAgent design docs  </li>
-<li>etcd docs: https://etcd.io/docs/  </li>
 <li>Podman docs: https://podman.io/docs/  </li>
 </ul>
 <h2 id="appendix">Appendix<a class="headerlink" href="#appendix" title="Permanent link">¶</a></h2>
@@ -1054,7 +1052,7 @@
 <td>Agent running on each node</td>
 </tr>
 <tr>
-<td>etcd</td>
+<td>kvstore</td>
 <td>Distributed key-value store</td>
 </tr>
 <tr>

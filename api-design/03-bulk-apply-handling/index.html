@@ -1,0 +1,1363 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Container orchestration platform optimized for automotive environments.
+">
+      
+      
+        <meta name="author" content="Eclipse Pullpiri Contributors">
+      
+      
+        <link rel="canonical" href="https://eclipse-pullpiri.github.io/pullpiri/api-design/03-bulk-apply-handling/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>[3] [설계] 일괄 Apply 처리 방안 및 Content-Type/스키마 - Eclipse Pullpiri</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#3-apply-content-type" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Eclipse Pullpiri" class="md-header__button md-logo" aria-label="Eclipse Pullpiri" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Eclipse Pullpiri
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              [3] [설계] 일괄 Apply 처리 방안 및 Content-Type/스키마
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/eclipse-pullpiri/pullpiri" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    eclipse-pullpiri/pullpiri
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Main
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../why-pullpiri/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Why Pullpiri
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Eclipse Pullpiri" class="md-nav__button md-logo" aria-label="Eclipse Pullpiri" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Eclipse Pullpiri
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/eclipse-pullpiri/pullpiri" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    eclipse-pullpiri/pullpiri
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Main
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../why-pullpiri/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why Pullpiri
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 현재 구현 사실 (코드 근거)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 현재 구현 사실 (코드 근거)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-apply" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 일괄 Apply는 이미 "번들" 처리다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 현재 일괄 처리의 3가지 빈틈
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-content-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Content-Type은 사실상 무시된다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-apply" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 일괄 Apply(번들 배포) 처리 방안
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 일괄 Apply(번들 배포) 처리 방안">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 엔드포인트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 번들 파싱·검증 파이프라인 (설계)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 부분 실패 시맨틱
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 다중 시나리오 세트 처리 (현행 버그 + 재설계 요구)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.4 다중 시나리오 세트 처리 (현행 버그 + 재설계 요구)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        현행 동작 (코드 검증됨)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        두 가지 "일괄 배포" 시나리오
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        설계 요구사항
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-withdraw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 철회(withdraw)의 멱등성
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-content-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Content-Type 및 요청/응답 스키마
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Content-Type 및 요청/응답 스키마">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-content-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 요청 Content-Type 규정
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.1 요청 Content-Type 규정">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#alias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        별칭(alias) 허용 정책
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 요청 본문 스키마 (번들)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 응답 스키마
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.3 응답 스키마">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        조회(GET) 응답 예시
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="조회(GET) 응답 예시">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        리소스별 저장(=반환) 값 (코드 기준)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kvstorerocksdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        저장(kvstore/RocksDB) 경로 — 값이 실제로 기록되는 지점
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-content-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 응답 Content-Type
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-task" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 이슈 Task 대응 정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/eclipse-pullpiri/pullpiri/edit/main/doc/api-design/03-bulk-apply-handling.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="3-apply-content-type">[3] [설계] 일괄 Apply 처리 방안 및 Content-Type/스키마<a class="headerlink" href="#3-apply-content-type" title="Permanent link">&para;</a></h1>
+<h2 id="1">1. 현재 구현 사실 (코드 근거)<a class="headerlink" href="#1" title="Permanent link">&para;</a></h2>
+<h3 id="11-apply">1.1 일괄 Apply는 이미 "번들" 처리다<a class="headerlink" href="#11-apply" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">// src/server/apiserver/src/artifact/mod.rs — apply()</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kd">let</span><span class="w"> </span><span class="n">docs</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;&amp;</span><span class="kt">str</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">body</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="n">YAML_SEPARATOR</span><span class="p">).</span><span class="n">collect</span><span class="p">();</span><span class="w">   </span><span class="c1">// &quot;---&quot; 로 분할</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">for</span><span class="w"> </span><span class="n">doc</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">docs</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Some</span><span class="p">((</span><span class="n">kind</span><span class="p">,</span><span class="w"> </span><span class="n">artifact_str</span><span class="p">))</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">process_artifact_document</span><span class="p">(</span><span class="n">doc</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">        </span><span class="k">match</span><span class="w"> </span><span class="n">kind</span><span class="p">.</span><span class="n">as_str</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">            </span><span class="n">KIND_SCENARIO</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">scenario_str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">artifact_str</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">            </span><span class="n">KIND_PACKAGE</span><span class="w">  </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">package_str</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">artifact_str</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">            </span><span class="n">_</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="k">continue</span><span class="p">,</span><span class="w">        </span><span class="c1">// Model/Volume/Network/Policy/Schedule은 저장만</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">}</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="k">if</span><span class="w"> </span><span class="n">scenario_str</span><span class="p">.</span><span class="n">is_empty</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="s">&quot;...no scenario...&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">        </span><span class="c1">// 번들 불완전 → 거부</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">package_str</span><span class="p">.</span><span class="n">is_empty</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="s">&quot;...no package...&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">     </span><span class="c1">// 번들 불완전 → 거부</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">save_pod_yaml_from_package</span><span class="p">(</span><span class="o">&amp;</span><span class="n">package_str</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span><span class="w"> </span><span class="nb">Ok</span><span class="p">(</span><span class="n">scenario_str</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<ul>
+<li><strong>하나의 요청 = 여러 리소스</strong>(Scenario+Package+Model+…)를 <code>---</code>로 이어 붙인 multi-doc YAML.</li>
+<li>각 문서는 <code>process_artifact_document()</code>에서 <strong>개별적으로 kvstore에 즉시 write</strong>된다(<code>{Kind}/{name}</code> 키).</li>
+<li>최종적으로 Scenario·Package <strong>둘 다 있어야</strong> 성공. 하나라도 없으면 에러.</li>
+<li>예시(<code>examples/helloworld.sh</code>): <code>curl -X POST :47099/api/artifact --header 'Content-Type: text/plain' --data "$BODY"</code>.</li>
+</ul>
+<h3 id="12-3">1.2 현재 일괄 처리의 3가지 빈틈<a class="headerlink" href="#12-3" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>빈틈</th>
+<th>코드 근거</th>
+<th>문제</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>부분 실패 비원자성</strong></td>
+<td><code>process_artifact_document</code>가 루프 안에서 문서별로 <code>write_to_kvstore</code> 즉시 실행</td>
+<td>앞 문서 저장 후 뒤 문서에서 에러 나면 <strong>kvstore에 일부만 남는다</strong>(롤백 없음)</td>
+</tr>
+<tr>
+<td><strong>Content-Type 무검증</strong></td>
+<td>핸들러가 <code>async fn apply_artifact(body: String)</code> — axum <code>String</code> 추출기는 타입 불문 수신</td>
+<td>잘못된 형식도 그대로 파싱 시도</td>
+</tr>
+<tr>
+<td><strong>오류 종류 뭉개짐</strong></td>
+<td><code>status()</code>가 모든 Err를 <code>405</code>로</td>
+<td>파싱 실패/검증 실패/부분 실패 구분 불가</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-content-type">1.3 Content-Type은 사실상 무시된다<a class="headerlink" href="#13-content-type" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// route/api.rs</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">apply_artifact</span><span class="p">(</span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Response</span><span class="w"> </span><span class="p">{</span><span class="w">   </span><span class="c1">// ← String 추출기: Content-Type 검증 없음</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">manager</span><span class="p">::</span><span class="n">apply_artifact</span><span class="p">(</span><span class="o">&amp;</span><span class="n">body</span><span class="p">).</span><span class="k">await</span><span class="p">;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="k">super</span><span class="p">::</span><span class="n">status</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">}</span>
+</code></pre></div>
+<p><code>helloworld.sh</code>는 <code>text/plain</code>을 보내지만, 서버는 <strong>헤더를 보지 않고</strong> 본문을 YAML로 파싱한다.</p>
+<hr />
+<h2 id="2-apply">2. 일괄 Apply(번들 배포) 처리 방안<a class="headerlink" href="#2-apply" title="Permanent link">&para;</a></h2>
+<h3 id="21">2.1 엔드포인트<a class="headerlink" href="#21" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>POST   /api/v1/artifacts            # multi-doc YAML 번들 일괄 배포 → 202 Accepted
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>DELETE /api/v1/artifacts/{scenario} # Scenario 키로 번들 철회      → 202 Accepted
+</code></pre></div>
+<ul>
+<li>리소스별 생성 URI(<code>POST /scenarios</code> 등)는 두지 않는다.</li>
+<li>성공은 <strong>202 Accepted</strong>(apply 비동기).</li>
+</ul>
+<h3 id="22">2.2 번들 파싱·검증 파이프라인 (설계)<a class="headerlink" href="#22" title="Permanent link">&para;</a></h3>
+<p>요청 1건을 다음 순서로 처리하도록 규정한다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>① Content-Type 검사        → 불일치 시 415
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>② multi-doc 분리(&quot;---&quot;)    → 분리 실패/빈 본문 시 400
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>③ 각 문서 kind/name 파싱    → 알 수 없는 kind·필수필드 누락 시 400
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>④ 번들 완전성 검사          → Scenario·Package 필수. 누락 시 422
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>⑤ 참조 무결성 검사(권장)    → Package가 가리키는 Model/Volume/Network/Policy/Schedule 존재 확인 → 누락 시 422
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>⑥ 일괄 커밋              → ①~⑤ 통과분을 한 번에 kvstore write (부분 실패 방지)
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>⑦ filtergateway로 enqueue  → 202 반환
+</code></pre></div>
+<blockquote>
+<p>현재는 Content-Type 검사 안하고 있고, multi-doc 분리는 하지만 오류 코드 없이 실패 시 그냥 빈 결과로 진행, 각 문서 kind/name 파싱은 하고 있지만 알 수 없는 kind는 조용히 skip 하고 있고, 번들 완전성 검사는 하지만 오류 코드는 무조건 405로 보내고 있고, 참조 무결성은 Model/Volume/Network만 읽고 없으면 422가 아니라 kvstore 에러 발생시키고, 일괄커밋은 없고, filtergateway enqueue는 마지막 한 세트만. <br />
+<strong>핵심 개선</strong>: 현재는 ②·③·⑥이 뒤섞여(문서별 즉시 write) <strong>부분 저장</strong>이 발생한다.
+재설계는 <strong>"검증을 모두 통과한 뒤 커밋"</strong>(staging→commit) 순서로 바꿔 <strong>번들 무결성</strong>을 보장한다.
+(구현은 Out of Scope. 설계 문서에는 "일괄 커밋 요구사항"으로 명시)</p>
+</blockquote>
+<h3 id="23">2.3 부분 실패 시맨틱<a class="headerlink" href="#23" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>상황</th>
+<th>응답</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>번들 전체 검증 통과 + 커밋 성공</td>
+<td><strong>202 Accepted</strong></td>
+<td>배포 접수</td>
+</tr>
+<tr>
+<td>일부 문서 파싱/검증 실패</td>
+<td><strong>422</strong> (또는 400) + 실패 목록</td>
+<td><strong>전체 거부</strong>(원자적). 부분 성공 없음</td>
+</tr>
+<tr>
+<td>Scenario/Package 누락</td>
+<td><strong>422</strong></td>
+<td>번들 불완전</td>
+</tr>
+<tr>
+<td>커밋(kvstore) 중 오류</td>
+<td><strong>500</strong></td>
+<td>이미 쓴 분은 롤백(설계 요구사항)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>결정: pullpiri는 번들 트랜잭션 모델이므로 <strong>207 Multi-Status(부분 성공)를 쓰지 않는다.</strong> all-or-nothing.</p>
+</blockquote>
+<h3 id="24">2.4 다중 시나리오 세트 처리 (현행 버그 + 재설계 요구)<a class="headerlink" href="#24" title="Permanent link">&para;</a></h3>
+<p><strong>"일괄 Apply"의 의미를 재정의해야 한다.</strong> 현재 "번들"은 사실상 <em>시나리오 세트 1개</em>(Scenario+Package+Model…)만 정상 배포한다.</p>
+<h4 id="_1">현행 동작 (코드 검증됨)<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h4>
+<p><code>apply()</code>는 문서를 순회하며 <code>scenario_str</code>/<code>package_str</code>을 <strong>단일 변수에 덮어쓴다.</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">// artifact/mod.rs apply()</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">KIND_SCENARIO</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">scenario_str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">artifact_str</span><span class="p">,</span><span class="w">   </span><span class="c1">// 매번 덮어씀 → 마지막 것만 생존</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">KIND_PACKAGE</span><span class="w">  </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">package_str</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">artifact_str</span><span class="p">,</span><span class="w">   </span><span class="c1">// 매번 덮어씀 → 마지막 것만 생존</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="o">..</span><span class="p">.</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nb">Ok</span><span class="p">(</span><span class="n">scenario_str</span><span class="p">)</span><span class="w">                                 </span><span class="c1">// 마지막 scenario 1개만 반환</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1">// manager.rs apply_artifact(): 이 1개만 filtergateway로 전송</span>
+</code></pre></div>
+<p>→ 하나의 YAML에 시나리오 세트가 A/B/C 여러 개 있으면:</p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>kvstore 저장</td>
+<td>A·B·C <strong>모두 저장</strong>(<code>process_artifact_document</code> 문서별 즉시 write)</td>
+</tr>
+<tr>
+<td>Pod YAML 생성</td>
+<td><strong>마지막 세트(C)만</strong></td>
+</tr>
+<tr>
+<td>filtergateway 배포 트리거</td>
+<td><strong>마지막 세트(C)만</strong></td>
+</tr>
+<tr>
+<td>A·B</td>
+<td>저장은 됐으나 <strong>배포되지 않는 유령 상태</strong> (silent failure)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_2">두 가지 "일괄 배포" 시나리오<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>사용자 기대</th>
+<th>현행</th>
+<th>재설계 방향</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>(가)</strong></td>
+<td>1개 YAML 안에 <strong>여러 시나리오 세트</strong></td>
+<td>마지막 1개만 배포(버그)</td>
+<td><code>apply()</code>가 세트를 <strong>그룹핑→리스트</strong>로 수집, 각 세트를 개별 <code>HandleScenarioRequest</code>로 <strong>모두 전송</strong></td>
+</tr>
+<tr>
+<td><strong>(나)</strong></td>
+<td><strong>세트 1개짜리 YAML 파일 여러 개</strong>를 일괄 배포</td>
+<td>REST 1회 호출 불가. cat 병합 시 (가)의 버그에 걸림</td>
+<td>서버가 (가)를 지원하면 <strong>cat 병합 → 1회 POST</strong>로 자연 해결. 또는 클라이언트가 파일별 순차 POST</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_3">설계 요구사항<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>세트 그룹핑</strong>: 번들을 <code>Scenario</code>를 경계로 세트 단위로 묶는다(Scenario N개 → 세트 N개). Package/Model 등은 각 세트에 귀속.</li>
+<li><strong>다중 전송</strong>: 각 세트마다 <code>HandleScenarioRequest</code>를 생성해 <strong>모두</strong> filtergateway로 enqueue한다(현행처럼 마지막 1개가 아님).</li>
+<li><strong>무결성 결합</strong>: §2.2의 일괄 커밋과 결합 — 모든 세트가 검증 통과해야 <strong>전체 커밋 + 전체 전송</strong>, 하나라도 실패면 전체 거부(all-or-nothing).</li>
+<li><strong>네이밍 충돌 처리</strong>: 같은 번들에 동일 <code>Scenario/{name}</code>이 중복되면 400(중복 선언)으로 거부.</li>
+<li><strong>응답</strong>: 다중 세트라도 접수는 <strong>202 Accepted</strong> 하나로 응답하고, 세트별 실제 기동 결과는 GET 상태 조회로 확인(v2 Task 3.2 비동기 근거).</li>
+</ol>
+<blockquote>
+<p><strong>결론</strong>: "일괄 Apply"는 <strong>① 다중 리소스(문서) 배포</strong>뿐 아니라 <strong>② 다중 시나리오 세트 배포</strong>까지 포함해야 한다.
+현행의 한계는 다음과 같다.
+- <strong>① 다중 문서 배포 — 부분 지원</strong>: 문서 8종은 모두 kvstore에 <em>저장</em>되나, ⓐ 중간 실패 시 앞 문서 롤백이 없어 <strong>부분 저장</strong>이 남고(일괄 커밋 아님), ⓑ Network는 읽기만 하고 <strong>미반영(<code>TODO</code>)</strong>이다. 즉 "저장"은 전부지만 "배포 반영"은 일부다.
+- <strong>② 다중 시나리오 세트 — 미지원(버그)</strong>: <code>scenario_str</code>/<code>package_str</code> 단일 변수 덮어쓰기로 <strong>마지막 세트 1개만 배포</strong>된다.</p>
+<p>따라서 <code>apply()</code>의 단일 변수 구조를 <strong>세트 리스트 구조로 재설계</strong>하고, 일괄 커밋(all-or-nothing)과 결합하는 것이 핵심 요구사항이다. (구현은 Out of Scope, 설계 요구사항으로 명시)</p>
+</blockquote>
+<h3 id="24-withdraw">2.4 철회(withdraw)의 멱등성<a class="headerlink" href="#24-withdraw" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// 현재 withdraw(): Scenario 문서를 찾아 &quot;Scenario/{name}&quot;만 삭제</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>상황</th>
+<th>응답</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>존재하는 scenario 철회</td>
+<td>202 Accepted</td>
+</tr>
+<tr>
+<td><strong>이미 없는</strong> scenario 철회</td>
+<td><strong>204 No Content</strong> 권장(멱등) 또는 404(엄격) 중 택1</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>권장: DELETE는 멱등이 자연스러우므로 "없어도 성공(204)". 단 감사 목적이면 404도 허용 — 문서에 택1 명시.</p>
+</blockquote>
+<hr />
+<h2 id="3-content-type">3. Content-Type 및 요청/응답 스키마<a class="headerlink" href="#3-content-type" title="Permanent link">&para;</a></h2>
+<h3 id="31-content-type">3.1 요청 Content-Type 규정<a class="headerlink" href="#31-content-type" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Content-Type</th>
+<th>용도</th>
+<th>처리</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>application/yaml</code> (권장 정식)</td>
+<td>multi-doc 번들 배포</td>
+<td>파싱 수행</td>
+</tr>
+<tr>
+<td><code>application/x-yaml</code>, <code>text/yaml</code></td>
+<td>관용 별칭</td>
+<td>허용(정규화)</td>
+</tr>
+<tr>
+<td><code>text/plain</code></td>
+<td><strong>현행 호환</strong>(helloworld.sh)</td>
+<td>한시 허용(deprecated 경고)</td>
+</tr>
+<tr>
+<td>지원하지 않는 타입(예: JSON 미지원 시점)</td>
+<td>—</td>
+<td><strong>415 Unsupported Media Type</strong></td>
+</tr>
+<tr>
+<td>헤더 누락/빈 값</td>
+<td>—</td>
+<td><strong>400 Bad Request</strong> (또는 text/plain로 관용 처리 — 택1)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>415 vs 400 구분 원칙</strong> (v2 Task 3 매핑과 대칭):
+- <strong>400</strong>: <code>Content-Type</code> 헤더가 <strong>아예 없거나 비어 있음</strong> → 요청이 자신의 형식을 선언하지 않은 것.
+- <strong>415</strong>: 헤더는 있으나 <strong>서버가 지원하지 않는 타입</strong>(예: 아직 미지원인 <code>application/json</code>).</p>
+</blockquote>
+<h4 id="alias">별칭(alias) 허용 정책<a class="headerlink" href="#alias" title="Permanent link">&para;</a></h4>
+<p><code>application/yaml</code>은 RFC 9512(2024)에서야 공식 등록된 미디어 타입이라, 구형 클라이언트·프록시·SDK는 아래 관용 표기를 보낼 수 있다. 이를 <strong>거부하지 않고 정규 타입으로 정규화(normalize)</strong>하여 수용한다.</p>
+<table>
+<thead>
+<tr>
+<th>수신 표기</th>
+<th>정규화 결과</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>application/yaml</code></td>
+<td><code>application/yaml</code></td>
+<td>정식(권장)</td>
+</tr>
+<tr>
+<td><code>application/x-yaml</code></td>
+<td><code>application/yaml</code></td>
+<td>표준화 이전 관용 표기</td>
+</tr>
+<tr>
+<td><code>text/yaml</code></td>
+<td><code>application/yaml</code></td>
+<td>표준화 이전 관용 표기</td>
+</tr>
+<tr>
+<td><code>text/plain</code></td>
+<td><code>application/yaml</code>로 <strong>한시 처리</strong></td>
+<td>현행 호환, deprecated 경고 로그</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>정규화 지점</strong>: Content-Type 검증 미들웨어/추출기에서 별칭을 정식 타입으로 매핑한 뒤 파서로 라우팅한다.</li>
+<li><strong>파라미터 무시</strong>: <code>application/yaml; charset=utf-8</code>처럼 <code>;</code> 뒤 파라미터가 붙어도 <strong>주 타입만 비교</strong>한다.</li>
+<li><strong>대소문자 무시</strong>: 미디어 타입 비교는 대소문자를 구분하지 않는다(RFC 규정).</li>
+<li>
+<p><strong>sunset 대상</strong>: <code>text/plain</code>만 향후 제거 예정. <code>application/x-yaml</code>·<code>text/yaml</code>은 영구 별칭으로 유지.</p>
+</li>
+<li>
+<p><strong>검증 추가</strong>: axum <code>String</code> 추출기 대신 <strong>Content-Type을 먼저 확인</strong>하는 미들웨어/추출기 도입(설계 요구사항).</p>
+</li>
+<li><strong>JSON 요청</strong>은 초기 범위에서 제외(향후 구조화 페이로드 옵션). 현행 워크플로는 YAML 유지.</li>
+</ul>
+<h3 id="32">3.2 요청 본문 스키마 (번들)<a class="headerlink" href="#32" title="Permanent link">&para;</a></h3>
+<p>기존 형식을 유지한다(하위호환).</p>
+<blockquote>
+<p><strong>용어 — 문서(document)</strong>: YAML 표준에서 하나의 스트림(여기서는 HTTP 본문 하나)은 <code>---</code>(YAML_SEPARATOR) 구분자로 <strong>여러 문서(multi-document)</strong>를 담을 수 있다. <code>---</code>로 나뉜 <strong>각 YAML 블록 하나</strong>가 "문서"이며, 본 설계에서는 문서 하나 = <strong>리소스 선언 하나</strong>(Scenario/Package/Model/…)에 대응한다. 아래 예시는 <strong>1개의 번들 본문 안에 여러 개의 문서</strong>가 담긴 형태다.</p>
+</blockquote>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Content-Type: application/yaml</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Scenario</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">helloworld</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nt">spec</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nn">---</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Package</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">helloworld</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="nt">spec</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> models</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">],</span><span class="nt"> policy</span><span class="p">:</span><span class="w"> </span><span class="nv">...</span><span class="p p-Indicator">,</span><span class="nt"> schedule</span><span class="p">:</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="nn">---</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Model</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">helloworld-core</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="nt">spec</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="c1"># (+ 필요 시 Volume/Network/Policy/Schedule 문서 추가)</span>
+</code></pre></div>
+<p>문서별 필수 필드: <code>apiVersion</code>, <code>kind</code>, <code>metadata.name</code>, <code>spec</code>.
+<code>kind</code>는 8종(Scenario/Package/Model/Volume/Network/Node/Policy/Schedule) 중 하나. (Node는 REST 배포 비대상 — v2 참조)</p>
+<h3 id="33">3.3 응답 스키마<a class="headerlink" href="#33" title="Permanent link">&para;</a></h3>
+<p>현재는 응답 본문 규격이 없다(상태코드만). 재설계는 <strong>일관된 JSON envelope</strong>로 표준화한다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>// 성공 (202)
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>{
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>  &quot;data&quot;: {
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    &quot;scenario&quot;: &quot;helloworld&quot;,
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    &quot;accepted&quot;: [&quot;Scenario/helloworld&quot;, &quot;Package/helloworld&quot;, &quot;Model/helloworld-core&quot;],
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    &quot;status&quot;: &quot;accepted&quot;          // 비동기: 접수만 의미
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>  },
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  &quot;error&quot;: null
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>}
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>// 실패 (4xx/5xx)
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>{
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>  &quot;data&quot;: null,
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>  &quot;error&quot;: {
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    &quot;code&quot;: &quot;BUNDLE_INCOMPLETE&quot;,  // 기계 판독용 코드
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    &quot;message&quot;: &quot;There is no Package in the bundle&quot;,
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    &quot;details&quot;: [                  // 다중 검증 실패 시
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>      { &quot;doc&quot;: 2, &quot;kind&quot;: &quot;Model&quot;, &quot;reason&quot;: &quot;referenced model &#39;x&#39; not found&quot; }
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    ]
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>  }
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>}
+</code></pre></div>
+<ul>
+<li>조회(GET) 응답도 같은 envelope를 사용: <code>{ "data": {...}, "error": null }</code>.</li>
+<li><code>error.code</code>는 Task 3의 오류 enum(선행조건)과 1:1로 매핑한다.</li>
+</ul>
+<h4 id="get">조회(GET) 응답 예시<a class="headerlink" href="#get" title="Permanent link">&para;</a></h4>
+<p>GET은 apply 때 kvstore(<code>{Kind}/{name}</code>)에 저장된 <strong>선언(desired) 그대로</strong>를 반환한다.
+저장값은 정규화 YAML이며, 각 리소스 struct가 이미 <code>serde::Serialize</code>를 구현하므로
+<strong>YAML → JSON 직렬화는 두 줄(<code>serde_yaml::from_str</code> → <code>serde_json::to_string</code>)로 충분</strong>하다(별도 매핑 불필요).</p>
+<p><strong>단건 조회</strong> — 저장된 리소스 선언 전체를 JSON으로:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>// GET /api/v1/scenarios/helloworld → 200 OK
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>{
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>  &quot;data&quot;: {
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    &quot;apiVersion&quot;: &quot;v1&quot;,
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    &quot;kind&quot;: &quot;Scenario&quot;,
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    &quot;metadata&quot;: { &quot;name&quot;: &quot;helloworld&quot; },
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    &quot;spec&quot;: {
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>      &quot;condition&quot;: {
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>        &quot;express&quot;: &quot;eq&quot;,
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>        &quot;value&quot;: &quot;true&quot;,
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>        &quot;operands&quot;: { &quot;type&quot;: &quot;DDS&quot;, &quot;name&quot;: &quot;value&quot;, &quot;value&quot;: &quot;ADASObstacleDetectionIsWarning&quot; }
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>      },
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>      &quot;action&quot;: &quot;update&quot;,
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>      &quot;target&quot;: &quot;helloworld&quot;
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    }
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>  },
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>  &quot;error&quot;: null
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>}
+</code></pre></div>
+<p><strong>목록 조회</strong> — 가벼운 요약 배열(전체 spec은 단건으로 재조회):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>// GET /api/v1/scenarios → 200 OK
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>{
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>  &quot;data&quot;: {
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    &quot;items&quot;: [
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>      { &quot;name&quot;: &quot;helloworld&quot;, &quot;kind&quot;: &quot;Scenario&quot; },
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>      { &quot;name&quot;: &quot;antipinch&quot;,  &quot;kind&quot;: &quot;Scenario&quot; }
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    ],
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    &quot;count&quot;: 2
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>  },
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>  &quot;error&quot;: null
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>}
+</code></pre></div>
+<p><strong>없을 때</strong>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>// GET /api/v1/scenarios/nope → 404 Not Found
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>{ &quot;data&quot;: null, &quot;error&quot;: { &quot;code&quot;: &quot;NOT_FOUND&quot;, &quot;message&quot;: &quot;scenario &#39;nope&#39; not found&quot; } }
+</code></pre></div>
+<h5 id="_4">리소스별 저장(=반환) 값 (코드 기준)<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h5>
+<p>키는 <code>{Kind}/{name}</code>, 값은 아래 spec을 담은 정규화 YAML이다.</p>
+<table>
+<thead>
+<tr>
+<th>리소스</th>
+<th>저장되는 주요 필드(spec)</th>
+<th>스키마 정의 파일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Scenario</strong></td>
+<td><code>condition{express,value,operands{type,name,value}}</code>, <code>action</code>, <code>target</code></td>
+<td><code>common/src/spec/artifact/scenario.rs</code> (<code>ScenarioSpec</code>)</td>
+</tr>
+<tr>
+<td><strong>Package</strong></td>
+<td><code>pattern[]</code>, <code>models[]{name,node,resources{volume,network}}</code>, <code>policy?</code>, <code>schedule?</code></td>
+<td><code>common/src/spec/artifact/package.rs</code> (<code>PackageSpec</code>)</td>
+</tr>
+<tr>
+<td><strong>Model</strong></td>
+<td><code>spec</code> = <strong>PodSpec</strong>(containers/이미지/자원 등, k8s Pod 스펙 타입)</td>
+<td><code>common/src/spec/artifact/model.rs</code> (<code>ModelSpec=PodSpec</code>)</td>
+</tr>
+<tr>
+<td><strong>Volume</strong></td>
+<td><code>spec.volumes[]</code>(k8s Pod Volume 목록)</td>
+<td><code>common/src/spec/artifact/volume.rs</code> (<code>VolumeSpec</code>)</td>
+</tr>
+<tr>
+<td><strong>Network</strong></td>
+<td><code>spec.dummy</code>(현재 <strong>미구현 placeholder</strong>)</td>
+<td><code>common/src/spec/artifact/network.rs</code> (<code>NetworkSpec</code>)</td>
+</tr>
+<tr>
+<td><strong>Policy</strong></td>
+<td><code>spec.placement.availableNodes[]</code>, <code>spec.procedure{...}</code></td>
+<td><code>common/src/spec/artifact/policy.rs</code> (<code>PolicySpec</code>)</td>
+</tr>
+<tr>
+<td><strong>Schedule</strong></td>
+<td><code>spec[]{name,priority,policy,cpu_affinity,period,release_time,runtime,deadline,node_id,max_dmiss}</code>, <code>temporal_class</code></td>
+<td><code>common/src/spec/artifact/schedule.rs</code> (<code>ScheduleSpec</code>)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>참고: Scenario에는 <code>status</code>(state) 구조가 별도로 있으나 apply 시점엔 <strong>선언(spec)만</strong> 저장된다. 실제 기동 상태(actual)는 settingsservice(런타임/모니터링) 소관이다.</p>
+</blockquote>
+<h5 id="kvstorerocksdb">저장(kvstore/RocksDB) 경로 — 값이 실제로 기록되는 지점<a class="headerlink" href="#kvstorerocksdb" title="Permanent link">&para;</a></h5>
+<p>RocksDB는 apiserver에 내장되지 않고 <strong>별도 gRPC 서비스(<code>rocksdbservice</code>)</strong> 로 분리돼 있다. apply한 값은 아래 4단계를 거쳐 RocksDB에 기록된다.</p>
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>파일:라인</th>
+<th>역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td><code>apiserver/src/artifact/data.rs:41</code> <code>write_to_kvstore()</code></td>
+<td>apiserver 측 래퍼</td>
+</tr>
+<tr>
+<td>②</td>
+<td><code>common/src/kvstore.rs:22</code> <code>put()</code></td>
+<td>RocksDB <strong>gRPC 클라이언트</strong>(<code>ROCKSDB_SERVICE_URL</code>)</td>
+</tr>
+<tr>
+<td>③</td>
+<td>(gRPC 전송)</td>
+<td><code>RocksDbServiceClient::connect(...).put(PutRequest{key,value})</code></td>
+</tr>
+<tr>
+<td>④</td>
+<td><code>server/rocksdbservice/src/main.rs:111</code> <code>put()</code> → <code>db_lock.put(key,value)</code></td>
+<td><strong>실제 RocksDB write</strong> (DB 경로 <code>/tmp/pullpiri_shared_rocksdb</code>)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>설계 함의</strong>: RocksDB가 gRPC로 분리돼 있으므로, <strong>일괄 커밋(all-or-nothing)</strong> 은 <code>BatchPutRequest</code>(kvstore.rs가 이미 import) 활용 또는 rocksdbservice의 트랜잭션 엔드포인트가 필요하다.</p>
+</blockquote>
+<h3 id="34-content-type">3.4 응답 Content-Type<a class="headerlink" href="#34-content-type" title="Permanent link">&para;</a></h3>
+<ul>
+<li>응답 본문은 <strong>항상 <code>application/json</code></strong>.</li>
+<li>요청이 YAML이어도 응답은 JSON으로 통일(파싱·툴링 용이).</li>
+</ul>
+<hr />
+<h2 id="4-task">4. 이슈 Task 대응 정리<a class="headerlink" href="#4-task" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>이슈 항목</th>
+<th>결정</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>④ 일괄 Apply</td>
+<td><code>POST /api/v1/artifacts</code>로 번들 수신(현행 <code>---</code> 계승). <strong>검증 후 일괄 커밋(all-or-nothing)</strong>으로 부분 저장 제거. 202 반환</td>
+</tr>
+<tr>
+<td>④ 철회</td>
+<td><code>DELETE /api/v1/artifacts/{scenario}</code> — Scenario 키 단위, 멱등(204) 또는 404 택1</td>
+</tr>
+<tr>
+<td>⑤ Content-Type</td>
+<td><code>application/yaml</code> 정식화 + <strong>415/400 검증 추가</strong>. <code>text/plain</code>은 한시 호환(deprecated)</td>
+</tr>
+<tr>
+<td>⑤ 요청 스키마</td>
+<td>기존 multi-doc YAML 유지(하위호환), 문서별 필수필드 규정</td>
+</tr>
+<tr>
+<td>⑤ 응답 스키마</td>
+<td><strong>통일 JSON 봉투</strong>(<code>data</code>/<code>error</code>), <code>error.code</code>는 오류 enum과 매핑, 응답은 항상 JSON</td>
+</tr>
+</tbody>
+</table>
+<hr />
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024–2026 Eclipse Pullpiri Contributors
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/eclipse-pullpiri/pullpiri" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

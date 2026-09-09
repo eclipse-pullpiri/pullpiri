@@ -78,12 +78,17 @@ ignore = [
     #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
     #{ crate = "a-crate-that-is-yanked@0.1.1", reason = "you can specify why you are ignoring the yanked crate" },
 
+    # NOTE: The following advisory exception was removed as the cargo dependencies
+    # have been updated. Commenting this out so cargo-deny performs the CVE check
+    # naturally. Re-enable only if the check fails after dependency updates.
+    # See: https://github.com/eclipse-pullpiri/pullpiri/security/dependabot
+    #
     # False positive: The scanner misidentifies `rand_core 0.6.4` and `rand_chacha 0.3.1`
     # (sub-components of the safe `rand 0.8.x` crate) as the old vulnerable
     # standalone `rand 0.6.4` / `rand 0.3.1` packages.
     # CVE-2020-25576 (GHSA-mmc9-pwm7-qj5w) affects rand_core < 0.4.2.
     # rand_core 0.6.4 is >= 0.4.2 and is NOT vulnerable.
-    { id = "GHSA-mmc9-pwm7-qj5w", reason = "False positive: rand_core 0.6.4 and rand_chacha 0.3.1 are safe sub-components of rand 0.8.x (version numbers misidentified as old vulnerable rand 0.3.1/0.6.4 releases). rand_core 0.6.4 > 0.4.2 threshold and is not affected by CVE-2020-25576." },
+    #{ id = "GHSA-mmc9-pwm7-qj5w", reason = "False positive: rand_core 0.6.4 and rand_chacha 0.3.1 are safe sub-components of rand 0.8.x (version numbers misidentified as old vulnerable rand 0.3.1/0.6.4 releases). rand_core 0.6.4 > 0.4.2 threshold and is not affected by CVE-2020-25576." },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.

@@ -160,7 +160,7 @@ settingscli -v get board
 settingscli describe node lg-OptiPlex-3070
 
 # Get raw JSON output for a specific SoC
-settingscli raw soc 10.221.40.190
+settingscli raw soc 10.123.123.123
 
 # Get all containers
 settingscli get container
@@ -550,13 +550,13 @@ settingscli -u http://remote-host:8080 -t 30 get metrics
 settingscli get boards
 
 # Describe specific board details
-settingscli describe board 10.221.40.100
+settingscli describe board 10.123.123.123
 
 # Get raw board data (all boards)
 settingscli raw board
 
 # Get raw data for specific board
-settingscli raw board 10.221.40.100
+settingscli raw board 10.123.123.123
 ```
 
 ### Node Commands
@@ -582,13 +582,13 @@ settingscli raw node lg-OptiPlex-3070
 settingscli get soc
 
 # Describe specific SoC details
-settingscli describe soc 10.221.40.190
+settingscli describe soc 10.123.123.123
 
 # Get raw SoC data (all SoCs)
 settingscli raw soc
 
 # Get raw data for specific SoC
-settingscli raw soc 10.221.40.190
+settingscli raw soc 10.123.123.123
 ```
 
 ### Container Commands

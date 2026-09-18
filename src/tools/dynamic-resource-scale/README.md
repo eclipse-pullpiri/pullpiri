@@ -90,7 +90,7 @@ The `node` argument may be either an IP address or a node hostname. Resolution
 is performed server-side by the ActionController:
 
 - Empty -> the local node (`127.0.0.1`).
-- An IP literal (e.g. `10.231.176.123`) -> used as-is.
+- An IP literal (e.g. `10.123.123.123`) -> used as-is.
 - A hostname (e.g. `HPC`) -> resolved to an IP by looking it up in the cluster
   node registry (`cluster/nodes/` in the key-value store). This lets you resize
   a workload running on a remote node by its node name.

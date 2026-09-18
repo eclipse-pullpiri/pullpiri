@@ -59,8 +59,7 @@ INSTALL_MODE="${INSTALL_MODE:-prod}"
 # Make directory and binary
 AGENT_BINARY_PATH="/opt/pullpiri/nodeagent"
 sudo mkdir -p "$(dirname "${AGENT_BINARY_PATH}")"
-# BINARY_URL="https://github.com/eclipse-pullpiri/pullpiri/releases/latest/download/nodeagent-linux-${SUFFIX}"
-BINARY_URL="https://github.com/MCO-PICCOLO/pullpiri-timpani/releases/latest/download/nodeagent-linux-${SUFFIX}"
+BINARY_URL="https://github.com/eclipse-pullpiri/pullpiri/releases/latest/download/nodeagent-linux-${SUFFIX}"
 
 if [[ "${INSTALL_MODE}" == "dev" ]]; then
 	BUILD_BINARY_PATH_DEFAULT="${SCRIPT_DIR}/../src/agent/nodeagent/target/${BUILD_TARGET}/release/nodeagent"
@@ -81,8 +80,7 @@ if [[ "${INSTALL_MODE}" == "dev" ]]; then
 		echo "Using existing installed binary at ${AGENT_BINARY_PATH}"
 	fi
 else
-#	CHECKSUM_URL="https://github.com/eclipse-pullpiri/pullpiri/releases/latest/download/SHA256SUMS-nodeagent"
-	CHECKSUM_URL="https://github.com/MCO-PICCOLO/pullpiri-timpani/releases/latest/download/SHA256SUMS-nodeagent"
+	CHECKSUM_URL="https://github.com/eclipse-pullpiri/pullpiri/releases/latest/download/SHA256SUMS-nodeagent"
 	TMP_CHECKSUMS="$(mktemp)"
 
 	cleanup() {

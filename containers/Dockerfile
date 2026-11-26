@@ -4,7 +4,7 @@
 #################################
 # === Build Stage ===
 #################################
-FROM rust:1.88.0-slim AS builder
+FROM rust:1.89.0-slim AS builder
 
 ARG TARGETARCH
 
@@ -50,7 +50,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 #################################
 # === Runtime Stage ===
 #################################
-FROM alpine:3.21.3
+FROM alpine:3.24.4
 
 ARG TARGETARCH
 ENV TARGETARCH=${TARGETARCH}

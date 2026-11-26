@@ -38,7 +38,7 @@ spec:
   hostNetwork: true
   containers:
   - name: test-app
-    image: docker.io/library/alpine:3.21.3
+    image: docker.io/library/alpine:3.24.4
     command: ["/bin/sh", "-c", "sleep 10000"]
     #args: ["sleep", "10000"]
     workingDir: /app
@@ -76,7 +76,7 @@ spec:
 #  hostNetwork: true
   containers:
   - name: test-app2
-    image: docker.io/library/alpine:3.21.3
+    image: docker.io/library/alpine:3.24.4
     #command: ["/bin/sh"]
     args: ["sleep", "10000"]
     workingDir: /app

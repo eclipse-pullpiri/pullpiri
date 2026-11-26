@@ -43,7 +43,7 @@ anyhow = "1.0.103"
 thiserror = "2.0"
 
 # Utilities
-uuid = { version = "1.0", features = ["v4", "serde"] }
+uuid = { version = "1.29.3", features = ["v4", "serde"] }
 chrono = { version = "0.4.43", features = ["serde"] }
 #toml = "0.8"
 url = "2.0"

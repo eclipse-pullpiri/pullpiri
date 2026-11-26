@@ -129,7 +129,7 @@ The builder stage installs all build-time dependencies and compiles all Rust bin
 - Runs `cargo build --release` to produce all server and player binaries
 - Copies architecture-specific shared libraries (glibc) for the runtime stage
 
-#### Stage 2 – Runtime (`alpine:3.21.3`)
+#### Stage 2 – Runtime (`alpine:3.24.4`)
 
 The runtime stage is a minimal Alpine image containing only the compiled binaries and required shared libraries:
 

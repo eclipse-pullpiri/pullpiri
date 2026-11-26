@@ -524,10 +524,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#stage-2-runtime-alpine3213" class="md-nav__link">
+  <a href="#stage-2-runtime-alpine3244" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Stage 2 – Runtime (alpine:3.21.3)
+        Stage 2 – Runtime (alpine:3.24.4)
       
     </span>
   </a>
@@ -930,7 +930,7 @@ SPDX-License-Identifier: Apache-2.0
 <li>Runs <code>cargo build --release</code> to produce all server and player binaries</li>
 <li>Copies architecture-specific shared libraries (glibc) for the runtime stage</li>
 </ul>
-<h4 id="stage-2-runtime-alpine3213">Stage 2 – Runtime (<code>alpine:3.21.3</code>)<a class="headerlink" href="#stage-2-runtime-alpine3213" title="Permanent link">&para;</a></h4>
+<h4 id="stage-2-runtime-alpine3244">Stage 2 – Runtime (<code>alpine:3.24.4</code>)<a class="headerlink" href="#stage-2-runtime-alpine3244" title="Permanent link">&para;</a></h4>
 <p>The runtime stage is a minimal Alpine image containing only the compiled binaries and required shared libraries:</p>
 <ul>
 <li>Copies glibc shared libraries from the builder stage</li>
